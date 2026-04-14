@@ -306,8 +306,10 @@
       padding: 11px 14px; color: #fff; font-size: 14px; font-family: inherit;
       outline: none; transition: border-color 0.2s;
       box-sizing: border-box; -webkit-appearance: none;
+      height: 46px; line-height: 1.4;
     }
     .admin-input:focus, .admin-textarea:focus { border-color: var(--green-light); }
+    .admin-textarea { height: auto; min-height: 70px; }
     .admin-textarea { resize: vertical; min-height: 70px; }
 
     /* 주간/야간 토글 */
@@ -463,10 +465,7 @@
         </div>
       </div>
 
-      <div class="admin-form-group">
-        <label class="admin-label">카카오 오픈챗 링크 *</label>
-        <input class="admin-input" id="admin-kakao" placeholder="https://open.kakao.com/..." />
-      </div>
+      <input type="hidden" id="admin-kakao" value="https://open.kakao.com/o/gMGNFtah" />
 
       <div class="admin-form-group">
         <label class="admin-label">메모 (선택)</label>
@@ -666,7 +665,7 @@ window.openAdminModal = function(id) {
       document.getElementById('admin-time').value = j.time || '';
       document.getElementById('admin-capacity').value = j.capacity || '';
       document.getElementById('admin-greenfee').value = j.greenfee || '';
-      document.getElementById('admin-kakao').value = j.kakaoUrl || '';
+      document.getElementById('admin-kakao').value = j.kakaoUrl || 'https://open.kakao.com/o/gMGNFtah';
       document.getElementById('admin-memo').value = j.memo || '';
       window.setJoinType(j.joinType || 'field');
       window.setTimeType(j.timeType || 'day');
