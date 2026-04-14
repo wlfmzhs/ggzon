@@ -421,22 +421,6 @@
       <div class="admin-section-title">기본 정보</div>
 
       <div class="admin-form-group">
-        <label class="admin-label">골프장 이름 *</label>
-        <input class="admin-input" id="admin-course" placeholder="예) 블루원 용인CC" />
-      </div>
-
-      <div style="display:flex;gap:10px;">
-        <div class="admin-form-group" style="flex:1;">
-          <label class="admin-label">날짜 *</label>
-          <input class="admin-input" id="admin-date" type="date" />
-        </div>
-        <div class="admin-form-group" style="flex:1;">
-          <label class="admin-label">시간 *</label>
-          <input class="admin-input" id="admin-time" type="time" />
-        </div>
-      </div>
-
-      <div class="admin-form-group">
         <label class="admin-label">필드 / 스크린</label>
         <div class="toggle-group">
           <button class="toggle-btn active-day" id="toggle-field" onclick="setJoinType('field')">⛳ 필드</button>
@@ -450,6 +434,21 @@
           <button class="toggle-btn active-day" id="toggle-day" onclick="setTimeType('day')">☀️ 주간</button>
           <button class="toggle-btn" id="toggle-night" onclick="setTimeType('night')">🌙 야간</button>
         </div>
+      </div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">골프장 이름 *</label>
+        <input class="admin-input" id="admin-course" placeholder="예) 블루원 용인CC" />
+      </div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">날짜 *</label>
+        <input class="admin-input" id="admin-date" type="date" />
+      </div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">시간 *</label>
+        <input class="admin-input" id="admin-time" type="time" />
       </div>
 
       <div style="display:flex;gap:10px;">
