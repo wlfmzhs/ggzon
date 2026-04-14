@@ -574,6 +574,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -591,6 +592,10 @@ const app = initializeApp({
 });
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+if (window.Kakao && !Kakao.isInitialized()) {
+  Kakao.init('c9cc7ab9771a20148535e1ac09918775');
+}
 
 let isAdmin = false;
 let currentUser = null;
@@ -745,10 +750,10 @@ function buildCard(j) {
       </button>
       <div class="card-bottom-row">
         <button class="card-share-btn" onclick="window.shareCard('${j.id}')">공유용 이미지 저장</button>
-        <a class="card-kakao-btn" href="${j.kakaoUrl}" target="_blank">
+        <button class="card-kakao-btn" onclick="window.kakaoShare('${j.id}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
-          오픈챗 바로가기
-        </a>
+          카카오 공유
+        </button>
       </div>
       ${adminRow}
     </div>`;
@@ -1035,6 +1040,57 @@ function triggerDownload(canvas) {
   a.click();
   showToast('이미지가 저장되었습니다');
 }
+
+// ── 카카오 공유 ───────────────────────────────────────
+window.kakaoShare = function(id) {
+  const j = joins.find(x => x.id === id);
+  if (!j) return;
+
+  if (!window.Kakao || !Kakao.isInitialized()) {
+    showToast('카카오 SDK 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  const appLink = `${APP_BASE}/join.html#card-${id}`;
+  const participants = j.participants || [];
+  const remaining = j.capacity - participants.length;
+
+  const descLines = [
+    `📅 ${j.date}  ⏰ ${j.time}`,
+    j.greenfee ? `💰 그린피 ${fmtFee(j.greenfee)}원` : null,
+    `👥 ${remaining > 0 ? remaining + '명 모집중' : '마감'}`,
+    j.memo ? `📝 ${j.memo}` : null,
+  ].filter(Boolean).join('\n');
+
+  Kakao.Share.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: `⛳ ${j.course} 조인 모집`,
+      description: descLines,
+      imageUrl: 'https://wlfmzhs.github.io/ggzon/%EC%B0%B8%EA%B3%A0%EC%9D%B4%EB%AF%B8%EC%A7%80/%EC%A1%B0%EC%9D%B8.jpg',
+      link: {
+        mobileWebUrl: appLink,
+        webUrl: appLink,
+      },
+    },
+    buttons: [
+      {
+        title: '앱에서 참여하기',
+        link: {
+          mobileWebUrl: appLink,
+          webUrl: appLink,
+        },
+      },
+      {
+        title: '카카오 오픈챗',
+        link: {
+          mobileWebUrl: j.kakaoUrl,
+          webUrl: j.kakaoUrl,
+        },
+      },
+    ],
+  });
+};
 
 // ── 금액 포맷 ─────────────────────────────────────────
 window.formatMoney = function(el) {
