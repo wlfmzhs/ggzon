@@ -429,7 +429,7 @@
         </div>
       </div>
 
-      <div class="admin-form-group">
+      <div class="admin-form-group" id="timetype-group" style="display:none;">
         <label class="admin-label">주간 / 야간</label>
         <div class="toggle-group">
           <button class="toggle-btn active-day" id="toggle-day" onclick="setTimeType('day')">☀️ 주간</button>
@@ -644,6 +644,7 @@ window.setJoinType = function(type) {
   currentJoinType = type;
   document.getElementById('toggle-field').className = 'toggle-btn' + (type === 'field' ? ' active-day' : '');
   document.getElementById('toggle-screen').className = 'toggle-btn' + (type === 'screen' ? ' active-night' : '');
+  document.getElementById('timetype-group').style.display = type === 'field' ? 'block' : 'none';
 };
 
 // ── 주간/야간 토글 ─────────────────────────────────────
@@ -676,7 +677,7 @@ window.openAdminModal = function(id) {
     document.getElementById('admin-time').value = '';
     document.getElementById('admin-capacity').value = '';
     document.getElementById('admin-greenfee').value = '';
-    document.getElementById('admin-kakao').value = '';
+    document.getElementById('admin-kakao').value = 'https://open.kakao.com/o/gMGNFtah';
     document.getElementById('admin-memo').value = '';
     window.setJoinType('field');
     window.setTimeType('day');
