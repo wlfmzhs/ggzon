@@ -121,6 +121,19 @@
       background: linear-gradient(90deg, #2a3a9f, #5566ee);
     }
     .join-card.night .card-meta-icon { color: #8899ff; }
+    .join-card.night .avatar-circle {
+      background: linear-gradient(135deg, rgba(100,120,255,0.5), rgba(40,50,130,0.7));
+      border-color: rgba(100,120,255,0.5);
+    }
+    .join-card.night .avatar-circle.me {
+      background: linear-gradient(135deg, #5566ee, #2a3a9f);
+      border-color: #5566ee;
+      box-shadow: 0 0 0 2px rgba(100,120,255,0.4), 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .join-card.night .participant-count-badge {
+      color: #8899ff; background: rgba(100,120,255,0.15); border-color: rgba(100,120,255,0.3);
+    }
+    .join-card.night .avatar-name.me { color: #8899ff; }
 
     /* 주간/야간 뱃지 */
     .day-label {
@@ -238,35 +251,56 @@
 
     /* 참석자 명단 */
     .participant-list {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 14px;
+      padding: 14px 14px 12px;
       margin-bottom: 14px;
     }
+    .participant-list-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
     .participant-list-label {
-      font-size: 10px; font-weight: 700;
-      color: rgba(255,255,255,0.3); letter-spacing: 0.8px;
-      margin-bottom: 7px;
+      font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.5); letter-spacing: 0.5px;
     }
-    .participant-chips {
-      display: flex; flex-wrap: wrap; gap: 6px;
-    }
-    .participant-chip {
-      display: flex; align-items: center; gap: 5px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px; padding: 4px 10px;
-      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.75);
-    }
-    .participant-chip.me {
-      background: rgba(62,160,102,0.15);
-      border-color: rgba(62,160,102,0.35);
+    .participant-count-badge {
+      font-size: 11px; font-weight: 800;
       color: var(--green-light);
+      background: rgba(62,160,102,0.15);
+      border: 1px solid rgba(62,160,102,0.3);
+      padding: 2px 8px; border-radius: 10px;
     }
-    .participant-chip-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: rgba(255,255,255,0.3); flex-shrink: 0;
+    .participant-avatars {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
     }
-    .participant-chip.me .participant-chip-dot { background: var(--green-light); }
+    .participant-avatar {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+    }
+    .avatar-circle {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(62,160,102,0.5), rgba(45,122,79,0.7));
+      border: 2px solid rgba(62,160,102,0.5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .avatar-circle.me {
+      background: linear-gradient(135deg, #3ea066, #2d7a4f);
+      border-color: #3ea066;
+      box-shadow: 0 0 0 2px rgba(62,160,102,0.4), 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .avatar-name {
+      font-size: 10px; font-weight: 700;
+      color: rgba(255,255,255,0.6); max-width: 44px;
+      text-align: center; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .avatar-name.me { color: var(--green-light); }
     .participant-empty {
-      font-size: 12px; color: rgba(255,255,255,0.2); font-style: italic;
+      font-size: 12px; color: rgba(255,255,255,0.25);
+      font-style: italic; padding: 4px 0;
     }
 
     /* 하단 보조 버튼 행 */
@@ -719,13 +753,21 @@ function buildCard(j) {
         <div class="card-progress-bar"><div class="card-progress-fill" style="width:${fillPct}%"></div></div>
       </div>
       <div class="participant-list">
-        <div class="participant-list-label">참석자</div>
-        <div class="participant-chips">
+        <div class="participant-list-header">
+          <span class="participant-list-label">👥 참석자</span>
+          <span class="participant-count-badge">${currentCount} / ${j.capacity}명</span>
+        </div>
+        <div class="participant-avatars">
           ${participants.length === 0
             ? `<span class="participant-empty">아직 참여자가 없습니다</span>`
             : participants.map(p => {
                 const isMe = currentUser && p.uid === currentUser.uid;
-                return `<span class="participant-chip${isMe ? ' me' : ''}"><span class="participant-chip-dot"></span>${p.name}${isMe ? ' (나)' : ''}</span>`;
+                const initial = p.name ? p.name.charAt(0) : '?';
+                return `
+                  <div class="participant-avatar">
+                    <div class="avatar-circle${isMe ? ' me' : ''}">${initial}</div>
+                    <div class="avatar-name${isMe ? ' me' : ''}">${isMe ? '나' : p.name}</div>
+                  </div>`;
               }).join('')
           }
         </div>
