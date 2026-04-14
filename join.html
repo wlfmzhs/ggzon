@@ -454,15 +454,14 @@
         <input class="admin-input" id="admin-time" type="time" />
       </div>
 
-      <div style="display:flex;gap:10px;">
-        <div class="admin-form-group" style="flex:1;">
-          <label class="admin-label">참석 인원 *</label>
-          <input class="admin-input" id="admin-capacity" type="number" placeholder="4" min="1" max="20" />
-        </div>
-        <div class="admin-form-group" id="greenfee-group" style="flex:1;">
-          <label class="admin-label">그린피 *</label>
-          <input class="admin-input" id="admin-greenfee" placeholder="예) 150,000" oninput="formatMoney(this)" inputmode="numeric" />
-        </div>
+      <div class="admin-form-group">
+        <label class="admin-label">참석 인원 *</label>
+        <input class="admin-input" id="admin-capacity" type="number" placeholder="4" min="1" max="20" />
+      </div>
+
+      <div class="admin-form-group" id="greenfee-group">
+        <label class="admin-label">그린피 *</label>
+        <input class="admin-input" id="admin-greenfee" placeholder="예) 150,000" oninput="formatMoney(this)" inputmode="numeric" />
       </div>
 
       <input type="hidden" id="admin-kakao" value="https://open.kakao.com/o/gMGNFtah" />
