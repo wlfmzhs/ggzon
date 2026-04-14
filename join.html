@@ -207,16 +207,56 @@
       background: linear-gradient(90deg, #2a3a9f, #5566ee);
     }
 
-    /* 카카오 버튼 */
-    .card-action-btn {
-      width: 100%; padding: 12px;
+    /* 참여하기 버튼 */
+    .card-join-btn {
+      width: 100%; padding: 13px;
       background: linear-gradient(90deg, var(--green), var(--green-light));
-      color: #fff; font-size: 14px; font-weight: 800;
+      color: #fff; font-size: 15px; font-weight: 800;
       border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
-      transition: opacity 0.2s; text-decoration: none;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: opacity 0.2s; margin-bottom: 8px;
     }
-    .card-action-btn:active { opacity: 0.8; }
+    .card-join-btn:active { opacity: 0.8; }
+    .card-join-btn.joined {
+      background: rgba(62,160,102,0.15);
+      border: 1px solid rgba(62,160,102,0.4);
+      color: var(--green-light);
+    }
+    .card-join-btn.full {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.3);
+      cursor: default;
+    }
+    .join-card.night .card-join-btn {
+      background: linear-gradient(90deg, #2a3a9f, #5566ee);
+    }
+    .join-card.night .card-join-btn.joined {
+      background: rgba(100,120,255,0.15);
+      border: 1px solid rgba(100,120,255,0.4);
+      color: #8899ff;
+    }
+
+    /* 하단 보조 버튼 행 */
+    .card-bottom-row { display: flex; gap: 8px; }
+    .card-share-btn {
+      flex: 1; padding: 10px 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 700;
+      border-radius: 10px; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .card-share-btn:active { background: rgba(255,255,255,0.12); }
+    .card-kakao-btn {
+      flex: 1; padding: 10px 8px;
+      background: rgba(254,229,0,0.12);
+      border: 1px solid rgba(254,229,0,0.3);
+      color: #ffe033; font-size: 12px; font-weight: 700;
+      border-radius: 10px; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      text-decoration: none;
+    }
+    .card-kakao-btn:active { background: rgba(254,229,0,0.2); }
 
     /* 관리자 버튼 */
     .card-admin-row { display: flex; gap: 8px; margin-top: 10px; }
@@ -490,11 +530,12 @@
   <div class="toast" id="toast"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp
+  getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -509,6 +550,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let isAdmin = false;
+let currentUser = null;
 let joins = [];
 let currentTimeType = 'day';
 let currentJoinType = 'field';
@@ -527,6 +569,7 @@ const icons = {
 // ── Auth ──────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   if (!user) { window.location.href = 'login.html?return=join.html'; return; }
+  currentUser = user;
   isAdmin = user.email === 'wlfmzhs@naver.com';
   if (isAdmin) document.getElementById('btn-new-join').style.display = 'block';
   document.getElementById('loading-overlay').classList.add('hidden');
@@ -585,6 +628,18 @@ function buildCard(j) {
   const joinTypeBadge = j.joinType === 'screen'
     ? `<span class="screen-label">🖥️ 스크린</span>`
     : `<span class="field-label">⛳ 필드</span>`;
+
+  const participants = j.participants || [];
+  const currentCount = participants.length;
+  const isFull = currentCount >= j.capacity;
+  const alreadyJoined = currentUser && participants.some(p => p.uid === currentUser.uid);
+  const fillPct = j.capacity > 0 ? Math.min(100, Math.round(currentCount / j.capacity * 100)) : 0;
+
+  let joinBtnText = '참여하기';
+  let joinBtnClass = 'card-join-btn';
+  if (alreadyJoined) { joinBtnText = '✓ 참여중 (취소)'; joinBtnClass += ' joined'; }
+  else if (isFull)   { joinBtnText = '마감'; joinBtnClass += ' full'; }
+
   const adminRow = isAdmin ? `
     <div class="card-admin-row">
       <button class="card-edit-btn" onclick="window.openAdminModal('${j.id}')">수정</button>
@@ -594,7 +649,7 @@ function buildCard(j) {
   const memo = j.memo ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px;line-height:1.6;">${j.memo}</div>` : '';
 
   return `
-    <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}">
+    <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}" id="card-${j.id}">
       <div class="card-status-row">
         <span class="badge-open">모집중</span>
         ${joinTypeBadge}
@@ -604,14 +659,27 @@ function buildCard(j) {
       <div class="card-meta">
         <div class="card-meta-row">${icons.calendar}<span class="card-meta-label">날짜</span>${j.date}</div>
         <div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span>${j.time}</div>
-        <div class="card-meta-row">${icons.users}<span class="card-meta-label">참석 인원</span>${j.capacity}명</div>
+        <div class="card-meta-row">${icons.users}<span class="card-meta-label">참석 인원</span>${currentCount} / ${j.capacity}명</div>
         ${j.joinType !== 'screen' && j.greenfee ? `<div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span>${fmtFee(j.greenfee)}</div>` : ''}
       </div>
+      <div class="card-progress-area">
+        <div class="card-progress-top">
+          <span class="card-progress-label">모집 현황</span>
+          <span class="card-progress-num">${currentCount}/${j.capacity}명</span>
+        </div>
+        <div class="card-progress-bar"><div class="card-progress-fill" style="width:${fillPct}%"></div></div>
+      </div>
       ${memo}
-      <a class="card-action-btn" href="${j.kakaoUrl}" target="_blank">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
-        카카오 오픈챗 참여하기
-      </a>
+      <button class="${joinBtnClass}" ${isFull && !alreadyJoined ? 'disabled' : ''} onclick="window.participateJoin('${j.id}')">
+        ${joinBtnText}
+      </button>
+      <div class="card-bottom-row">
+        <button class="card-share-btn" onclick="window.shareCard('${j.id}')">📤 공유 + 카카오</button>
+        <a class="card-kakao-btn" href="${j.kakaoUrl}" target="_blank">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
+          오픈챗 바로가기
+        </a>
+      </div>
       ${adminRow}
     </div>`;
 }
@@ -754,6 +822,100 @@ document.getElementById('confirm-ok-btn').onclick = async () => {
   if (confirmCallback) { await confirmCallback(); }
   window.closeConfirm();
 };
+
+// ── 참여하기 ──────────────────────────────────────────
+window.participateJoin = async function(id) {
+  if (!currentUser) return;
+  const j = joins.find(x => x.id === id);
+  if (!j) return;
+
+  const participants = j.participants || [];
+  const alreadyJoined = participants.some(p => p.uid === currentUser.uid);
+
+  try {
+    if (alreadyJoined) {
+      // 참여 취소
+      const entry = participants.find(p => p.uid === currentUser.uid);
+      await updateDoc(doc(db, 'joins', id), { participants: arrayRemove(entry) });
+      showToast('참여가 취소되었습니다');
+    } else {
+      if (participants.length >= j.capacity) { showToast('정원이 마감되었습니다'); return; }
+      const entry = { uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() };
+      await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
+      showToast('참여 신청이 완료되었습니다!');
+    }
+    await loadJoins();
+  } catch (e) { showToast('오류: ' + e.message); }
+};
+
+// ── 공유 + 카카오 ─────────────────────────────────────
+window.shareCard = async function(id) {
+  const j = joins.find(x => x.id === id);
+  if (!j) return;
+
+  // 카카오 오픈챗 즉시 이동 (사용자 제스처 내 동기 실행)
+  window.open(j.kakaoUrl, '_blank');
+
+  // 공유 이미지 생성
+  if (typeof html2canvas === 'undefined') { showToast('공유 기능을 불러오는 중...'); return; }
+
+  const shareEl = buildShareEl(j);
+  shareEl.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;';
+  document.body.appendChild(shareEl);
+
+  try {
+    const canvas = await html2canvas(shareEl, { backgroundColor: '#0A2406', scale: 2, useCORS: true, logging: false });
+    document.body.removeChild(shareEl);
+
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], 'golgab-join.png', { type: 'image/png' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: j.course + ' 조인 모집' }); }
+        catch (_) { downloadImage(canvas); }
+      } else {
+        downloadImage(canvas);
+      }
+    }, 'image/png');
+  } catch (e) {
+    if (document.body.contains(shareEl)) document.body.removeChild(shareEl);
+    showToast('이미지 생성 실패');
+  }
+};
+
+function downloadImage(canvas) {
+  const a = document.createElement('a');
+  a.download = 'golgab-join.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  showToast('이미지가 저장되었습니다');
+}
+
+function buildShareEl(j) {
+  const typeIcon = j.joinType === 'screen' ? '🖥️ 스크린' : '⛳ 필드';
+  const timeIcon = j.joinType === 'screen' ? '' : (j.timeType === 'night' ? ' · 🌙 야간' : ' · ☀️ 주간');
+  const participants = j.participants || [];
+  const feeLine = j.greenfee ? `<div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,0.6);">💰 그린피 ${fmtFee(j.greenfee)}</div>` : '';
+  const memoLine = j.memo ? `<div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">${j.memo}</div>` : '';
+
+  const el = document.createElement('div');
+  el.style.cssText = 'width:340px;padding:24px;background:#0A2406;font-family:Apple SD Gothic Neo,Noto Sans KR,sans-serif;border-radius:20px;border:1px solid rgba(62,160,102,0.35);';
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <span style="font-size:11px;font-weight:700;color:rgba(62,160,102,0.8);letter-spacing:1.5px;">GOLGAB ZONE · 조인</span>
+      <span style="font-size:11px;color:rgba(255,255,255,0.35);">${typeIcon}${timeIcon}</span>
+    </div>
+    <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;margin-bottom:14px;">${j.course}</div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);">📅 ${j.date} &nbsp; ⏰ ${j.time}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);">👥 ${participants.length} / ${j.capacity}명 모집중</div>
+      ${feeLine}
+    </div>
+    ${memoLine}
+    <div style="margin-top:16px;padding:12px;background:rgba(62,160,102,0.12);border-radius:10px;text-align:center;font-size:12px;color:var(--green-light,#3ea066);font-weight:700;">
+      카카오 오픈챗 또는 GOLGAB ZONE 앱에서 참여하세요
+    </div>`;
+  return el;
+}
 
 // ── 금액 포맷 ─────────────────────────────────────────
 window.formatMoney = function(el) {
