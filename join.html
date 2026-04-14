@@ -644,7 +644,7 @@ window.setJoinType = function(type) {
   document.getElementById('toggle-field').className = 'toggle-btn' + (type === 'field' ? ' active-day' : '');
   document.getElementById('toggle-screen').className = 'toggle-btn' + (type === 'screen' ? ' active-night' : '');
   document.getElementById('timetype-group').style.display = type === 'field' ? 'block' : 'none';
-  document.getElementById('greenfee-group').style.display = type === 'field' ? 'flex' : 'none';
+  document.getElementById('greenfee-group').style.display = type === 'field' ? 'block' : 'none';
 };
 
 // ── 주간/야간 토글 ─────────────────────────────────────
