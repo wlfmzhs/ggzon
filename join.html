@@ -291,7 +291,7 @@
       background: none; border: none; color: rgba(255,255,255,0.5);
       font-size: 22px; cursor: pointer; line-height: 1;
     }
-    .admin-scroll { flex: 1; overflow-y: auto; padding: 20px 18px 40px; scrollbar-width: none; }
+    .admin-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px 18px 40px; scrollbar-width: none; }
     .admin-scroll::-webkit-scrollbar { display: none; }
 
     .admin-section-title {
@@ -301,10 +301,11 @@
     .admin-form-group { margin-bottom: 14px; }
     .admin-label { display: block; font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 6px; font-weight: 600; }
     .admin-input, .admin-textarea {
-      width: 100%; background: rgba(255,255,255,0.06);
+      width: 100%; max-width: 100%; background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
       padding: 11px 14px; color: #fff; font-size: 14px; font-family: inherit;
       outline: none; transition: border-color 0.2s;
+      box-sizing: border-box; -webkit-appearance: none;
     }
     .admin-input:focus, .admin-textarea:focus { border-color: var(--green-light); }
     .admin-textarea { resize: vertical; min-height: 70px; }
