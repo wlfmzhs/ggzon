@@ -849,6 +849,13 @@ window.saveJoin = async function() {
       showToast('조인이 수정되었습니다');
     } else {
       data.createdAt = serverTimestamp();
+      // 개설자 자동 참석 등록
+      let creatorName = currentUser.displayName || '';
+      try {
+        const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userSnap.exists()) creatorName = userSnap.data().name || userSnap.data().nickname || creatorName;
+      } catch (_) {}
+      data.participants = [{ uid: currentUser.uid, name: creatorName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() }];
       await addDoc(collection(db, 'joins'), data);
       showToast('조인이 만들어졌습니다!');
     }
