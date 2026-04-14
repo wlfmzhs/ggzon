@@ -121,19 +121,9 @@
       background: linear-gradient(90deg, #2a3a9f, #5566ee);
     }
     .join-card.night .card-meta-icon { color: #8899ff; }
-    .join-card.night .avatar-circle {
-      background: linear-gradient(135deg, rgba(100,120,255,0.6), rgba(40,50,130,0.8));
-      border-color: rgba(100,120,255,0.5);
-    }
-    .join-card.night .avatar-circle.me {
-      background: linear-gradient(135deg, #5566ee, #2a3a9f);
-      border-color: #5566ee;
-      box-shadow: 0 0 0 2px rgba(100,120,255,0.35);
-    }
     .join-card.night .participant-count-badge {
       color: #8899ff; background: rgba(100,120,255,0.15); border-color: rgba(100,120,255,0.3);
     }
-    .join-card.night .avatar-name.me { color: #8899ff; }
 
     /* 주간/야간 뱃지 */
     .day-label {
@@ -256,39 +246,25 @@
       border-radius: 12px;
       padding: 10px 12px;
       margin-bottom: 12px;
-      display: flex; align-items: center; gap: 10px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
     .participant-list-label {
       font-size: 10px; font-weight: 700;
       color: rgba(255,255,255,0.4); letter-spacing: 0.5px;
       white-space: nowrap; flex-shrink: 0;
     }
-    .participant-avatars {
-      display: flex; align-items: center; flex: 1;
-    }
-    .participant-avatar {
-      display: flex; align-items: center; gap: 5px;
-      margin-right: 6px;
-    }
-    .avatar-circle {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: linear-gradient(135deg, rgba(62,160,102,0.6), rgba(45,122,79,0.8));
-      border: 1.5px solid rgba(62,160,102,0.6);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 900; color: #fff;
-      flex-shrink: 0;
-    }
-    .avatar-circle.me {
-      background: linear-gradient(135deg, #3ea066, #2d7a4f);
-      border-color: #3ea066;
-      box-shadow: 0 0 0 2px rgba(62,160,102,0.35);
-    }
-    .avatar-name {
-      font-size: 11px; font-weight: 700;
-      color: rgba(255,255,255,0.65);
+    .participant-name-chip {
+      font-size: 12px; font-weight: 800;
+      color: var(--gold);
+      background: rgba(240,192,64,0.1);
+      border: 1px solid rgba(240,192,64,0.25);
+      border-radius: 20px; padding: 3px 10px;
       white-space: nowrap;
     }
-    .avatar-name.me { color: var(--green-light); }
+    .participant-name-chip.me {
+      background: rgba(240,192,64,0.2);
+      border-color: rgba(240,192,64,0.45);
+    }
     .participant-count-badge {
       font-size: 11px; font-weight: 800;
       color: var(--green-light);
@@ -601,7 +577,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -753,19 +729,13 @@ function buildCard(j) {
       </div>
       <div class="participant-list">
         <span class="participant-list-label">참석자</span>
-        <div class="participant-avatars">
-          ${participants.length === 0
-            ? `<span class="participant-empty">아직 없음</span>`
-            : participants.map(p => {
-                const isMe = currentUser && p.uid === currentUser.uid;
-                const initial = p.name ? p.name.charAt(0) : '?';
-                return `<div class="participant-avatar">
-                    <div class="avatar-circle${isMe ? ' me' : ''}">${initial}</div>
-                    <span class="avatar-name${isMe ? ' me' : ''}">${isMe ? '나' : p.name}</span>
-                  </div>`;
-              }).join('')
-          }
-        </div>
+        ${participants.length === 0
+          ? `<span class="participant-empty">아직 없음</span>`
+          : participants.map(p => {
+              const isMe = currentUser && p.uid === currentUser.uid;
+              return `<span class="participant-name-chip${isMe ? ' me' : ''}">${p.name}</span>`;
+            }).join('')
+        }
         <span class="participant-count-badge">${currentCount}/${j.capacity}</span>
       </div>
       ${memo}
@@ -947,7 +917,12 @@ window.participateJoin = function(id) {
       `확인을 누르면 참여가 확정됩니다.\n진행하시겠습니까?`,
       async () => {
         try {
-          const entry = { uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() };
+          let realName = currentUser.displayName || '';
+      try {
+        const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userSnap.exists()) realName = userSnap.data().name || userSnap.data().nickname || realName;
+      } catch (_) {}
+      const entry = { uid: currentUser.uid, name: realName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() };
           await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
           showToast('참여 신청이 완료되었습니다!');
           await loadJoins();

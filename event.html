@@ -1666,7 +1666,7 @@ function updateRegisterButton() {
 }
 
 // ── Register sheet ─────────────────────────────────────
-window.openRegisterSheet = function() {
+window.openRegisterSheet = async function() {
   if (!selectedSeat) return;
   if (myRegistration) return;
 
@@ -1680,6 +1680,17 @@ window.openRegisterSheet = function() {
   document.getElementById('reg-phone').value = '';
   document.getElementById('reg-handicap').value = '';
   document.getElementById('reg-account').value = '';
+
+  // 가입 시 등록한 실명 자동 입력
+  if (currentUser) {
+    try {
+      const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userSnap.exists()) {
+        const ud = userSnap.data();
+        document.getElementById('reg-name').value = ud.name || '';
+      }
+    } catch (_) {}
+  }
 
   document.getElementById('sheet-register').classList.add('open');
 };
