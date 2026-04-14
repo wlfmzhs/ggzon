@@ -136,6 +136,33 @@
       border: 1px solid rgba(100,120,255,0.25);
       padding: 2px 8px; border-radius: 8px;
     }
+    .field-label {
+      font-size: 11px; font-weight: 700; color: #f0c040;
+      background: rgba(240,192,64,0.1);
+      border: 1px solid rgba(240,192,64,0.25);
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .screen-label {
+      font-size: 11px; font-weight: 700; color: #ff8c69;
+      background: rgba(255,140,105,0.1);
+      border: 1px solid rgba(255,140,105,0.25);
+      padding: 2px 8px; border-radius: 8px;
+    }
+
+    /* 필터 칩 */
+    .filter-wrap {
+      flex-shrink: 0; display: flex; gap: 7px;
+      padding: 10px 16px 8px;
+    }
+    .filter-chip {
+      padding: 5px 14px; border-radius: 20px;
+      border: 1px solid rgba(62,160,102,0.3); background: transparent;
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.45);
+      cursor: pointer; font-family: inherit; transition: all 0.18s;
+    }
+    .filter-chip.active {
+      background: var(--green); border-color: var(--green); color: #fff;
+    }
     .badge-open {
       background: #e74c3c; color: #fff;
       font-size: 9px; font-weight: 900; letter-spacing: 1px;
@@ -365,6 +392,13 @@
     <button class="tab-btn" id="tab-closed" onclick="switchTab('closed')">마감</button>
   </div>
 
+  <!-- 필터 칩 -->
+  <div class="filter-wrap" id="filter-wrap">
+    <button class="filter-chip active" id="chip-all" onclick="setFilter('all')">전체</button>
+    <button class="filter-chip" id="chip-field" onclick="setFilter('field')">⛳ 필드</button>
+    <button class="filter-chip" id="chip-screen" onclick="setFilter('screen')">🖥️ 스크린</button>
+  </div>
+
   <!-- 스크롤 -->
   <div class="scroll-area">
     <div id="tab-content-active" class="list-content">
@@ -399,6 +433,14 @@
         <div class="admin-form-group" style="flex:1;">
           <label class="admin-label">시간 *</label>
           <input class="admin-input" id="admin-time" type="time" />
+        </div>
+      </div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">필드 / 스크린</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active-day" id="toggle-field" onclick="setJoinType('field')">⛳ 필드</button>
+          <button class="toggle-btn" id="toggle-screen" onclick="setJoinType('screen')">🖥️ 스크린</button>
         </div>
       </div>
 
@@ -471,6 +513,8 @@ const db = getFirestore(app);
 let isAdmin = false;
 let joins = [];
 let currentTimeType = 'day';
+let currentJoinType = 'field';
+let currentFilter = 'all';
 let editingId = null;
 
 // ── 아이콘 SVG ──────────────────────
@@ -504,9 +548,10 @@ async function loadJoins() {
 // ── 진행중 렌더 ───────────────────────────────────────
 function renderActiveList() {
   const el = document.getElementById('active-list');
-  const active = joins.filter(j => j.status !== 'closed');
+  let active = joins.filter(j => j.status !== 'closed');
+  if (currentFilter !== 'all') active = active.filter(j => j.joinType === currentFilter);
   if (!active.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⛳</div>${isAdmin ? '<button onclick="window.openAdminModal(null)" style="background:rgba(62,160,102,0.2);color:var(--green-light);border:1px solid rgba(62,160,102,0.4);border-radius:12px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">+ 첫 번째 조인 만들기</button>' : '현재 모집중인 조인이 없습니다'}</div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⛳</div>${isAdmin && currentFilter === 'all' ? '<button onclick="window.openAdminModal(null)" style="background:rgba(62,160,102,0.2);color:var(--green-light);border:1px solid rgba(62,160,102,0.4);border-radius:12px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">+ 첫 번째 조인 만들기</button>' : '현재 모집중인 조인이 없습니다'}</div>`;
     return;
   }
   el.innerHTML = active.map(j => buildCard(j)).join('');
@@ -539,6 +584,9 @@ function buildCard(j) {
   const timeBadge = isNight
     ? `<span class="night-label">🌙 야간</span>`
     : `<span class="day-label">☀️ 주간</span>`;
+  const joinTypeBadge = j.joinType === 'screen'
+    ? `<span class="screen-label">🖥️ 스크린</span>`
+    : `<span class="field-label">⛳ 필드</span>`;
   const adminRow = isAdmin ? `
     <div class="card-admin-row">
       <button class="card-edit-btn" onclick="window.openAdminModal('${j.id}')">수정</button>
@@ -551,6 +599,7 @@ function buildCard(j) {
     <div class="join-card ${isNight ? 'night' : ''}">
       <div class="card-status-row">
         <span class="badge-open">모집중</span>
+        ${joinTypeBadge}
         ${timeBadge}
       </div>
       <div class="card-title">${j.course}</div>
@@ -575,10 +624,27 @@ window.switchTab = function(tab) {
   document.getElementById('tab-content-closed').classList.toggle('hidden', tab !== 'closed');
   document.getElementById('tab-active').classList.toggle('active', tab === 'active');
   document.getElementById('tab-closed').classList.toggle('active', tab === 'closed');
+  document.getElementById('filter-wrap').style.display = tab === 'active' ? 'flex' : 'none';
 };
 
 // ── 뒤로가기 ──────────────────────────────────────────
 window.goBack = function() { location.href = 'dashboard.html'; };
+
+// ── 필터 칩 ───────────────────────────────────────────
+window.setFilter = function(filter) {
+  currentFilter = filter;
+  ['all','field','screen'].forEach(f => {
+    document.getElementById('chip-' + f).classList.toggle('active', f === filter);
+  });
+  renderActiveList();
+};
+
+// ── 필드/스크린 토글 ───────────────────────────────────
+window.setJoinType = function(type) {
+  currentJoinType = type;
+  document.getElementById('toggle-field').className = 'toggle-btn' + (type === 'field' ? ' active-day' : '');
+  document.getElementById('toggle-screen').className = 'toggle-btn' + (type === 'screen' ? ' active-night' : '');
+};
 
 // ── 주간/야간 토글 ─────────────────────────────────────
 window.setTimeType = function(type) {
@@ -601,6 +667,7 @@ window.openAdminModal = function(id) {
       document.getElementById('admin-greenfee').value = j.greenfee || '';
       document.getElementById('admin-kakao').value = j.kakaoUrl || '';
       document.getElementById('admin-memo').value = j.memo || '';
+      window.setJoinType(j.joinType || 'field');
       window.setTimeType(j.timeType || 'day');
     }
   } else {
@@ -611,6 +678,7 @@ window.openAdminModal = function(id) {
     document.getElementById('admin-greenfee').value = '';
     document.getElementById('admin-kakao').value = '';
     document.getElementById('admin-memo').value = '';
+    window.setJoinType('field');
     window.setTimeType('day');
   }
   document.getElementById('admin-overlay').classList.add('open');
@@ -634,7 +702,7 @@ window.saveJoin = async function() {
     showToast('필수 항목을 모두 입력해주세요'); return;
   }
 
-  const data = { course, date, time, capacity: Number(capacity), greenfee, kakaoUrl, memo, timeType: currentTimeType, status: 'recruiting', updatedAt: serverTimestamp() };
+  const data = { course, date, time, capacity: Number(capacity), greenfee, kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp() };
 
   try {
     if (editingId) {
