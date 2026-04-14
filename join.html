@@ -236,6 +236,39 @@
       color: #8899ff;
     }
 
+    /* 참석자 명단 */
+    .participant-list {
+      margin-bottom: 14px;
+    }
+    .participant-list-label {
+      font-size: 10px; font-weight: 700;
+      color: rgba(255,255,255,0.3); letter-spacing: 0.8px;
+      margin-bottom: 7px;
+    }
+    .participant-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .participant-chip {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 4px 10px;
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.75);
+    }
+    .participant-chip.me {
+      background: rgba(62,160,102,0.15);
+      border-color: rgba(62,160,102,0.35);
+      color: var(--green-light);
+    }
+    .participant-chip-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); flex-shrink: 0;
+    }
+    .participant-chip.me .participant-chip-dot { background: var(--green-light); }
+    .participant-empty {
+      font-size: 12px; color: rgba(255,255,255,0.2); font-style: italic;
+    }
+
     /* 하단 보조 버튼 행 */
     .card-bottom-row { display: flex; gap: 8px; }
     .card-share-btn {
@@ -399,7 +432,7 @@
     }
     .confirm-overlay.open .confirm-sheet { transform: translateY(0); }
     .confirm-title { font-size: 16px; font-weight: 900; margin-bottom: 8px; }
-    .confirm-msg { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 20px; line-height: 1.6; }
+    .confirm-msg { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 20px; line-height: 1.6; white-space: pre-line; }
     .confirm-btns { display: flex; gap: 8px; }
     .confirm-cancel {
       flex: 1; padding: 12px; border-radius: 12px;
@@ -685,6 +718,18 @@ function buildCard(j) {
         </div>
         <div class="card-progress-bar"><div class="card-progress-fill" style="width:${fillPct}%"></div></div>
       </div>
+      <div class="participant-list">
+        <div class="participant-list-label">참석자</div>
+        <div class="participant-chips">
+          ${participants.length === 0
+            ? `<span class="participant-empty">아직 참여자가 없습니다</span>`
+            : participants.map(p => {
+                const isMe = currentUser && p.uid === currentUser.uid;
+                return `<span class="participant-chip${isMe ? ' me' : ''}"><span class="participant-chip-dot"></span>${p.name}${isMe ? ' (나)' : ''}</span>`;
+              }).join('')
+          }
+        </div>
+      </div>
       ${memo}
       <button class="${joinBtnClass}" ${isFull && !alreadyJoined ? 'disabled' : ''} onclick="window.participateJoin('${j.id}')">
         ${joinBtnText}
@@ -840,7 +885,7 @@ document.getElementById('confirm-ok-btn').onclick = async () => {
 };
 
 // ── 참여하기 ──────────────────────────────────────────
-window.participateJoin = async function(id) {
+window.participateJoin = function(id) {
   if (!currentUser) return;
   const j = joins.find(x => x.id === id);
   if (!j) return;
@@ -848,20 +893,30 @@ window.participateJoin = async function(id) {
   const participants = j.participants || [];
   const alreadyJoined = participants.some(p => p.uid === currentUser.uid);
 
-  try {
-    if (alreadyJoined) {
-      // 참여 취소
-      const entry = participants.find(p => p.uid === currentUser.uid);
-      await updateDoc(doc(db, 'joins', id), { participants: arrayRemove(entry) });
-      showToast('참여가 취소되었습니다');
-    } else {
-      if (participants.length >= j.capacity) { showToast('정원이 마감되었습니다'); return; }
-      const entry = { uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() };
-      await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
-      showToast('참여 신청이 완료되었습니다!');
-    }
-    await loadJoins();
-  } catch (e) { showToast('오류: ' + e.message); }
+  if (alreadyJoined) {
+    showConfirm('참여 취소', `${j.course} 조인 참여를 취소하시겠습니까?`, async () => {
+      try {
+        const entry = participants.find(p => p.uid === currentUser.uid);
+        await updateDoc(doc(db, 'joins', id), { participants: arrayRemove(entry) });
+        showToast('참여가 취소되었습니다');
+        await loadJoins();
+      } catch (e) { showToast('오류: ' + e.message); }
+    });
+  } else {
+    if (participants.length >= j.capacity) { showToast('정원이 마감되었습니다'); return; }
+    showConfirm(
+      '참여 확인',
+      `확인을 누르면 참여가 확정됩니다.\n진행하시겠습니까?`,
+      async () => {
+        try {
+          const entry = { uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() };
+          await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
+          showToast('참여 신청이 완료되었습니다!');
+          await loadJoins();
+        } catch (e) { showToast('오류: ' + e.message); }
+      }
+    );
+  }
 };
 
 // ── 공유 + 카카오 ─────────────────────────────────────
