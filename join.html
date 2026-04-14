@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>조인 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --gold: #f0c040;
+      --border: rgba(62,160,102,0.18);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+
+    /* 로딩 */
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(62,160,102,0.3);
+      border-top-color: var(--green-light);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 앱바 */
+    .appbar {
+      flex-shrink: 0; padding: 32px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between; z-index: 10;
+    }
+    .appbar-left { display: flex; align-items: center; gap: 8px; }
+    #btn-back {
+      background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0;
+      color: var(--green-light); font-size: 20px; line-height: 1;
+    }
+    .appbar-title { font-size: 16px; font-weight: 900; }
+    #btn-new-join {
+      display: none;
+      background: rgba(62,160,102,0.2); border: 1px solid rgba(62,160,102,0.4);
+      color: var(--green-light); font-size: 12px; font-weight: 700;
+      padding: 6px 12px; border-radius: 20px; cursor: pointer; font-family: inherit;
+    }
+
+    .hidden { display: none !important; }
+
+    /* 스크롤 */
+    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* 탭바 */
+    .tab-bar {
+      flex-shrink: 0; display: flex; border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+    }
+    .tab-btn {
+      flex: 1; padding: 12px 0; font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,0.4); background: none; border: none;
+      border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { color: #fff; border-bottom-color: var(--green-light); }
+
+    .list-content { padding: 16px 16px 80px; }
+
+    /* 조인 카드 - 주간 */
+    .join-card {
+      background: linear-gradient(135deg, rgba(45,122,79,0.25) 0%, rgba(10,36,6,0.5) 100%);
+      border: 1px solid rgba(62,160,102,0.35);
+      border-radius: 20px; padding: 20px; margin-bottom: 14px;
+      position: relative; overflow: hidden;
+    }
+    .join-card::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 100px; height: 100px;
+      background: radial-gradient(circle, rgba(62,160,102,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    /* 야간 카드 */
+    .join-card.night {
+      background: linear-gradient(135deg, rgba(40,50,130,0.35) 0%, rgba(5,8,35,0.65) 100%);
+      border-color: rgba(110,130,255,0.35);
+    }
+    .join-card.night::before {
+      background: radial-gradient(circle, rgba(110,130,255,0.15) 0%, transparent 70%);
+    }
+    .join-card.night .card-action-btn {
+      background: linear-gradient(90deg, #2a3a9f, #5566ee);
+    }
+    .join-card.night .card-meta-icon { color: #8899ff; }
+
+    /* 주간/야간 뱃지 */
+    .day-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--green-light);
+      background: rgba(62,160,102,0.1);
+      border: 1px solid rgba(62,160,102,0.2);
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .night-label {
+      font-size: 11px; font-weight: 700; color: #8899ff;
+      background: rgba(100,120,255,0.12);
+      border: 1px solid rgba(100,120,255,0.25);
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .badge-open {
+      background: #e74c3c; color: #fff;
+      font-size: 9px; font-weight: 900; letter-spacing: 1px;
+      padding: 3px 7px; border-radius: 10px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    .card-status-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 16px;
+    }
+    .card-meta { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .card-meta-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: rgba(255,255,255,0.65);
+    }
+    .card-meta-icon {
+      width: 14px; height: 14px; color: var(--green-light); flex-shrink: 0;
+    }
+    .card-meta-label { color: rgba(255,255,255,0.35); min-width: 52px; }
+
+    /* 참석 인원 프로그레스 */
+    .card-progress-area { margin-bottom: 16px; }
+    .card-progress-top {
+      display: flex; justify-content: space-between;
+      font-size: 11px; margin-bottom: 5px;
+    }
+    .card-progress-label { color: rgba(255,255,255,0.45); }
+    .card-progress-num { color: var(--green-light); font-weight: 700; }
+    .card-progress-bar {
+      height: 5px; background: rgba(255,255,255,0.1);
+      border-radius: 3px; overflow: hidden;
+    }
+    .card-progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--green), var(--green-light));
+      border-radius: 3px; transition: width 0.5s ease;
+    }
+    .join-card.night .card-progress-fill {
+      background: linear-gradient(90deg, #2a3a9f, #5566ee);
+    }
+
+    /* 카카오 버튼 */
+    .card-action-btn {
+      width: 100%; padding: 12px;
+      background: linear-gradient(90deg, var(--green), var(--green-light));
+      color: #fff; font-size: 14px; font-weight: 800;
+      border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .card-action-btn:active { opacity: 0.8; }
+
+    /* 관리자 버튼 */
+    .card-admin-row { display: flex; gap: 8px; margin-top: 10px; }
+    .card-edit-btn {
+      flex: 1; padding: 8px; font-size: 11px; font-weight: 700;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      background: rgba(240,192,64,0.15); color: var(--gold);
+      border: 1px solid rgba(240,192,64,0.3);
+    }
+    .card-close-btn {
+      flex: 1; padding: 8px; font-size: 11px; font-weight: 700;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      background: rgba(231,76,60,0.15); color: #e74c3c;
+      border: 1px solid rgba(231,76,60,0.3);
+    }
+    .card-delete-btn {
+      flex: 1; padding: 8px; font-size: 11px; font-weight: 700;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      background: rgba(180,0,0,0.2); color: #ff6b6b;
+      border: 1px solid rgba(180,0,0,0.35);
+    }
+
+    /* 마감 카드 */
+    .past-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 16px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .past-icon {
+      width: 40px; height: 40px; flex-shrink: 0;
+      background: rgba(62,160,102,0.1); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .past-info { flex: 1; min-width: 0; }
+    .past-name { font-size: 15px; font-weight: 800; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .past-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .past-badge {
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4);
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 8px; flex-shrink: 0;
+    }
+    .past-delete-btn {
+      flex-shrink: 0;
+      background: rgba(180,0,0,0.15); color: #ff6b6b;
+      border: 1px solid rgba(180,0,0,0.25);
+      font-size: 10px; font-weight: 700;
+      padding: 4px 10px; border-radius: 8px;
+      cursor: pointer; font-family: inherit; margin-left: 6px;
+    }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: rgba(255,255,255,0.3); font-size: 13px;
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* ── 관리자 모달 ── */
+    .admin-overlay {
+      position: absolute; inset: 0;
+      background: var(--green-dark);
+      z-index: 200; display: flex; flex-direction: column;
+      transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+    }
+    .admin-overlay.open { transform: translateY(0); }
+    .admin-appbar {
+      flex-shrink: 0; padding: 28px 18px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-appbar-title { font-size: 15px; font-weight: 900; }
+    .admin-close-btn {
+      background: none; border: none; color: rgba(255,255,255,0.5);
+      font-size: 22px; cursor: pointer; line-height: 1;
+    }
+    .admin-scroll { flex: 1; overflow-y: auto; padding: 20px 18px 40px; scrollbar-width: none; }
+    .admin-scroll::-webkit-scrollbar { display: none; }
+
+    .admin-section-title {
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35);
+      letter-spacing: 1px; text-transform: uppercase; margin: 0 0 14px;
+    }
+    .admin-form-group { margin-bottom: 14px; }
+    .admin-label { display: block; font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 6px; font-weight: 600; }
+    .admin-input, .admin-textarea {
+      width: 100%; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+      padding: 11px 14px; color: #fff; font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    .admin-input:focus, .admin-textarea:focus { border-color: var(--green-light); }
+    .admin-textarea { resize: vertical; min-height: 70px; }
+
+    /* 주간/야간 토글 */
+    .toggle-group { display: flex; gap: 8px; }
+    .toggle-btn {
+      flex: 1; padding: 10px; border-radius: 10px; cursor: pointer;
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.4); transition: all 0.2s;
+    }
+    .toggle-btn.active-day {
+      background: rgba(62,160,102,0.2); border-color: rgba(62,160,102,0.5);
+      color: var(--green-light);
+    }
+    .toggle-btn.active-night {
+      background: rgba(100,120,255,0.2); border-color: rgba(100,120,255,0.5);
+      color: #8899ff;
+    }
+
+    .admin-save-btn {
+      width: 100%; padding: 14px; margin-top: 20px;
+      background: linear-gradient(90deg, var(--green), var(--green-light));
+      color: #fff; font-size: 15px; font-weight: 800;
+      border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+    }
+
+    /* 토스트 */
+    .toast {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: rgba(30,30,30,0.95); color: #fff;
+      padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600;
+      opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* 컨펌 */
+    .confirm-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: flex-end; z-index: 300; opacity: 0;
+      pointer-events: none; transition: opacity 0.25s;
+    }
+    .confirm-overlay.open { opacity: 1; pointer-events: all; }
+    .confirm-sheet {
+      width: 100%; background: #1a2e1a; border-radius: 24px 24px 0 0;
+      padding: 24px 20px 32px; transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+    }
+    .confirm-overlay.open .confirm-sheet { transform: translateY(0); }
+    .confirm-title { font-size: 16px; font-weight: 900; margin-bottom: 8px; }
+    .confirm-msg { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 20px; line-height: 1.6; }
+    .confirm-btns { display: flex; gap: 8px; }
+    .confirm-cancel {
+      flex: 1; padding: 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.08); border: none;
+      color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+    .confirm-ok {
+      flex: 1; padding: 12px; border-radius: 12px;
+      background: #e74c3c; border: none;
+      color: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <div id="loading-overlay"><div class="spinner"></div></div>
+
+  <!-- 앱바 -->
+  <div class="appbar">
+    <div class="appbar-left">
+      <button id="btn-back" onclick="goBack()">‹</button>
+      <span class="appbar-title">조인</span>
+    </div>
+    <button id="btn-new-join" onclick="openAdminModal(null)">+ 조인 만들기</button>
+  </div>
+
+  <!-- 탭바 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">조인 진행중</button>
+    <button class="tab-btn" id="tab-closed" onclick="switchTab('closed')">마감</button>
+  </div>
+
+  <!-- 스크롤 -->
+  <div class="scroll-area">
+    <div id="tab-content-active" class="list-content">
+      <div id="active-list"><div class="empty-state"><div class="spinner"></div></div></div>
+    </div>
+    <div id="tab-content-closed" class="list-content hidden">
+      <div id="closed-list"></div>
+    </div>
+  </div>
+
+  <!-- 관리자 모달 -->
+  <div class="admin-overlay" id="admin-overlay">
+    <div class="admin-appbar">
+      <span class="admin-appbar-title" id="admin-modal-title">조인 만들기</span>
+      <button class="admin-close-btn" onclick="closeAdminModal()">×</button>
+    </div>
+    <div class="admin-scroll">
+      <input type="hidden" id="admin-editing-id" value="" />
+
+      <div class="admin-section-title">기본 정보</div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">골프장 이름 *</label>
+        <input class="admin-input" id="admin-course" placeholder="예) 블루원 용인CC" />
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div class="admin-form-group" style="flex:1;">
+          <label class="admin-label">날짜 *</label>
+          <input class="admin-input" id="admin-date" type="date" />
+        </div>
+        <div class="admin-form-group" style="flex:1;">
+          <label class="admin-label">시간 *</label>
+          <input class="admin-input" id="admin-time" type="time" />
+        </div>
+      </div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">주간 / 야간</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active-day" id="toggle-day" onclick="setTimeType('day')">☀️ 주간</button>
+          <button class="toggle-btn" id="toggle-night" onclick="setTimeType('night')">🌙 야간</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div class="admin-form-group" style="flex:1;">
+          <label class="admin-label">참석 인원 *</label>
+          <input class="admin-input" id="admin-capacity" type="number" placeholder="4" min="1" max="20" />
+        </div>
+        <div class="admin-form-group" style="flex:1;">
+          <label class="admin-label">그린피 *</label>
+          <input class="admin-input" id="admin-greenfee" placeholder="예) 150,000원" />
+        </div>
+      </div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">카카오 오픈챗 링크 *</label>
+        <input class="admin-input" id="admin-kakao" placeholder="https://open.kakao.com/..." />
+      </div>
+
+      <div class="admin-form-group">
+        <label class="admin-label">메모 (선택)</label>
+        <textarea class="admin-textarea" id="admin-memo" placeholder="추가 안내사항을 입력하세요"></textarea>
+      </div>
+
+      <button class="admin-save-btn" onclick="saveJoin()">저장하기</button>
+    </div>
+  </div>
+
+  <!-- 컨펌 -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-sheet">
+      <div class="confirm-title" id="confirm-title"></div>
+      <div class="confirm-msg" id="confirm-msg"></div>
+      <div class="confirm-btns">
+        <button class="confirm-cancel" onclick="closeConfirm()">취소</button>
+        <button class="confirm-ok" id="confirm-ok-btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let isAdmin = false;
+let joins = [];
+let currentTimeType = 'day';
+let editingId = null;
+
+// ── 아이콘 SVG ──────────────────────
+const icons = {
+  calendar: `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  clock:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  location: `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  users:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  money:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+};
+
+// ── Auth ──────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = 'login.html?return=join.html'; return; }
+  isAdmin = user.email === 'wlfmzhs@naver.com';
+  if (isAdmin) document.getElementById('btn-new-join').style.display = 'block';
+  document.getElementById('loading-overlay').classList.add('hidden');
+  await loadJoins();
+});
+
+// ── 로드 ──────────────────────────────────────────────
+async function loadJoins() {
+  try {
+    const snap = await getDocs(collection(db, 'joins'));
+    joins = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { joins = []; }
+  renderActiveList();
+  renderClosedList();
+}
+
+// ── 진행중 렌더 ───────────────────────────────────────
+function renderActiveList() {
+  const el = document.getElementById('active-list');
+  const active = joins.filter(j => j.status !== 'closed');
+  if (!active.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⛳</div>${isAdmin ? '<button onclick="window.openAdminModal(null)" style="background:rgba(62,160,102,0.2);color:var(--green-light);border:1px solid rgba(62,160,102,0.4);border-radius:12px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">+ 첫 번째 조인 만들기</button>' : '현재 모집중인 조인이 없습니다'}</div>`;
+    return;
+  }
+  el.innerHTML = active.map(j => buildCard(j)).join('');
+}
+
+// ── 마감 렌더 ─────────────────────────────────────────
+function renderClosedList() {
+  const el = document.getElementById('closed-list');
+  const closed = joins.filter(j => j.status === 'closed');
+  if (!closed.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div>마감된 조인이 없습니다</div>`;
+    return;
+  }
+  el.innerHTML = closed.map(j => `
+    <div class="past-card">
+      <div class="past-icon">${j.timeType === 'night' ? '🌙' : '☀️'}</div>
+      <div class="past-info">
+        <div class="past-name">${j.course}</div>
+        <div class="past-sub">${j.date} · ${j.greenfee}</div>
+      </div>
+      <span class="past-badge">마감</span>
+      ${isAdmin ? `<button class="past-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
+    </div>
+  `).join('');
+}
+
+// ── 카드 빌드 ─────────────────────────────────────────
+function buildCard(j) {
+  const isNight = j.timeType === 'night';
+  const timeBadge = isNight
+    ? `<span class="night-label">🌙 야간</span>`
+    : `<span class="day-label">☀️ 주간</span>`;
+  const adminRow = isAdmin ? `
+    <div class="card-admin-row">
+      <button class="card-edit-btn" onclick="window.openAdminModal('${j.id}')">수정</button>
+      <button class="card-close-btn" onclick="window.confirmClose('${j.id}','${j.course}')">마감</button>
+      <button class="card-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>
+    </div>` : '';
+  const memo = j.memo ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px;line-height:1.6;">${j.memo}</div>` : '';
+
+  return `
+    <div class="join-card ${isNight ? 'night' : ''}">
+      <div class="card-status-row">
+        <span class="badge-open">모집중</span>
+        ${timeBadge}
+      </div>
+      <div class="card-title">${j.course}</div>
+      <div class="card-meta">
+        <div class="card-meta-row">${icons.calendar}<span class="card-meta-label">날짜</span>${j.date}</div>
+        <div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span>${j.time}</div>
+        <div class="card-meta-row">${icons.users}<span class="card-meta-label">참석 인원</span>${j.capacity}명</div>
+        <div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span>${j.greenfee}</div>
+      </div>
+      ${memo}
+      <a class="card-action-btn" href="${j.kakaoUrl}" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
+        카카오 오픈챗 참여하기
+      </a>
+      ${adminRow}
+    </div>`;
+}
+
+// ── 탭 전환 ───────────────────────────────────────────
+window.switchTab = function(tab) {
+  document.getElementById('tab-content-active').classList.toggle('hidden', tab !== 'active');
+  document.getElementById('tab-content-closed').classList.toggle('hidden', tab !== 'closed');
+  document.getElementById('tab-active').classList.toggle('active', tab === 'active');
+  document.getElementById('tab-closed').classList.toggle('active', tab === 'closed');
+};
+
+// ── 뒤로가기 ──────────────────────────────────────────
+window.goBack = function() { location.href = 'dashboard.html'; };
+
+// ── 주간/야간 토글 ─────────────────────────────────────
+window.setTimeType = function(type) {
+  currentTimeType = type;
+  document.getElementById('toggle-day').className = 'toggle-btn' + (type === 'day' ? ' active-day' : '');
+  document.getElementById('toggle-night').className = 'toggle-btn' + (type === 'night' ? ' active-night' : '');
+};
+
+// ── 관리자 모달 ───────────────────────────────────────
+window.openAdminModal = function(id) {
+  editingId = id;
+  document.getElementById('admin-modal-title').textContent = id ? '조인 수정' : '조인 만들기';
+  if (id) {
+    const j = joins.find(x => x.id === id);
+    if (j) {
+      document.getElementById('admin-course').value = j.course || '';
+      document.getElementById('admin-date').value = j.date || '';
+      document.getElementById('admin-time').value = j.time || '';
+      document.getElementById('admin-capacity').value = j.capacity || '';
+      document.getElementById('admin-greenfee').value = j.greenfee || '';
+      document.getElementById('admin-kakao').value = j.kakaoUrl || '';
+      document.getElementById('admin-memo').value = j.memo || '';
+      window.setTimeType(j.timeType || 'day');
+    }
+  } else {
+    document.getElementById('admin-course').value = '';
+    document.getElementById('admin-date').value = '';
+    document.getElementById('admin-time').value = '';
+    document.getElementById('admin-capacity').value = '';
+    document.getElementById('admin-greenfee').value = '';
+    document.getElementById('admin-kakao').value = '';
+    document.getElementById('admin-memo').value = '';
+    window.setTimeType('day');
+  }
+  document.getElementById('admin-overlay').classList.add('open');
+};
+
+window.closeAdminModal = function() {
+  document.getElementById('admin-overlay').classList.remove('open');
+};
+
+// ── 저장 ─────────────────────────────────────────────
+window.saveJoin = async function() {
+  const course   = document.getElementById('admin-course').value.trim();
+  const date     = document.getElementById('admin-date').value;
+  const time     = document.getElementById('admin-time').value;
+  const capacity = document.getElementById('admin-capacity').value;
+  const greenfee = document.getElementById('admin-greenfee').value.trim();
+  const kakaoUrl = document.getElementById('admin-kakao').value.trim();
+  const memo     = document.getElementById('admin-memo').value.trim();
+
+  if (!course || !date || !time || !capacity || !greenfee || !kakaoUrl) {
+    showToast('필수 항목을 모두 입력해주세요'); return;
+  }
+
+  const data = { course, date, time, capacity: Number(capacity), greenfee, kakaoUrl, memo, timeType: currentTimeType, status: 'recruiting', updatedAt: serverTimestamp() };
+
+  try {
+    if (editingId) {
+      await updateDoc(doc(db, 'joins', editingId), data);
+      showToast('조인이 수정되었습니다');
+    } else {
+      data.createdAt = serverTimestamp();
+      await addDoc(collection(db, 'joins'), data);
+      showToast('조인이 만들어졌습니다!');
+    }
+    closeAdminModal();
+    await loadJoins();
+  } catch (e) { showToast('저장 실패: ' + e.message); }
+};
+
+// ── 마감 ─────────────────────────────────────────────
+window.confirmClose = function(id, name) {
+  showConfirm('조인 마감', `"${name}" 조인을 마감합니다. 계속하시겠습니까?`, async () => {
+    await updateDoc(doc(db, 'joins', id), { status: 'closed' });
+    showToast('마감되었습니다');
+    await loadJoins();
+  });
+};
+
+// ── 삭제 ─────────────────────────────────────────────
+window.confirmDelete = function(id, name) {
+  showConfirm('조인 삭제', `"${name}" 조인을 삭제합니다. 복구할 수 없습니다.`, async () => {
+    await deleteDoc(doc(db, 'joins', id));
+    showToast('삭제되었습니다');
+    await loadJoins();
+  });
+};
+
+// ── 컨펌 ─────────────────────────────────────────────
+let confirmCallback = null;
+function showConfirm(title, msg, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  confirmCallback = cb;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+window.closeConfirm = function() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  confirmCallback = null;
+};
+document.getElementById('confirm-ok-btn').onclick = async () => {
+  if (confirmCallback) { await confirmCallback(); }
+  window.closeConfirm();
+};
+
+// ── 토스트 ────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
