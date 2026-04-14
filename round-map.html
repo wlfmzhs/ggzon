@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>골갑 라운드 지도 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --border: rgba(62,160,102,0.18);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+
+    /* ── 앱바 ── */
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .back-btn {
+      background: none; border: none; color: var(--green-light);
+      font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px 2px 0;
+    }
+    .appbar-title { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; }
+    .appbar-sub { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 500; }
+
+    /* ── 국내/해외 탭 ── */
+    .main-tabs {
+      flex-shrink: 0; display: flex;
+      margin: 0 18px 0; border-radius: 12px;
+      background: rgba(255,255,255,0.06); padding: 3px; gap: 3px;
+    }
+    .main-tab {
+      flex: 1; padding: 8px 0; border: none; background: none; cursor: pointer;
+      font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4);
+      border-radius: 10px; font-family: inherit; transition: all 0.2s;
+    }
+    .main-tab.active {
+      background: var(--green); color: #fff;
+    }
+
+    /* ── 지역 필터 칩 ── */
+    .filter-wrap {
+      flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 7px;
+      padding: 12px 18px 10px;
+    }
+    .chip {
+      flex-shrink: 0; padding: 5px 13px; border-radius: 20px;
+      border: 1px solid rgba(62,160,102,0.3); background: transparent;
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.45);
+      cursor: pointer; font-family: inherit; transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .chip.active {
+      background: var(--green); border-color: var(--green); color: #fff;
+    }
+
+    /* ── 검색바 ── */
+    .search-wrap {
+      flex-shrink: 0; padding: 0 18px 10px;
+      position: relative;
+    }
+    .search-input {
+      width: 100%; padding: 9px 14px 9px 36px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      border-radius: 12px; color: #fff; font-size: 13px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    .search-input::placeholder { color: rgba(255,255,255,0.28); }
+    .search-input:focus { border-color: rgba(62,160,102,0.5); }
+    .search-icon {
+      position: absolute; left: 30px; top: calc(50% - 5px); transform: translateY(-50%);
+      width: 14px; height: 14px; pointer-events: none; opacity: 0.4; color: #fff;
+    }
+
+    /* ── 카운트 바 ── */
+    .count-bar {
+      flex-shrink: 0; padding: 0 18px 10px;
+      font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 500;
+    }
+    .count-bar span { color: var(--green-light); font-weight: 700; }
+
+    /* ── 3열 그리드 ── */
+    .card-list {
+      flex: 1; overflow-y: auto; padding: 0 18px 24px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px;
+      align-content: start;
+      scrollbar-width: none;
+    }
+    .card-list::-webkit-scrollbar { display: none; }
+
+    .course-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px 8px 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      transition: background 0.15s; position: relative;
+    }
+    .course-card:active { background: rgba(255,255,255,0.08); }
+    .course-card.upcoming {
+      background: rgba(255,183,0,0.04);
+      border: 1px dashed rgba(255,183,0,0.35);
+      opacity: 0.7;
+    }
+    .upcoming-badge {
+      position: absolute; top: 7px; right: 7px;
+      font-size: 8px; font-weight: 800; color: #ffb700;
+      background: rgba(255,183,0,0.15); border: 1px solid rgba(255,183,0,0.3);
+      padding: 1px 5px; border-radius: 20px; letter-spacing: 0.03em;
+    }
+    .upcoming-btn {
+      width: 100%; height: 22px; border-radius: 6px; margin-top: 2px;
+      background: rgba(255,183,0,0.12); border: 1px dashed rgba(255,183,0,0.3);
+      font-size: 9px; font-weight: 700; color: rgba(255,183,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .card-name {
+      font-size: 13px; font-weight: 900; letter-spacing: -0.5px;
+      text-align: center; line-height: 1.3;
+      word-break: keep-all;
+    }
+    .card-region {
+      font-size: 9px; font-weight: 700; color: var(--green-light);
+      background: rgba(62,160,102,0.12); padding: 2px 7px; border-radius: 20px;
+    }
+
+    .yt-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 22px; border-radius: 6px; margin-top: 2px;
+      background: rgba(255,255,255,0.7); border: none;
+      text-decoration: none; transition: opacity 0.18s; gap: 3px;
+      font-size: 9px; font-weight: 700; color: #cc0000;
+    }
+    .yt-btn:active { opacity: 0.75; }
+    .yt-btn svg { width: 10px; height: 10px; fill: #cc0000; flex-shrink: 0; }
+
+    /* ── 빈 상태 ── */
+    .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: rgba(255,255,255,0.3); font-size: 13px; }
+    .empty .icon { font-size: 36px; margin-bottom: 4px; }
+
+    /* ── 모바일 ── */
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="appbar">
+    <button class="back-btn" onclick="location.href='dashboard.html'">&#8249;</button>
+    <span class="appbar-title">골갑 라운드 지도</span>
+    <span class="appbar-sub" id="total-count"></span>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab active" data-tab="domestic" onclick="switchTab('domestic')">국내</button>
+    <button class="main-tab" data-tab="overseas" onclick="switchTab('overseas')">해외</button>
+  </div>
+
+  <div class="filter-wrap" id="filter-wrap"></div>
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+    <input class="search-input" type="text" id="search-input" placeholder="골프장 이름 검색..." oninput="render()" />
+  </div>
+  <div class="count-bar" id="count-bar"></div>
+  <div class="card-list" id="card-list"></div>
+
+</div>
+
+<script>
+  const YT = name => `https://www.youtube.com/results?search_query=골갑+${encodeURIComponent(name)}`;
+
+  const domestic = [
+    // 부산
+    { name: '부산CC',             region: '부산', city: '금정구',  type: '회원제' },
+    { name: '동래베네스트CC',      region: '부산', city: '금정구',  type: '회원제' },
+    { name: '아시아드CC',          region: '부산', city: '기장군',  type: '회원제' },
+    { name: '스톤게이트CC',        region: '부산', city: '기장군',  type: '퍼블릭' },
+    { name: '해운대CC',            region: '부산', city: '해운대구', type: '회원제' },
+    { name: '해운대비치GC',        region: '부산', city: '해운대구', type: '퍼블릭' },
+    { name: '베이사이드CC',        region: '부산', city: '기장군',  type: '퍼블릭' },
+    // 경남 - 양산
+    { name: '양산동원로얄CC',      region: '경남', city: '양산',    type: '회원제' },
+    { name: '양산CC',              region: '경남', city: '양산',    type: '회원제' },
+    { name: '다이아몬드CC',        region: '경남', city: '양산',    type: '회원제' },
+    { name: '통영동원로얄CC',      region: '경남', city: '통영',    type: '회원제' },
+    { name: '드비치CC',            region: '경남', city: '거제',    type: '퍼블릭' },
+    { name: '에이원CC',            region: '경남', city: '양산',    type: '퍼블릭' },
+    { name: '동부산CC',            region: '경남', city: '양산',    type: '퍼블릭' },
+    { name: '통도파인이스트CC',    region: '경남', city: '양산',    type: '퍼블릭' },
+    // 경남 - 창원/진해
+    { name: '용원CC',              region: '경남', city: '창원',    type: '퍼블릭' },
+    { name: '진주CC',              region: '경남', city: '진주',    type: '회원제' },
+    { name: '창원CC',              region: '경남', city: '창원',    type: '회원제' },
+    { name: '진해신항CC',          region: '경남', city: '창원',    type: '퍼블릭' },
+    // 경남 - 김해
+    { name: '가야CC',              region: '경남', city: '김해',    type: '회원제' },
+    { name: '김해상록GC',          region: '경남', city: '김해',    type: '퍼블릭' },
+    { name: '포웰CC',              region: '경남', city: '김해',    type: '퍼블릭' },
+    { name: '가야퍼블릭GC',        region: '경남', city: '김해',    type: '퍼블릭' },
+    // 경남 - 함안/사천/고성/남해/창녕/거창
+    { name: '골프존카운티 경남',   region: '경남', city: '함안',    type: '퍼블릭' },
+    { name: '골프존카운티 사천',   region: '경남', city: '사천',    type: '퍼블릭', status: 'upcoming' },
+    { name: '타니CC',              region: '경남', city: '사천',    type: '퍼블릭' },
+    { name: '해라CC',              region: '경남', city: '고성',    type: '회원제' },
+    { name: '고성CC',              region: '경남', city: '고성',    type: '퍼블릭', status: 'upcoming' },
+    { name: '고성노벨CC',          region: '경남', city: '고성',    type: '퍼블릭' },
+    { name: '리더스CC',            region: '경남', city: '밀양',    type: '퍼블릭' },
+    { name: '밀양노벨CC',          region: '경남', city: '밀양',    type: '퍼블릭' },
+    { name: '사우스케이프CC',      region: '경남', city: '남해',    type: '회원제' },
+    { name: '아난티 남해CC',       region: '경남', city: '남해',    type: '회원제' },
+    { name: '힐마루CC',            region: '경남', city: '창녕',    type: '퍼블릭' },
+    { name: '부곡CC',              region: '경남', city: '창녕',    type: '퍼블릭' },
+    { name: '거창CC',              region: '경남', city: '거창',    type: '퍼블릭', status: 'upcoming' },
+    { name: '정산CC',              region: '경남', city: '경남',    type: '퍼블릭' },
+    { name: '골드그린CC',          region: '경남', city: '경남',    type: '퍼블릭', status: 'upcoming' },
+    { name: '리온CC',              region: '경남', city: '의령',    type: '퍼블릭' },
+    { name: '아델스코트CC',        region: '경남', city: '경남',    type: '퍼블릭' },
+    // 울산
+    { name: '울산CC',              region: '울산', city: '울주군',  type: '회원제' },
+    { name: '보라CC',              region: '울산', city: '울주군',  type: '퍼블릭' },
+    { name: '더골프클럽',          region: '울산', city: '울주군',  type: '퍼블릭' },
+    { name: '오르비스GC',          region: '울산', city: '울주군',  type: '퍼블릭' },
+    { name: '베이스타즈CC',        region: '울산', city: '북구',    type: '퍼블릭' },
+    // 경북
+    { name: '보문CC',              region: '경북', city: '경주',    type: '퍼블릭' },
+    { name: '경주CC',              region: '경북', city: '경주',    type: '회원제' },
+    { name: '강동다이너스CC',      region: '경북', city: '경주',    type: '퍼블릭' },
+    { name: '힐스카이CC',          region: '경북', city: '경주',    type: '퍼블릭' },
+    { name: '감포CC',              region: '경북', city: '경주',    type: '퍼블릭' },
+    { name: '서라벌CC',            region: '경북', city: '경주',    type: '퍼블릭' },
+    { name: '청도오션힐스CC',      region: '경북', city: '청도',    type: '퍼블릭' },
+    { name: '블루원상주CC',        region: '경북', city: '상주',    type: '퍼블릭' },
+    { name: '이지스카이CC',        region: '대구', city: '군위',    type: '퍼블릭' },
+    { name: '고령오펠GC',          region: '경북', city: '고령',    type: '퍼블릭' },
+    { name: '포도CC',              region: '경북', city: '김천',    type: '퍼블릭' },
+    { name: '선산CC',              region: '경북', city: '구미',    type: '퍼블릭' },
+    // 충북
+    { name: '속리산CC',            region: '충북', city: '보은',    type: '퍼블릭' },
+    // 전북
+    { name: '군산CC',              region: '전북', city: '군산',    type: '퍼블릭' },
+    // 제주
+    { name: '테디밸리CC',          region: '제주', city: '제주',    type: '퍼블릭' },
+    // 전남
+    { name: '골프존카운티 순천',   region: '전남', city: '순천',    type: '퍼블릭' },
+    { name: '파인비치CC',          region: '전남', city: '전남',    type: '퍼블릭' },
+    { name: '솔라시도CC',          region: '전남', city: '해남',    type: '퍼블릭' },
+    { name: '파인힐스CC',          region: '전남', city: '전남',    type: '퍼블릭' },
+    { name: '포라이즌CC',          region: '전남', city: '전남',    type: '퍼블릭' },
+    { name: 'JNJ CC',              region: '전남', city: '전남',    type: '퍼블릭' },
+  ];
+
+  const overseas = [
+    // 일본
+    { name: '후쿠오카 클래식GC',   region: '일본', city: '후쿠오카', type: '퍼블릭' },
+    { name: '더 레이크스GC',       region: '일본', city: '후쿠오카', type: '퍼블릭' },
+    { name: '벳부CC',              region: '일본', city: '오이타',   type: '퍼블릭' },
+    // 베트남
+    { name: 'BRG Da Nang GC',      region: '베트남', city: '다낭',  type: '퍼블릭' },
+    { name: 'Ba Na Hills GC',      region: '베트남', city: '다낭',  type: '퍼블릭' },
+    { name: '몽고메리 링크스',     region: '베트남', city: '다낭',  type: '퍼블릭' },
+  ];
+
+  const regionIcons = {};
+
+  let currentTab = 'domestic';
+  let currentFilter = '전체';
+
+  function getRegions(data) {
+    return ['전체', ...new Set(data.map(c => c.region))];
+  }
+
+  function renderFilters(data) {
+    const wrap = document.getElementById('filter-wrap');
+    wrap.innerHTML = '';
+    getRegions(data).forEach(r => {
+      const btn = document.createElement('button');
+      btn.className = 'chip' + (r === currentFilter ? ' active' : '');
+      btn.textContent = r;
+      btn.onclick = () => { currentFilter = r; render(); };
+      wrap.appendChild(btn);
+    });
+  }
+
+  const ytSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`;
+
+  function renderCards(data) {
+    const list = document.getElementById('card-list');
+    const query = document.getElementById('search-input').value.trim().toLowerCase();
+
+    let filtered = currentFilter === '전체' ? data : data.filter(c => c.region === currentFilter);
+    if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query) || c.city.toLowerCase().includes(query));
+
+    document.getElementById('count-bar').innerHTML = `총 <span>${filtered.length}</span>개 골프장`;
+    document.getElementById('total-count').textContent = `${(currentTab === 'domestic' ? domestic : overseas).length}개`;
+
+    if (filtered.length === 0) {
+      list.style.display = 'flex';
+      list.innerHTML = `<div class="empty"><div>검색 결과가 없습니다</div></div>`;
+      return;
+    }
+
+    list.style.display = 'grid';
+    list.innerHTML = filtered.map(c => `
+      <div class="course-card${c.status === 'upcoming' ? ' upcoming' : ''}">
+        <div class="card-name">${c.name}</div>
+        <span class="card-region">${c.city}</span>
+        ${c.status === 'upcoming'
+          ? '<div class="upcoming-btn">영상 준비중</div>'
+          : `<a class="yt-btn" href="${YT(c.name)}" target="_blank">${ytSVG} 영상</a>`
+        }
+      </div>
+    `).join('');
+  }
+
+  function render() {
+    const data = currentTab === 'domestic' ? domestic : overseas;
+    renderFilters(data);
+    renderCards(data);
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    currentFilter = '전체';
+    document.querySelectorAll('.main-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    render();
+  }
+
+  render();
+</script>
+</body>
+</html>

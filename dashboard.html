@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --border: rgba(62,160,102,0.15);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .appbar-left { display: flex; align-items: center; gap: 4px; font-size: 16px; font-weight: 900; }
+    .appbar-left .arrow { font-size: 13px; color: var(--green-light); }
+    .appbar-right { display: flex; gap: 14px; }
+    .appbar-right button { background: none; border: none; cursor: pointer; padding: 4px; color: rgba(255,255,255,0.6); line-height: 0; }
+    .top-tabs {
+      flex-shrink: 0; display: flex; align-items: center;
+      padding: 0 4px; border-bottom: 1px solid var(--border);
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .top-tabs::-webkit-scrollbar { display: none; }
+    .top-tab {
+      flex-shrink: 0; padding: 10px 14px;
+      font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4);
+      border: none; background: none; cursor: pointer; font-family: inherit;
+      border-bottom: 2px solid transparent; white-space: nowrap;
+    }
+    .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
+    .content {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+      padding: 16px 0 80px;
+    }
+    .content-inner-pad {
+      padding: 0 16px;
+    }
+    .content::-webkit-scrollbar { display: none; }
+    .greeting { margin-bottom: 24px; }
+    .greeting .sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+    .greeting .name { font-size: 20px; font-weight: 900; }
+    .greeting .name span { color: var(--green-light); }
+    /* ── Apple Store 스타일 배너 ── */
+    .banner-section { margin-bottom: 28px; }
+    .banner-scroll {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-left: 16px;
+      scrollbar-width: none;
+      gap: 10px;
+      padding: 0 16px 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .banner-card:first-child { margin-left: 0; scroll-snap-align: start; }
+    .banner-scroll::-webkit-scrollbar { display: none; }
+    .banner-card {
+      flex: 0 0 328px;
+      height: 360px;
+      background: #1A4831;
+      border-radius: 20px;
+      overflow: hidden;
+      scroll-snap-align: start;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.18s ease;
+    }
+    .banner-card:active { transform: scale(0.97); }
+    .banner-card-img {
+      position: absolute;
+      inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: center;
+    }
+    .banner-card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        160deg,
+        rgba(0,0,0,0.55) 0%,
+        rgba(0,0,0,0.15) 55%,
+        rgba(0,0,0,0.35) 100%
+      );
+    }
+    .banner-card-body {
+      position: absolute;
+      top: 22px; left: 20px; right: 20px;
+      z-index: 2;
+    }
+    .banner-card-title {
+      font-size: 22px; font-weight: 900;
+      color: #fff; line-height: 1.2;
+      letter-spacing: -0.02em; margin-bottom: 6px;
+      text-shadow: 0 1px 10px rgba(0,0,0,0.4);
+    }
+    .banner-card-sub {
+      font-size: 13px; color: rgba(255,255,255,0.8);
+      line-height: 1.5;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+    }
+    .banner-card-cta {
+      position: absolute;
+      bottom: 20px; left: 20px;
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.32);
+      color: #fff; font-size: 13px; font-weight: 700;
+      padding: 8px 18px; border-radius: 30px;
+      font-family: inherit; cursor: pointer;
+      z-index: 2;
+    }
+
+    .cat-card {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px;
+      background: #1A4831;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 16px; margin-bottom: 10px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .cat-card:active { background: #0f4a26; }
+    .cat-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: rgba(0,103,71,0.25);
+      border: 1px solid rgba(0,103,71,0.4);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .cat-info { flex: 1; }
+    .cat-title { font-size: 15px; font-weight: 900; margin-bottom: 4px; color: #f0ebe0; }
+    .cat-desc { font-size: 12px; color: rgba(240,235,224,0.5); line-height: 1.5; }
+    .cat-arrow { color: rgba(240,235,224,0.25); font-size: 18px; }
+    .cat-badge {
+      font-size: 10px; font-weight: 800; padding: 3px 8px;
+      border-radius: 20px; background: var(--green-light); color: #fff;
+      margin-left: 6px; vertical-align: middle;
+    }
+    .bottom-bar {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 64px;
+      background: #071a05; border-top: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 8px 8px; z-index: 10;
+    }
+    .bottom-tab {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 6px 4px; cursor: pointer; background: none; border: none; font-family: inherit;
+    }
+    .bottom-tab svg { color: rgba(255,255,255,0.3); }
+    .bottom-tab.active svg { color: var(--green-light); }
+    .bottom-tab-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3); }
+    .bottom-tab.active .bottom-tab-label { color: var(--green-light); }
+    .bottom-center {
+      width: 52px; height: 52px;
+      background-image: url('data:image/png;base64,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');
+      background-size: cover; background-position: left center;
+      border-radius: 50%; border: none;
+      flex-shrink: 0; cursor: pointer; margin-bottom: 10px;
+      box-shadow: 0 4px 16px rgba(62,160,102,0.5);
+    }
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <div id="loading-overlay">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style="animation:spin 1s linear infinite">
+      <circle cx="20" cy="20" r="16" stroke="rgba(62,160,102,0.2)" stroke-width="4"/>
+      <path d="M20 4a16 16 0 0 1 16 16" stroke="#3ea066" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="appbar">
+    <div class="appbar-left">
+      <span id="header-name">골갑존</span> <span class="arrow">›</span>
+    </div>
+    <div class="appbar-right">
+      <button><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      <button><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+    </div>
+  </div>
+
+  <div class="top-tabs">
+    <button class="top-tab active">홈</button>
+    <button class="top-tab">단체라운드 대회</button>
+    <button class="top-tab">조인</button>
+    <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
+    <button class="top-tab">구독자라운드</button>
+    <button class="top-tab">라운드지도</button>
+    <button class="top-tab">쇼핑</button>
+  </div>
+
+  <div class="content">
+    <div class="content-inner-pad">
+      <div class="greeting">
+        <div class="sub">프로같은 아마추어가 될때까지!</div>
+        <div class="name"><span id="user-nick">로딩중</span>님, 안녕하세요!</div>
+      </div>
+    </div>
+
+    <!-- Apple Store 스타일 배너 -->
+    <div class="banner-section">
+      <div class="banner-scroll">
+
+        <!-- 카드 1: 골갑 라운드 지도 -->
+        <div class="banner-card" onclick="location.href='round-map.html'">
+          <img class="banner-card-img" src="참고이미지/골갑라운드지도.png" alt="골갑 라운드 지도" />
+          <div class="banner-card-overlay"></div>
+          <div class="banner-card-body">
+            <div class="banner-card-title">골갑<br>라운드 지도</div>
+            <div class="banner-card-sub">골갑이 촬영한<br>전국 골프장 한눈에</div>
+          </div>
+          <button class="banner-card-cta" onclick="event.stopPropagation(); location.href='round-map.html'">바로가기 ›</button>
+        </div>
+
+        <!-- 카드 2: 단체라운드 대회 -->
+        <div class="banner-card" onclick="location.href='event.html'">
+          <img class="banner-card-img" src="참고이미지/대회.png" alt="단체라운드 대회" />
+          <div class="banner-card-overlay"></div>
+          <div class="banner-card-body">
+            <div class="banner-card-title">단체라운드<br>대회</div>
+            <div class="banner-card-sub">GPGA OPEN<br>흑백대전 · 멤버십 대회</div>
+          </div>
+          <button class="banner-card-cta" onclick="event.stopPropagation(); location.href='event.html'">참가하기 ›</button>
+        </div>
+
+        <!-- 카드 3: 골슐랭스타 -->
+        <div class="banner-card" onclick="location.href='golchelin-star.html'">
+          <img class="banner-card-img" src="참고이미지/골슐랭스타메인.jpg" alt="골슐랭스타" />
+          <div class="banner-card-overlay"></div>
+          <div class="banner-card-body">
+            <div class="banner-card-title">GOLCHELIN<br>STAR</div>
+            <div class="banner-card-sub">초고수 아마추어의<br>18홀 도전 기록</div>
+          </div>
+          <button class="banner-card-cta" onclick="event.stopPropagation(); location.href='golchelin-star.html'">바로가기 ›</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="content-inner-pad">
+    <div class="cat-card" onclick="location.href='event.html'" style="cursor:pointer;">
+      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
+      <div class="cat-info">
+        <div class="cat-title">단체라운드 대회 <span class="cat-badge">NEW</span></div>
+        <div class="cat-desc">GPGA OPEN · 흑백대전</div>
+      </div>
+      <div class="cat-arrow">›</div>
+    </div>
+
+    <div class="cat-card">
+      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="cat-info">
+        <div class="cat-title">조인</div>
+        <div class="cat-desc">필드 · 스크린</div>
+      </div>
+      <div class="cat-arrow">›</div>
+    </div>
+
+    <div class="cat-card" onclick="location.href='golchelin-star.html'" style="cursor:pointer">
+      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+      <div class="cat-info">
+        <div class="cat-title">골슐랭스타</div>
+        <div class="cat-desc">역대 골슐랭스타의 기록을 확인해 보세요</div>
+      </div>
+      <div class="cat-arrow">›</div>
+    </div>
+
+    <div class="cat-card">
+      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
+      <div class="cat-info">
+        <div class="cat-title">구독자 라운드</div>
+        <div class="cat-desc">구독자와 함께하는 특별한 라운드 신청</div>
+      </div>
+      <div class="cat-arrow">›</div>
+    </div>
+
+    <div class="cat-card">
+      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <div class="cat-info">
+        <div class="cat-title">골갑 라운드 지도</div>
+        <div class="cat-desc">골갑이 촬영한 골프장을 한눈에!</div>
+      </div>
+      <div class="cat-arrow">›</div>
+    </div>
+
+    <div class="cat-card">
+      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+      <div class="cat-info">
+        <div class="cat-title">쇼핑</div>
+        <div class="cat-desc">골갑 추천 골프용품 & 회원 혜택</div>
+      </div>
+      <div class="cat-arrow">›</div>
+    </div>
+    </div><!-- /content-inner-pad -->
+  </div>
+
+  <div class="bottom-bar">
+    <button class="bottom-tab active">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <div class="bottom-tab-label">홈</div>
+    </button>
+    <button class="bottom-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <div class="bottom-tab-label">검색</div>
+    </button>
+    <div class="bottom-center"></div>
+    <button class="bottom-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <div class="bottom-tab-label">MY</div>
+    </button>
+    <button class="bottom-tab" id="tab-logout">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <div class="bottom-tab-label">로그아웃</div>
+    </button>
+  </div>
+
+</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const app = initializeApp({
+    apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+    authDomain: "ggzon-b33cb.firebaseapp.com",
+    projectId: "ggzon-b33cb",
+    storageBucket: "ggzon-b33cb.firebasestorage.app",
+    messagingSenderId: "774722580869",
+    appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+  });
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  onAuthStateChanged(auth, async (user) => {
+    document.getElementById('loading-overlay').classList.add('hidden');
+    if (!user) { window.location.href = 'login.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists()) {
+      const d = snap.data();
+      document.getElementById('user-nick').textContent = d.nickname;
+      const parts = [d.name, d.birthYear2 ? d.birthYear2 + '년생' : '', d.region].filter(Boolean);
+      document.getElementById('header-name').textContent = parts.length ? parts.join(' / ') : d.nickname;
+    } else {
+      document.getElementById('user-nick').textContent = user.displayName || '멤버';
+    }
+  });
+
+  document.getElementById('tab-logout').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'index.html';
+  });
+
+  document.querySelectorAll('.top-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.top-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  /* ── 배너 가로 스크롤: 터치/마우스 드래그 지원 ── */
+  (function () {
+    const scroll = document.querySelector('.banner-scroll');
+    if (!scroll) return;
+    let startX = 0, scrollLeft = 0, isDragging = false;
+
+    scroll.addEventListener('mousedown', e => {
+      isDragging = true;
+      startX = e.pageX - scroll.offsetLeft;
+      scrollLeft = scroll.scrollLeft;
+      scroll.style.cursor = 'grabbing';
+    });
+    scroll.addEventListener('mouseleave', () => { isDragging = false; scroll.style.cursor = ''; });
+    scroll.addEventListener('mouseup', () => { isDragging = false; scroll.style.cursor = ''; });
+    scroll.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      e.preventDefault();
+      scroll.scrollLeft = scrollLeft - (e.pageX - scroll.offsetLeft - startX);
+    });
+  })();
+</script>
+</body>
+</html>

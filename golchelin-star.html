@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>골슐랭스타 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --red: #C0111B;
+      --red-light: #E8303A;
+      --bg: #0A2406;
+      --border: rgba(192,17,27,0.22);
+      --gold: #D4AF37;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--bg);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+
+    /* 앱바 */
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .back-btn {
+      background: none; border: none; color: var(--red-light);
+      font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px 2px 0;
+    }
+    .appbar-title { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; }
+    .appbar-sub { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 500; }
+
+    /* 스크롤 영역 */
+    .content {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+      padding: 8px 0 32px;
+    }
+    .content::-webkit-scrollbar { display: none; }
+    .inner { padding: 0 18px; }
+
+    /* 헤더 배너 */
+    .star-header {
+      background: linear-gradient(135deg, #3D0000 0%, #7B0000 50%, #3D0000 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(192,17,27,0.4);
+      padding: 24px 20px;
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 18px;
+    }
+    .header-logo {
+      width: 72px; height: 72px;
+      object-fit: contain; flex-shrink: 0;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+    }
+    .header-info {}
+    .header-title {
+      font-size: 20px; font-weight: 900; letter-spacing: 1px; line-height: 1.2;
+    }
+    .header-sub {
+      font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px;
+    }
+    .header-count {
+      display: inline-block;
+      margin-top: 8px;
+      background: rgba(192,17,27,0.35);
+      border: 1px solid rgba(192,17,27,0.5);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.8);
+    }
+
+    /* 등급 기준 */
+    .section-title {
+      font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1.2px; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .grade-bar {
+      display: flex; gap: 8px;
+      margin-bottom: 20px;
+    }
+    .grade-item {
+      flex: 1; text-align: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 6px;
+    }
+    .grade-stars { font-size: 14px; color: var(--gold); margin-bottom: 3px; letter-spacing: 1px; }
+    .grade-num { font-size: 13px; font-weight: 800; color: #fff; margin-bottom: 2px; }
+    .grade-cond { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+    /* 선수 그리드 */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .golfer-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px 8px 12px;
+      text-align: center;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex; flex-direction: column; align-items: center;
+      transition: background 0.18s, border-color 0.18s;
+      color: #fff;
+    }
+    .golfer-card:active {
+      background: rgba(192,17,27,0.15);
+      border-color: rgba(192,17,27,0.45);
+    }
+
+    /* 배지 */
+    .badge {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.75);
+      background: radial-gradient(circle at 40% 35%, #B01010, #6B0000);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+    }
+    .badge-stars { font-size: 10px; color: var(--gold); letter-spacing: 1px; line-height: 1; margin-bottom: 1px; }
+    .badge-text { font-size: 6.5px; font-weight: 900; color: #fff; letter-spacing: 0.3px; line-height: 1.35; text-align: center; }
+
+    .golfer-name { font-size: 13px; font-weight: 700; letter-spacing: -0.3px; }
+    .star-disp { font-size: 11px; color: var(--gold); margin-top: 2px; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+
+    <!-- 앱바 -->
+    <div class="appbar">
+      <button class="back-btn" onclick="location.href='dashboard.html'">‹</button>
+      <span class="appbar-title">골슐랭스타</span>
+      <span class="appbar-sub">▶ @GOLGAB</span>
+    </div>
+
+    <div class="content">
+      <div class="inner">
+
+        <!-- 헤더 배너 -->
+        <div class="star-header">
+          <img src="참고이미지/골슐랭스타로고.png" class="header-logo" alt="GOLCHELIN STAR" />
+          <div class="header-info">
+            <div class="header-title">GOLCHELIN<br>STAR</div>
+            <div class="header-sub">초고수 아마추어 골퍼의<br>18홀 도전 기록</div>
+            <div class="header-count">역대 도전자 9명</div>
+          </div>
+        </div>
+
+        <!-- 등급 기준 -->
+        <div class="section-title">등급 기준</div>
+        <div class="grade-bar">
+          <div class="grade-item">
+            <div class="grade-stars">★★★</div>
+            <div class="grade-num">3 STAR</div>
+            <div class="grade-cond">언더파</div>
+          </div>
+          <div class="grade-item">
+            <div class="grade-stars">★★</div>
+            <div class="grade-num">2 STAR</div>
+            <div class="grade-cond">0~5오버</div>
+          </div>
+          <div class="grade-item">
+            <div class="grade-stars">★</div>
+            <div class="grade-num">1 STAR</div>
+            <div class="grade-cond">6~7오버</div>
+          </div>
+        </div>
+
+        <!-- 선수 그리드 -->
+        <div class="section-title">역대 골슐랭스타</div>
+        <div class="grid" id="golferGrid"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const golfers = [
+      { name: "어정우", stars: 3 },
+      { name: "이상훈", stars: 2 },
+      { name: "임지헌", stars: 2 },
+      { name: "이원석", stars: 2 },
+      { name: "김도영", stars: 2 },
+      { name: "김덕규", stars: 2 },
+      { name: "이용훈", stars: 1 },
+      { name: "김철영", stars: 1 },
+      { name: "권성민", stars: 1 },
+    ];
+
+    const grid = document.getElementById('golferGrid');
+    golfers.forEach((g, i) => {
+      const s = '★'.repeat(g.stars);
+      const card = document.createElement('a');
+      card.className = 'golfer-card';
+      card.href = `golchelin-star-detail.html?id=${i}`;
+      card.innerHTML = `
+        <div class="badge">
+          <div class="badge-stars">${s}</div>
+          <div class="badge-text">GOLCHELIN<br>STAR</div>
+        </div>
+        <div class="golfer-name">${g.name}</div>
+        <div class="star-disp">${s}</div>
+      `;
+      grid.appendChild(card);
+    });
+  </script>
+</body>
+</html>

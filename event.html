@@ -1,0 +1,2396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>이벤트 / 대회 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --gold: #f0c040;
+      --border: rgba(62,160,102,0.18);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    /* ── Phone frame ── */
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+
+    /* ── Loading ── */
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(62,160,102,0.3);
+      border-top-color: var(--green-light);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── App bar ── */
+    .appbar {
+      flex-shrink: 0;
+      padding: 32px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 10;
+    }
+    .appbar-left { display: flex; align-items: center; gap: 8px; }
+    #btn-back {
+      background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0;
+      color: var(--green-light); font-size: 20px; line-height: 1;
+    }
+    #btn-back.hidden { display: none; }
+    .appbar-title { font-size: 16px; font-weight: 900; }
+    #btn-new-tournament {
+      display: none;
+      background: rgba(62,160,102,0.2); border: 1px solid rgba(62,160,102,0.4);
+      color: var(--green-light); font-size: 12px; font-weight: 700;
+      padding: 6px 12px; border-radius: 20px; cursor: pointer; font-family: inherit;
+    }
+
+    /* ── Hidden util ── */
+    .hidden { display: none !important; }
+
+    /* ── Scrollable content ── */
+    .scroll-area {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+    }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* ═══════════════════════════
+       VIEW: LIST
+    ═══════════════════════════ */
+    #view-list { display: flex; flex-direction: column; height: 100%; }
+
+    .tab-bar {
+      flex-shrink: 0;
+      display: flex; border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+    }
+    .tab-btn {
+      flex: 1; padding: 12px 0; font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,0.4); background: none; border: none;
+      border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { color: #fff; border-bottom-color: var(--green-light); }
+
+    .list-content { padding: 16px 16px 80px; }
+
+    /* Active tournament card */
+    .active-card {
+      background: linear-gradient(135deg, rgba(45,122,79,0.25) 0%, rgba(10,36,6,0.5) 100%);
+      border: 1px solid rgba(62,160,102,0.35);
+      border-radius: 20px; padding: 20px; margin-bottom: 14px;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+      position: relative; overflow: hidden;
+    }
+    .active-card::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 100px; height: 100px;
+      background: radial-gradient(circle, rgba(62,160,102,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .active-card:active { transform: scale(0.98); }
+
+    .card-status-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .badge-live {
+      background: #e74c3c; color: #fff;
+      font-size: 9px; font-weight: 900; letter-spacing: 1px;
+      padding: 3px 7px; border-radius: 10px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .badge-upcoming {
+      background: rgba(240,192,64,0.2); color: var(--gold);
+      border: 1px solid rgba(240,192,64,0.4);
+      font-size: 9px; font-weight: 900; letter-spacing: 1px;
+      padding: 3px 7px; border-radius: 10px;
+    }
+
+    /* 주간 카드 (기본) */
+    .active-card.day {
+      background: linear-gradient(135deg, rgba(45,122,79,0.25) 0%, rgba(10,36,6,0.5) 100%);
+      border-color: rgba(62,160,102,0.35);
+    }
+    .active-card.day::before {
+      background: radial-gradient(circle, rgba(62,160,102,0.15) 0%, transparent 70%);
+    }
+    /* 야간 카드 */
+    .active-card.night {
+      background: linear-gradient(135deg, rgba(40,50,130,0.35) 0%, rgba(5,8,35,0.65) 100%);
+      border-color: rgba(110,130,255,0.35);
+    }
+    .active-card.night::before {
+      background: radial-gradient(circle, rgba(110,130,255,0.15) 0%, transparent 70%);
+    }
+    .active-card.night .card-action-btn {
+      background: linear-gradient(90deg, #2a3a9f, #5566ee);
+    }
+    .active-card.night .card-progress-fill {
+      background: linear-gradient(90deg, #2a3a9f, #5566ee);
+    }
+    .active-card.night .badge-live {
+      background: #3a3fcc;
+    }
+    .active-card.night .card-meta-icon {
+      color: #8899ff;
+    }
+    .night-label {
+      font-size: 11px; font-weight: 700;
+      color: #8899ff;
+      background: rgba(100,120,255,0.12);
+      border: 1px solid rgba(100,120,255,0.25);
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .day-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--green-light);
+      background: rgba(62,160,102,0.1);
+      border: 1px solid rgba(62,160,102,0.2);
+      padding: 2px 8px; border-radius: 8px;
+    }
+
+    .card-series { font-size: 11px; color: rgba(255,255,255,0.45); margin-bottom: 2px; }
+    .card-name { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 2px; }
+    .card-slogan { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 16px; }
+
+    .card-meta { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+    .card-meta-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: rgba(255,255,255,0.65);
+    }
+    .card-meta-icon { width: 14px; height: 14px; color: var(--green-light); flex-shrink: 0; }
+    .card-meta-label { color: rgba(255,255,255,0.35); min-width: 50px; }
+
+    .card-progress-area { margin-bottom: 16px; }
+    .card-progress-top {
+      display: flex; justify-content: space-between;
+      font-size: 11px; margin-bottom: 5px;
+    }
+    .card-progress-label { color: rgba(255,255,255,0.45); }
+    .card-progress-num { color: var(--green-light); font-weight: 700; }
+    .card-progress-bar {
+      height: 5px; background: rgba(255,255,255,0.1);
+      border-radius: 3px; overflow: hidden;
+    }
+    .card-progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--green), var(--green-light));
+      border-radius: 3px; transition: width 0.5s ease;
+    }
+
+    .card-action-btn {
+      width: 100%; padding: 12px;
+      background: linear-gradient(90deg, var(--green), var(--green-light));
+      color: #fff; font-size: 14px; font-weight: 800;
+      border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .card-action-btn:active { opacity: 0.8; }
+
+    .card-admin-row {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
+    .card-edit-btn, .card-close-btn {
+      flex: 1; padding: 8px;
+      font-size: 11px; font-weight: 700;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      border: none;
+    }
+    .card-edit-btn {
+      background: rgba(240,192,64,0.15); color: var(--gold);
+      border: 1px solid rgba(240,192,64,0.3);
+    }
+    .card-close-btn {
+      background: rgba(231,76,60,0.15); color: #e74c3c;
+      border: 1px solid rgba(231,76,60,0.3);
+    }
+    .card-delete-btn {
+      flex: 1; padding: 8px;
+      font-size: 11px; font-weight: 700;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      background: rgba(180,0,0,0.2); color: #ff6b6b;
+      border: 1px solid rgba(180,0,0,0.35);
+    }
+    .past-delete-btn {
+      flex-shrink: 0;
+      background: rgba(180,0,0,0.15); color: #ff6b6b;
+      border: 1px solid rgba(180,0,0,0.25);
+      font-size: 10px; font-weight: 700;
+      padding: 4px 10px; border-radius: 8px;
+      cursor: pointer; font-family: inherit; margin-left: 6px;
+    }
+
+    /* Timer */
+    .card-timer {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 14px;
+    }
+    .timer-label {
+      font-size: 10px; color: rgba(255,255,255,0.4); flex-shrink: 0;
+    }
+    .timer-blocks { display: flex; align-items: center; gap: 4px; }
+    .timer-block {
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px; padding: 4px 8px; min-width: 38px;
+    }
+    .timer-block.urgent {
+      background: rgba(231,76,60,0.12);
+      border-color: rgba(231,76,60,0.3);
+    }
+    .timer-num {
+      font-size: 16px; font-weight: 900; line-height: 1;
+      color: #fff; font-variant-numeric: tabular-nums;
+    }
+    .timer-block.urgent .timer-num { color: #e74c3c; }
+    .timer-unit { font-size: 8px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .timer-sep { font-size: 14px; font-weight: 900; color: rgba(255,255,255,0.25); margin-bottom: 6px; }
+    .timer-dday {
+      font-size: 13px; font-weight: 900; color: var(--green-light);
+      background: rgba(62,160,102,0.15); border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 7px; padding: 4px 10px;
+    }
+
+    /* Past tournament card */
+    .past-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 16px;
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .past-icon {
+      width: 40px; height: 40px; flex-shrink: 0;
+      background: rgba(240,192,64,0.1); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .past-info { flex: 1; min-width: 0; }
+    .past-name { font-size: 15px; font-weight: 800; margin-bottom: 2px; }
+    .past-year { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .past-badge {
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4);
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: rgba(255,255,255,0.3); font-size: 13px;
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* ═══════════════════════════
+       VIEW: DETAIL
+    ═══════════════════════════ */
+    #view-detail { display: none; flex-direction: column; height: 100%; }
+
+    .detail-scroll { padding: 0 16px 80px; }
+
+    .detail-hero {
+      padding: 8px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .detail-series { font-size: 11px; color: var(--green-light); margin-bottom: 4px; letter-spacing: 0.5px; }
+    .detail-name { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .detail-slogan { font-size: 13px; color: rgba(255,255,255,0.5); }
+
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin-bottom: 20px;
+    }
+    .info-cell {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px;
+    }
+    .info-cell.full { grid-column: 1 / -1; }
+    .info-cell-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+    .info-cell-value { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); }
+    .info-cell-value.highlight { color: var(--green-light); font-size: 15px; }
+
+    .prizes-box {
+      background: rgba(240,192,64,0.06);
+      border: 1px solid rgba(240,192,64,0.2);
+      border-radius: 12px; padding: 14px;
+      margin-bottom: 20px;
+    }
+    .prizes-title {
+      font-size: 11px; color: var(--gold); font-weight: 700;
+      letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    .prizes-text {
+      font-size: 12px; color: rgba(255,255,255,0.65);
+      line-height: 1.7; white-space: pre-wrap;
+    }
+
+    /* ── Seat map ── */
+    .seat-map-section { margin-bottom: 20px; }
+    .seat-map-title {
+      font-size: 11px; color: rgba(255,255,255,0.4);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 12px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .seat-map-title span { color: var(--green-light); }
+
+    .course-tabs {
+      display: flex; gap: 6px; margin-bottom: 14px;
+    }
+    .course-tab-btn {
+      padding: 7px 18px;
+      font-size: 12px; font-weight: 700;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+      cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .course-tab-btn.active {
+      background: rgba(62,160,102,0.2); color: var(--green-light);
+      border-color: rgba(62,160,102,0.4);
+    }
+
+    .seat-legend {
+      display: flex; gap: 12px; margin-bottom: 12px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: rgba(255,255,255,0.4); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .legend-dot.available { background: rgba(45,122,79,0.6); border: 1px solid rgba(62,160,102,0.5); }
+    .legend-dot.taken { background: rgba(255,255,255,0.1); }
+    .legend-dot.mine { background: rgba(240,192,64,0.4); border: 1px solid var(--gold); }
+
+    .seat-grid-header {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 6px; padding-left: 36px;
+    }
+    .seat-col-label {
+      flex: 1; text-align: center; font-size: 9px;
+      color: rgba(255,255,255,0.3); font-weight: 700;
+    }
+
+    .seat-grid { display: flex; flex-direction: column; gap: 5px; }
+
+    .cart-row { display: flex; align-items: center; gap: 6px; }
+    .cart-label {
+      width: 38px; font-size: 10px; color: rgba(255,255,255,0.35);
+      text-align: right; flex-shrink: 0; font-weight: 600;
+      line-height: 1.3; display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .cart-label .cart-tee-time {
+      font-size: 8px; color: var(--gold); font-weight: 700; opacity: 0.85;
+      white-space: nowrap;
+    }
+    .seats { display: flex; gap: 5px; flex: 1; }
+
+    .seat {
+      flex: 1; height: 46px; border-radius: 9px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s;
+      border: 1px solid transparent;
+      font-size: 8px; font-weight: 700;
+      gap: 2px; user-select: none;
+      position: relative; overflow: hidden;
+    }
+    .seat svg { flex-shrink: 0; }
+    .seat-name { font-size: 7px; color: rgba(255,255,255,0.6); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+
+    .seat.available {
+      background: rgba(45,122,79,0.25);
+      border-color: rgba(62,160,102,0.35);
+    }
+    .seat.available:active {
+      background: rgba(45,122,79,0.6); transform: scale(0.93);
+    }
+    .seat.taken {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.08);
+      cursor: not-allowed;
+    }
+    .seat.mine {
+      background: rgba(240,192,64,0.2);
+      border-color: var(--gold);
+      cursor: default;
+    }
+    .seat.selected {
+      background: rgba(240,192,64,0.25);
+      border-color: var(--gold);
+      transform: scale(1.05);
+    }
+
+    .selected-info-bar {
+      background: rgba(240,192,64,0.12);
+      border: 1px solid rgba(240,192,64,0.3);
+      border-radius: 12px; padding: 12px 16px;
+      margin-top: 14px;
+      display: none; flex-direction: column; gap: 4px;
+    }
+    .selected-info-bar.visible { display: flex; }
+    .selected-info-label { font-size: 10px; color: rgba(255,255,255,0.4); }
+    .selected-info-value { font-size: 13px; font-weight: 800; color: var(--gold); }
+
+    .detail-register-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(90deg, var(--green), var(--green-light));
+      color: #fff; font-size: 15px; font-weight: 800;
+      border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+      margin-top: 16px; transition: opacity 0.2s; opacity: 0.4;
+    }
+    .detail-register-btn.enabled { opacity: 1; }
+    .detail-register-btn.my-seat {
+      background: rgba(62,160,102,0.2); color: var(--green-light);
+      border: 1px solid rgba(62,160,102,0.4); opacity: 1; cursor: default;
+    }
+
+    /* ═══════════════════════════
+       BOTTOM SHEET: Register
+    ═══════════════════════════ */
+    .sheet-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.6); z-index: 50;
+      display: none; align-items: flex-end;
+      border-radius: 40px; overflow: hidden;
+    }
+    .sheet-overlay.open { display: flex; }
+
+    .sheet {
+      width: 100%;
+      background: #0f2a14;
+      border-radius: 24px 24px 0 0;
+      padding: 0 20px 32px;
+      max-height: 88%;
+      overflow-y: auto; scrollbar-width: none;
+      animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .sheet::-webkit-scrollbar { display: none; }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 36px; height: 4px; background: rgba(255,255,255,0.2);
+      border-radius: 2px; margin: 12px auto 20px;
+    }
+    .sheet-title { font-size: 18px; font-weight: 900; margin-bottom: 4px; }
+    .sheet-subtitle { font-size: 12px; color: var(--green-light); margin-bottom: 24px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.5); margin-bottom: 6px; letter-spacing: 0.3px;
+    }
+    .form-input {
+      width: 100%; padding: 13px 14px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; color: #fff;
+      font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: rgba(62,160,102,0.6); }
+    .form-input::placeholder { color: rgba(255,255,255,0.25); }
+
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+
+    .submit-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(90deg, var(--green), var(--green-light));
+      color: #fff; font-size: 15px; font-weight: 800;
+      border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+      margin-top: 8px; transition: opacity 0.2s;
+    }
+    .submit-btn:active { opacity: 0.8; }
+
+    .sheet-seat-badge {
+      background: rgba(62,160,102,0.15);
+      border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 10px; padding: 10px 14px;
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sheet-seat-icon {
+      width: 32px; height: 32px; background: rgba(62,160,102,0.2);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .sheet-seat-text { font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.5; }
+    .sheet-seat-text strong { color: #fff; font-size: 14px; }
+
+    /* ═══════════════════════════
+       MODAL: Admin
+    ═══════════════════════════ */
+    .admin-overlay {
+      position: absolute; inset: 0;
+      background: #0A2406; z-index: 60;
+      display: none; flex-direction: column;
+      border-radius: 40px; overflow: hidden;
+    }
+    .admin-overlay.open { display: flex; }
+
+    .admin-appbar {
+      flex-shrink: 0; padding: 32px 18px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-appbar-title { font-size: 15px; font-weight: 900; }
+    .admin-close-btn {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.5); font-size: 22px; line-height: 1;
+      padding: 4px;
+    }
+
+    .admin-scroll {
+      flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
+      padding: 20px 18px 40px;
+    }
+    .admin-scroll::-webkit-scrollbar { display: none; }
+
+    .admin-section-title {
+      font-size: 10px; color: var(--green-light); font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 12px; margin-top: 20px;
+    }
+    .admin-section-title:first-child { margin-top: 0; }
+
+    .admin-form-group { margin-bottom: 12px; }
+    .admin-label {
+      display: block; font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.45); margin-bottom: 5px;
+    }
+    .admin-input, .admin-textarea, .admin-select {
+      width: 100%; min-width: 0; max-width: 100%; padding: 11px 13px;
+      -webkit-appearance: none; appearance: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: #fff;
+      font-size: 13px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    .admin-input:focus, .admin-textarea:focus, .admin-select:focus {
+      border-color: rgba(62,160,102,0.5);
+    }
+    .admin-input::placeholder, .admin-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .admin-textarea { min-height: 80px; resize: vertical; }
+    .admin-select { cursor: pointer; }
+    .admin-select option { background: #1a3a1a; }
+
+    .admin-row { display: flex; gap: 10px; }
+    .admin-row .admin-form-group { flex: 1; }
+
+    .admin-save-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(90deg, var(--green), var(--green-light));
+      color: #fff; font-size: 15px; font-weight: 800;
+      border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+      margin-top: 16px;
+    }
+    .admin-save-btn:active { opacity: 0.8; }
+
+    .admin-hint {
+      font-size: 10px; color: rgba(255,255,255,0.3);
+      margin-top: 4px; line-height: 1.5;
+    }
+
+    /* ── Course name inputs ── */
+    .course-name-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .course-name-badge {
+      flex-shrink: 0; width: 28px; height: 28px;
+      background: rgba(62,160,102,0.2);
+      border: 1px solid rgba(62,160,102,0.35);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900; color: var(--green-light);
+    }
+
+    /* ── Time picker ── */
+    .time-picker {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 8px 10px;
+    }
+    .ampm-btn {
+      padding: 5px 10px; border-radius: 7px; cursor: pointer;
+      font-size: 12px; font-weight: 800; font-family: inherit;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent; color: rgba(255,255,255,0.35);
+      transition: all 0.15s;
+    }
+    .ampm-btn.active {
+      background: rgba(62,160,102,0.3);
+      border-color: rgba(62,160,102,0.6);
+      color: var(--green-light);
+    }
+    .time-sel {
+      flex: 1; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px; color: #fff;
+      font-size: 14px; font-weight: 700;
+      padding: 5px 4px; text-align: center;
+      cursor: pointer; font-family: inherit; outline: none;
+    }
+    .time-sel option { background: #1a3a1a; }
+    .time-colon {
+      font-size: 16px; font-weight: 900;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .auto-calc-badge {
+      display: inline-block;
+      background: rgba(62,160,102,0.15); color: var(--green-light);
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 6px; margin-left: 6px;
+    }
+
+    /* ═══════════════════════════
+       MODAL: Pairing Management
+    ═══════════════════════════ */
+    .pairing-overlay {
+      position: absolute; inset: 0;
+      background: #0A2406; z-index: 70;
+      display: none; flex-direction: column;
+      border-radius: 40px; overflow: hidden;
+    }
+    .pairing-overlay.open { display: flex; }
+    .pairing-appbar {
+      flex-shrink: 0; padding: 32px 18px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .pairing-appbar-left { display: flex; flex-direction: column; gap: 2px; }
+    .pairing-appbar-title { font-size: 15px; font-weight: 900; }
+    .pairing-appbar-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .pairing-close-btn {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.5); font-size: 22px; line-height: 1; padding: 4px;
+    }
+    .pairing-scroll {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+      padding: 16px 16px 0;
+    }
+    .pairing-scroll::-webkit-scrollbar { display: none; }
+    .pairing-course-section { margin-bottom: 20px; }
+    .pairing-course-title {
+      font-size: 12px; font-weight: 900; color: var(--green-light);
+      letter-spacing: 0.5px; padding: 0 0 8px;
+      border-bottom: 1px solid rgba(62,160,102,0.25);
+      margin-bottom: 4px;
+    }
+    .pairing-cart-block { margin-bottom: 12px; }
+    .pairing-cart-label {
+      font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.35);
+      padding: 8px 0 4px; letter-spacing: 0.5px;
+    }
+    .pairing-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .pairing-seat-badge {
+      flex-shrink: 0; width: 20px; height: 20px;
+      background: rgba(240,192,64,0.15); border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 900; color: var(--gold);
+    }
+    .pairing-name {
+      flex: 1; font-size: 13px; font-weight: 700; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pairing-selects { display: flex; gap: 3px; flex-shrink: 0; }
+    .pairing-select {
+      background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.25);
+      color: #fff; border-radius: 6px; padding: 4px 4px; font-size: 10px;
+      font-family: inherit; cursor: pointer; outline: none; max-width: 54px;
+    }
+    .pairing-select option { background: #1a3a1a; }
+    .pairing-save-row-btn {
+      flex-shrink: 0;
+      background: rgba(62,160,102,0.2); border: 1px solid rgba(62,160,102,0.35);
+      color: var(--green-light); font-size: 10px; font-weight: 700;
+      padding: 4px 8px; border-radius: 6px; cursor: pointer; font-family: inherit;
+    }
+    .pairing-save-row-btn:active { opacity: 0.7; }
+    .pairing-empty-seat {
+      padding: 7px 0; font-size: 11px; color: rgba(255,255,255,0.18);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pairing-empty-badge {
+      flex-shrink: 0; width: 20px; height: 20px;
+      background: rgba(255,255,255,0.05); border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: rgba(255,255,255,0.2);
+    }
+    .pairing-footer {
+      flex-shrink: 0; padding: 12px 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 8px;
+    }
+    .pairing-pdf-btn {
+      flex: 1; padding: 12px;
+      background: rgba(240,192,64,0.15); border: 1px solid rgba(240,192,64,0.3);
+      color: var(--gold); font-size: 13px; font-weight: 700;
+      border-radius: 12px; cursor: pointer; font-family: inherit;
+    }
+    .pairing-pdf-btn:active { opacity: 0.7; }
+
+    /* ── Toast ── */
+    .toast {
+      position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+      background: rgba(20,20,20,0.95); color: #fff;
+      font-size: 13px; font-weight: 600;
+      padding: 10px 20px; border-radius: 20px;
+      white-space: nowrap; z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Confirmation modal ── */
+    .confirm-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 80; border-radius: 40px; padding: 30px;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: #0f2a14; border: 1px solid var(--border);
+      border-radius: 20px; padding: 24px; width: 100%;
+    }
+    .confirm-title { font-size: 16px; font-weight: 900; margin-bottom: 8px; }
+    .confirm-msg { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 20px; line-height: 1.6; }
+    .confirm-btns { display: flex; gap: 10px; }
+    .confirm-cancel {
+      flex: 1; padding: 12px;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+      font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .confirm-ok {
+      flex: 1; padding: 12px;
+      background: #e74c3c; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- Loading -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- App bar -->
+  <div class="appbar">
+    <div class="appbar-left">
+      <button id="btn-back" onclick="goBack()">‹</button>
+      <span class="appbar-title" id="appbar-title">이벤트 / 대회</span>
+    </div>
+    <button id="btn-new-tournament" onclick="openAdminModal(null)">+ 대회 만들기</button>
+  </div>
+
+  <!-- ══════════════════════════ VIEW: LIST ══════════════════════════ -->
+  <div id="view-list" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">진행중 / 모집중</button>
+      <button class="tab-btn" id="tab-past" onclick="switchTab('past')">지난 대회</button>
+    </div>
+
+    <div class="scroll-area">
+      <!-- Active tab -->
+      <div id="tab-content-active" class="list-content">
+        <div id="active-list">
+          <div class="empty-state">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Past tab -->
+      <div id="tab-content-past" class="list-content hidden">
+        <div id="past-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ VIEW: DETAIL ══════════════════════════ -->
+  <div id="view-detail" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div class="scroll-area">
+      <div class="detail-scroll" id="detail-scroll"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ SHEET: Register ══════════════════════════ -->
+  <div class="sheet-overlay" id="sheet-register" onclick="onSheetOverlayClick(event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">대회 신청</div>
+      <div class="sheet-subtitle" id="sheet-seat-label">A코스 1조 A번</div>
+
+      <div class="sheet-seat-badge">
+        <div class="sheet-seat-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div class="sheet-seat-text">
+          <strong id="sheet-seat-name-preview">-</strong><br>
+          개인정보는 대회 운영 목적으로만 사용됩니다
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">이름 *</label>
+          <input class="form-input" id="reg-name" type="text" placeholder="홍길동" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">핸디캡 *</label>
+          <input class="form-input" id="reg-handicap" type="number" placeholder="0" min="0" max="54" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">연락처 *</label>
+        <input class="form-input" id="reg-phone" type="tel" placeholder="010-0000-0000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">환불계좌 *</label>
+        <input class="form-input" id="reg-account" type="text" placeholder="은행명 / 계좌번호 / 예금주" />
+      </div>
+
+      <button class="submit-btn" onclick="submitRegistration()">신청 완료</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ MODAL: Admin ══════════════════════════ -->
+  <div class="admin-overlay" id="admin-overlay">
+    <div class="admin-appbar">
+      <span class="admin-appbar-title" id="admin-modal-title">대회 만들기</span>
+      <button class="admin-close-btn" onclick="closeAdminModal()">×</button>
+    </div>
+    <div class="admin-scroll">
+      <input type="hidden" id="admin-editing-id" value="" />
+
+      <div class="admin-section-title">대회 기본 정보</div>
+      <div class="admin-form-group">
+        <label class="admin-label">대회명 *</label>
+        <input class="admin-input" id="admin-name" placeholder="예) 3차 흑백대전" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">슬로건</label>
+        <input class="admin-input" id="admin-slogan" placeholder="예) 흑과 백의 세 번째 대결" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">상태</label>
+        <select class="admin-select" id="admin-status">
+          <option value="recruiting">모집중</option>
+          <option value="upcoming">예정</option>
+          <option value="closed">마감</option>
+        </select>
+      </div>
+
+      <div class="admin-section-title">골프장 & 일정</div>
+      <div class="admin-form-group">
+        <label class="admin-label">골프장명 *</label>
+        <input class="admin-input" id="admin-golf-course" placeholder="예) OO컨트리클럽" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">대회 일자 *</label>
+        <input class="admin-input" id="admin-date" type="date" style="min-width:0; max-width:100%;" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">티업 시간 *</label>
+        <div class="time-picker" id="tee-picker">
+          <button type="button" class="ampm-btn active" data-picker="tee" data-val="AM" onclick="setAmPm('tee','AM')">AM</button>
+          <button type="button" class="ampm-btn" data-picker="tee" data-val="PM" onclick="setAmPm('tee','PM')">PM</button>
+          <select class="time-sel" id="tee-hour" onchange="syncTimeInput('tee')">
+            <option value="">시</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+            <option>9</option><option>10</option><option>11</option><option>12</option>
+          </select>
+          <span class="time-colon">:</span>
+          <select class="time-sel" id="tee-min" onchange="syncTimeInput('tee')">
+            <option value="">분</option>
+            <option>00</option><option>01</option><option>02</option><option>03</option><option>04</option>
+            <option>05</option><option>06</option><option>07</option><option>08</option><option>09</option>
+            <option>10</option><option>11</option><option>12</option><option>13</option><option>14</option>
+            <option>15</option><option>16</option><option>17</option><option>18</option><option>19</option>
+            <option>20</option><option>21</option><option>22</option><option>23</option><option>24</option>
+            <option>25</option><option>26</option><option>27</option><option>28</option><option>29</option>
+            <option>30</option><option>31</option><option>32</option><option>33</option><option>34</option>
+            <option>35</option><option>36</option><option>37</option><option>38</option><option>39</option>
+            <option>40</option><option>41</option><option>42</option><option>43</option><option>44</option>
+            <option>45</option><option>46</option><option>47</option><option>48</option><option>49</option>
+            <option>50</option><option>51</option><option>52</option><option>53</option><option>54</option>
+            <option>55</option><option>56</option><option>57</option><option>58</option><option>59</option>
+          </select>
+        </div>
+        <input type="hidden" id="admin-tee-time" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">조 간격 (분) *</label>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input class="admin-input" id="admin-tee-interval" type="number" min="1" max="30"
+            placeholder="예) 7" style="width:80px; flex-shrink:0;"
+            oninput="updateIntervalPreview()" />
+          <span style="font-size:11px; color:rgba(255,255,255,0.4); line-height:1.5;">
+            분 간격으로 조별 티타임 자동 계산<br>
+            <span id="tee-interval-preview" style="color:var(--green-light);"></span>
+          </span>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">집결 시간 *</label>
+        <div class="time-picker" id="gather-picker">
+          <button type="button" class="ampm-btn active" data-picker="gather" data-val="AM" onclick="setAmPm('gather','AM')">AM</button>
+          <button type="button" class="ampm-btn" data-picker="gather" data-val="PM" onclick="setAmPm('gather','PM')">PM</button>
+          <select class="time-sel" id="gather-hour" onchange="syncTimeInput('gather')">
+            <option value="">시</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+            <option>9</option><option>10</option><option>11</option><option>12</option>
+          </select>
+          <span class="time-colon">:</span>
+          <select class="time-sel" id="gather-min" onchange="syncTimeInput('gather')">
+            <option value="">분</option>
+            <option>00</option><option>01</option><option>02</option><option>03</option><option>04</option>
+            <option>05</option><option>06</option><option>07</option><option>08</option><option>09</option>
+            <option>10</option><option>11</option><option>12</option><option>13</option><option>14</option>
+            <option>15</option><option>16</option><option>17</option><option>18</option><option>19</option>
+            <option>20</option><option>21</option><option>22</option><option>23</option><option>24</option>
+            <option>25</option><option>26</option><option>27</option><option>28</option><option>29</option>
+            <option>30</option><option>31</option><option>32</option><option>33</option><option>34</option>
+            <option>35</option><option>36</option><option>37</option><option>38</option><option>39</option>
+            <option>40</option><option>41</option><option>42</option><option>43</option><option>44</option>
+            <option>45</option><option>46</option><option>47</option><option>48</option><option>49</option>
+            <option>50</option><option>51</option><option>52</option><option>53</option><option>54</option>
+            <option>55</option><option>56</option><option>57</option><option>58</option><option>59</option>
+          </select>
+        </div>
+        <input type="hidden" id="admin-gather-time" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">집결 장소 *</label>
+        <input class="admin-input" id="admin-gather" placeholder="예) 클럽하우스 앞 주차장" />
+      </div>
+
+      <div class="admin-section-title">참가 인원 & 코스</div>
+      <div class="admin-row">
+        <div class="admin-form-group">
+          <label class="admin-label">총 인원 *</label>
+          <input class="admin-input" id="admin-total" type="number" placeholder="예) 40" min="4" max="200" oninput="recalcCarts()" />
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">코스 수 *
+            <span class="auto-calc-badge">18홀=2 / 27홀=3</span>
+          </label>
+          <select class="admin-select" id="admin-courses" onchange="recalcCarts(); renderCourseNameInputs()">
+            <option value="2">2코스 (18홀)</option>
+            <option value="3">3코스 (27홀)</option>
+          </select>
+        </div>
+      </div>
+      <div id="course-name-inputs"></div>
+      <div class="admin-form-group">
+        <label class="admin-label">카트 수 (자동 계산)</label>
+        <input class="admin-input" id="admin-carts" readonly placeholder="인원 입력 시 자동 계산" style="opacity:0.6;" />
+        <div class="admin-hint" id="admin-cart-hint">총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다</div>
+      </div>
+
+      <div class="admin-section-title">비용</div>
+      <div class="admin-row">
+        <div class="admin-form-group">
+          <label class="admin-label">그린피</label>
+          <input class="admin-input" id="admin-green-fee" placeholder="예) 150,000" />
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">참가비</label>
+          <input class="admin-input" id="admin-caddy-fee" placeholder="예) 50,000" />
+        </div>
+      </div>
+
+      <div class="admin-section-title">시상 & 찬조</div>
+      <div class="admin-form-group">
+        <label class="admin-label">시상 및 찬조 물품 내역</label>
+        <textarea class="admin-textarea" id="admin-prizes" placeholder="예) 우승: 트로피 + 상품권 100,000원&#10;준우승: 상품권 50,000원&#10;니어리스트: XX 찬조 골프공 1세트"></textarea>
+        <div class="admin-hint">대회 중 언제든지 수정 가능합니다</div>
+      </div>
+
+      <button class="admin-save-btn" onclick="saveTournament()">저장하기</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ PAIRING MODAL ══════════════════════════ -->
+  <div class="pairing-overlay" id="pairing-overlay">
+    <div class="pairing-appbar">
+      <div class="pairing-appbar-left">
+        <span class="pairing-appbar-title">조편성 관리</span>
+        <span class="pairing-appbar-sub" id="pairing-appbar-sub"></span>
+      </div>
+      <button class="pairing-close-btn" onclick="closePairingModal()">×</button>
+    </div>
+    <div class="pairing-scroll" id="pairing-content"></div>
+    <div class="pairing-footer">
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ CONFIRM MODAL ══════════════════════════ -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <div class="confirm-title" id="confirm-title">확인</div>
+      <div class="confirm-msg" id="confirm-msg"></div>
+      <div class="confirm-btns">
+        <button class="confirm-cancel" onclick="closeConfirm()">취소</button>
+        <button class="confirm-ok" id="confirm-ok-btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  onSnapshot, query, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ── 코스명 헬퍼 (tournament 객체에서 가져오거나 기본값 사용) ──
+function getCourseNamesFor(t) {
+  if (t && t.courseNames && t.courseNames.length) return t.courseNames;
+  const count = (t && t.courseCount) || 2;
+  return Array.from({length: count}, (_, i) => `${String.fromCharCode(65+i)}코스`);
+}
+
+// ── State ──────────────────────────────────────────────
+let currentUser = null;
+let isAdmin = false;
+let currentView = 'list'; // list | detail
+let activeTournaments = [];
+let seatMapListener = null;
+let currentTournament = null;
+let selectedSeat = null; // { courseIdx, cartIdx, seatIdx }
+let myRegistration = null;
+let allRegistrations = [];
+
+// ── Static past tournaments ────────────────────────────
+const PAST_TOURNAMENTS = [
+  { id: 'hwb-1', name: '흑백대전 1차', slogan: '흑과 백의 첫 번째 대결', year: '2024', icon: '' },
+  { id: 'hwb-2', name: '흑백대전 2차', slogan: '더욱 치열해진 두 번째 대결', year: '2024', icon: '' },
+  { id: 'gpga-2025', name: '2025 GPGA OPEN', slogan: '골갑 아마추어 오픈 대회', year: '2025', icon: '' },
+];
+
+// ── Auth ───────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = 'login.html?return=event.html';
+    return;
+  }
+  currentUser = user;
+  isAdmin = user.email === 'wlfmzhs@naver.com';
+  if (isAdmin) {
+    document.getElementById('btn-new-tournament').style.display = 'block';
+  }
+  document.getElementById('loading-overlay').classList.add('hidden');
+  loadActiveTournaments();
+  renderPastList();
+});
+
+// ── Load active tournaments ───────────────────────────
+async function loadActiveTournaments() {
+  try {
+    const snap = await getDocs(collection(db, 'tournaments'));
+    activeTournaments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.error('Firestore 로드 실패:', e);
+    activeTournaments = [];
+  }
+  // Firestore에 아무 데이터도 없으면 예시 카드 표시 (운영자가 대회 만들기 전)
+  if (activeTournaments.length === 0 && isAdmin) {
+    document.getElementById('active-list').innerHTML = `
+      <div class="empty-state" style="padding:40px 0 20px;">
+        <div style="font-size:13px;color:rgba(255,255,255,0.35);margin-bottom:12px;">등록된 대회가 없습니다</div>
+        <button onclick="openAdminModal(null)" style="
+          background:rgba(62,160,102,0.2);color:var(--green-light);
+          border:1px solid rgba(62,160,102,0.4);border-radius:12px;
+          padding:10px 20px;font-size:13px;font-weight:700;
+          cursor:pointer;font-family:inherit;">
+          + 첫 번째 대회 만들기
+        </button>
+      </div>`;
+    return;
+  }
+  renderActiveList();
+  loadRegistrationCounts();
+}
+
+// ── 리스트 뷰 진행 바용 등록 수 일괄 조회 ────────────────
+async function loadRegistrationCounts() {
+  const active = activeTournaments.filter(t => t.status === 'recruiting' || t.status === 'upcoming');
+  for (const t of active) {
+    try {
+      const snap = await getDocs(collection(db, 'tournaments', t.id, 'registrations'));
+      updateCardProgress(t.id, snap.size, t.totalParticipants || 0);
+    } catch (e) {}
+  }
+}
+
+// ── Render active list ────────────────────────────────
+function renderActiveList() {
+  const el = document.getElementById('active-list');
+  const active = activeTournaments.filter(t => t.status === 'recruiting' || t.status === 'upcoming');
+
+  if (active.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">—</div>
+      <div>현재 모집 중인 대회가 없습니다</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = active.map(t => buildActiveCard(t)).join('');
+  startTimers(active);
+}
+
+function isNightRound(teeUpTime) {
+  if (!teeUpTime) return false;
+  const h = parseInt(teeUpTime.split(':')[0]);
+  return h >= 16; // PM 4시(16:00) 이후 = 야간
+}
+
+function buildActiveCard(t) {
+  const total = t.totalParticipants || 0;
+  const isRecruiting = t.status === 'recruiting';
+  const dateStr = t.date ? formatDate(t.date) : '일정 조율 중';
+  const feeStr = [t.greenFee, t.caddyFee].filter(Boolean).map(f => commaNum(f) + '원').join(' + ') || '추후 공지';
+  const night = isNightRound(t.teeUpTime);
+  const timeTypeLabel = t.teeUpTime ? (night ? '야간' : '주간') : '';
+
+  const adminButtons = isAdmin ? `
+    <div class="card-admin-row">
+      <button class="card-edit-btn" onclick="event.stopPropagation(); openAdminModal('${t.id}')">수정</button>
+      <button class="card-close-btn" onclick="event.stopPropagation(); confirmCloseTournament('${t.id}')">마감</button>
+      <button class="card-delete-btn" onclick="event.stopPropagation(); confirmDeleteTournament('${t.id}', '${t.name}')">삭제</button>
+    </div>` : '';
+
+  return `<div class="active-card ${night ? 'night' : 'day'}" onclick="openDetail('${t.id}')">
+    <div class="card-status-row">
+      ${isRecruiting
+        ? `<span class="badge-live">● LIVE</span>`
+        : `<span class="badge-upcoming">예정</span>`}
+      ${timeTypeLabel ? `<span class="${night ? 'night-label' : 'day-label'}">${timeTypeLabel}</span>` : ''}
+    </div>
+    <div class="card-name">${t.name}</div>
+    ${t.slogan ? `<div class="card-slogan">"${t.slogan}"</div>` : ''}
+    ${t.date ? `<div class="card-timer">
+      <span class="timer-label">대회까지</span>
+      <div class="timer-blocks" id="timer-${t.id}">
+        <div class="timer-block"><span class="timer-num">--</span><span class="timer-unit">일</span></div>
+        <span class="timer-sep">:</span>
+        <div class="timer-block"><span class="timer-num">--</span><span class="timer-unit">시간</span></div>
+        <span class="timer-sep">:</span>
+        <div class="timer-block"><span class="timer-num">--</span><span class="timer-unit">분</span></div>
+        <span class="timer-sep">:</span>
+        <div class="timer-block"><span class="timer-num">--</span><span class="timer-unit">초</span></div>
+      </div>
+    </div>` : ''}
+    <div class="card-meta">
+      <div class="card-meta-row">
+        <svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="card-meta-label">일시</span><span>${dateStr} ${t.teeUpTimeDisplay || t.teeUpTime ? (t.teeUpTimeDisplay || t.teeUpTime) + ' 티업' : ''}</span>
+      </div>
+      <div class="card-meta-row">
+        <svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7 13 8 13s8-7.6 8-13a8 8 0 0 0-8-8z"/></svg>
+        <span class="card-meta-label">장소</span><span>${t.golfCourseName || '추후 공지'}</span>
+      </div>
+      <div class="card-meta-row">
+        <svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span class="card-meta-label">비용</span><span>${feeStr}</span>
+      </div>
+    </div>
+    <div class="card-progress-area">
+      <div class="card-progress-top">
+        <span class="card-progress-label">참가 신청 현황</span>
+        <span class="card-progress-num" id="progress-num-${t.id}">- / ${total}명</span>
+      </div>
+      <div class="card-progress-bar">
+        <div class="card-progress-fill" id="progress-fill-${t.id}" style="width:0%"></div>
+      </div>
+    </div>
+    <button class="card-action-btn">신청하기</button>
+    ${adminButtons}
+  </div>`;
+}
+
+// ── Countdown timers ──────────────────────────────────
+let timerInterval = null;
+
+function startTimers(tournaments) {
+  if (timerInterval) clearInterval(timerInterval);
+  function tick() {
+    const now = Date.now();
+    tournaments.forEach(t => {
+      if (!t.date) return;
+      const el = document.getElementById(`timer-${t.id}`);
+      if (!el) return;
+      // 티업 시간이 있으면 그 시간까지, 없으면 당일 자정까지
+      let target;
+      if (t.teeUpTime) {
+        const [h, m] = t.teeUpTime.split(':').map(Number);
+        const d = new Date(t.date);
+        d.setHours(h, m, 0, 0);
+        target = d.getTime();
+      } else {
+        target = new Date(t.date).getTime();
+      }
+      const diff = target - now;
+      const blocks = el.querySelectorAll('.timer-block');
+      if (diff <= 0) {
+        el.innerHTML = `<div class="timer-dday">D-DAY</div>`;
+        return;
+      }
+      const days  = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins  = Math.floor((diff % 3600000) / 60000);
+      const secs  = Math.floor((diff % 60000) / 1000);
+      const urgent = days < 3;
+      const vals = [
+        { n: String(days).padStart(2,'0'), u: '일' },
+        { n: String(hours).padStart(2,'0'), u: '시간' },
+        { n: String(mins).padStart(2,'0'), u: '분' },
+        { n: String(secs).padStart(2,'0'), u: '초' },
+      ];
+      blocks.forEach((b, i) => {
+        b.querySelector('.timer-num').textContent = vals[i].n;
+        if (urgent) b.classList.add('urgent');
+        else b.classList.remove('urgent');
+      });
+    });
+  }
+  tick();
+  timerInterval = setInterval(tick, 1000);
+}
+
+// Update progress bar for a tournament card
+function updateCardProgress(tournamentId, count, total) {
+  const numEl = document.getElementById(`progress-num-${tournamentId}`);
+  const fillEl = document.getElementById(`progress-fill-${tournamentId}`);
+  if (numEl) numEl.textContent = `${count} / ${total}명`;
+  if (fillEl) fillEl.style.width = `${total > 0 ? Math.min(100, Math.round(count/total*100)) : 0}%`;
+}
+
+// ── Render past list ──────────────────────────────────
+function renderPastList() {
+  const el = document.getElementById('past-list');
+  // Also show closed tournaments from Firestore
+  const closedFromDB = activeTournaments.filter(t => t.status === 'closed' || t.status === 'past');
+
+  const allPast = [
+    ...closedFromDB.map(t => ({ id: t.id, name: t.name, slogan: t.slogan, year: t.date ? t.date.slice(0,4) : '', icon: '', fromDB: true })),
+    ...PAST_TOURNAMENTS
+  ];
+
+  const hiddenIds = JSON.parse(localStorage.getItem('hiddenPastIds') || '[]');
+  const visible = allPast.filter(t => !hiddenIds.includes(t.id));
+
+  el.innerHTML = visible.map(t => `
+    <div class="past-card">
+      <div class="past-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(240,192,64,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
+      <div class="past-info">
+        <div class="past-name">${t.name}</div>
+        <div class="past-year">${t.year || ''} ${t.slogan ? '· ' + t.slogan : ''}</div>
+      </div>
+      <span class="past-badge">종료</span>
+      ${isAdmin ? `<button class="past-delete-btn" onclick="confirmDeletePast('${t.id}', '${t.name}', ${!!t.fromDB})">삭제</button>` : ''}
+    </div>
+  `).join('');
+}
+
+// ── Tab switch ─────────────────────────────────────────
+window.switchTab = function(tab) {
+  document.getElementById('tab-content-active').classList.toggle('hidden', tab !== 'active');
+  document.getElementById('tab-content-past').classList.toggle('hidden', tab !== 'past');
+  document.getElementById('tab-active').classList.toggle('active', tab === 'active');
+  document.getElementById('tab-past').classList.toggle('active', tab === 'past');
+};
+
+// ── Open tournament detail ─────────────────────────────
+window.openDetail = function(tournamentId) {
+  const t = activeTournaments.find(x => x.id === tournamentId);
+  if (!t) return;
+  currentTournament = t;
+  selectedSeat = null;
+  myRegistration = null;
+
+  document.getElementById('view-list').style.display = 'none';
+  document.getElementById('view-detail').style.display = 'flex';
+  document.getElementById('appbar-title').textContent = t.name;
+  document.getElementById('btn-new-tournament').style.display = 'none';
+
+  currentView = 'detail';
+
+  // Detach old listener
+  if (seatMapListener) { seatMapListener(); seatMapListener = null; }
+
+  // Build detail HTML (without seats first)
+  renderDetailHeader(t);
+
+  // Listen for registrations in real time
+  seatMapListener = onSnapshot(
+    collection(db, 'tournaments', t.id, 'registrations'),
+    (snap) => {
+      allRegistrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      myRegistration = allRegistrations.find(r => r.userId === currentUser.uid) || null;
+      renderSeatMap(t, allRegistrations);
+      updateCardProgress(t.id, allRegistrations.length, t.totalParticipants || 0);
+      // 조편성 모달이 열려 있으면 함께 갱신
+      if (document.getElementById('pairing-overlay').classList.contains('open')) {
+        renderPairingContent(t, allRegistrations);
+      }
+    }
+  );
+};
+
+function renderDetailHeader(t) {
+  const dateStr = t.date ? formatDate(t.date) : '추후 공지';
+  const feeStr = [t.greenFee, t.caddyFee].filter(Boolean).map(f => commaNum(f) + '원').join(' + ') || '추후 공지';
+  const courseCount = t.courseCount || 2;
+  const totalCarts = Math.ceil((t.totalParticipants || 0) / 4);
+  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+
+  const adminEdit = isAdmin ? `
+    <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+      <button onclick="openAdminModal('${t.id}')" style="
+        background:rgba(240,192,64,0.15); color:var(--gold);
+        border:1px solid rgba(240,192,64,0.3); border-radius:8px;
+        padding:6px 14px; font-size:11px; font-weight:700;
+        cursor:pointer; font-family:inherit;">
+        대회 정보 수정
+      </button>
+      <button onclick="openPairingModal()" style="
+        background:rgba(62,160,102,0.15); color:var(--green-light);
+        border:1px solid rgba(62,160,102,0.3); border-radius:8px;
+        padding:6px 14px; font-size:11px; font-weight:700;
+        cursor:pointer; font-family:inherit;">
+        조편성 관리
+      </button>
+      <button onclick="downloadDetailPDF()" style="
+        background:rgba(240,192,64,0.1); color:var(--gold);
+        border:1px solid rgba(240,192,64,0.25); border-radius:8px;
+        padding:6px 14px; font-size:11px; font-weight:700;
+        cursor:pointer; font-family:inherit;">
+        PDF 저장
+      </button>
+    </div>` : '';
+
+  const scroll = document.getElementById('detail-scroll');
+  scroll.innerHTML = `
+    <div class="detail-hero">
+      <div class="detail-series">${t.status === 'recruiting' ? '● 모집중' : '예정'}</div>
+      <div class="detail-name">${t.name}</div>
+      ${t.slogan ? `<div class="detail-slogan">"${t.slogan}"</div>` : ''}
+      ${adminEdit}
+    </div>
+
+    <div class="info-grid">
+      <div class="info-cell">
+        <div class="info-cell-label">대회 일자</div>
+        <div class="info-cell-value">${dateStr}</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">티업 시간</div>
+        <div class="info-cell-value highlight">${t.teeUpTimeDisplay || t.teeUpTime || '-'}</div>
+      </div>
+      <div class="info-cell full">
+        <div class="info-cell-label">골프장</div>
+        <div class="info-cell-value">${t.golfCourseName || '-'}</div>
+      </div>
+      <div class="info-cell full">
+        <div class="info-cell-label">집결 시간 / 장소</div>
+        <div class="info-cell-value">${t.gatherInfo || '-'}</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">그린피</div>
+        <div class="info-cell-value">${t.greenFee ? commaNum(t.greenFee) + '원' : '-'}</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">참가비</div>
+        <div class="info-cell-value">${t.caddyFee ? commaNum(t.caddyFee) + '원' : '-'}</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">총 인원</div>
+        <div class="info-cell-value highlight">${t.totalParticipants || '-'}명</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">코스 구성</div>
+        <div class="info-cell-value">${courseCount}코스 × ${cartsPerCourse}카트</div>
+      </div>
+    </div>
+
+    ${t.prizes ? `<div class="prizes-box">
+      <div class="prizes-title">시상 및 찬조 물품</div>
+      <div class="prizes-text">${escHtml(t.prizes)}</div>
+    </div>` : ''}
+
+    <div class="seat-map-section">
+      <div class="seat-map-title">좌석 선택 <span>— 조를 선택해 신청하세요</span></div>
+
+      <div class="seat-legend">
+        <div class="legend-item"><div class="legend-dot available"></div>신청 가능</div>
+        <div class="legend-item"><div class="legend-dot taken"></div>신청 완료</div>
+        <div class="legend-item"><div class="legend-dot mine"></div>내 자리</div>
+      </div>
+
+      <div class="course-tabs" id="course-tabs"></div>
+      <div id="seat-map-content"></div>
+    </div>
+
+    <div class="selected-info-bar" id="selected-info-bar">
+      <div class="selected-info-label">선택된 자리</div>
+      <div class="selected-info-value" id="selected-info-text">-</div>
+    </div>
+
+    <button class="detail-register-btn" id="detail-register-btn" onclick="openRegisterSheet()">
+      자리를 선택하세요
+    </button>
+  `;
+
+  // Build course tabs
+  const courseNames = getCourseNamesFor(t);
+  const tabsEl = document.getElementById('course-tabs');
+  tabsEl.innerHTML = '';
+  for (let i = 0; i < courseCount; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'course-tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = courseNames[i];
+    btn.onclick = () => selectCourseTab(i);
+    tabsEl.appendChild(btn);
+  }
+}
+
+let activeCourseTab = 0;
+function selectCourseTab(idx) {
+  activeCourseTab = idx;
+  document.querySelectorAll('.course-tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+  renderSeatGrid(currentTournament, allRegistrations, idx);
+}
+
+function renderSeatMap(t, registrations) {
+  const courseCount = t.courseCount || 2;
+  activeCourseTab = Math.min(activeCourseTab, courseCount - 1);
+  renderSeatGrid(t, registrations, activeCourseTab);
+}
+
+function renderSeatGrid(t, registrations, courseIdx) {
+  const el = document.getElementById('seat-map-content');
+  if (!el) return;
+
+  const courseCount = t.courseCount || 2;
+  const totalCarts = Math.ceil((t.totalParticipants || 0) / 4);
+  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+  const seatLetters = ['A', 'B', 'C', 'D'];
+  const courseNames = getCourseNamesFor(t);
+
+  // Build reg lookup: {courseIdx}-{cartIdx}-{seatIdx} → registration
+  const regMap = {};
+  registrations.forEach(r => {
+    const key = `${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`;
+    regMap[key] = r;
+  });
+
+  let html = `<div class="seat-grid-header">
+    <span class="seat-col-label">A</span>
+    <span class="seat-col-label">B</span>
+    <span class="seat-col-label">C</span>
+    <span class="seat-col-label">D</span>
+  </div>
+  <div class="seat-grid">`;
+
+  for (let cartIdx = 0; cartIdx < cartsPerCourse; cartIdx++) {
+    // 조별 티타임 계산
+    let teeTimeHtml = '';
+    if (t.teeUpTime && t.teeInterval) {
+      const [hh, mm] = t.teeUpTime.split(':').map(Number);
+      const totalMin = hh * 60 + mm + cartIdx * t.teeInterval;
+      const th = Math.floor(totalMin / 60) % 24;
+      const tm = totalMin % 60;
+      const ampm = th < 12 ? 'AM' : 'PM';
+      const th12 = th === 0 ? 12 : th > 12 ? th - 12 : th;
+      teeTimeHtml = `<span class="cart-tee-time">${ampm} ${th12}:${String(tm).padStart(2,'0')}</span>`;
+    }
+    html += `<div class="cart-row">
+      <span class="cart-label">${cartIdx + 1}조${teeTimeHtml}</span>
+      <div class="seats">`;
+
+    for (let seatIdx = 0; seatIdx < 4; seatIdx++) {
+      const key = `${courseIdx}-${cartIdx}-${seatIdx}`;
+      const reg = regMap[key];
+      const isSelected = selectedSeat &&
+        selectedSeat.courseIdx === courseIdx &&
+        selectedSeat.cartIdx === cartIdx &&
+        selectedSeat.seatIdx === seatIdx;
+      const isMine = myRegistration && myRegistration.courseIndex === courseIdx &&
+        myRegistration.cartIndex === cartIdx && myRegistration.seatIndex === seatIdx;
+
+      let cls, content;
+      if (isMine) {
+        cls = 'mine';
+        content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="seat-name" style="color:#f0c040; font-weight:800;">나</span>`;
+      } else if (reg) {
+        cls = 'taken';
+        const initials = (reg.name || '?').slice(0, 1) + (reg.name && reg.name.length > 1 ? '○' : '');
+        content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="seat-name">${initials}</span>`;
+      } else if (isSelected) {
+        cls = 'selected';
+        content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+      } else {
+        cls = 'available';
+        content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(62,160,102,0.8)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+      }
+
+      const clickable = !reg && !isMine && t.status === 'recruiting';
+      const onclick = clickable ? `window.selectSeat(${courseIdx},${cartIdx},${seatIdx})` : '';
+      html += `<div class="seat ${cls}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
+    }
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+
+  updateRegisterButton();
+}
+
+window.selectSeat = function(courseIdx, cartIdx, seatIdx) {
+  if (myRegistration) {
+    showToast('이미 신청된 대회입니다');
+    return;
+  }
+  selectedSeat = { courseIdx, cartIdx, seatIdx };
+  const t = currentTournament;
+  renderSeatGrid(t, allRegistrations, courseIdx);
+
+  const courseNames = getCourseNamesFor(currentTournament);
+  const seatLetters = ['A', 'B', 'C', 'D'];
+  const label = `${courseNames[courseIdx]} ${cartIdx + 1}조 ${seatLetters[seatIdx]}번`;
+
+  const bar = document.getElementById('selected-info-bar');
+  const text = document.getElementById('selected-info-text');
+  if (bar && text) {
+    bar.classList.add('visible');
+    text.textContent = label;
+  }
+  updateRegisterButton();
+};
+
+function updateRegisterButton() {
+  const btn = document.getElementById('detail-register-btn');
+  if (!btn) return;
+
+  if (myRegistration) {
+    const courseNames = getCourseNamesFor(currentTournament);
+    const seatLetters = ['A', 'B', 'C', 'D'];
+    const label = `${courseNames[myRegistration.courseIndex]} ${myRegistration.cartIndex + 1}조 ${seatLetters[myRegistration.seatIndex]}번`;
+    btn.textContent = `신청 완료 (${label})`;
+    btn.className = 'detail-register-btn my-seat';
+    return;
+  }
+
+  if (selectedSeat) {
+    btn.textContent = '선택한 자리로 신청하기 →';
+    btn.className = 'detail-register-btn enabled';
+  } else {
+    btn.textContent = '자리를 선택하세요';
+    btn.className = 'detail-register-btn';
+  }
+}
+
+// ── Register sheet ─────────────────────────────────────
+window.openRegisterSheet = function() {
+  if (!selectedSeat) return;
+  if (myRegistration) return;
+
+  const courseNames = getCourseNamesFor(currentTournament);
+  const seatLetters = ['A', 'B', 'C', 'D'];
+  const label = `${courseNames[selectedSeat.courseIdx]} ${selectedSeat.cartIdx + 1}조 ${seatLetters[selectedSeat.seatIdx]}번`;
+
+  document.getElementById('sheet-seat-label').textContent = label;
+  document.getElementById('sheet-seat-name-preview').textContent = label + ' 선택됨';
+  document.getElementById('reg-name').value = '';
+  document.getElementById('reg-phone').value = '';
+  document.getElementById('reg-handicap').value = '';
+  document.getElementById('reg-account').value = '';
+
+  document.getElementById('sheet-register').classList.add('open');
+};
+
+window.onSheetOverlayClick = function(e) {
+  if (e.target === document.getElementById('sheet-register')) {
+    document.getElementById('sheet-register').classList.remove('open');
+  }
+};
+
+window.submitRegistration = async function() {
+  if (!selectedSeat || !currentTournament) return;
+
+  const name = document.getElementById('reg-name').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  const handicap = document.getElementById('reg-handicap').value.trim();
+  const account = document.getElementById('reg-account').value.trim();
+
+  if (!name || !phone || !handicap || !account) {
+    showToast('모든 항목을 입력해주세요');
+    return;
+  }
+
+  // Check seat still available (double-check)
+  const key = `${selectedSeat.courseIdx}-${selectedSeat.cartIdx}-${selectedSeat.seatIdx}`;
+  const taken = allRegistrations.find(r =>
+    r.courseIndex === selectedSeat.courseIdx &&
+    r.cartIndex === selectedSeat.cartIdx &&
+    r.seatIndex === selectedSeat.seatIdx
+  );
+  if (taken) {
+    showToast('이미 다른 분이 선택하셨습니다. 다른 자리를 선택해주세요');
+    document.getElementById('sheet-register').classList.remove('open');
+    selectedSeat = null;
+    updateRegisterButton();
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, 'tournaments', currentTournament.id, 'registrations'), {
+      userId: currentUser.uid,
+      name, phone,
+      handicap: parseInt(handicap),
+      refundAccount: account,
+      courseIndex: selectedSeat.courseIdx,
+      cartIndex: selectedSeat.cartIdx,
+      seatIndex: selectedSeat.seatIdx,
+      registeredAt: serverTimestamp()
+    });
+
+    document.getElementById('sheet-register').classList.remove('open');
+    showToast('신청이 완료되었습니다!');
+  } catch (e) {
+    console.error(e);
+    showToast('오류가 발생했습니다. 다시 시도해주세요');
+  }
+};
+
+// ── Go back ────────────────────────────────────────────
+window.goBack = function() {
+  if (currentView === 'list') {
+    location.href = 'dashboard.html';
+    return;
+  }
+  if (seatMapListener) { seatMapListener(); seatMapListener = null; }
+  currentTournament = null;
+  selectedSeat = null;
+  currentView = 'list';
+
+  document.getElementById('view-detail').style.display = 'none';
+  document.getElementById('view-list').style.display = 'flex';
+  document.getElementById('appbar-title').textContent = '이벤트 / 대회';
+  if (isAdmin) document.getElementById('btn-new-tournament').style.display = 'block';
+
+  // Refresh list progress counts
+  loadActiveTournaments();
+};
+
+// ── Admin modal ────────────────────────────────────────
+window.openAdminModal = async function(tournamentId) {
+  const overlay = document.getElementById('admin-overlay');
+  document.getElementById('admin-editing-id').value = '';
+  clearAdminForm();
+
+  if (tournamentId && tournamentId !== 'null') {
+    document.getElementById('admin-modal-title').textContent = '대회 수정';
+    document.getElementById('admin-editing-id').value = tournamentId;
+    const t = activeTournaments.find(x => x.id === tournamentId);
+    if (t) fillAdminForm(t);
+  } else {
+    document.getElementById('admin-modal-title').textContent = '대회 만들기';
+    document.getElementById('admin-date').value = '2026-05-13';
+    renderCourseNameInputs();
+  }
+
+  overlay.classList.add('open');
+};
+
+window.closeAdminModal = function() {
+  document.getElementById('admin-overlay').classList.remove('open');
+};
+
+function clearAdminForm() {
+  ['admin-name','admin-slogan','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
+   'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-prizes','admin-date','admin-tee-interval'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  // 타임피커 초기화
+  ['tee','gather'].forEach(p => {
+    document.getElementById(`${p}-hour`).value = '';
+    document.getElementById(`${p}-min`).value = '';
+    document.querySelectorAll(`[data-picker="${p}"]`).forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.val === 'AM');
+    });
+  });
+  document.getElementById('admin-status').value = 'recruiting';
+  document.getElementById('admin-courses').value = '2';
+  document.getElementById('admin-tee-interval').value = '7';
+  document.getElementById('admin-cart-hint').textContent = '총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다';
+  document.getElementById('tee-interval-preview').textContent = '';
+  renderCourseNameInputs();
+}
+
+function fillAdminForm(t) {
+  document.getElementById('admin-name').value = t.name || '';
+  document.getElementById('admin-slogan').value = t.slogan || '';
+  document.getElementById('admin-status').value = t.status || 'recruiting';
+  document.getElementById('admin-golf-course').value = t.golfCourseName || '';
+  document.getElementById('admin-date').value = t.date || '';
+  document.getElementById('admin-gather').value = t.gatherPlace || '';
+  document.getElementById('admin-total').value = t.totalParticipants || '';
+  document.getElementById('admin-courses').value = t.courseCount || '2';
+  document.getElementById('admin-green-fee').value = t.greenFee || '';
+  document.getElementById('admin-caddy-fee').value = t.caddyFee || '';
+  document.getElementById('admin-prizes').value = t.prizes || '';
+  // 코스명 복원
+  renderCourseNameInputs(t.courseNames || []);
+  // 타임피커 복원
+  if (t.teeUpTime) setTimePicker('tee', t.teeUpTime);
+  if (t.gatherTime) setTimePicker('gather', t.gatherTime);
+  // 조 간격 복원
+  document.getElementById('admin-tee-interval').value = t.teeInterval || '7';
+  recalcCarts();
+  updateIntervalPreview();
+}
+
+// ── Course name inputs ────────────────────────────────
+window.renderCourseNameInputs = function(existingNames) {
+  const count = parseInt(document.getElementById('admin-courses').value) || 2;
+  const defaults = ['아웃코스', '인코스', '레이크코스'];
+  const el = document.getElementById('course-name-inputs');
+  el.innerHTML = `<div class="admin-form-group" style="margin-bottom:4px;">
+    <label class="admin-label">코스명 *</label>
+    ${Array.from({length: count}, (_, i) => `
+      <div class="course-name-row">
+        <div class="course-name-badge">${String.fromCharCode(65+i)}</div>
+        <input class="admin-input" id="admin-course-name-${i}"
+          placeholder="예) ${defaults[i] || i+1+'코스'}"
+          value="${existingNames ? (existingNames[i] || '') : ''}"
+          style="margin-bottom:0;" />
+      </div>`).join('')}
+  </div>`;
+};
+
+function getCourseNames() {
+  const count = parseInt(document.getElementById('admin-courses').value) || 2;
+  return Array.from({length: count}, (_, i) => {
+    const el = document.getElementById(`admin-course-name-${i}`);
+    return el ? el.value.trim() || `${String.fromCharCode(65+i)}코스` : `${String.fromCharCode(65+i)}코스`;
+  });
+}
+
+// ── Time picker helpers ────────────────────────────────
+window.setAmPm = function(picker, val) {
+  document.querySelectorAll(`[data-picker="${picker}"]`).forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === val);
+  });
+  syncTimeInput(picker);
+};
+
+window.syncTimeInput = function(picker) {
+  const ampm = document.querySelector(`[data-picker="${picker}"].active`)?.dataset.val || 'AM';
+  const hour = document.getElementById(`${picker}-hour`).value;
+  const min  = document.getElementById(`${picker}-min`).value;
+  if (!hour || !min) return;
+  const h24 = ampm === 'AM'
+    ? (hour === '12' ? 0 : parseInt(hour))
+    : (hour === '12' ? 12 : parseInt(hour) + 12);
+  const result = `${String(h24).padStart(2,'0')}:${min}`;
+  const hiddenId = picker === 'tee' ? 'admin-tee-time' : 'admin-gather-time';
+  document.getElementById(hiddenId).value = result;
+  if (picker === 'tee') updateIntervalPreview();
+};
+
+// 조 간격 미리보기 (입력 시 실시간 표시)
+function updateIntervalPreview() {
+  const teeTime = document.getElementById('admin-tee-time').value;
+  const interval = parseInt(document.getElementById('admin-tee-interval').value);
+  const preview = document.getElementById('tee-interval-preview');
+  if (!preview) return;
+  if (!teeTime || !interval) { preview.textContent = ''; return; }
+  const [h, m] = teeTime.split(':').map(Number);
+  const fmt = (totalMin) => {
+    const hh = Math.floor(totalMin / 60) % 24;
+    const mm = totalMin % 60;
+    const ampm = hh < 12 ? 'AM' : 'PM';
+    const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+    return `${ampm} ${h12}:${String(mm).padStart(2,'0')}`;
+  };
+  const start = h * 60 + m;
+  preview.textContent = `1조 ${fmt(start)} → 2조 ${fmt(start + interval)} → 3조 ${fmt(start + interval * 2)} …`;
+}
+window.updateIntervalPreview = updateIntervalPreview;
+
+function setTimePicker(picker, timeStr) {
+  // timeStr = "HH:MM" 24시간제
+  if (!timeStr) return;
+  const [hStr, mStr] = timeStr.split(':');
+  let h = parseInt(hStr);
+  const min = mStr;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+
+  document.querySelectorAll(`[data-picker="${picker}"]`).forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === ampm);
+  });
+  document.getElementById(`${picker}-hour`).value = String(h12);
+  document.getElementById(`${picker}-min`).value = min;
+  syncTimeInput(picker);
+}
+
+window.recalcCarts = function() {
+  const total = parseInt(document.getElementById('admin-total').value) || 0;
+  const courses = parseInt(document.getElementById('admin-courses').value) || 2;
+  if (total > 0) {
+    const totalCarts = Math.ceil(total / 4);
+    const perCourse = Math.ceil(totalCarts / courses);
+    document.getElementById('admin-carts').value = `총 ${totalCarts}카트 (코스당 ${perCourse}카트)`;
+    const courseNames = getCourseNames();
+    document.getElementById('admin-cart-hint').textContent =
+      `${courseNames.join(' + ')} 각 ${perCourse}카트 × 4인 = ${perCourse * 4}명/코스`;
+  } else {
+    document.getElementById('admin-carts').value = '';
+    document.getElementById('admin-cart-hint').textContent = '총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다';
+  }
+};
+
+window.saveTournament = async function() {
+  const name = document.getElementById('admin-name').value.trim();
+  const total = parseInt(document.getElementById('admin-total').value) || 0;
+  if (!name || !total) {
+    showToast('대회명과 총 인원은 필수입니다');
+    return;
+  }
+
+  const teeUpTime  = document.getElementById('admin-tee-time').value;
+  const gatherTime = document.getElementById('admin-gather-time').value;
+  const gatherPlace = document.getElementById('admin-gather').value.trim();
+  // 표시용 문자열 생성
+  const fmt = t => { if (!t) return ''; const [h,m] = t.split(':'); const hh=parseInt(h); return `${hh<12?'AM':'PM'} ${hh===0?12:hh>12?hh-12:hh}:${m}`; };
+  const gatherInfo = [fmt(gatherTime), gatherPlace].filter(Boolean).join(' / ');
+
+  const data = {
+    name,
+    slogan: document.getElementById('admin-slogan').value.trim(),
+    status: document.getElementById('admin-status').value,
+    golfCourseName: document.getElementById('admin-golf-course').value.trim(),
+    teeUpTime,
+    teeUpTimeDisplay: fmt(teeUpTime),
+    date: document.getElementById('admin-date').value,
+    gatherTime,
+    gatherPlace,
+    gatherInfo,
+    totalParticipants: total,
+    courseCount: parseInt(document.getElementById('admin-courses').value) || 2,
+    courseNames: getCourseNames(),
+    greenFee: document.getElementById('admin-green-fee').value.trim(),
+    caddyFee: document.getElementById('admin-caddy-fee').value.trim(),
+    prizes: document.getElementById('admin-prizes').value.trim(),
+    teeInterval: parseInt(document.getElementById('admin-tee-interval').value) || 7,
+  };
+
+  const editingId = document.getElementById('admin-editing-id').value;
+
+  try {
+    if (editingId) {
+      await updateDoc(doc(db, 'tournaments', editingId), data);
+      showToast('대회 정보가 수정되었습니다');
+    } else {
+      data.createdAt = serverTimestamp();
+      await addDoc(collection(db, 'tournaments'), data);
+      showToast('대회가 만들어졌습니다!');
+    }
+    closeAdminModal();
+    await loadActiveTournaments();
+    renderPastList();
+
+    // If currently viewing this tournament's detail, refresh header
+    if (currentTournament && editingId && currentTournament.id === editingId) {
+      currentTournament = activeTournaments.find(x => x.id === editingId) || currentTournament;
+      renderDetailHeader(currentTournament);
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('저장 중 오류가 발생했습니다');
+  }
+};
+
+window.confirmCloseTournament = function(tournamentId) {
+  openConfirm(
+    '대회 마감',
+    '해당 대회를 마감 처리합니다. 신청 접수가 종료됩니다. 계속하시겠습니까?',
+    async () => {
+      await updateDoc(doc(db, 'tournaments', tournamentId), { status: 'closed' });
+      await loadActiveTournaments();
+      renderPastList();
+      showToast('대회가 마감되었습니다');
+    }
+  );
+};
+
+// ── 진행중 대회 삭제 ──────────────────────────────────
+window.confirmDeleteTournament = function(tournamentId, name) {
+  openConfirm(
+    '대회 삭제',
+    `"${name}" 대회를 완전히 삭제합니다.\n신청자 데이터도 함께 삭제됩니다. 복구할 수 없습니다.`,
+    async () => {
+      // 신청자 하위 컬렉션 삭제
+      const regSnap = await getDocs(collection(db, 'tournaments', tournamentId, 'registrations'));
+      for (const d of regSnap.docs) {
+        await deleteDoc(doc(db, 'tournaments', tournamentId, 'registrations', d.id));
+      }
+      await deleteDoc(doc(db, 'tournaments', tournamentId));
+      await loadActiveTournaments();
+      renderPastList();
+      showToast('대회가 삭제되었습니다');
+    }
+  );
+};
+
+// ── 지난 대회 삭제 ────────────────────────────────────
+window.confirmDeletePast = function(id, name, fromDB) {
+  openConfirm(
+    '지난 대회 삭제',
+    `"${name}"을(를) 목록에서 삭제합니다. 계속하시겠습니까?`,
+    async () => {
+      if (fromDB) {
+        // Firestore에서 완전 삭제
+        const regSnap = await getDocs(collection(db, 'tournaments', id, 'registrations'));
+        for (const d of regSnap.docs) {
+          await deleteDoc(doc(db, 'tournaments', id, 'registrations', d.id));
+        }
+        await deleteDoc(doc(db, 'tournaments', id));
+        await loadActiveTournaments();
+      } else {
+        // 하드코딩된 항목은 localStorage로 숨김 처리
+        const hidden = JSON.parse(localStorage.getItem('hiddenPastIds') || '[]');
+        if (!hidden.includes(id)) hidden.push(id);
+        localStorage.setItem('hiddenPastIds', JSON.stringify(hidden));
+      }
+      renderPastList();
+      showToast('삭제되었습니다');
+    }
+  );
+};
+
+// ═══════════════════════════════════════════════════════
+// 조편성 관리 (Admin only)
+// ═══════════════════════════════════════════════════════
+
+window.openPairingModal = function() {
+  if (!isAdmin) return;
+  const t = currentTournament;
+  if (!t) return;
+  document.getElementById('pairing-appbar-sub').textContent = t.name;
+  renderPairingContent(t, allRegistrations);
+  document.getElementById('pairing-overlay').classList.add('open');
+};
+
+window.closePairingModal = function() {
+  document.getElementById('pairing-overlay').classList.remove('open');
+};
+
+function renderPairingContent(t, registrations) {
+  const el = document.getElementById('pairing-content');
+  if (!el) return;
+
+  const courseCount = t.courseCount || 2;
+  const totalCarts = Math.ceil((t.totalParticipants || 0) / 4);
+  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+  const seatLetters = ['A', 'B', 'C', 'D'];
+  const courseNames = getCourseNamesFor(t);
+
+  // 좌석 맵 구성: {courseIdx}-{cartIdx}-{seatIdx} → reg
+  const regMap = {};
+  registrations.forEach(r => {
+    const key = `${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`;
+    regMap[key] = r;
+  });
+
+  // 코스 드롭다운 옵션
+  const courseOpts = courseNames.map((cn, ci) =>
+    `<option value="${ci}">${cn}</option>`).join('');
+
+  // 조 드롭다운 옵션
+  const cartOpts = Array.from({length: cartsPerCourse}, (_, i) =>
+    `<option value="${i}">${i+1}조</option>`).join('');
+
+  // 자리 드롭다운 옵션
+  const seatOpts = seatLetters.map((l, i) =>
+    `<option value="${i}">${l}번</option>`).join('');
+
+  let html = '';
+
+  for (let courseIdx = 0; courseIdx < courseCount; courseIdx++) {
+    html += `<div class="pairing-course-section">
+      <div class="pairing-course-title">${courseNames[courseIdx]}</div>`;
+
+    for (let cartIdx = 0; cartIdx < cartsPerCourse; cartIdx++) {
+      // 조별 티타임 계산
+      let cartTeeLabel = '';
+      if (t.teeUpTime && t.teeInterval) {
+        const [hh, mm] = t.teeUpTime.split(':').map(Number);
+        const totalMin = hh * 60 + mm + cartIdx * t.teeInterval;
+        const th = Math.floor(totalMin / 60) % 24;
+        const tm = totalMin % 60;
+        const ampm = th < 12 ? 'AM' : 'PM';
+        const th12 = th === 0 ? 12 : th > 12 ? th - 12 : th;
+        cartTeeLabel = ` <span style="color:var(--gold);font-weight:700;font-size:11px;">
+          ${ampm} ${th12}:${String(tm).padStart(2,'0')}</span>`;
+      }
+      html += `<div class="pairing-cart-block">
+        <div class="pairing-cart-label">${cartIdx + 1}조${cartTeeLabel}</div>`;
+
+      for (let seatIdx = 0; seatIdx < 4; seatIdx++) {
+        const key = `${courseIdx}-${cartIdx}-${seatIdx}`;
+        const reg = regMap[key];
+
+        if (reg) {
+          const regId = reg.id;
+          html += `<div class="pairing-row" id="pair-row-${regId}">
+            <div class="pairing-seat-badge">${seatLetters[seatIdx]}</div>
+            <div class="pairing-name">${reg.name || '?'}</div>
+            <div class="pairing-selects">
+              <select class="pairing-select" id="ps-course-${regId}">
+                ${courseNames.map((cn, ci) =>
+                  `<option value="${ci}" ${ci === courseIdx ? 'selected' : ''}>${cn}</option>`
+                ).join('')}
+              </select>
+              <select class="pairing-select" id="ps-cart-${regId}">
+                ${Array.from({length: cartsPerCourse}, (_, i) =>
+                  `<option value="${i}" ${i === cartIdx ? 'selected' : ''}>${i+1}조</option>`
+                ).join('')}
+              </select>
+              <select class="pairing-select" id="ps-seat-${regId}">
+                ${seatLetters.map((l, i) =>
+                  `<option value="${i}" ${i === seatIdx ? 'selected' : ''}>${l}번</option>`
+                ).join('')}
+              </select>
+            </div>
+            <button class="pairing-save-row-btn" onclick="saveSeatChange('${regId}')">저장</button>
+          </div>`;
+        } else {
+          html += `<div class="pairing-empty-seat">
+            <div class="pairing-empty-badge">${seatLetters[seatIdx]}</div>
+            빈 자리
+          </div>`;
+        }
+      }
+      html += `</div>`; // pairing-cart-block
+    }
+    html += `</div>`; // pairing-course-section
+  }
+
+  el.innerHTML = html;
+}
+
+window.saveSeatChange = async function(regId) {
+  if (!isAdmin) return;
+  const t = currentTournament;
+
+  const newCourseIdx = parseInt(document.getElementById(`ps-course-${regId}`).value);
+  const newCartIdx   = parseInt(document.getElementById(`ps-cart-${regId}`).value);
+  const newSeatIdx   = parseInt(document.getElementById(`ps-seat-${regId}`).value);
+
+  // 중복 자리 체크
+  const conflict = allRegistrations.find(r =>
+    r.id !== regId &&
+    r.courseIndex === newCourseIdx &&
+    r.cartIndex === newCartIdx &&
+    r.seatIndex === newSeatIdx
+  );
+  if (conflict) {
+    showToast(`이미 ${conflict.name}님이 있는 자리입니다`);
+    return;
+  }
+
+  try {
+    await updateDoc(doc(db, 'tournaments', t.id, 'registrations', regId), {
+      courseIndex: newCourseIdx,
+      cartIndex: newCartIdx,
+      seatIndex: newSeatIdx,
+    });
+    showToast('자리가 변경되었습니다');
+    // allRegistrations는 onSnapshot이 자동으로 업데이트하므로 잠시 후 재렌더링
+    setTimeout(() => renderPairingContent(t, allRegistrations), 300);
+  } catch (e) {
+    console.error(e);
+    showToast('저장 중 오류가 발생했습니다');
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// PDF 저장 — 새 탭에 텍스트 기반 HTML 열고 인쇄 다이얼로그
+// ═══════════════════════════════════════════════════════
+
+window.downloadDetailPDF = function() {
+  const t = currentTournament;
+  if (!t) return;
+
+  const courseCount    = t.courseCount || 2;
+  const totalCarts     = Math.ceil((t.totalParticipants || 0) / 4);
+  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+  const seatLetters    = ['A', 'B', 'C', 'D'];
+  const courseNames    = getCourseNamesFor(t);
+
+  const regMap = {};
+  allRegistrations.forEach(r => {
+    const key = `${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`;
+    regMap[key] = r;
+  });
+
+  const dateStr = t.date ? t.date.replace(/-/g, '.') : '-';
+  const teeStr  = t.teeUpTimeDisplay || t.teeUpTime || '-';
+  const feeStr  = [t.greenFee, t.caddyFee].filter(Boolean)
+    .map(f => Number(f).toLocaleString() + '원').join(' + ') || '-';
+
+  // 코스별 테이블 HTML 생성
+  let tablesHtml = '';
+  for (let ci = 0; ci < courseCount; ci++) {
+    let rows = '';
+    for (let gi = 0; gi < cartsPerCourse; gi++) {
+      // PDF용 조별 티타임
+      let cartTeeStr = '';
+      if (t.teeUpTime && t.teeInterval) {
+        const [hh, mm] = t.teeUpTime.split(':').map(Number);
+        const totalMin = hh * 60 + mm + gi * t.teeInterval;
+        const th = Math.floor(totalMin / 60) % 24;
+        const tm = totalMin % 60;
+        const ampm = th < 12 ? 'AM' : 'PM';
+        const th12 = th === 0 ? 12 : th > 12 ? th - 12 : th;
+        cartTeeStr = `<br><span style="font-size:10px;font-weight:400;color:#2d7a4f;">${ampm} ${th12}:${String(tm).padStart(2,'0')}</span>`;
+      }
+      for (let si = 0; si < 4; si++) {
+        const reg = regMap[`${ci}-${gi}-${si}`];
+        const cartCell = si === 0
+          ? `<td class="cart-cell" rowspan="4">${gi + 1}조${cartTeeStr}</td>` : '';
+        const seatCell = `<td class="seat-cell">${seatLetters[si]}</td>`;
+        const nameCell = reg
+          ? `<td class="name-cell">${reg.name || '-'}</td>`
+          : `<td class="empty-cell">-</td>`;
+        rows += `<tr>${cartCell}${seatCell}${nameCell}</tr>`;
+      }
+    }
+    tablesHtml += `
+      <div class="course-block">
+        <div class="course-title">${courseNames[ci]}</div>
+        <table>
+          <thead><tr><th>조</th><th>자리</th><th>이름</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>${t.name} 조편성</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #111; background: #fff;
+      padding: 32px 40px;
+      font-size: 13px;
+    }
+    .header { margin-bottom: 24px; border-bottom: 2px solid #2d7a4f; padding-bottom: 14px; }
+    .title { font-size: 22px; font-weight: 900; color: #111; margin-bottom: 6px; }
+    .meta { font-size: 12px; color: #555; line-height: 1.8; }
+    .meta span { margin-right: 16px; }
+    .meta label { color: #888; }
+
+    .courses { display: flex; flex-wrap: wrap; gap: 24px; }
+    .course-block { flex: 1; min-width: 220px; }
+    .course-title {
+      font-size: 13px; font-weight: 900; color: #2d7a4f;
+      background: #f0f9f4; padding: 7px 12px;
+      border-left: 4px solid #2d7a4f; margin-bottom: 8px;
+      border-radius: 0 6px 6px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #2d7a4f; color: #fff; }
+    th { padding: 7px 10px; font-size: 11px; font-weight: 700; text-align: left; }
+    td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+    .cart-cell {
+      text-align: center; font-weight: 900; font-size: 14px;
+      color: #2d7a4f; background: #f0f9f4;
+      border-right: 1px solid #ddd;
+      vertical-align: middle;
+    }
+    .seat-cell { font-weight: 700; color: #555; width: 36px; }
+    .name-cell { font-weight: 600; }
+    .empty-cell { color: #bbb; }
+    tr:nth-child(4n+1) td:not(.cart-cell) { }
+    tr:nth-child(4n) td { border-bottom: 3px solid #e0ede5; }
+
+    .footer {
+      margin-top: 28px; padding-top: 12px;
+      border-top: 1px solid #ddd;
+      font-size: 10px; color: #aaa;
+      display: flex; justify-content: space-between;
+    }
+    ${t.prizes ? `.prizes {
+      margin: 20px 0; padding: 12px 16px;
+      background: #fffbf0; border: 1px solid #f0c040;
+      border-radius: 8px; font-size: 12px; line-height: 1.8;
+    }
+    .prizes-title { font-weight: 900; color: #b8860b; margin-bottom: 4px; }` : ''}
+    @media print {
+      body { padding: 16px 20px; }
+      @page { margin: 12mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">${t.name}</div>
+    <div class="meta">
+      <span><label>일자 </label>${dateStr}</span>
+      <span><label>골프장 </label>${t.golfCourseName || '-'}</span>
+      <span><label>티업 </label>${teeStr}</span>
+      <span><label>집결 </label>${t.gatherInfo || '-'}</span>
+      <span><label>비용 </label>${feeStr}</span>
+      <span><label>총인원 </label>${allRegistrations.length}명 / ${t.totalParticipants || '-'}명</span>
+    </div>
+  </div>
+
+  ${t.prizes ? `<div class="prizes"><div class="prizes-title">시상 및 찬조</div>${t.prizes}</div>` : ''}
+
+  <div class="courses">${tablesHtml}</div>
+
+  <div class="footer">
+    <span>GOLGAB ZONE</span>
+    <span>출력일: ${new Date().toLocaleDateString('ko-KR')}</span>
+  </div>
+
+  <script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  } else {
+    showToast('팝업 차단을 해제해 주세요');
+  }
+};
+
+// ── Confirm modal ──────────────────────────────────────
+let confirmCallback = null;
+function openConfirm(title, msg, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  confirmCallback = onOk;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+window.closeConfirm = function() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  confirmCallback = null;
+};
+document.getElementById('confirm-ok-btn').addEventListener('click', async () => {
+  if (confirmCallback) await confirmCallback();
+  closeConfirm();
+});
+
+// ── Toast ──────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+window.showToast = showToast;
+
+// ── Helpers ────────────────────────────────────────────
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  } catch { return dateStr; }
+}
+function commaNum(n) {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

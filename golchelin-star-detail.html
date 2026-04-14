@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>골슐랭스타 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --red: #C0111B;
+      --red-light: #E8303A;
+      --bg: #0A2406;
+      --border: rgba(192,17,27,0.22);
+      --gold: #D4AF37;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--bg);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+
+    /* 앱바 */
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .back-btn {
+      background: none; border: none; color: var(--red-light);
+      font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px 2px 0;
+    }
+    .appbar-title { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; flex: 1; }
+    .home-btn {
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: rgba(255,255,255,0.4); line-height: 0;
+    }
+    .home-btn:active { color: rgba(255,255,255,0.8); }
+    .home-btn svg { width: 18px; height: 18px; }
+
+    /* 스크롤 영역 */
+    .content {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+      padding: 4px 0 32px;
+    }
+    .content::-webkit-scrollbar { display: none; }
+    .inner { padding: 0 18px; }
+
+    /* 프로필 카드 */
+    .profile-card {
+      background: linear-gradient(135deg, #3D0000 0%, #7B0000 60%, #3D0000 100%);
+      border: 1px solid rgba(192,17,27,0.4);
+      border-radius: 20px;
+      padding: 24px 20px;
+      display: flex; align-items: center; gap: 18px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      width: 80px; height: 80px; flex-shrink: 0;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.8);
+      background: radial-gradient(circle at 40% 35%, #B01010, #6B0000);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.5);
+    }
+    .badge-stars { font-size: 14px; color: var(--gold); letter-spacing: 1.5px; margin-bottom: 2px; }
+    .badge-text { font-size: 8px; font-weight: 900; color: #fff; letter-spacing: 0.3px; line-height: 1.4; text-align: center; }
+
+    .profile-info {}
+    .profile-name { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+    .profile-grade { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .profile-stardisp { font-size: 18px; color: var(--gold); margin-top: 6px; letter-spacing: 2px; }
+
+    /* 섹션 공통 */
+    .section { margin-bottom: 16px; }
+    .section-title {
+      font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1.2px; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* 영상 박스 */
+    .video-box {
+      width: 100%; aspect-ratio: 16/9;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; overflow: hidden;
+    }
+    .video-box a { display: block; width: 100%; height: 100%; text-decoration: none; position: relative; }
+    .video-thumb {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+    }
+    .video-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+      background: rgba(0,0,0,0.35);
+      transition: background 0.18s;
+    }
+    .video-box a:active .video-overlay { background: rgba(0,0,0,0.5); }
+    .play-icon {
+      width: 39px; height: 39px;
+      border: 1.5px solid rgba(255,255,255,0.9);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+      background: rgba(0,0,0,0.2);
+    }
+    .play-icon svg { width: 14px; height: 14px; margin-left: 2px; }
+    .video-label { font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500; letter-spacing: 0.5px; }
+    .video-placeholder {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .video-placeholder .play-icon { background: rgba(255,255,255,0.08); box-shadow: none; font-size: 28px; }
+    .video-placeholder .video-label { color: rgba(255,255,255,0.25); font-weight: 400; }
+
+    /* 글귀 */
+    .quote-box {
+      background: rgba(255,255,255,0.04);
+      border-left: 3px solid var(--gold);
+      border-radius: 0 12px 12px 0;
+      padding: 14px 16px;
+    }
+    .quote-text {
+      font-size: 14px; font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.75; letter-spacing: -0.2px;
+      font-style: italic;
+    }
+    .quote-author {
+      font-size: 11px; color: rgba(255,255,255,0.3);
+      margin-top: 8px; text-align: right;
+    }
+
+    /* 인터뷰 버튼 */
+    .interview-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 18px;
+      text-decoration: none; cursor: pointer;
+      transition: background 0.18s;
+    }
+    .interview-btn:active { background: rgba(192,17,27,0.15); }
+    .interview-btn-left { display: flex; align-items: center; gap: 12px; }
+    .interview-icon {
+      width: 38px; height: 38px;
+      background: rgba(192,17,27,0.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .interview-title { font-size: 14px; font-weight: 700; color: #fff; }
+    .interview-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .interview-arrow { font-size: 18px; color: var(--red-light); }
+  </style>
+</head>
+<body>
+  <div class="phone">
+
+    <!-- 앱바 -->
+    <div class="appbar">
+      <button class="back-btn" onclick="location.href='golchelin-star.html'">‹</button>
+      <span class="appbar-title" id="appbarTitle">골슐랭스타</span>
+      <button class="home-btn" onclick="location.href='dashboard.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/>
+          <polyline points="9 21 9 12 15 12 15 21"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="content">
+      <div class="inner">
+
+        <!-- 프로필 카드 -->
+        <div class="profile-card">
+          <div class="badge">
+            <div class="badge-stars" id="badgeStars"></div>
+            <div class="badge-text">GOLCHELIN<br>STAR</div>
+          </div>
+          <div class="profile-info">
+            <div class="profile-name" id="profileName"></div>
+            <div class="profile-grade" id="profileGrade"></div>
+            <div class="profile-stardisp" id="profileStarDisp"></div>
+          </div>
+        </div>
+
+        <!-- 도전 영상 -->
+        <div class="section">
+          <div class="section-title">골슐랭스타 도전 영상</div>
+          <div class="video-box" id="challengeVideo">
+            <div class="video-placeholder">
+              <div class="play-icon">▶</div>
+              <div class="video-label">영상 준비 중</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 글귀 -->
+        <div class="section">
+          <div class="section-title">골프에서 가장 중요한 것</div>
+          <div class="quote-box">
+            <div class="quote-text" id="quoteText">준비 중입니다.</div>
+            <div class="quote-author" id="quoteAuthor"></div>
+          </div>
+        </div>
+
+        <!-- 인터뷰 영상 -->
+        <div class="section">
+          <div class="section-title">앱 전용 인터뷰</div>
+          <a class="interview-btn" id="interviewBtn" href="#">
+            <div class="interview-btn-left">
+              <div class="interview-icon">🎬</div>
+              <div>
+                <div class="interview-title" id="interviewTitle">인터뷰 영상</div>
+                <div class="interview-sub">GOLGAB ZONE 앱 전용 콘텐츠</div>
+              </div>
+            </div>
+            <div class="interview-arrow">›</div>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const golfers = [
+      { name: "어정우", stars: 3, challengeUrl: "https://youtu.be/I-1RpaY3wSg?si=KKT7lhs0m4EVLr35", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "이상훈", stars: 2, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "임지헌", stars: 2, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "이원석", stars: 2, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "김도영", stars: 2, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "김덕규", stars: 2, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "이용훈", stars: 1, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "김철영", stars: 1, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+      { name: "권성민", stars: 1, challengeUrl: "", quote: "준비 중입니다.", interviewUrl: "" },
+    ];
+
+    const gradeLabel = ["", "1 STAR · 6~7오버", "2 STAR · 0~5오버", "3 STAR · 언더파"];
+
+    const params = new URLSearchParams(location.search);
+    const id = parseInt(params.get('id')) || 0;
+    const g = golfers[id] || golfers[0];
+
+    document.title = `${g.name} · GOLCHELIN STAR`;
+    document.getElementById('appbarTitle').textContent = g.name;
+    document.getElementById('profileName').textContent = g.name;
+    document.getElementById('profileGrade').textContent = gradeLabel[g.stars];
+    document.getElementById('badgeStars').textContent = '★'.repeat(g.stars);
+    document.getElementById('profileStarDisp').textContent = '★'.repeat(g.stars);
+
+    if (g.challengeUrl) {
+      const videoId = g.challengeUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1];
+      if (videoId) {
+        const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        document.getElementById('challengeVideo').innerHTML =
+          `<a href="${g.challengeUrl}" target="_blank">
+            <img class="video-thumb" src="${thumb}" alt="도전 영상" />
+            <div class="video-overlay">
+              <div class="play-icon">
+                <svg viewBox="0 0 24 24" fill="white"><polygon points="6,3 20,12 6,21"/></svg>
+              </div>
+              <div class="video-label">유튜브에서 보기</div>
+            </div>
+          </a>`;
+      }
+    }
+
+    document.getElementById('quoteText').textContent = g.quote;
+    document.getElementById('quoteAuthor').textContent = `— ${g.name}`;
+    document.getElementById('interviewTitle').textContent = `${g.name} 인터뷰`;
+
+    if (g.interviewUrl) {
+      document.getElementById('interviewBtn').href = g.interviewUrl;
+    } else {
+      document.getElementById('interviewBtn').style.opacity = '0.4';
+      document.getElementById('interviewBtn').querySelector('.interview-sub').textContent = '업로드 예정';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOLGAB ZONE — 로그인</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --white: #ffffff;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+    .phone-frame {
+      width: 390px; min-height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 60px 28px 48px;
+    }
+    .phone-frame::before {
+      content: '';
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px;
+    }
+
+    .logo { margin-bottom: 28px; text-align: center; }
+    .logo img { height: 64px; width: auto; object-fit: contain; }
+
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+    .form-hint { font-size: 11px; color: rgba(255,255,255,0.3); padding-left: 2px; margin-top: 3px; }
+
+    .tabs { display: flex; width: 100%; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 4px; margin-bottom: 28px; }
+    .tab {
+      flex: 1; padding: 10px; text-align: center;
+      font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.4);
+      border-radius: 9px; cursor: pointer; border: none; background: none;
+      -webkit-tap-highlight-color: transparent; transition: all 0.2s;
+    }
+    .tab.active { background: var(--green); color: #fff; }
+
+    .form { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); padding-left: 2px; }
+    .form-input {
+      width: 100%; padding: 14px 16px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 12px; color: #fff; font-size: 15px;
+      font-family: inherit; outline: none;
+      -webkit-appearance: none; appearance: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--green-light); }
+    .form-input::placeholder { color: rgba(255,255,255,0.2); }
+    select.form-input option { background: #0f2d18; color: #fff; }
+
+    .submit-btn {
+      width: 100%; padding: 16px; margin-top: 6px;
+      background: var(--green); color: #fff;
+      font-size: 16px; font-weight: 900; letter-spacing: -0.3px;
+      border-radius: 14px; border: none; cursor: pointer;
+      font-family: inherit; -webkit-tap-highlight-color: transparent;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .submit-btn:active { background: var(--green-light); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .divider-text {
+      text-align: center; font-size: 12px; color: rgba(255,255,255,0.2);
+      margin: 4px 0; position: relative;
+    }
+    .divider-text::before, .divider-text::after {
+      content: ''; position: absolute; top: 50%; width: 38%; height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .divider-text::before { left: 0; }
+    .divider-text::after { right: 0; }
+
+    .kakao-btn {
+      width: 100%; padding: 14px;
+      background: #FEE500; color: #191919;
+      font-size: 15px; font-weight: 800;
+      border-radius: 14px; border: none; cursor: pointer;
+      font-family: inherit; -webkit-tap-highlight-color: transparent;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      opacity: 0.5;
+    }
+
+    .pw-wrap { position: relative; }
+    .pw-wrap .form-input { padding-right: 48px; }
+    .pw-toggle {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: rgba(255,255,255,0.3); line-height: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pw-toggle:hover { color: rgba(255,255,255,0.6); }
+
+    /* 에러/성공 메시지 */
+    .msg {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; text-align: center;
+      display: none;
+    }
+    .msg.error { background: rgba(220,50,50,0.15); color: #ff6b6b; border: 1px solid rgba(220,50,50,0.3); display: block; }
+    .msg.success { background: rgba(46,160,80,0.15); color: #3ea066; border: 1px solid rgba(46,160,80,0.3); display: block; }
+
+    .panel { display: none; width: 100%; }
+    .panel.active { display: flex; flex-direction: column; gap: 14px; }
+
+    .back-link {
+      display: block; text-align: center; margin-top: 24px;
+      font-size: 13px; color: rgba(255,255,255,0.3); text-decoration: none;
+    }
+    .back-link span { color: var(--green-light); }
+
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); padding: 0; }
+      body { align-items: flex-start; justify-content: flex-start; }
+      .phone-frame {
+        width: 100%; min-height: 100vh; border-radius: 0;
+        box-shadow: none; justify-content: flex-start;
+        padding-top: 80px;
+      }
+      .phone-frame::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+
+    <div class="logo">
+      <img src="data:image/png;base64,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" alt="GOLGAB ZONE" />
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tab-signup" onclick="switchTab('signup')">회원가입</button>
+      <button class="tab" id="tab-login" onclick="switchTab('login')">로그인</button>
+    </div>
+
+    <!-- 회원가입 패널 -->
+    <div class="panel active" id="panel-signup">
+      <div class="form-group">
+        <label class="form-label">닉네임 <span style="color:var(--green-light)">*</span></label>
+        <input class="form-input" id="signup-nick" type="text" placeholder="골갑킹" maxlength="12" />
+        <div class="form-hint">나중에 변경 가능 · 최대 12자</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">이름</label>
+          <input class="form-input" id="signup-name" type="text" placeholder="홍길동" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">생년월일</label>
+          <input class="form-input" id="signup-birth" type="date" />
+          <div class="form-hint">연도 뒤 2자리만 공개</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">골프 핸디</label>
+          <select class="form-input" id="signup-handi">
+            <option value="" disabled selected>선택</option>
+            <option value="scratch">스크래치 이하</option>
+            <option value="1-9">1~9</option>
+            <option value="10-18">10~18</option>
+            <option value="19-27">19~27</option>
+            <option value="28-36">28~36</option>
+            <option value="37+">37 이상</option>
+            <option value="beginner">입문자</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">거주지</label>
+          <select class="form-input" id="signup-region">
+            <option value="" disabled selected>선택</option>
+            <option>서울</option><option>경기</option><option>인천</option>
+            <option>부산</option><option>대구</option><option>광주</option>
+            <option>대전</option><option>울산</option><option>세종</option>
+            <option>강원</option><option>충북</option><option>충남</option>
+            <option>전북</option><option>전남</option><option>경북</option>
+            <option>경남</option><option>제주</option><option>해외</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이메일</label>
+        <input class="form-input" id="signup-email" type="email" placeholder="example@email.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호</label>
+        <div class="pw-wrap">
+          <input class="form-input" id="signup-pw" type="password" placeholder="8자 이상" />
+          <button type="button" class="pw-toggle" onclick="togglePw('signup-pw', this)" tabindex="-1">
+            <svg id="icon-signup-pw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호 확인</label>
+        <div class="pw-wrap">
+          <input class="form-input" id="signup-pw2" type="password" placeholder="비밀번호 재입력" />
+          <button type="button" class="pw-toggle" onclick="togglePw('signup-pw2', this)" tabindex="-1">
+            <svg id="icon-signup-pw2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="msg" id="signup-msg"></div>
+      <button class="submit-btn" id="signup-btn" onclick="doSignup()">가입하기 →</button>
+      <div class="divider-text">또는</div>
+      <button class="kakao-btn" disabled title="준비중">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.11 5.04L3.75 15l3.27-1.64C7.3 13.45 8.14 13.5 9 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
+        카카오 로그인 (준비중)
+      </button>
+    </div>
+
+    <!-- 로그인 패널 -->
+    <div class="panel" id="panel-login">
+      <div class="form-group">
+        <label class="form-label">이메일</label>
+        <input class="form-input" id="login-email" type="email" placeholder="example@email.com" onkeydown="if(event.key==='Enter') doLogin()" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호</label>
+        <div class="pw-wrap">
+          <input class="form-input" id="login-pw" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') doLogin()" />
+          <button type="button" class="pw-toggle" onclick="togglePw('login-pw', this)" tabindex="-1">
+            <svg id="icon-login-pw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="msg" id="login-msg"></div>
+      <button class="submit-btn" id="login-btn" onclick="doLogin()">로그인 →</button>
+      <div class="divider-text">또는</div>
+      <button class="kakao-btn" disabled title="준비중">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.11 5.04L3.75 15l3.27-1.64C7.3 13.45 8.14 13.5 9 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
+        카카오 로그인 (준비중)
+      </button>
+    </div>
+
+    <a href="index.html" class="back-link">← <span>골갑존 소개</span>로 돌아가기</a>
+
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      updateProfile,
+      onAuthStateChanged,
+      setPersistence,
+      browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore, doc, setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+      authDomain: "ggzon-b33cb.firebaseapp.com",
+      projectId: "ggzon-b33cb",
+      storageBucket: "ggzon-b33cb.firebasestorage.app",
+      messagingSenderId: "774722580869",
+      appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 로그인 후 돌아갈 페이지 (없으면 dashboard)
+    function getReturnUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('return') || 'dashboard.html';
+    }
+
+    // 이미 로그인된 상태면 이동
+    onAuthStateChanged(auth, (user) => {
+      if (user) window.location.href = getReturnUrl();
+    });
+
+    // 에러 메시지 한글 변환
+    function getErrorMsg(code) {
+      const map = {
+        'auth/email-already-in-use': '이미 사용 중인 이메일이에요.',
+        'auth/invalid-email': '이메일 형식이 올바르지 않아요.',
+        'auth/weak-password': '비밀번호는 6자 이상이어야 해요.',
+        'auth/user-not-found': '등록되지 않은 이메일이에요.',
+        'auth/wrong-password': '비밀번호가 틀렸어요.',
+        'auth/invalid-credential': '이메일 또는 비밀번호가 틀렸어요.',
+        'auth/too-many-requests': '잠시 후 다시 시도해 주세요.',
+      };
+      return map[code] || '오류가 발생했어요. 다시 시도해 주세요.';
+    }
+
+    function showMsg(id, text, type) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'msg ' + type;
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.textContent = loading ? '처리 중...' : (btnId === 'signup-btn' ? '가입하기 →' : '로그인 →');
+    }
+
+    // 전역 함수로 노출
+    window.doSignup = async function() {
+      const nick   = document.getElementById('signup-nick').value.trim();
+      const name   = document.getElementById('signup-name').value.trim();
+      const birth  = document.getElementById('signup-birth').value;
+      const handi  = document.getElementById('signup-handi').value;
+      const region = document.getElementById('signup-region').value;
+      const email  = document.getElementById('signup-email').value.trim();
+      const pw     = document.getElementById('signup-pw').value;
+      const pw2    = document.getElementById('signup-pw2').value;
+
+      if (!nick)  return showMsg('signup-msg', '닉네임을 입력해 주세요.', 'error');
+      if (!email) return showMsg('signup-msg', '이메일을 입력해 주세요.', 'error');
+      if (pw.length < 8) return showMsg('signup-msg', '비밀번호는 8자 이상이어야 해요.', 'error');
+      if (pw !== pw2) return showMsg('signup-msg', '비밀번호가 일치하지 않아요.', 'error');
+
+      // 생년월일 뒤 2자리 (공개용 표시값)
+      const birthYear2 = birth ? birth.slice(2, 4) : '';
+
+      setLoading('signup-btn', true);
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, pw);
+        await updateProfile(cred.user, { displayName: nick });
+
+        // Firestore에 추가 정보 저장
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          nickname: nick,
+          name: name || '',
+          birthYear2: birthYear2,
+          handicap: handi || '',
+          region: region || '',
+          email: email,
+          createdAt: new Date().toISOString(),
+          isPaid: false
+        });
+
+        showMsg('signup-msg', '가입 완료! 환영해요 ' + nick + '님 🎉', 'success');
+        setTimeout(() => { window.location.href = getReturnUrl(); }, 1200);
+      } catch (e) {
+        showMsg('signup-msg', getErrorMsg(e.code), 'error');
+        setLoading('signup-btn', false);
+      }
+    };
+
+    window.doLogin = async function() {
+      const email = document.getElementById('login-email').value.trim();
+      const pw    = document.getElementById('login-pw').value;
+
+      if (!email) return showMsg('login-msg', '이메일을 입력해 주세요.', 'error');
+      if (!pw)    return showMsg('login-msg', '비밀번호를 입력해 주세요.', 'error');
+
+      setLoading('login-btn', true);
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        await signInWithEmailAndPassword(auth, email, pw);
+        showMsg('login-msg', '로그인 성공! 잠시 후 이동합니다.', 'success');
+        setTimeout(() => { window.location.href = getReturnUrl(); }, 1000);
+      } catch (e) {
+        showMsg('login-msg', getErrorMsg(e.code), 'error');
+        setLoading('login-btn', false);
+      }
+    };
+  </script>
+
+  <script>
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      const svg = btn.querySelector('svg');
+      svg.innerHTML = isHidden
+        ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+      btn.style.color = isHidden ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)';
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('panel-signup').classList.toggle('active', tab === 'signup');
+      document.getElementById('panel-login').classList.toggle('active', tab === 'login');
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'login') switchTab('login');
+  </script>
+</body>
+</html>
