@@ -20,6 +20,12 @@
       color: #fff;
     }
     body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    @media (max-width: 480px) {
+      html, body { background: var(--bg); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
 
     .phone {
       width: 390px; height: 844px;
