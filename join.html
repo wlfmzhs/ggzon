@@ -584,6 +584,22 @@ async function loadJoins() {
   } catch (e) { joins = []; }
   renderActiveList();
   renderClosedList();
+  scrollToHashCard();
+}
+
+function scrollToHashCard() {
+  const hash = location.hash; // e.g. #card-abc123
+  if (!hash.startsWith('#card-')) return;
+  const cardId = hash.slice(1); // card-abc123
+  setTimeout(() => {
+    const el = document.getElementById(cardId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.transition = 'box-shadow 0.3s';
+      el.style.boxShadow = '0 0 0 2px #3ea066, 0 0 20px rgba(62,160,102,0.4)';
+      setTimeout(() => { el.style.boxShadow = ''; }, 2500);
+    }
+  }, 400);
 }
 
 // ── 진행중 렌더 ───────────────────────────────────────
@@ -849,17 +865,26 @@ window.participateJoin = async function(id) {
 };
 
 // ── 공유 + 카카오 ─────────────────────────────────────
+const APP_BASE = 'https://wlfmzhs.github.io/ggzon';
+
 window.shareCard = async function(id) {
   const j = joins.find(x => x.id === id);
   if (!j) return;
+
+  const appLink = `${APP_BASE}/join.html#card-${id}`;
+  const shareText = `[GOLGAB ZONE] ${j.course} 조인 모집\n📅 ${j.date}  ⏰ ${j.time}\n👥 ${j.capacity}명\n\n앱에서 바로 참여하기 👇\n${appLink}`;
 
   // 카카오 오픈챗 즉시 이동 (사용자 제스처 내 동기 실행)
   window.open(j.kakaoUrl, '_blank');
 
   // 공유 이미지 생성
-  if (typeof html2canvas === 'undefined') { showToast('공유 기능을 불러오는 중...'); return; }
+  if (typeof html2canvas === 'undefined') {
+    // html2canvas 없으면 텍스트+링크만 클립보드 복사
+    try { await navigator.clipboard.writeText(shareText); showToast('링크가 복사되었습니다'); } catch (_) {}
+    return;
+  }
 
-  const shareEl = buildShareEl(j);
+  const shareEl = buildShareEl(j, appLink);
   shareEl.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;';
   document.body.appendChild(shareEl);
 
@@ -870,10 +895,14 @@ window.shareCard = async function(id) {
     canvas.toBlob(async (blob) => {
       const file = new File([blob], 'golgab-join.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: j.course + ' 조인 모집' }); }
-        catch (_) { downloadImage(canvas); }
+        try {
+          await navigator.share({ files: [file], title: j.course + ' 조인 모집', text: shareText });
+        } catch (_) { downloadImage(canvas); }
       } else {
         downloadImage(canvas);
+        // 클립보드에 링크도 복사
+        try { await navigator.clipboard.writeText(shareText); showToast('이미지 저장 + 링크 복사 완료'); }
+        catch (_) { showToast('이미지가 저장되었습니다'); }
       }
     }, 'image/png');
   } catch (e) {
@@ -887,10 +916,9 @@ function downloadImage(canvas) {
   a.download = 'golgab-join.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
-  showToast('이미지가 저장되었습니다');
 }
 
-function buildShareEl(j) {
+function buildShareEl(j, appLink) {
   const typeIcon = j.joinType === 'screen' ? '🖥️ 스크린' : '⛳ 필드';
   const timeIcon = j.joinType === 'screen' ? '' : (j.timeType === 'night' ? ' · 🌙 야간' : ' · ☀️ 주간');
   const participants = j.participants || [];
@@ -911,8 +939,9 @@ function buildShareEl(j) {
       ${feeLine}
     </div>
     ${memoLine}
-    <div style="margin-top:16px;padding:12px;background:rgba(62,160,102,0.12);border-radius:10px;text-align:center;font-size:12px;color:var(--green-light,#3ea066);font-weight:700;">
-      카카오 오픈챗 또는 GOLGAB ZONE 앱에서 참여하세요
+    <div style="margin-top:16px;padding:12px;background:rgba(62,160,102,0.12);border-radius:10px;">
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px;text-align:center;">앱에서 바로 참여하기</div>
+      <div style="font-size:11px;color:#3ea066;font-weight:700;word-break:break-all;text-align:center;">${appLink}</div>
     </div>`;
   return el;
 }
