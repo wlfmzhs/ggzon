@@ -33,7 +33,7 @@
       content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
       width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
     }
-    @media (max-width: 480px) {
+    @media (max-width: 768px) {
       html, body { background: var(--green-dark); }
       body { align-items: flex-start; }
       .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
@@ -459,9 +459,9 @@
           <label class="admin-label">참석 인원 *</label>
           <input class="admin-input" id="admin-capacity" type="number" placeholder="4" min="1" max="20" />
         </div>
-        <div class="admin-form-group" style="flex:1;">
+        <div class="admin-form-group" id="greenfee-group" style="flex:1;">
           <label class="admin-label">그린피 *</label>
-          <input class="admin-input" id="admin-greenfee" placeholder="예) 150,000원" />
+          <input class="admin-input" id="admin-greenfee" placeholder="예) 150,000" oninput="formatMoney(this)" inputmode="numeric" />
         </div>
       </div>
 
@@ -569,7 +569,7 @@ function renderClosedList() {
       <div class="past-icon">${j.timeType === 'night' ? '🌙' : '☀️'}</div>
       <div class="past-info">
         <div class="past-name">${j.course}</div>
-        <div class="past-sub">${j.date} · ${j.greenfee}</div>
+        <div class="past-sub">${j.date}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
       </div>
       <span class="past-badge">마감</span>
       ${isAdmin ? `<button class="past-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
@@ -580,8 +580,8 @@ function renderClosedList() {
 // ── 카드 빌드 ─────────────────────────────────────────
 function buildCard(j) {
   const isNight = j.timeType === 'night';
-  const timeBadge = isNight
-    ? `<span class="night-label">🌙 야간</span>`
+  const timeBadge = j.joinType === 'screen' ? ''
+    : isNight ? `<span class="night-label">🌙 야간</span>`
     : `<span class="day-label">☀️ 주간</span>`;
   const joinTypeBadge = j.joinType === 'screen'
     ? `<span class="screen-label">🖥️ 스크린</span>`
@@ -595,7 +595,7 @@ function buildCard(j) {
   const memo = j.memo ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px;line-height:1.6;">${j.memo}</div>` : '';
 
   return `
-    <div class="join-card ${isNight ? 'night' : ''}">
+    <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}">
       <div class="card-status-row">
         <span class="badge-open">모집중</span>
         ${joinTypeBadge}
@@ -606,7 +606,7 @@ function buildCard(j) {
         <div class="card-meta-row">${icons.calendar}<span class="card-meta-label">날짜</span>${j.date}</div>
         <div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span>${j.time}</div>
         <div class="card-meta-row">${icons.users}<span class="card-meta-label">참석 인원</span>${j.capacity}명</div>
-        <div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span>${j.greenfee}</div>
+        ${j.joinType !== 'screen' && j.greenfee ? `<div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span>${fmtFee(j.greenfee)}</div>` : ''}
       </div>
       ${memo}
       <a class="card-action-btn" href="${j.kakaoUrl}" target="_blank">
@@ -644,6 +644,7 @@ window.setJoinType = function(type) {
   document.getElementById('toggle-field').className = 'toggle-btn' + (type === 'field' ? ' active-day' : '');
   document.getElementById('toggle-screen').className = 'toggle-btn' + (type === 'screen' ? ' active-night' : '');
   document.getElementById('timetype-group').style.display = type === 'field' ? 'block' : 'none';
+  document.getElementById('greenfee-group').style.display = type === 'field' ? 'flex' : 'none';
 };
 
 // ── 주간/야간 토글 ─────────────────────────────────────
@@ -664,7 +665,8 @@ window.openAdminModal = function(id) {
       document.getElementById('admin-date').value = j.date || '';
       document.getElementById('admin-time').value = j.time || '';
       document.getElementById('admin-capacity').value = j.capacity || '';
-      document.getElementById('admin-greenfee').value = j.greenfee || '';
+      const gfRaw = String(j.greenfee || '').replace(/[^\d]/g, '');
+      document.getElementById('admin-greenfee').value = gfRaw ? gfRaw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
       document.getElementById('admin-kakao').value = j.kakaoUrl || 'https://open.kakao.com/o/gMGNFtah';
       document.getElementById('admin-memo').value = j.memo || '';
       window.setJoinType(j.joinType || 'field');
@@ -698,11 +700,12 @@ window.saveJoin = async function() {
   const kakaoUrl = document.getElementById('admin-kakao').value.trim();
   const memo     = document.getElementById('admin-memo').value.trim();
 
-  if (!course || !date || !time || !capacity || !greenfee || !kakaoUrl) {
+  if (!course || !date || !time || !capacity || (currentJoinType === 'field' && !greenfee) || !kakaoUrl) {
     showToast('필수 항목을 모두 입력해주세요'); return;
   }
 
-  const data = { course, date, time, capacity: Number(capacity), greenfee, kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp() };
+  const data = { course, date, time, capacity: Number(capacity), kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp() };
+  if (currentJoinType === 'field') data.greenfee = greenfee;
 
   try {
     if (editingId) {
@@ -752,6 +755,18 @@ document.getElementById('confirm-ok-btn').onclick = async () => {
   if (confirmCallback) { await confirmCallback(); }
   window.closeConfirm();
 };
+
+// ── 금액 포맷 ─────────────────────────────────────────
+window.formatMoney = function(el) {
+  const raw = el.value.replace(/[^\d]/g, '');
+  el.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+};
+function fmtFee(val) {
+  if (!val) return '';
+  const num = String(val).replace(/[^\d]/g, '');
+  const formatted = num.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return formatted ? formatted + '원' : val;
+}
 
 // ── 토스트 ────────────────────────────────────────────
 function showToast(msg) {

@@ -1043,11 +1043,11 @@
       <div class="admin-row">
         <div class="admin-form-group">
           <label class="admin-label">그린피</label>
-          <input class="admin-input" id="admin-green-fee" placeholder="예) 150,000" />
+          <input class="admin-input" id="admin-green-fee" placeholder="예) 150,000" oninput="formatMoney(this)" inputmode="numeric" />
         </div>
         <div class="admin-form-group">
           <label class="admin-label">참가비</label>
-          <input class="admin-input" id="admin-caddy-fee" placeholder="예) 50,000" />
+          <input class="admin-input" id="admin-caddy-fee" placeholder="예) 50,000" oninput="formatMoney(this)" inputmode="numeric" />
         </div>
       </div>
 
@@ -1812,8 +1812,8 @@ function fillAdminForm(t) {
   document.getElementById('admin-gather').value = t.gatherPlace || '';
   document.getElementById('admin-total').value = t.totalParticipants || '';
   document.getElementById('admin-courses').value = t.courseCount || '2';
-  document.getElementById('admin-green-fee').value = t.greenFee || '';
-  document.getElementById('admin-caddy-fee').value = t.caddyFee || '';
+  document.getElementById('admin-green-fee').value = fmtMoneyInput(t.greenFee);
+  document.getElementById('admin-caddy-fee').value = fmtMoneyInput(t.caddyFee);
   document.getElementById('admin-prizes').value = t.prizes || '';
   // 코스명 복원
   renderCourseNameInputs(t.courseNames || []);
@@ -2386,7 +2386,17 @@ function formatDate(dateStr) {
   } catch { return dateStr; }
 }
 function commaNum(n) {
-  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const raw = String(n).replace(/[^\d]/g, '');
+  return raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+window.formatMoney = function(el) {
+  const raw = el.value.replace(/[^\d]/g, '');
+  el.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+};
+function fmtMoneyInput(val) {
+  if (!val) return '';
+  const raw = String(val).replace(/[^\d]/g, '');
+  return raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
 }
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
