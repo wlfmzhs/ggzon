@@ -773,7 +773,7 @@ function buildCard(j) {
         ${joinBtnText}
       </button>
       <div class="card-bottom-row">
-        <button class="card-share-btn" onclick="window.shareCard('${j.id}')">📤 공유 + 카카오</button>
+        <button class="card-share-btn" onclick="window.shareCard('${j.id}')">📷 이미지 저장</button>
         <a class="card-kakao-btn" href="${j.kakaoUrl}" target="_blank">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
           오픈챗 바로가기
@@ -957,112 +957,100 @@ window.participateJoin = function(id) {
   }
 };
 
-// ── 공유 + 카카오 ─────────────────────────────────────
+// ── 이미지 저장 (카드 직접 캡쳐) ──────────────────────
 const APP_BASE = 'https://wlfmzhs.github.io/ggzon';
 
 window.shareCard = async function(id) {
-  const j = joins.find(x => x.id === id);
-  if (!j) return;
+  if (typeof html2canvas === 'undefined') { showToast('캡쳐 기능을 불러오는 중...'); return; }
 
-  const appLink = `${APP_BASE}/join.html#card-${id}`;
-  const shareText = `[GOLGAB ZONE] ${j.course} 조인 모집\n📅 ${j.date}  ⏰ ${j.time}\n👥 ${j.capacity}명\n\n앱에서 바로 참여하기 👇\n${appLink}`;
+  const cardEl = document.getElementById('card-' + id);
+  if (!cardEl) return;
 
-  // 카카오 오픈챗 즉시 이동 (사용자 제스처 내 동기 실행)
-  window.open(j.kakaoUrl, '_blank');
+  // 캡쳐 전 버튼 영역 임시 숨김
+  const hideEls = cardEl.querySelectorAll('.card-bottom-row, .card-admin-row');
+  hideEls.forEach(el => el.style.visibility = 'hidden');
 
-  // 공유 이미지 생성
-  if (typeof html2canvas === 'undefined') {
-    // html2canvas 없으면 텍스트+링크만 클립보드 복사
-    try { await navigator.clipboard.writeText(shareText); showToast('링크가 복사되었습니다'); } catch (_) {}
-    return;
-  }
-
-  const shareEl = buildShareEl(j, appLink);
-  shareEl.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;';
-  document.body.appendChild(shareEl);
+  // 카드를 패딩 있는 래퍼로 감싸서 캡쳐
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = `
+    position: fixed; left: -9999px; top: 0;
+    padding: 20px; background: #111;
+    display: inline-block;
+  `;
+  // 카드 사이즈 맞춰 클론
+  const clone = cardEl.cloneNode(true);
+  // 클론에서도 버튼 숨김
+  clone.querySelectorAll('.card-bottom-row, .card-admin-row').forEach(el => el.remove());
+  // 클론 너비 고정
+  clone.style.width = cardEl.offsetWidth + 'px';
+  clone.style.margin = '0';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
 
   try {
-    const canvas = await html2canvas(shareEl, { backgroundColor: '#0A2406', scale: 2, useCORS: true, logging: false });
-    document.body.removeChild(shareEl);
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: '#111',
+      scale: 3,
+      useCORS: true,
+      logging: false,
+    });
+    document.body.removeChild(wrapper);
 
-    canvas.toBlob(async (blob) => {
+    // 라운드 코너를 유지하는 클린 캔버스 생성
+    const radius = 20 * 3; // border-radius 20px * scale 3
+    const pad = 20 * 3;    // padding 20px * scale 3
+    const out = document.createElement('canvas');
+    out.width = canvas.width;
+    out.height = canvas.height;
+    const ctx = out.getContext('2d');
+
+    // 배경
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, out.width, out.height);
+
+    // 카드 영역에 라운드 클리핑
+    const cx = pad, cy = pad;
+    const cw = canvas.width - pad * 2;
+    const ch = canvas.height - pad * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + radius, cy);
+    ctx.lineTo(cx + cw - radius, cy);
+    ctx.arcTo(cx + cw, cy, cx + cw, cy + radius, radius);
+    ctx.lineTo(cx + cw, cy + ch - radius);
+    ctx.arcTo(cx + cw, cy + ch, cx + cw - radius, cy + ch, radius);
+    ctx.lineTo(cx + radius, cy + ch);
+    ctx.arcTo(cx, cy + ch, cx, cy + ch - radius, radius);
+    ctx.lineTo(cx, cy + radius);
+    ctx.arcTo(cx, cy, cx + radius, cy, radius);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(canvas, 0, 0);
+
+    // 저장 or 공유
+    out.toBlob(async (blob) => {
+      const j = joins.find(x => x.id === id);
       const file = new File([blob], 'golgab-join.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: j.course + ' 조인 모집', text: shareText });
-        } catch (_) { downloadImage(canvas); }
+        try { await navigator.share({ files: [file], title: (j?.course || '조인') + ' 모집' }); }
+        catch (_) { triggerDownload(out); }
       } else {
-        downloadImage(canvas);
-        // 클립보드에 링크도 복사
-        try { await navigator.clipboard.writeText(shareText); showToast('이미지 저장 + 링크 복사 완료'); }
-        catch (_) { showToast('이미지가 저장되었습니다'); }
+        triggerDownload(out);
       }
     }, 'image/png');
   } catch (e) {
-    if (document.body.contains(shareEl)) document.body.removeChild(shareEl);
-    showToast('이미지 생성 실패');
+    if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+    showToast('캡쳐 실패: ' + e.message);
+  } finally {
+    hideEls.forEach(el => el.style.visibility = '');
   }
 };
 
-function downloadImage(canvas) {
+function triggerDownload(canvas) {
   const a = document.createElement('a');
   a.download = 'golgab-join.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
-}
-
-function buildShareEl(j, appLink) {
-  const typeLabel = j.joinType === 'screen' ? '🖥️ 스크린' : '⛳ 필드';
-  const timeLabel = j.joinType === 'screen' ? '' : (j.timeType === 'night' ? '  🌙 야간' : '  ☀️ 주간');
-  const participants = j.participants || [];
-  const remaining = j.capacity - participants.length;
-  const participantNames = participants.map(p => p.name).join(', ') || '아직 없음';
-
-  const el = document.createElement('div');
-  el.style.cssText = 'width:360px;background:#0A2406;font-family:Apple SD Gothic Neo,Noto Sans KR,sans-serif;border-radius:20px;overflow:hidden;border:1px solid rgba(62,160,102,0.4);';
-  el.innerHTML = `
-    <!-- 헤더 -->
-    <div style="background:linear-gradient(135deg,#1a4a2a,#0d3018);padding:18px 20px 14px;border-bottom:1px solid rgba(62,160,102,0.2);">
-      <div style="font-size:10px;font-weight:700;color:#3ea066;letter-spacing:2px;margin-bottom:6px;">GOLGAB ZONE · 조인 모집</div>
-      <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.2;">${j.course}</div>
-      <div style="margin-top:8px;display:flex;gap:8px;">
-        <span style="font-size:11px;font-weight:700;color:#f0c040;background:rgba(240,192,64,0.12);border:1px solid rgba(240,192,64,0.3);padding:2px 9px;border-radius:8px;">${typeLabel}</span>
-        ${j.timeType && j.joinType !== 'screen' ? `<span style="font-size:11px;font-weight:700;color:${j.timeType === 'night' ? '#8899ff' : '#3ea066'};background:${j.timeType === 'night' ? 'rgba(100,120,255,0.12)' : 'rgba(62,160,102,0.1)'};border:1px solid ${j.timeType === 'night' ? 'rgba(100,120,255,0.3)' : 'rgba(62,160,102,0.25)'};padding:2px 9px;border-radius:8px;">${j.timeType === 'night' ? '🌙 야간' : '☀️ 주간'}</span>` : ''}
-      </div>
-    </div>
-    <!-- 상세 정보 -->
-    <div style="padding:16px 20px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;">
-          <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:3px;">날짜</div>
-          <div style="font-size:13px;font-weight:800;color:#fff;">📅 ${j.date}</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;">
-          <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:3px;">시간</div>
-          <div style="font-size:13px;font-weight:800;color:#fff;">⏰ ${j.time}</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;">
-          <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:3px;">모집 인원</div>
-          <div style="font-size:13px;font-weight:800;color:#3ea066;">👥 ${remaining > 0 ? remaining + '명 남음' : '마감'}</div>
-        </div>
-        ${j.greenfee ? `<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;">
-          <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:3px;">그린피</div>
-          <div style="font-size:13px;font-weight:800;color:#fff;">💰 ${fmtFee(j.greenfee)}</div>
-        </div>` : ''}
-      </div>
-      ${j.memo ? `<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.6;">📝 ${j.memo}</div>` : ''}
-      <!-- 참석자 -->
-      <div style="background:rgba(62,160,102,0.08);border:1px solid rgba(62,160,102,0.2);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:4px;">현재 참석자 (${participants.length}/${j.capacity}명)</div>
-        <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.8);">${participantNames}</div>
-      </div>
-      <!-- 앱 링크 -->
-      <div style="background:rgba(62,160,102,0.15);border:1px solid rgba(62,160,102,0.35);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:12px;font-weight:800;color:#3ea066;margin-bottom:4px;">GOLGAB ZONE 앱에서 참여하기</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);word-break:break-all;">${appLink}</div>
-      </div>
-    </div>`;
-  return el;
+  showToast('이미지가 저장되었습니다');
 }
 
 // ── 금액 포맷 ─────────────────────────────────────────
