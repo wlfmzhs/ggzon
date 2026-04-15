@@ -774,7 +774,7 @@ function buildCard(j) {
               const canView = isAdmin || (currentUser && participants[0]?.uid === currentUser.uid);
               const click = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
               const style = canView ? 'cursor:pointer;' : '';
-              return `<span class="participant-name-chip${isMe ? ' me' : ''}" ${click} style="${style}">${p.name}${i===0?' 👑':''}</span>`;
+              return `<span class="participant-name-chip${isMe ? ' me' : ''}" ${click} style="${style}">${p.name}${i===0?' (주최자)':''}</span>`;
             }).join('')
         }
         <span class="participant-count-badge">${currentCount}/${j.capacity}</span>
