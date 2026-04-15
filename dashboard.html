@@ -275,8 +275,9 @@
       font-size: 10px; font-weight: 800; padding: 2px 7px;
       border-radius: 20px; flex-shrink: 0;
     }
-    .live-badge.open { background: var(--green-light); color: #fff; }
-    .live-badge.closed { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); }
+    .live-badge.active { background: rgba(62,160,102,0.2); color: var(--green-light); border: 1px solid rgba(62,160,102,0.4); }
+    .live-badge.field  { background: rgba(255,200,80,0.15); color: #f5c842; border: 1px solid rgba(255,200,80,0.3); }
+    .live-badge.screen { background: rgba(100,160,255,0.15); color: #7ab4ff; border: 1px solid rgba(100,160,255,0.3); }
     .live-card-meta { font-size: 11px; color: rgba(240,235,224,0.45); }
     .live-card-arrow { font-size: 18px; color: rgba(240,235,224,0.2); flex-shrink: 0; }
     .live-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
@@ -558,27 +559,23 @@
       const snap = await getDocs(query(collection(db, 'joins'), orderBy('createdAt', 'desc'), limit(5)));
       if (snap.empty) { el.innerHTML = '<div class="live-empty">현재 모집 중인 조인이 없습니다</div>'; return; }
       const joinIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(j => {
-        const cur = (j.participants || []).length;
-        const max = j.maxParticipants || j.capacity;
-        return !max || cur < Number(max);
-      });
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(j => j.status !== 'closed');
       if (items.length === 0) { el.innerHTML = '<div class="live-empty">현재 모집 중인 조인이 없습니다</div>'; return; }
       el.innerHTML = items.map(j => {
         const date = j.date || '';
         const time = j.time || '';
         const cur = (j.participants || []).length;
-        const max = j.maxParticipants || j.capacity || '-';
-        const badgeClass = 'open';
-        const badgeText = '모집중';
-        const typeLabel = j.type === 'screen' ? '스크린' : j.type === 'field' ? '필드' : j.type || '';
-        const meta = [typeLabel, date, time, `${cur}/${max}명`].filter(Boolean).join(' · ');
+        const max = j.capacity || '-';
+        const isScreen = j.type === 'screen';
+        const typeBadge = `<span class="live-badge ${isScreen ? 'screen' : 'field'}">${isScreen ? '스크린' : '필드'}</span>`;
+        const meta = [date, time, `${cur}/${max}명`].filter(Boolean).join(' · ');
         return `<div class="live-card" onclick="location.href='join.html'">
           <div class="live-card-icon">${joinIcon}</div>
           <div class="live-card-info">
             <div class="live-card-top">
-              <div class="live-card-title">${j.title || j.courseName || '조인 모집'}</div>
-              <span class="live-badge ${badgeClass}">${badgeText}</span>
+              <div class="live-card-title">${j.course || '조인 모집'}</div>
+              <span class="live-badge active">진행중</span>
+              ${typeBadge}
             </div>
             <div class="live-card-meta">${meta}</div>
           </div>
