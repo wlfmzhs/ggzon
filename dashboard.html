@@ -71,21 +71,34 @@
     .greeting .sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
     .greeting .name { font-size: 20px; font-weight: 900; }
     .greeting .name span { color: var(--green-light); }
-    /* ── 2x2 배너 그리드 ── */
-    .banner-section { margin-bottom: 20px; padding: 0 16px; }
+    /* ── 배너 슬라이드 ── */
+    .banner-section { margin-bottom: 28px; }
     .banner-scroll {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-left: 16px;
+      scrollbar-width: none;
       gap: 10px;
+      padding: 0 16px 4px;
+      -webkit-overflow-scrolling: touch;
+      cursor: grab;
     }
+    .banner-scroll:active { cursor: grabbing; }
+    .banner-scroll::-webkit-scrollbar { display: none; }
     .banner-card {
+      flex: 0 0 calc(100% - 48px);
       height: 360px;
       background: #1A4831;
       border-radius: 20px;
       overflow: hidden;
+      scroll-snap-align: start;
       position: relative;
       cursor: pointer;
       transition: transform 0.18s ease;
+    }
+    @media (min-width: 400px) {
+      .banner-card { flex: 0 0 328px; }
     }
     .banner-card:active { transform: scale(0.97); }
     .banner-card-img {
@@ -390,6 +403,25 @@
       btn.classList.add('active');
     });
   });
+
+  /* 배너 드래그 스크롤 */
+  (function () {
+    const scroll = document.querySelector('.banner-scroll');
+    if (!scroll) return;
+    let startX = 0, scrollLeft = 0, isDragging = false;
+    scroll.addEventListener('mousedown', e => {
+      isDragging = true;
+      startX = e.pageX - scroll.offsetLeft;
+      scrollLeft = scroll.scrollLeft;
+    });
+    scroll.addEventListener('mouseleave', () => { isDragging = false; });
+    scroll.addEventListener('mouseup', () => { isDragging = false; });
+    scroll.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      e.preventDefault();
+      scroll.scrollLeft = scrollLeft - (e.pageX - scroll.offsetLeft - startX);
+    });
+  })();
 
 </script>
 </body>
