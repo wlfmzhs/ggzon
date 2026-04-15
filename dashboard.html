@@ -181,6 +181,47 @@
       z-index: 2;
     }
 
+    /* 광고 롤링 배너 */
+    .ad-banner-section { padding: 0 16px; margin-bottom: 24px; }
+    .ad-banner-track {
+      position: relative; overflow: hidden;
+      border-radius: 16px; height: 90px;
+    }
+    .ad-banner-slide {
+      display: flex; align-items: center;
+      position: absolute; inset: 0;
+      opacity: 0; transition: opacity 0.6s ease;
+      pointer-events: none;
+    }
+    .ad-banner-slide.active { opacity: 1; pointer-events: auto; }
+    .ad-banner-slide img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .ad-banner-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 100%);
+    }
+    .ad-banner-text {
+      position: relative; z-index: 1; padding: 0 20px;
+    }
+    .ad-banner-text .ad-sub { font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px; letter-spacing: 0.5px; }
+    .ad-banner-text .ad-main { font-size: 15px; font-weight: 900; color: #fff; line-height: 1.35; }
+    .ad-banner-text .ad-main span { color: #4ade80; }
+    .ad-banner-dots {
+      position: absolute; bottom: 10px; right: 14px;
+      display: flex; gap: 5px; z-index: 2;
+    }
+    .ad-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); transition: background 0.3s;
+    }
+    .ad-dot.active { background: #fff; }
+    /* 배경 (이미지 없을 때) */
+    .ad-bg-1 { background: linear-gradient(135deg, #0d3320 0%, #1a5c38 100%); }
+    .ad-bg-2 { background: linear-gradient(135deg, #1a2a4a 0%, #0d3320 100%); }
+    .ad-bg-3 { background: linear-gradient(135deg, #2a1a0d 0%, #4a3010 100%); }
+
     .cat-card {
       display: flex; align-items: center; gap: 16px;
       padding: 18px;
@@ -333,6 +374,47 @@
       </div>
     </div>
 
+    <!-- 광고 롤링 배너 -->
+    <div class="ad-banner-section">
+      <div class="ad-banner-track" id="adTrack">
+
+        <!-- 슬라이드 1: 텍스트 전용 (이미지 없을 때 기본) -->
+        <div class="ad-banner-slide ad-bg-1 active">
+          <div class="ad-banner-overlay"></div>
+          <div class="ad-banner-text">
+            <div class="ad-sub">AD</div>
+            <div class="ad-main">멋진 스윙은<br><span>스윙포드</span>로 만들어집니다</div>
+          </div>
+        </div>
+
+        <!-- 슬라이드 2: 이미지 사용 시 AD/ad2.jpg 넣기 -->
+        <div class="ad-banner-slide ad-bg-2">
+          <img src="AD/ad2.jpg" alt="" onerror="this.style.display='none'" />
+          <div class="ad-banner-overlay"></div>
+          <div class="ad-banner-text">
+            <div class="ad-sub">AD</div>
+            <div class="ad-main">광고 슬롯 2</div>
+          </div>
+        </div>
+
+        <!-- 슬라이드 3: 이미지 사용 시 AD/ad3.jpg 넣기 -->
+        <div class="ad-banner-slide ad-bg-3">
+          <img src="AD/ad3.jpg" alt="" onerror="this.style.display='none'" />
+          <div class="ad-banner-overlay"></div>
+          <div class="ad-banner-text">
+            <div class="ad-sub">AD</div>
+            <div class="ad-main">광고 슬롯 3</div>
+          </div>
+        </div>
+
+        <div class="ad-banner-dots">
+          <div class="ad-dot active" id="dot0"></div>
+          <div class="ad-dot" id="dot1"></div>
+          <div class="ad-dot" id="dot2"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="content-inner-pad">
     <div class="cat-card" onclick="location.href='event.html'" style="cursor:pointer;">
       <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
@@ -394,6 +476,22 @@
 
 </div>
 <script>
+  // 광고 배너 롤링
+  (function() {
+    const slides = document.querySelectorAll('.ad-banner-slide');
+    const dots   = document.querySelectorAll('.ad-dot');
+    let cur = 0;
+    function goTo(n) {
+      slides[cur].classList.remove('active');
+      dots[cur].classList.remove('active');
+      cur = (n + slides.length) % slides.length;
+      slides[cur].classList.add('active');
+      dots[cur].classList.add('active');
+    }
+    setInterval(() => goTo(cur + 1), 4000);
+    dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+  })();
+
   function showToast(msg) {
     const el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
