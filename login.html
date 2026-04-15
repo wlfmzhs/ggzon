@@ -297,8 +297,9 @@
     }
 
     // 이미 로그인된 상태면 이동 (이메일 인증 완료된 경우만)
+    const ADMIN_EMAIL = 'wlfmzhs@naver.com';
     onAuthStateChanged(auth, (user) => {
-      if (user && user.emailVerified) window.location.href = getReturnUrl();
+      if (user && (user.emailVerified || user.email === ADMIN_EMAIL)) window.location.href = getReturnUrl();
     });
 
     // 에러 메시지 한글 변환
@@ -394,7 +395,7 @@
       try {
         await setPersistence(auth, browserLocalPersistence);
         const cred = await signInWithEmailAndPassword(auth, email, pw);
-        if (!cred.user.emailVerified) {
+        if (!cred.user.emailVerified && cred.user.email !== ADMIN_EMAIL) {
           showMsg('login-msg', '이메일 인증이 필요해요. 받은 메일함을 확인해 주세요.', 'error');
           document.getElementById('resend-btn').style.display = 'block';
           setLoading('login-btn', false);
