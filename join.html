@@ -1053,21 +1053,20 @@ window.kakaoShare = function(id) {
 
   const appLink = `${APP_BASE}/join.html#card-${id}`;
   const participants = j.participants || [];
-  const remaining = j.capacity - participants.length;
 
   const descLines = [
-    `📅 ${j.date}  ⏰ ${j.time}`,
-    j.greenfee ? `💰 그린피 ${fmtFee(j.greenfee)}원` : null,
-    `👥 ${remaining > 0 ? remaining + '명 모집중' : '마감'}`,
-    j.memo ? `📝 ${j.memo}` : null,
+    `날짜  ${j.date}`,
+    `시간  ${j.time}`,
+    `참석 인원  ${participants.length} / ${j.capacity}명`,
+    j.greenfee ? `그린피  ${fmtFee(j.greenfee)}` : null,
+    j.memo ? `메모  ${j.memo}` : null,
   ].filter(Boolean).join('\n');
 
   Kakao.Share.sendDefault({
     objectType: 'feed',
     content: {
-      title: `⛳ ${j.course} 조인 모집`,
+      title: `${j.course} 조인 모집`,
       description: descLines,
-      imageUrl: 'https://wlfmzhs.github.io/ggzon/join-banner.jpg',
       link: {
         mobileWebUrl: appLink,
         webUrl: appLink,
