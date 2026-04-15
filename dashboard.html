@@ -224,12 +224,12 @@
 
   <div class="top-tabs">
     <button class="top-tab active">홈</button>
-    <button class="top-tab">단체라운드 대회</button>
+    <button class="top-tab" onclick="location.href='event.html'">단체라운드 대회</button>
     <button class="top-tab" onclick="location.href='join.html'">조인</button>
     <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
-    <button class="top-tab">구독자라운드</button>
-    <button class="top-tab">라운드지도</button>
-    <button class="top-tab">쇼핑</button>
+    <button class="top-tab" onclick="showToast('준비 중입니다')">구독자라운드</button>
+    <button class="top-tab" onclick="location.href='round-map.html'">라운드지도</button>
+    <button class="top-tab" onclick="showToast('준비 중입니다')">쇼핑</button>
   </div>
 
   <div class="content">
@@ -348,8 +348,16 @@
     </div><!-- /content-inner-pad -->
   </div>
 
+  <div id="toast" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.95);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:300;"></div>
 
 </div>
+<script>
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.style.opacity = '1';
+    setTimeout(() => { el.style.opacity = '0'; }, 2500);
+  }
+</script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
