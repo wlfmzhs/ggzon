@@ -1058,6 +1058,7 @@ window.kakaoShare = function(id) {
     {
       title: '날짜 / 시간',
       description: `${j.date} · ${j.time}`,
+      imageUrl: 'https://wlfmzhs.github.io/ggzon/image/join-banner.png',
       link: { mobileWebUrl: appLink, webUrl: appLink },
     },
     {
@@ -1078,11 +1079,6 @@ window.kakaoShare = function(id) {
     objectType: 'list',
     headerTitle: `${j.course} ${j.joinType === 'screen' ? '스크린' : '필드'} 조인 모집`,
     headerLink: { mobileWebUrl: appLink, webUrl: appLink },
-    cover: {
-      title: `${j.course} ${j.joinType === 'screen' ? '스크린' : '필드'} 조인 모집`,
-      imageUrl: 'https://wlfmzhs.github.io/ggzon/image/join-banner.png',
-      link: { mobileWebUrl: appLink, webUrl: appLink },
-    },
     contents,
     buttons: [
       {
