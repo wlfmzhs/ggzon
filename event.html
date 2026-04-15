@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>이벤트 / 대회 - GOLGAB ZONE</title>
+  <title>단체라운드 대회 - GOLGAB ZONE</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root {
@@ -827,7 +827,7 @@
   <div class="appbar">
     <div class="appbar-left">
       <button id="btn-back" onclick="goBack()">‹</button>
-      <span class="appbar-title" id="appbar-title">이벤트 / 대회</span>
+      <span class="appbar-title" id="appbar-title">단체라운드 대회</span>
     </div>
     <button id="btn-new-tournament" onclick="openAdminModal(null)">+ 대회 만들기</button>
   </div>
@@ -1765,7 +1765,7 @@ window.goBack = function() {
 
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-list').style.display = 'flex';
-  document.getElementById('appbar-title').textContent = '이벤트 / 대회';
+  document.getElementById('appbar-title').textContent = '단체라운드 대회';
   if (isAdmin) document.getElementById('btn-new-tournament').style.display = 'block';
 
   // Refresh list progress counts
