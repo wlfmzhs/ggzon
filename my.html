@@ -313,6 +313,10 @@
         <div class="field-label">거주지</div>
         <input class="field-input" id="edit-region" type="text" placeholder="거주지" />
       </div>
+      <div class="field-group">
+        <div class="field-label">연락처</div>
+        <input class="field-input" id="edit-phone" type="tel" placeholder="010-0000-0000" />
+      </div>
       <button class="btn-primary" onclick="saveEdit()">저장</button>
     </div>
   </div>
@@ -439,6 +443,7 @@ window.openEditModal = () => {
   document.getElementById('edit-nick').value = userData.nickname || '';
   document.getElementById('edit-handicap').value = userData.handicap ?? '';
   document.getElementById('edit-region').value = userData.region || '';
+  document.getElementById('edit-phone').value = userData.phone || '';
   document.getElementById('modal-edit').classList.add('show');
 };
 
@@ -446,9 +451,10 @@ window.saveEdit = async () => {
   const nick = document.getElementById('edit-nick').value.trim();
   const handicap = document.getElementById('edit-handicap').value;
   const region = document.getElementById('edit-region').value.trim();
+  const phone = document.getElementById('edit-phone').value.trim();
   if (!nick) { showToast('닉네임을 입력해주세요'); return; }
   try {
-    const updates = { nickname: nick, region };
+    const updates = { nickname: nick, region, phone };
     if (handicap !== '') updates.handicap = Number(handicap);
     await updateDoc(doc(db, 'users', currentUser.uid), updates);
     userData = { ...userData, ...updates };

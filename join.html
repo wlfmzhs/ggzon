@@ -428,6 +428,9 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+    /* 하단 모달 공통 */
+    .bottom-modal.show { display: flex !important; }
+
     /* 컨펌 */
     .confirm-overlay {
       position: absolute; inset: 0; background: rgba(0,0,0,0.7);
@@ -571,6 +574,30 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- 개인정보 동의 모달 -->
+  <div id="consent-modal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;" class="bottom-modal">
+    <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;">
+      <div style="font-size:16px;font-weight:900;margin-bottom:16px;">개인정보 제공 동의</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.7;margin-bottom:24px;background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;">
+        대회 및 라운드 진행을 위해 <b>연락처(전화번호)</b>가 주최자 및 관리자에게 공유될 수 있습니다.<br><br>동의하시겠습니까?
+      </div>
+      <button onclick="window.confirmConsent()" style="width:100%;padding:14px;border-radius:12px;background:#3ea066;color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;">동의하고 참여하기</button>
+      <button onclick="window.cancelConsent()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
+    </div>
+  </div>
+
+  <!-- 참여자 정보 모달 (어드민/주최자용) -->
+  <div id="participant-info-modal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;" class="bottom-modal">
+    <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 40px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:900;">참여자 정보</div>
+        <button onclick="window.closeParticipantModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:22px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <div id="participant-info-content"></div>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -737,9 +764,12 @@ function buildCard(j) {
         <span class="participant-list-label">참석자</span>
         ${participants.length === 0
           ? `<span class="participant-empty">아직 없음</span>`
-          : participants.map(p => {
+          : participants.map((p, i) => {
               const isMe = currentUser && p.uid === currentUser.uid;
-              return `<span class="participant-name-chip${isMe ? ' me' : ''}">${p.name}</span>`;
+              const canView = isAdmin || (currentUser && participants[0]?.uid === currentUser.uid);
+              const click = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
+              const style = canView ? 'cursor:pointer;' : '';
+              return `<span class="participant-name-chip${isMe ? ' me' : ''}" ${click} style="${style}">${p.name}${i===0?' 👑':''}</span>`;
             }).join('')
         }
         <span class="participant-count-badge">${currentCount}/${j.capacity}</span>
@@ -925,24 +955,66 @@ window.participateJoin = function(id) {
     });
   } else {
     if (participants.length >= j.capacity) { showToast('정원이 마감되었습니다'); return; }
-    showConfirm(
-      '참여 확인',
-      `확인을 누르면 참여가 확정됩니다.\n진행하시겠습니까?`,
-      async () => {
-        try {
-          let realName = currentUser.displayName || '';
-      try {
-        const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userSnap.exists()) realName = userSnap.data().name || userSnap.data().nickname || realName;
-      } catch (_) {}
-      const entry = { uid: currentUser.uid, name: realName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() };
-          await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
-          showToast('참여 신청이 완료되었습니다!');
-          await loadJoins();
-        } catch (e) { showToast('오류: ' + e.message); }
-      }
-    );
+    // 개인정보 동의 모달
+    pendingJoinId = id;
+    document.getElementById('consent-modal').classList.add('show');
   }
+};
+
+// ── 개인정보 동의 후 참여 처리 ────────────────────────
+let pendingJoinId = null;
+window.confirmConsent = async function() {
+  const id = pendingJoinId;
+  pendingJoinId = null;
+  document.getElementById('consent-modal').classList.remove('show');
+  if (!id) return;
+  try {
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    let realName = currentUser.displayName || currentUser.email.split('@')[0];
+    let phone = '';
+    if (userSnap.exists()) {
+      const d = userSnap.data();
+      realName = d.name || d.nickname || realName;
+      phone = d.phone || '';
+    }
+    const entry = { uid: currentUser.uid, name: realName, phone, joinedAt: new Date().toISOString(), consentGiven: true };
+    await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
+    showToast('참여 신청이 완료되었습니다!');
+    await loadJoins();
+  } catch (e) { showToast('오류: ' + e.message); }
+};
+
+window.cancelConsent = function() {
+  pendingJoinId = null;
+  document.getElementById('consent-modal').classList.remove('show');
+};
+
+// ── 참여자 정보 조회 (어드민/주최자) ─────────────────
+window.viewParticipant = function(joinId, uid) {
+  const j = joins.find(x => x.id === joinId);
+  if (!j) return;
+  const p = (j.participants || []).find(x => x.uid === uid);
+  if (!p) return;
+  const isHost = j.participants[0]?.uid === uid;
+  document.getElementById('participant-info-content').innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px;">이름</div>
+      <div style="font-size:15px;font-weight:700;">${p.name}${isHost ? ' 👑 주최자' : ''}</div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px;">연락처</div>
+      <div style="font-size:15px;font-weight:700;">${p.phone || '미등록'}</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px;">참여일시</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.6);">${p.joinedAt ? new Date(p.joinedAt).toLocaleString('ko-KR') : '-'}</div>
+    </div>
+  `;
+  document.getElementById('participant-info-modal').classList.add('show');
+};
+
+window.closeParticipantModal = function() {
+  document.getElementById('participant-info-modal').classList.remove('show');
 };
 
 // ── 이미지 저장 (카드 직접 캡쳐) ──────────────────────

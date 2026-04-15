@@ -197,6 +197,10 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">연락처</label>
+        <input class="form-input" id="signup-phone" type="tel" placeholder="010-0000-0000" />
+      </div>
+      <div class="form-group">
         <label class="form-label">이메일</label>
         <input class="form-input" id="signup-email" type="email" placeholder="example@email.com" />
       </div>
@@ -328,6 +332,7 @@
       const birth  = document.getElementById('signup-birth').value;
       const handi  = document.getElementById('signup-handi').value;
       const region = document.getElementById('signup-region').value;
+      const phone  = document.getElementById('signup-phone').value.trim();
       const email  = document.getElementById('signup-email').value.trim();
       const pw     = document.getElementById('signup-pw').value;
       const pw2    = document.getElementById('signup-pw2').value;
@@ -352,6 +357,7 @@
           birthYear2: birthYear2,
           handicap: handi || '',
           region: region || '',
+          phone: phone || '',
           email: email,
           createdAt: new Date().toISOString(),
           isPaid: false
