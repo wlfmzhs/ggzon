@@ -222,31 +222,65 @@
     .ad-bg-2 { background: linear-gradient(135deg, #1a2a4a 0%, #0d3320 100%); }
     .ad-bg-3 { background: linear-gradient(135deg, #2a1a0d 0%, #4a3010 100%); }
 
-    .cat-card {
-      display: flex; align-items: center; gap: 16px;
-      padding: 18px;
+    /* 섹션 공통 */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 15px; font-weight: 900; color: #f0ebe0; letter-spacing: -0.3px;
+    }
+    .section-more {
+      font-size: 12px; color: var(--green-light); cursor: pointer;
+    }
+    /* 공지사항 */
+    .notice-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; margin-bottom: 8px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .notice-item:active { background: rgba(255,255,255,0.08); }
+    .notice-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green-light); flex-shrink: 0;
+    }
+    .notice-text { flex: 1; }
+    .notice-title { font-size: 13px; font-weight: 700; color: #f0ebe0; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notice-date { font-size: 11px; color: rgba(240,235,224,0.35); }
+    .notice-arrow { font-size: 16px; color: rgba(255,255,255,0.2); }
+    .notice-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
+    /* 조인/대회 카드 */
+    .live-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
       background: #1A4831;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(62,160,102,0.2);
       border-radius: 16px; margin-bottom: 10px; cursor: pointer;
       transition: background 0.15s;
     }
-    .cat-card:active { background: #0f4a26; }
-    .cat-icon {
-      width: 52px; height: 52px; border-radius: 14px;
-      background: rgba(0,103,71,0.25);
-      border: 1px solid rgba(0,103,71,0.4);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+    .live-card:active { background: #0f4a26; }
+    .live-card-icon {
+      width: 46px; height: 46px; border-radius: 12px;
+      background: rgba(62,160,102,0.15);
+      border: 1px solid rgba(62,160,102,0.3);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .cat-info { flex: 1; }
-    .cat-title { font-size: 15px; font-weight: 900; margin-bottom: 4px; color: #f0ebe0; }
-    .cat-desc { font-size: 12px; color: rgba(240,235,224,0.5); line-height: 1.5; }
-    .cat-arrow { color: rgba(240,235,224,0.25); font-size: 18px; }
-    .cat-badge {
-      font-size: 10px; font-weight: 800; padding: 3px 8px;
-      border-radius: 20px; background: var(--green-light); color: #fff;
-      margin-left: 6px; vertical-align: middle;
+    .live-card-info { flex: 1; min-width: 0; }
+    .live-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .live-card-title { font-size: 14px; font-weight: 900; color: #f0ebe0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live-badge {
+      font-size: 10px; font-weight: 800; padding: 2px 7px;
+      border-radius: 20px; flex-shrink: 0;
     }
+    .live-badge.open { background: var(--green-light); color: #fff; }
+    .live-badge.closed { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); }
+    .live-card-meta { font-size: 11px; color: rgba(240,235,224,0.45); }
+    .live-card-arrow { font-size: 18px; color: rgba(240,235,224,0.2); flex-shrink: 0; }
+    .live-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
+    .section-gap { margin-top: 24px; }
     .my-btn {
       font-size: 12px; font-weight: 700; color: var(--green-light);
       background: none; border: none; cursor: pointer; font-family: inherit;
@@ -416,59 +450,25 @@
     </div>
 
     <div class="content-inner-pad">
-    <div class="cat-card" onclick="location.href='event.html'" style="cursor:pointer;">
-      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
-      <div class="cat-info">
-        <div class="cat-title">단체라운드 대회 <span class="cat-badge">NEW</span></div>
-        <div class="cat-desc">GPGA OPEN · 흑백대전</div>
-      </div>
-      <div class="cat-arrow">›</div>
-    </div>
 
-    <div class="cat-card" onclick="location.href='join.html'" style="cursor:pointer;">
-      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-      <div class="cat-info">
-        <div class="cat-title">조인</div>
-        <div class="cat-desc">필드 · 스크린</div>
+      <!-- 공지사항 -->
+      <div class="section-header">
+        <span class="section-title">📢 공지사항</span>
+        <span class="section-more" onclick="location.href='my.html'">더보기 ›</span>
       </div>
-      <div class="cat-arrow">›</div>
-    </div>
+      <div id="notice-list">
+        <div class="notice-empty">불러오는 중...</div>
+      </div>
 
-    <div class="cat-card" onclick="location.href='golchelin-star.html'" style="cursor:pointer">
-      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
-      <div class="cat-info">
-        <div class="cat-title">골슐랭스타</div>
-        <div class="cat-desc">역대 골슐랭스타의 기록을 확인해 보세요</div>
+      <!-- 진행 중인 조인 / 대회 -->
+      <div class="section-header section-gap">
+        <span class="section-title">⛳ 조인 · 대회 모집</span>
+        <span class="section-more" onclick="location.href='join.html'">전체보기 ›</span>
       </div>
-      <div class="cat-arrow">›</div>
-    </div>
+      <div id="live-list">
+        <div class="live-empty">불러오는 중...</div>
+      </div>
 
-    <div class="cat-card">
-      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
-      <div class="cat-info">
-        <div class="cat-title">구독자 라운드</div>
-        <div class="cat-desc">구독자와 함께하는 특별한 라운드 신청</div>
-      </div>
-      <div class="cat-arrow">›</div>
-    </div>
-
-    <div class="cat-card">
-      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-      <div class="cat-info">
-        <div class="cat-title">골갑 라운드 지도</div>
-        <div class="cat-desc">골갑이 촬영한 골프장을 한눈에!</div>
-      </div>
-      <div class="cat-arrow">›</div>
-    </div>
-
-    <div class="cat-card">
-      <div class="cat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
-      <div class="cat-info">
-        <div class="cat-title">쇼핑</div>
-        <div class="cat-desc">골갑 추천 골프용품 & 회원 혜택</div>
-      </div>
-      <div class="cat-arrow">›</div>
-    </div>
     </div><!-- /content-inner-pad -->
   </div>
 
@@ -501,7 +501,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const app = initializeApp({
     apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -517,6 +517,8 @@
   onAuthStateChanged(auth, async (user) => {
     document.getElementById('loading-overlay').classList.add('hidden');
     if (!user) { window.location.href = 'login.html'; return; }
+    loadNotices();
+    loadLiveList();
     const snap = await getDoc(doc(db, 'users', user.uid));
     if (snap.exists()) {
       const d = snap.data();
@@ -527,6 +529,60 @@
       document.getElementById('user-nick').textContent = user.displayName || '멤버';
     }
   });
+
+  // 공지사항 로드
+  async function loadNotices() {
+    const el = document.getElementById('notice-list');
+    try {
+      const snap = await getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'), limit(3)));
+      if (snap.empty) { el.innerHTML = '<div class="notice-empty">등록된 공지사항이 없습니다</div>'; return; }
+      el.innerHTML = snap.docs.map(d => {
+        const n = d.data();
+        const date = n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('ko-KR', {month:'2-digit', day:'2-digit'}) : '';
+        return `<div class="notice-item" onclick="location.href='my.html'">
+          <div class="notice-dot"></div>
+          <div class="notice-text">
+            <div class="notice-title">${n.title || '(제목 없음)'}</div>
+            <div class="notice-date">${date}</div>
+          </div>
+          <div class="notice-arrow">›</div>
+        </div>`;
+      }).join('');
+    } catch(e) { el.innerHTML = '<div class="notice-empty">불러오기 실패</div>'; }
+  }
+
+  // 조인/대회 모집 로드
+  async function loadLiveList() {
+    const el = document.getElementById('live-list');
+    try {
+      const snap = await getDocs(query(collection(db, 'joins'), orderBy('createdAt', 'desc'), limit(5)));
+      if (snap.empty) { el.innerHTML = '<div class="live-empty">현재 모집 중인 조인이 없습니다</div>'; return; }
+      const joinIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+      el.innerHTML = snap.docs.map(d => {
+        const j = d.data();
+        const date = j.date || '';
+        const time = j.time || '';
+        const cur = (j.participants || []).length;
+        const max = j.maxParticipants || j.capacity || '-';
+        const isFull = (max !== '-' && cur >= Number(max));
+        const badgeClass = isFull ? 'closed' : 'open';
+        const badgeText = isFull ? '마감' : '모집중';
+        const typeLabel = j.type === 'screen' ? '스크린' : j.type === 'field' ? '필드' : j.type || '';
+        const meta = [typeLabel, date, time, `${cur}/${max}명`].filter(Boolean).join(' · ');
+        return `<div class="live-card" onclick="location.href='join.html'">
+          <div class="live-card-icon">${joinIcon}</div>
+          <div class="live-card-info">
+            <div class="live-card-top">
+              <div class="live-card-title">${j.title || j.courseName || '조인 모집'}</div>
+              <span class="live-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <div class="live-card-meta">${meta}</div>
+          </div>
+          <div class="live-card-arrow">›</div>
+        </div>`;
+      }).join('');
+    } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
+  }
 
   document.getElementById('tab-logout').addEventListener('click', async () => {
     await signOut(auth);
