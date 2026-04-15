@@ -478,11 +478,13 @@
 
 </div>
 <script>
-  // 광고 배너 롤링
+  // 광고 배너 롤링 + 드래그/스와이프
   (function() {
+    const track  = document.getElementById('adTrack');
     const slides = document.querySelectorAll('.ad-banner-slide');
     const dots   = document.querySelectorAll('.ad-dot');
-    let cur = 0;
+    let cur = 0, timer;
+
     function goTo(n) {
       slides[cur].classList.remove('active');
       dots[cur].classList.remove('active');
@@ -490,8 +492,24 @@
       slides[cur].classList.add('active');
       dots[cur].classList.add('active');
     }
-    setInterval(() => goTo(cur + 1), 4000);
-    dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+    function resetTimer() {
+      clearInterval(timer);
+      timer = setInterval(() => goTo(cur + 1), 4000);
+    }
+    resetTimer();
+    dots.forEach((d, i) => d.addEventListener('click', () => { goTo(i); resetTimer(); }));
+
+    // 드래그/스와이프
+    let startX = 0, moved = false;
+    function onStart(x) { startX = x; moved = false; }
+    function onEnd(x) {
+      const diff = startX - x;
+      if (Math.abs(diff) > 40) { goTo(diff > 0 ? cur + 1 : cur - 1); resetTimer(); }
+    }
+    track.addEventListener('mousedown',  e => onStart(e.clientX));
+    track.addEventListener('mouseup',    e => onEnd(e.clientX));
+    track.addEventListener('touchstart', e => onStart(e.touches[0].clientX), { passive: true });
+    track.addEventListener('touchend',   e => onEnd(e.changedTouches[0].clientX), { passive: true });
   })();
 
   function showToast(msg) {
