@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리자 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --gold: #f0c040;
+      --border: rgba(62,160,102,0.18);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 768px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    .spinner { width: 32px; height: 32px; border: 3px solid rgba(62,160,102,0.3); border-top-color: var(--green-light); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .appbar { flex-shrink: 0; padding: 32px 18px 10px; display: flex; align-items: center; gap: 8px; }
+    #btn-back { background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0; color: var(--green-light); font-size: 20px; line-height: 1; }
+    .appbar-title { font-size: 16px; font-weight: 900; flex: 1; }
+    .appbar-badge { font-size: 11px; color: var(--gold); background: rgba(240,192,64,0.15); border-radius: 8px; padding: 3px 8px; font-weight: 700; }
+
+    /* 탭 */
+    .tab-bar { flex-shrink: 0; display: flex; border-bottom: 1px solid var(--border); padding: 0 16px; }
+    .tab-btn { flex: 1; padding: 11px 0; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .tab-btn.active { color: #fff; border-bottom-color: var(--green-light); }
+
+    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 16px 16px 32px; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* 스탯 카드 */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-card { background: rgba(62,160,102,0.1); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+    .stat-label { font-size: 11px; color: rgba(255,255,255,0.45); margin-bottom: 6px; }
+    .stat-value { font-size: 26px; font-weight: 900; color: var(--green-light); }
+    .stat-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+    /* 검색 */
+    .search-box { position: relative; margin-bottom: 14px; }
+    .search-input { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px 10px 36px; color: #fff; font-size: 13px; font-family: inherit; outline: none; }
+    .search-input::placeholder { color: rgba(255,255,255,0.3); }
+    .search-input:focus { border-color: var(--green-light); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.3); pointer-events: none; }
+
+    /* 멤버 카드 */
+    .member-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
+    .member-card:active { background: rgba(62,160,102,0.1); }
+    .member-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .member-nick { font-size: 14px; font-weight: 700; }
+    .member-date { font-size: 11px; color: rgba(255,255,255,0.3); }
+    .member-info { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .member-phone { font-size: 12px; color: var(--green-light); margin-top: 4px; }
+
+    /* 모달 */
+    .modal-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: flex-end; }
+    .modal-overlay.show { display: flex; }
+    .modal { width: 100%; background: #0f2e1a; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; }
+    .modal-title { font-size: 16px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .modal-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 22px; cursor: pointer; line-height: 1; padding: 0; }
+    .detail-row { margin-bottom: 14px; }
+    .detail-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+    .detail-value { font-size: 15px; font-weight: 600; }
+    .detail-value a { color: var(--green-light); text-decoration: none; }
+
+    #toast { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(30,30,30,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; z-index: 300; }
+    #toast.show { opacity: 1; }
+    .empty-msg { text-align: center; color: rgba(255,255,255,0.3); font-size: 13px; padding: 32px 0; }
+    .section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 0.08em; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div id="loading-overlay"><div class="spinner"></div></div>
+
+  <div class="appbar">
+    <button id="btn-back">‹</button>
+    <span class="appbar-title">관리자</span>
+    <span class="appbar-badge">ADMIN</span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('members')">회원 관리</button>
+    <button class="tab-btn" onclick="switchTab('joins')">조인 현황</button>
+    <button class="tab-btn" onclick="switchTab('analytics')">방문 통계</button>
+  </div>
+
+  <div class="scroll-area" id="tab-members">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">총 가입자</div>
+        <div class="stat-value" id="stat-total">-</div>
+        <div class="stat-sub">명</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">이번 달 가입</div>
+        <div class="stat-value" id="stat-month">-</div>
+        <div class="stat-sub">명</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">연락처 등록</div>
+        <div class="stat-value" id="stat-phone">-</div>
+        <div class="stat-sub">명</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">유료 회원</div>
+        <div class="stat-value" id="stat-paid">-</div>
+        <div class="stat-sub">명</div>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="member-search" type="text" placeholder="이름, 닉네임, 연락처 검색..." oninput="filterMembers()" />
+    </div>
+
+    <div class="section-title">회원 목록</div>
+    <div id="member-list"></div>
+  </div>
+
+  <div class="scroll-area" id="tab-joins" style="display:none;">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">모집 중</div>
+        <div class="stat-value" id="stat-joins-active">-</div>
+        <div class="stat-sub">개</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">총 참여자</div>
+        <div class="stat-value" id="stat-joins-total">-</div>
+        <div class="stat-sub">명</div>
+      </div>
+    </div>
+    <div class="section-title">조인 목록</div>
+    <div id="join-list"></div>
+  </div>
+
+  <div class="scroll-area" id="tab-analytics" style="display:none;">
+    <div class="stat-card" style="margin-bottom:12px;">
+      <div class="stat-label">방문 통계</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:8px;line-height:1.7;">
+        상세 방문 통계는 Google Analytics에서 확인하세요.<br>
+        <a href="https://analytics.google.com" target="_blank" style="color:var(--green-light);">analytics.google.com →</a>
+      </div>
+    </div>
+    <div class="section-title">앱 방문 기록 (최근 30일)</div>
+    <div id="analytics-list"><div class="empty-msg">방문 기록이 없습니다</div></div>
+  </div>
+
+  <!-- 회원 상세 모달 -->
+  <div class="modal-overlay" id="modal-member">
+    <div class="modal">
+      <div class="modal-title">회원 상세 <button class="modal-close" onclick="closeModal()">×</button></div>
+      <div id="member-detail"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+const ADMIN_EMAIL = 'wlfmzhs@naver.com';
+
+let allMembers = [];
+let allJoins = [];
+
+// ── Auth ──────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user || user.email !== ADMIN_EMAIL) {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  await Promise.all([loadMembers(), loadJoins()]);
+
+  // 방문 로그 기록
+  try {
+    await addDoc(collection(db, 'visits'), {
+      uid: user.uid, page: 'admin', visitedAt: serverTimestamp()
+    });
+  } catch (_) {}
+
+  document.getElementById('loading-overlay').classList.add('hidden');
+});
+
+// ── 회원 로드 ─────────────────────────────────────────
+async function loadMembers() {
+  const snap = await getDocs(collection(db, 'users'));
+  allMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('stat-total').textContent = allMembers.length;
+  document.getElementById('stat-month').textContent = allMembers.filter(m => (m.createdAt || '').startsWith(thisMonth)).length;
+  document.getElementById('stat-phone').textContent = allMembers.filter(m => m.phone).length;
+  document.getElementById('stat-paid').textContent = allMembers.filter(m => m.isPaid).length;
+
+  renderMembers(allMembers);
+}
+
+function renderMembers(list) {
+  const el = document.getElementById('member-list');
+  if (list.length === 0) { el.innerHTML = '<div class="empty-msg">회원이 없습니다</div>'; return; }
+  el.innerHTML = list.map(m => {
+    const date = m.createdAt ? m.createdAt.slice(0,10) : '-';
+    const info = [m.name, m.handicap ? `핸디 ${m.handicap}` : '', m.region].filter(Boolean).join(' · ');
+    return `<div class="member-card" onclick="window.showMember('${m.id}')">
+      <div class="member-top">
+        <span class="member-nick">${m.nickname || '-'}${m.isPaid ? ' ⭐' : ''}</span>
+        <span class="member-date">${date}</span>
+      </div>
+      <div class="member-info">${info || '정보 없음'}</div>
+      ${m.phone ? `<div class="member-phone">📞 ${m.phone}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+window.filterMembers = function() {
+  const q = document.getElementById('member-search').value.toLowerCase();
+  if (!q) { renderMembers(allMembers); return; }
+  renderMembers(allMembers.filter(m =>
+    (m.nickname||'').toLowerCase().includes(q) ||
+    (m.name||'').toLowerCase().includes(q) ||
+    (m.phone||'').includes(q) ||
+    (m.email||'').toLowerCase().includes(q)
+  ));
+};
+
+window.showMember = function(id) {
+  const m = allMembers.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('member-detail').innerHTML = `
+    <div class="detail-row"><div class="detail-label">닉네임</div><div class="detail-value">${m.nickname || '-'}${m.isPaid ? ' ⭐ 유료' : ' (무료)'}</div></div>
+    <div class="detail-row"><div class="detail-label">이름</div><div class="detail-value">${m.name || '-'}${m.birthYear2 ? ' / ' + m.birthYear2 + '년생' : ''}</div></div>
+    <div class="detail-row"><div class="detail-label">연락처</div><div class="detail-value">${m.phone ? `<a href="tel:${m.phone}">📞 ${m.phone}</a>` : '미등록'}</div></div>
+    <div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value"><a href="mailto:${m.email}">${m.email || '-'}</a></div></div>
+    <div class="detail-row"><div class="detail-label">핸디캡 / 거주지</div><div class="detail-value">${[m.handicap, m.region].filter(Boolean).join(' / ') || '-'}</div></div>
+    <div class="detail-row"><div class="detail-label">가입일</div><div class="detail-value">${m.createdAt ? m.createdAt.slice(0,10) : '-'}</div></div>
+  `;
+  document.getElementById('modal-member').classList.add('show');
+};
+
+window.closeModal = () => document.getElementById('modal-member').classList.remove('show');
+
+// ── 조인 로드 ─────────────────────────────────────────
+async function loadJoins() {
+  const snap = await getDocs(collection(db, 'joins'));
+  allJoins = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const active = allJoins.filter(j => j.status === 'recruiting');
+  const totalParticipants = allJoins.reduce((s, j) => s + (j.participants || []).length, 0);
+  document.getElementById('stat-joins-active').textContent = active.length;
+  document.getElementById('stat-joins-total').textContent = totalParticipants;
+
+  const el = document.getElementById('join-list');
+  if (allJoins.length === 0) { el.innerHTML = '<div class="empty-msg">조인이 없습니다</div>'; return; }
+  el.innerHTML = allJoins.map(j => {
+    const participants = j.participants || [];
+    const type = j.joinType === 'screen' ? '스크린' : '필드';
+    const statusLabel = j.status === 'recruiting' ? '🟢 모집중' : '🔴 마감';
+    return `<div class="member-card">
+      <div class="member-top">
+        <span class="member-nick">${j.course} ${type}</span>
+        <span class="member-date">${statusLabel}</span>
+      </div>
+      <div class="member-info">${j.date} · ${j.time} · ${participants.length}/${j.capacity}명</div>
+      ${participants.map(p => `<div class="member-phone" style="margin-top:4px;">
+        ${p.name}${participants[0]?.uid === p.uid ? ' (주최자)' : ''}
+        ${p.phone ? ` · <a href="tel:${p.phone}" style="color:var(--green-light);text-decoration:none;">📞 ${p.phone}</a>` : ''}
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── 탭 전환 ──────────────────────────────────────────
+window.switchTab = function(tab) {
+  ['members', 'joins', 'analytics'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', ['members','joins','analytics'][i] === tab);
+  });
+};
+
+// ── 기타 ─────────────────────────────────────────────
+document.getElementById('btn-back').addEventListener('click', () => history.back());
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

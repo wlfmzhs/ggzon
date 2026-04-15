@@ -248,6 +248,7 @@
       </div>
       <div class="msg" id="login-msg"></div>
       <button class="submit-btn" id="login-btn" onclick="doLogin()">로그인 →</button>
+      <button id="resend-btn" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:12px;background:rgba(62,160,102,0.15);border:1px solid rgba(62,160,102,0.3);color:#3ea066;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="resendVerification()">인증 메일 재발송</button>
       <div class="divider-text">또는</div>
       <button class="kakao-btn" disabled title="준비중">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.11 5.04L3.75 15l3.27-1.64C7.3 13.45 8.14 13.5 9 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
@@ -266,6 +267,7 @@
       getAuth,
       createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
+      sendEmailVerification,
       updateProfile,
       onAuthStateChanged,
       setPersistence,
@@ -294,9 +296,9 @@
       return params.get('return') || 'dashboard.html';
     }
 
-    // 이미 로그인된 상태면 이동
+    // 이미 로그인된 상태면 이동 (이메일 인증 완료된 경우만)
     onAuthStateChanged(auth, (user) => {
-      if (user) window.location.href = getReturnUrl();
+      if (user && user.emailVerified) window.location.href = getReturnUrl();
     });
 
     // 에러 메시지 한글 변환
@@ -363,12 +365,22 @@
           isPaid: false
         });
 
-        showMsg('signup-msg', '가입 완료! 환영해요 ' + nick + '님 🎉', 'success');
-        setTimeout(() => { window.location.href = getReturnUrl(); }, 1200);
+        await sendEmailVerification(cred.user);
+        showMsg('signup-msg', '가입 완료! 📧 ' + email + ' 로 인증 메일을 보냈어요. 메일함을 확인해 주세요.', 'success');
       } catch (e) {
         showMsg('signup-msg', getErrorMsg(e.code), 'error');
         setLoading('signup-btn', false);
       }
+    };
+
+    window.resendVerification = async function() {
+      const email = document.getElementById('login-email').value.trim();
+      const pw    = document.getElementById('login-pw').value;
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, pw);
+        await sendEmailVerification(cred.user);
+        showMsg('login-msg', '인증 메일을 재발송했어요. 메일함을 확인해 주세요.', 'success');
+      } catch (e) { showMsg('login-msg', getErrorMsg(e.code), 'error'); }
     };
 
     window.doLogin = async function() {
@@ -381,7 +393,13 @@
       setLoading('login-btn', true);
       try {
         await setPersistence(auth, browserLocalPersistence);
-        await signInWithEmailAndPassword(auth, email, pw);
+        const cred = await signInWithEmailAndPassword(auth, email, pw);
+        if (!cred.user.emailVerified) {
+          showMsg('login-msg', '이메일 인증이 필요해요. 받은 메일함을 확인해 주세요.', 'error');
+          document.getElementById('resend-btn').style.display = 'block';
+          setLoading('login-btn', false);
+          return;
+        }
         showMsg('login-msg', '로그인 성공! 잠시 후 이동합니다.', 'success');
         setTimeout(() => { window.location.href = getReturnUrl(); }, 1000);
       } catch (e) {
