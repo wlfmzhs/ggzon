@@ -940,7 +940,7 @@ document.getElementById('confirm-ok-btn').onclick = async () => {
 };
 
 // ── 참여하기 ──────────────────────────────────────────
-window.participateJoin = function(id) {
+window.participateJoin = async function(id) {
   if (!currentUser) return;
   const j = joins.find(x => x.id === id);
   if (!j) return;
