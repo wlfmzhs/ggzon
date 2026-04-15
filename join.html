@@ -770,7 +770,7 @@ function buildCard(j) {
           ? `<span class="participant-empty">아직 없음</span>`
           : participants.map((p, i) => {
               const isMe = currentUser && p.uid === currentUser.uid;
-              const canView = isAdmin || (currentUser && participants[0]?.uid === currentUser.uid);
+              const canView = isAdmin;
               const click = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
               const style = canView ? 'cursor:pointer;' : '';
               return `<span class="participant-name-chip${isMe ? ' me' : ''}" ${click} style="${style}">${p.name}${i===0?' (주최자)':''}</span>`;
@@ -1013,7 +1013,10 @@ window.viewParticipant = function(joinId, uid) {
     </div>
     <div style="margin-bottom:12px;">
       <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px;">연락처</div>
-      <div style="font-size:15px;font-weight:700;">${p.phone || '미등록'}</div>
+      ${p.phone
+        ? `<a href="tel:${p.phone}" style="font-size:15px;font-weight:700;color:#3ea066;text-decoration:none;">📞 ${p.phone}</a>`
+        : `<div style="font-size:15px;font-weight:700;">미등록</div>`
+      }
     </div>
     <div>
       <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px;">참여일시</div>
