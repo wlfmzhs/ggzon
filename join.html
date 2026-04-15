@@ -579,8 +579,13 @@
   <div id="consent-modal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;" class="bottom-modal">
     <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;">
       <div style="font-size:16px;font-weight:900;margin-bottom:16px;">개인정보 제공 동의</div>
-      <div style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.7;margin-bottom:24px;background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;">
-        대회 및 라운드 진행을 위해 <b>연락처(전화번호)</b>가 주최자 및 관리자에게 공유될 수 있습니다.<br><br>동의하시겠습니까?
+      <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:20px;background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;">
+        라운드 진행을 위해 <b style="color:rgba(255,255,255,0.85);">연락처(전화번호)</b>가 주최자 및 관리자에게 공유될 수 있습니다.
+      </div>
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:8px;">연락처 *</div>
+        <input id="consent-phone" type="tel" placeholder="010-0000-0000"
+          style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
       </div>
       <button onclick="window.confirmConsent()" style="width:100%;padding:14px;border-radius:12px;background:#3ea066;color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;">동의하고 참여하기</button>
       <button onclick="window.cancelConsent()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
@@ -955,8 +960,12 @@ window.participateJoin = function(id) {
     });
   } else {
     if (participants.length >= j.capacity) { showToast('정원이 마감되었습니다'); return; }
-    // 개인정보 동의 모달
+    // 개인정보 동의 모달 - 기존 전화번호 미리 채우기
     pendingJoinId = id;
+    try {
+      const snap = await getDoc(doc(db, 'users', currentUser.uid));
+      document.getElementById('consent-phone').value = snap.exists() ? (snap.data().phone || '') : '';
+    } catch (_) { document.getElementById('consent-phone').value = ''; }
     document.getElementById('consent-modal').classList.add('show');
   }
 };
@@ -965,18 +974,20 @@ window.participateJoin = function(id) {
 let pendingJoinId = null;
 window.confirmConsent = async function() {
   const id = pendingJoinId;
+  const phone = document.getElementById('consent-phone').value.trim();
+  if (!phone) { showToast('연락처를 입력해주세요'); return; }
   pendingJoinId = null;
   document.getElementById('consent-modal').classList.remove('show');
   if (!id) return;
   try {
     const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
     let realName = currentUser.displayName || currentUser.email.split('@')[0];
-    let phone = '';
     if (userSnap.exists()) {
       const d = userSnap.data();
       realName = d.name || d.nickname || realName;
-      phone = d.phone || '';
     }
+    // 프로필에 전화번호 저장
+    await updateDoc(doc(db, 'users', currentUser.uid), { phone });
     const entry = { uid: currentUser.uid, name: realName, phone, joinedAt: new Date().toISOString(), consentGiven: true };
     await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
     showToast('참여 신청이 완료되었습니다!');
