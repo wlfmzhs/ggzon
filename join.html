@@ -1061,8 +1061,8 @@ window.kakaoShare = function(id) {
       link: { mobileWebUrl: appLink, webUrl: appLink },
     },
     {
-      title: '참석 인원',
-      description: `${participants.length} / ${j.capacity}명`,
+      title: `참석 인원 ${participants.length} / ${j.capacity}명`,
+      description: participants.map((p, i) => i === 0 ? `${p.name}(개설)` : p.name).join(', '),
       link: { mobileWebUrl: appLink, webUrl: appLink },
     },
   ];
