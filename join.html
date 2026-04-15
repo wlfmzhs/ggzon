@@ -1078,6 +1078,11 @@ window.kakaoShare = function(id) {
     objectType: 'list',
     headerTitle: `${j.course} ${j.joinType === 'screen' ? '스크린' : '필드'} 조인 모집`,
     headerLink: { mobileWebUrl: appLink, webUrl: appLink },
+    cover: {
+      title: `${j.course} ${j.joinType === 'screen' ? '스크린' : '필드'} 조인 모집`,
+      imageUrl: 'https://wlfmzhs.github.io/ggzon/%EC%B0%B8%EA%B3%A0%EC%9D%B4%EB%AF%B8%EC%A7%80/join-banner.png',
+      link: { mobileWebUrl: appLink, webUrl: appLink },
+    },
     contents,
     buttons: [
       {
