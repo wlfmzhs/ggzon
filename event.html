@@ -1601,7 +1601,7 @@ function renderSeatGrid(t, registrations, courseIdx) {
           <span class="seat-name" style="color:#f0c040; font-weight:800;">나</span>`;
       } else if (reg) {
         cls = 'taken';
-        const initials = (reg.name || '?').slice(0, 1) + (reg.name && reg.name.length > 1 ? '○' : '');
+        const initials = reg.name || '?';
         content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
           <span class="seat-name">${initials}</span>`;
       } else if (isSelected) {
