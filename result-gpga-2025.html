@@ -101,7 +101,7 @@
     }
     .score-header {
       display: grid;
-      grid-template-columns: 36px 1fr 52px auto;
+      grid-template-columns: 36px 1fr 52px;
       gap: 0 8px;
       padding: 8px 12px;
       font-size: 10px; font-weight: 700;
@@ -112,7 +112,7 @@
     }
     .score-row {
       display: grid;
-      grid-template-columns: 36px 1fr 52px auto;
+      grid-template-columns: 36px 1fr 52px;
       gap: 0 8px;
       padding: 10px 12px;
       border-radius: 10px;
@@ -134,6 +134,10 @@
 
     .player-name {
       font-size: 15px; font-weight: 700; color: var(--white);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .star-inline {
+      font-size: 11px; color: var(--gold); letter-spacing: 0px;
     }
     .score {
       font-size: 15px; font-weight: 800; text-align: right;
@@ -276,6 +280,7 @@
     const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
     const scoreClass = s => s < 0 ? 'under' : s === 0 ? 'even' : 'over';
     const scoreText = s => s < 0 ? s : s === 0 ? 'E' : '+' + s;
+    const starText = g => g === '1스타' ? '★' : g === '2스타' ? '★★' : g === '3스타' ? '★★★' : '';
 
     const list = document.getElementById('scoreList');
     let prevRank = null;
@@ -286,9 +291,8 @@
       const rankCls = rankClass(r.rank);
       row.innerHTML = `
         <div class="rank ${rankCls}">${rankDisplay}</div>
-        <div class="player-name">${r.name}</div>
+        <div class="player-name">${r.name}${r.golchelin ? `<span class="star-inline">${starText(r.golchelin)}</span>` : ''}</div>
         <div class="score ${scoreClass(r.score)}">${scoreText(r.score)}</div>
-        <div>${r.golchelin ? `<span class="golchelin-badge">★ ${r.golchelin}</span>` : '<span class="empty-badge"></span>'}</div>
       `;
       list.appendChild(row);
       prevRank = r.rank;
