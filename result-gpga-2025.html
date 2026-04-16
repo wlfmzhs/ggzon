@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2025 1st GPGA OPEN — 스코어 결과</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a1f0a;
+      --bg2: #0f2a0f;
+      --orange: #e84c1e;
+      --orange2: #f0732a;
+      --gold: #f0c040;
+      --white: #ffffff;
+      --green-light: #3ea066;
+    }
+    html, body {
+      width: 100%; min-height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    }
+    body {
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 24px;
+    }
+    .phone-frame {
+      width: 390px;
+      background: var(--bg);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-frame::before {
+      content: '';
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px;
+      z-index: 10;
+    }
+
+    /* 헤더 */
+    .hero {
+      background: var(--bg);
+      padding: 52px 28px 32px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at top right, rgba(232,76,30,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 600;
+      text-decoration: none; cursor: pointer; background: none; border: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .back-btn:active { color: rgba(255,255,255,0.7); }
+    .year-badge {
+      font-size: 13px; font-weight: 800; color: var(--orange);
+      background: rgba(232,76,30,0.15); border: 1px solid rgba(232,76,30,0.3);
+      border-radius: 20px; padding: 4px 12px; letter-spacing: 0.5px;
+    }
+    .hero-title {
+      font-size: 52px; font-weight: 900; line-height: 1;
+      color: var(--orange);
+      letter-spacing: -2px;
+      margin-bottom: 8px;
+    }
+    .hero-title span { display: block; }
+    .hero-sub {
+      font-size: 12px; color: rgba(255,255,255,0.35);
+      line-height: 1.6; margin-bottom: 20px;
+    }
+    .hero-stats {
+      display: flex; gap: 16px;
+    }
+    .stat-item {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .stat-label { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+    .stat-value { font-size: 20px; font-weight: 900; color: var(--white); }
+    .stat-value.orange { color: var(--orange); }
+    .stat-divider { width: 1px; background: rgba(255,255,255,0.1); }
+
+    /* 스코어보드 */
+    .scoreboard {
+      padding: 24px 20px 40px;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 800; color: var(--orange);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      margin-bottom: 14px; padding-left: 4px;
+    }
+    .score-header {
+      display: grid;
+      grid-template-columns: 36px 1fr 52px auto;
+      gap: 0 8px;
+      padding: 8px 12px;
+      font-size: 10px; font-weight: 700;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.5px; text-transform: uppercase;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 4px;
+    }
+    .score-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 52px auto;
+      gap: 0 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .score-row:active { background: rgba(255,255,255,0.04); }
+    .score-row.top3 { background: rgba(232,76,30,0.08); }
+    .score-row.top3:nth-child(2) { background: rgba(232,76,30,0.12); }
+
+    .rank {
+      font-size: 13px; font-weight: 800;
+      color: rgba(255,255,255,0.3);
+      text-align: center;
+    }
+    .rank.gold { color: var(--gold); font-size: 15px; }
+    .rank.silver { color: #c0c0c0; font-size: 14px; }
+    .rank.bronze { color: #cd7f32; font-size: 14px; }
+
+    .player-name {
+      font-size: 15px; font-weight: 700; color: var(--white);
+    }
+    .score {
+      font-size: 15px; font-weight: 800; text-align: right;
+    }
+    .score.under { color: var(--orange); }
+    .score.even { color: #7dd87d; }
+    .score.over { color: rgba(255,255,255,0.7); }
+
+    .golchelin-badge {
+      display: flex; align-items: center; gap: 3px;
+      background: rgba(240,192,64,0.12);
+      border: 1px solid rgba(240,192,64,0.3);
+      border-radius: 20px;
+      padding: 3px 8px;
+      font-size: 10px; font-weight: 800;
+      color: var(--gold);
+      white-space: nowrap;
+    }
+    .empty-badge { width: 60px; }
+
+    /* 평균 타수 */
+    .avg-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 20px; padding: 16px;
+      background: rgba(232,76,30,0.1);
+      border: 1px solid rgba(232,76,30,0.25);
+      border-radius: 14px;
+    }
+    .avg-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6); }
+    .avg-value { font-size: 22px; font-weight: 900; color: var(--orange); }
+
+    @media (max-width: 480px) {
+      html, body { background: var(--bg); padding: 0; }
+      body { align-items: flex-start; }
+      .phone-frame { width: 100%; border-radius: 0; box-shadow: none; }
+      .phone-frame::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="hero">
+      <div class="hero-top">
+        <button class="back-btn" onclick="history.back()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          지난 대회
+        </button>
+        <span class="year-badge">2025</span>
+      </div>
+      <div class="hero-title">
+        <span>1st</span>
+        <span>GPGA</span>
+        <span>OPEN</span>
+      </div>
+      <div class="hero-sub">We don't stop until I become professional amateurs.<br>한 해 동안 갈고 닦은 실력을 증명한다.</div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-label">참가자</div>
+          <div class="stat-value">48명</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-label">평균 타수</div>
+          <div class="stat-value orange">+11</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-label">우승</div>
+          <div class="stat-value">김도영</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scoreboard">
+      <div class="section-label">스코어보드</div>
+      <div class="score-header">
+        <div>순위</div>
+        <div>선수</div>
+        <div style="text-align:right">타수</div>
+        <div></div>
+      </div>
+
+      <!-- 스코어 데이터 -->
+      <div id="scoreList"></div>
+
+      <div class="avg-row">
+        <div class="avg-label">전체 평균 타수</div>
+        <div class="avg-value">+11</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const results = [
+      { rank: 1,  name: '김도영',  score: -3,  golchelin: '2스타' },
+      { rank: 2,  name: '권성민',  score: -3,  golchelin: '1스타' },
+      { rank: 3,  name: '이상훈',  score: -1,  golchelin: '2스타' },
+      { rank: 4,  name: '오병석',  score: 0,   golchelin: null },
+      { rank: 5,  name: '박영철',  score: 2,   golchelin: null },
+      { rank: 6,  name: '이용훈',  score: 3,   golchelin: '1스타' },
+      { rank: 7,  name: '황현복',  score: 4,   golchelin: null },
+      { rank: 7,  name: '하준경',  score: 4,   golchelin: null },
+      { rank: 9,  name: '이호명',  score: 5,   golchelin: null },
+      { rank: 9,  name: '권대근',  score: 5,   golchelin: null },
+      { rank: 9,  name: '임지헌',  score: 5,   golchelin: '2스타' },
+      { rank: 12, name: '권태운',  score: 6,   golchelin: null },
+      { rank: 13, name: '이원석',  score: 7,   golchelin: '2스타' },
+      { rank: 13, name: '서현성',  score: 7,   golchelin: null },
+      { rank: 15, name: '골 갑',   score: 8,   golchelin: null },
+      { rank: 15, name: '김제영',  score: 8,   golchelin: null },
+      { rank: 15, name: '김용훈',  score: 8,   golchelin: null },
+      { rank: 18, name: '박범규',  score: 9,   golchelin: null },
+      { rank: 18, name: '김길현',  score: 9,   golchelin: null },
+      { rank: 18, name: '박명훈',  score: 9,   golchelin: null },
+      { rank: 21, name: '황대환',  score: 11,  golchelin: null },
+      { rank: 21, name: '장병철',  score: 11,  golchelin: null },
+      { rank: 21, name: '윤수민',  score: 11,  golchelin: null },
+      { rank: 24, name: '김성현',  score: 12,  golchelin: null },
+      { rank: 24, name: '박충기',  score: 12,  golchelin: null },
+      { rank: 24, name: '하정광',  score: 12,  golchelin: null },
+      { rank: 27, name: '박찬웅',  score: 13,  golchelin: null },
+      { rank: 28, name: '장재훈',  score: 14,  golchelin: null },
+      { rank: 28, name: '박민욱',  score: 14,  golchelin: null },
+      { rank: 28, name: '권진환',  score: 14,  golchelin: null },
+      { rank: 28, name: '김상우',  score: 14,  golchelin: null },
+      { rank: 28, name: '이광욱',  score: 14,  golchelin: null },
+      { rank: 33, name: '김종보',  score: 15,  golchelin: null },
+      { rank: 33, name: '이수홍',  score: 15,  golchelin: null },
+      { rank: 33, name: '이상현',  score: 15,  golchelin: null },
+      { rank: 33, name: '고원종',  score: 15,  golchelin: null },
+      { rank: 37, name: '조명진',  score: 15,  golchelin: null },
+      { rank: 37, name: '안병현',  score: 16,  golchelin: null },
+      { rank: 39, name: '안두하',  score: 17,  golchelin: null },
+      { rank: 39, name: '이정원',  score: 17,  golchelin: null },
+      { rank: 39, name: '김혜인',  score: 17,  golchelin: null },
+      { rank: 39, name: '채 훈',   score: 17,  golchelin: null },
+      { rank: 43, name: '이수현',  score: 19,  golchelin: null },
+      { rank: 44, name: '문준식',  score: 20,  golchelin: null },
+      { rank: 44, name: '김진욱',  score: 20,  golchelin: null },
+      { rank: 46, name: '주민재',  score: 21,  golchelin: null },
+      { rank: 47, name: '허진성',  score: 23,  golchelin: null },
+      { rank: 48, name: '최재우',  score: 24,  golchelin: null },
+    ];
+
+    const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
+    const scoreClass = s => s < 0 ? 'under' : s === 0 ? 'even' : 'over';
+    const scoreText = s => s < 0 ? s : s === 0 ? 'E' : '+' + s;
+
+    const list = document.getElementById('scoreList');
+    let prevRank = null;
+    results.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'score-row' + (r.rank <= 3 ? ' top3' : '');
+      const rankDisplay = r.rank === prevRank ? '' : r.rank;
+      const rankCls = rankClass(r.rank);
+      row.innerHTML = `
+        <div class="rank ${rankCls}">${rankDisplay}</div>
+        <div class="player-name">${r.name}</div>
+        <div class="score ${scoreClass(r.score)}">${scoreText(r.score)}</div>
+        <div>${r.golchelin ? `<span class="golchelin-badge">★ ${r.golchelin}</span>` : '<span class="empty-badge"></span>'}</div>
+      `;
+      list.appendChild(row);
+      prevRank = r.rank;
+    });
+  </script>
+</body>
+</html>

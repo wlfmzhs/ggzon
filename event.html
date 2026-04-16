@@ -1135,9 +1135,9 @@ let allRegistrations = [];
 
 // ── Static past tournaments ────────────────────────────
 const PAST_TOURNAMENTS = [
-  { id: 'hwb-1', name: '흑백대전 1차', slogan: '흑과 백의 첫 번째 대결', year: '2024', icon: '' },
-  { id: 'hwb-2', name: '흑백대전 2차', slogan: '더욱 치열해진 두 번째 대결', year: '2024', icon: '' },
-  { id: 'gpga-2025', name: '2025 GPGA OPEN', slogan: '골갑 아마추어 오픈 대회', year: '2025', icon: '' },
+  { id: 'hwb-1', name: '흑백대전 1차', slogan: '흑과 백의 첫 번째 대결', year: '2024', icon: '', resultUrl: null },
+  { id: 'hwb-2', name: '흑백대전 2차', slogan: '더욱 치열해진 두 번째 대결', year: '2024', icon: '', resultUrl: null },
+  { id: 'gpga-2025', name: '2025 GPGA OPEN', slogan: '골갑 아마추어 오픈 대회', year: '2025', icon: '', resultUrl: 'result-gpga-2025.html' },
 ];
 
 // ── Auth ───────────────────────────────────────────────
@@ -1354,14 +1354,14 @@ function renderPastList() {
   const visible = allPast.filter(t => !hiddenIds.includes(t.id));
 
   el.innerHTML = visible.map(t => `
-    <div class="past-card">
+    <div class="past-card" ${t.resultUrl ? `onclick="location.href='${t.resultUrl}'"` : ''} style="${t.resultUrl ? 'cursor:pointer;' : ''}">
       <div class="past-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(240,192,64,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
       <div class="past-info">
         <div class="past-name">${t.name}</div>
         <div class="past-year">${t.year || ''} ${t.slogan ? '· ' + t.slogan : ''}</div>
       </div>
-      <span class="past-badge">종료</span>
-      ${isAdmin ? `<button class="past-delete-btn" onclick="confirmDeletePast('${t.id}', '${t.name}', ${!!t.fromDB})">삭제</button>` : ''}
+      ${t.resultUrl ? '<span class="past-badge" style="background:rgba(232,76,30,0.2);color:#e84c1e;border-color:rgba(232,76,30,0.3);">결과보기</span>' : '<span class="past-badge">종료</span>'}
+      ${isAdmin ? `<button class="past-delete-btn" onclick="event.stopPropagation();confirmDeletePast('${t.id}', '${t.name}', ${!!t.fromDB})">삭제</button>` : ''}
     </div>
   `).join('');
 }
