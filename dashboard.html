@@ -258,10 +258,23 @@
       border: 1px solid rgba(62,160,102,0.25); border-radius: 16px;
       padding: 16px 16px 12px; margin-bottom: 16px;
     }
-    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .chart-title { font-size: 13px; font-weight: 800; color: #fff; }
     .chart-link { font-size: 11px; color: var(--green-light); text-decoration: none; font-weight: 700; }
-    .chart-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 12px; }
+    .chart-highlight {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.04); border-radius: 12px;
+      padding: 12px 8px; margin-bottom: 14px;
+    }
+    .chart-highlight-item { flex: 1; text-align: center; }
+    .chart-highlight-num {
+      font-size: 20px; font-weight: 900; color: #fff; line-height: 1.1;
+    }
+    .chart-highlight-num span { font-size: 12px; font-weight: 700; margin-left: 1px; }
+    .chart-highlight-num.highlight-avg { color: var(--green-light); }
+    .chart-highlight-num.highlight-top { font-size: 16px; color: #e84c1e; }
+    .chart-highlight-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 3px; font-weight: 600; }
+    .chart-highlight-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.1); flex-shrink: 0; }
     .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; }
     .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .bar-wrap { width: 100%; display: flex; align-items: flex-end; height: 60px; }
@@ -491,7 +504,22 @@
           <div class="chart-title">2025 GPGA OPEN 타수 분포</div>
           <a href="result-gpga-2025.html" class="chart-link">전체보기 →</a>
         </div>
-        <div class="chart-sub">48인 스코어보드 결과</div>
+        <div class="chart-highlight">
+          <div class="chart-highlight-item">
+            <div class="chart-highlight-num">48<span>명</span></div>
+            <div class="chart-highlight-label">참가자</div>
+          </div>
+          <div class="chart-highlight-divider"></div>
+          <div class="chart-highlight-item">
+            <div class="chart-highlight-num highlight-avg">+11<span>타</span></div>
+            <div class="chart-highlight-label">평균 스코어</div>
+          </div>
+          <div class="chart-highlight-divider"></div>
+          <div class="chart-highlight-item">
+            <div class="chart-highlight-num highlight-top">TOP 6%</div>
+            <div class="chart-highlight-label">언더파 달성</div>
+          </div>
+        </div>
         <div class="chart-bars" id="chartBars"></div>
       </div>
 
