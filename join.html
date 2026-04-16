@@ -618,7 +618,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -919,9 +919,33 @@ window.saveJoin = async function() {
 
 // ── 마감 ─────────────────────────────────────────────
 window.confirmClose = function(id, name) {
-  showConfirm('조인 마감', `"${name}" 조인을 마감합니다. 계속하시겠습니까?`, async () => {
+  showConfirm('조인 마감', `"${name}" 조인을 마감합니다. 참여자에게 포인트가 자동 지급됩니다.`, async () => {
+    // 1. 마감 처리
     await updateDoc(doc(db, 'joins', id), { status: 'closed' });
-    showToast('마감되었습니다');
+
+    // 2. 참여자 포인트 자동 적립
+    const joinSnap = await getDoc(doc(db, 'joins', id));
+    if (joinSnap.exists()) {
+      const joinData = joinSnap.data();
+      const participants = joinData.participants || [];
+      const now = new Date().toISOString();
+      await Promise.all(participants.map(async (p) => {
+        if (!p.uid) return;
+        // 유저 totalPoints 증가
+        await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
+        // 포인트 내역 기록
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: p.uid,
+          name: p.name || '골퍼',
+          type: '조인참여',
+          amount: 10,
+          ref: name,
+          date: now
+        });
+      }));
+    }
+
+    showToast(`마감 완료! 참여자 ${name} 포인트 +10 지급됨`);
     await loadJoins();
   });
 };

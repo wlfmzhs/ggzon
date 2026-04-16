@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GG CUP — 랭킹 포인트</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --gold: #f0c040;
+      --silver: #c0c0c0;
+      --bronze: #cd7f32;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 앱바 */
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600;
+      font-family: inherit;
+    }
+    .back-btn:active { color: #fff; }
+
+    /* 히어로 */
+    .hero {
+      flex-shrink: 0;
+      padding: 10px 20px 20px;
+      background: linear-gradient(180deg, rgba(240,192,64,0.08) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(240,192,64,0.15);
+      text-align: center;
+    }
+    .cup-icon { font-size: 40px; margin-bottom: 6px; }
+    .hero-title {
+      font-size: 22px; font-weight: 900; color: var(--gold);
+      letter-spacing: 1px; margin-bottom: 4px;
+    }
+    .hero-sub { font-size: 12px; color: rgba(255,255,255,0.35); }
+
+    /* 내 포인트 카드 */
+    .my-point-card {
+      margin: 14px 16px 0;
+      background: rgba(240,192,64,0.08);
+      border: 1px solid rgba(240,192,64,0.25);
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .my-point-left { display: flex; flex-direction: column; gap: 3px; }
+    .my-point-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600; }
+    .my-point-name { font-size: 15px; font-weight: 900; color: #fff; }
+    .my-point-right { text-align: right; }
+    .my-point-num { font-size: 28px; font-weight: 900; color: var(--gold); line-height: 1; }
+    .my-point-unit { font-size: 11px; color: rgba(240,192,64,0.6); font-weight: 700; }
+    .my-rank-badge {
+      margin-top: 4px; display: inline-block;
+      font-size: 11px; font-weight: 800; color: var(--green-light);
+      background: rgba(62,160,102,0.15);
+      border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 10px; padding: 2px 8px;
+    }
+
+    /* 탭 */
+    .tabs {
+      display: flex; flex-shrink: 0;
+      margin: 14px 16px 0;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px; padding: 4px; gap: 4px;
+    }
+    .tab-btn {
+      flex: 1; padding: 9px;
+      font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,0.4);
+      background: none; border: none; cursor: pointer;
+      border-radius: 9px; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { background: var(--green); color: #fff; }
+
+    /* 스크롤 영역 */
+    .scroll-area {
+      flex: 1; overflow-y: auto; padding: 14px 16px 24px;
+    }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* 포인트 시스템 안내 */
+    .point-guide {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .guide-title { font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.5); margin-bottom: 10px; letter-spacing: 0.5px; }
+    .guide-rows { display: flex; flex-direction: column; gap: 7px; }
+    .guide-row { display: flex; justify-content: space-between; align-items: center; }
+    .guide-label { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .guide-pts { font-size: 13px; font-weight: 900; color: var(--gold); }
+
+    /* 랭킹 */
+    .rank-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px; margin-bottom: 8px;
+      background: rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .rank-row.me { background: rgba(240,192,64,0.08); border: 1px solid rgba(240,192,64,0.2); }
+    .rank-row.rank-1 { background: rgba(240,192,64,0.1); }
+    .rank-row.rank-2 { background: rgba(192,192,192,0.07); }
+    .rank-row.rank-3 { background: rgba(205,127,50,0.07); }
+    .rank-num {
+      font-size: 15px; font-weight: 900; min-width: 24px; text-align: center;
+      color: rgba(255,255,255,0.3);
+    }
+    .rank-num.g { color: var(--gold); font-size: 18px; }
+    .rank-num.s { color: var(--silver); font-size: 17px; }
+    .rank-num.b { color: var(--bronze); font-size: 16px; }
+    .rank-info { flex: 1; }
+    .rank-name { font-size: 14px; font-weight: 800; color: #fff; }
+    .rank-detail { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .rank-pts { font-size: 18px; font-weight: 900; color: var(--gold); }
+    .rank-pts span { font-size: 10px; color: rgba(240,192,64,0.6); }
+
+    /* 내역 */
+    .history-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px; margin-bottom: 8px;
+      background: rgba(255,255,255,0.04);
+    }
+    .history-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(62,160,102,0.12);
+      border: 1px solid rgba(62,160,102,0.25);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 16px;
+    }
+    .history-info { flex: 1; }
+    .history-name { font-size: 13px; font-weight: 800; color: #fff; }
+    .history-meta { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .history-pts { font-size: 16px; font-weight: 900; color: var(--gold); white-space: nowrap; }
+    .history-pts span { font-size: 10px; color: rgba(240,192,64,0.6); }
+
+    .empty-state {
+      text-align: center; padding: 40px 0;
+      font-size: 13px; color: rgba(255,255,255,0.25);
+    }
+
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <div id="loading-overlay">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="animation:spin 1s linear infinite">
+      <circle cx="16" cy="16" r="12" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+      <path d="M4 16a12 12 0 0 1 12-12" stroke="#3ea066" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="appbar">
+    <button class="back-btn" onclick="location.href='dashboard.html'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      홈
+    </button>
+  </div>
+
+  <!-- 히어로 -->
+  <div class="hero">
+    <div class="cup-icon">🏆</div>
+    <div class="hero-title">GG CUP</div>
+    <div class="hero-sub">참여할수록 쌓이는 포인트 랭킹</div>
+  </div>
+
+  <!-- 내 포인트 -->
+  <div class="my-point-card" id="myPointCard" style="display:none">
+    <div class="my-point-left">
+      <div class="my-point-label">내 포인트</div>
+      <div class="my-point-name" id="myNick">—</div>
+      <div class="my-rank-badge" id="myRankBadge">—위</div>
+    </div>
+    <div class="my-point-right">
+      <div class="my-point-num" id="myPoints">0</div>
+      <div class="my-point-unit">pts</div>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-rank" onclick="switchTab('rank')">🥇 랭킹</button>
+    <button class="tab-btn" id="tab-history" onclick="switchTab('history')">📋 포인트 내역</button>
+    <button class="tab-btn" id="tab-guide" onclick="switchTab('guide')">❓ 적립 기준</button>
+  </div>
+
+  <!-- 스크롤 영역 -->
+  <div class="scroll-area">
+
+    <!-- 랭킹 탭 -->
+    <div id="panel-rank">
+      <div id="rank-list"><div class="empty-state">로딩 중...</div></div>
+    </div>
+
+    <!-- 내역 탭 -->
+    <div id="panel-history" style="display:none">
+      <div id="history-list"><div class="empty-state">로딩 중...</div></div>
+    </div>
+
+    <!-- 적립 기준 탭 -->
+    <div id="panel-guide" style="display:none">
+      <div class="point-guide">
+        <div class="guide-title">참여 기본 점수</div>
+        <div class="guide-rows">
+          <div class="guide-row"><span class="guide-label">조인 참여</span><span class="guide-pts">+10 pts</span></div>
+          <div class="guide-row"><span class="guide-label">대회 참여</span><span class="guide-pts">+20 pts</span></div>
+        </div>
+      </div>
+      <div class="point-guide">
+        <div class="guide-title">스코어 점수 (대회/조인)</div>
+        <div class="guide-rows">
+          <div class="guide-row"><span class="guide-label">언더파</span><span class="guide-pts">+50 pts</span></div>
+          <div class="guide-row"><span class="guide-label">E ~ +5</span><span class="guide-pts">+40 pts</span></div>
+          <div class="guide-row"><span class="guide-label">+6 ~ +9</span><span class="guide-pts">+30 pts</span></div>
+          <div class="guide-row"><span class="guide-label">+10 ~ +15</span><span class="guide-pts">+20 pts</span></div>
+          <div class="guide-row"><span class="guide-label">+16 이상</span><span class="guide-pts">+10 pts</span></div>
+        </div>
+      </div>
+      <div class="point-guide">
+        <div class="guide-title">대회 순위 보너스</div>
+        <div class="guide-rows">
+          <div class="guide-row"><span class="guide-label">🥇 1위</span><span class="guide-pts">+30 pts</span></div>
+          <div class="guide-row"><span class="guide-label">🥈 2위</span><span class="guide-pts">+20 pts</span></div>
+          <div class="guide-row"><span class="guide-label">🥉 3위</span><span class="guide-pts">+10 pts</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+    authDomain: "ggzon-b33cb.firebaseapp.com",
+    projectId: "ggzon-b33cb",
+    storageBucket: "ggzon-b33cb.firebasestorage.app",
+    messagingSenderId: "774722580869",
+    appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'login.html?return=ggcup.html'; return; }
+    currentUser = user;
+    document.getElementById('loading-overlay').classList.add('hidden');
+    await loadRanking();
+    await loadHistory();
+  });
+
+  // 랭킹 로드
+  async function loadRanking() {
+    const snap = await getDocs(query(collection(db, 'users'), orderBy('totalPoints', 'desc'), limit(50)));
+    const users = snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => (u.totalPoints || 0) > 0);
+
+    // 내 정보
+    const myIdx = users.findIndex(u => u.uid === currentUser.uid);
+    if (myIdx >= 0) {
+      const me = users[myIdx];
+      document.getElementById('myPointCard').style.display = 'flex';
+      document.getElementById('myNick').textContent = me.nickname || me.name || '—';
+      document.getElementById('myPoints').textContent = me.totalPoints || 0;
+      document.getElementById('myRankBadge').textContent = `${myIdx + 1}위`;
+    } else {
+      // 포인트 없는 경우 내 정보 표시
+      const myDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (myDoc.exists()) {
+        const me = myDoc.data();
+        document.getElementById('myPointCard').style.display = 'flex';
+        document.getElementById('myNick').textContent = me.nickname || me.name || '—';
+        document.getElementById('myPoints').textContent = 0;
+        document.getElementById('myRankBadge').textContent = '순위 없음';
+      }
+    }
+
+    const el = document.getElementById('rank-list');
+    if (users.length === 0) {
+      el.innerHTML = '<div class="empty-state">아직 포인트 내역이 없어요<br>조인이나 대회에 참여해 보세요!</div>';
+      return;
+    }
+
+    const rankIcon = (i) => i === 0 ? '<span class="rank-num g">🥇</span>' : i === 1 ? '<span class="rank-num s">🥈</span>' : i === 2 ? '<span class="rank-num b">🥉</span>' : `<span class="rank-num">${i+1}</span>`;
+    const rankCls = (i) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+
+    el.innerHTML = users.map((u, i) => {
+      const isMe = u.uid === currentUser.uid;
+      return `
+        <div class="rank-row ${rankCls(i)}${isMe ? ' me' : ''}">
+          ${rankIcon(i)}
+          <div class="rank-info">
+            <div class="rank-name">${u.nickname || u.name || '골퍼'}${isMe ? ' <span style="font-size:10px;color:var(--gold);">나</span>' : ''}</div>
+            <div class="rank-detail">${u.region || ''} ${u.handicap ? '· ' + u.handicap : ''}</div>
+          </div>
+          <div class="rank-pts">${u.totalPoints || 0}<span> pts</span></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 포인트 내역 로드
+  async function loadHistory() {
+    const snap = await getDocs(query(collection(db, 'pointHistory'), orderBy('date', 'desc'), limit(50)));
+    const el = document.getElementById('history-list');
+
+    if (snap.empty) {
+      el.innerHTML = '<div class="empty-state">아직 포인트 내역이 없어요</div>';
+      return;
+    }
+
+    const typeIcon = (t) => t === '조인참여' ? '⛳' : t === '대회참여' ? '🏌️' : t === '스코어' ? '📊' : t === '순위보너스' ? '🏆' : '✨';
+
+    el.innerHTML = snap.docs.map(d => {
+      const h = d.data();
+      const date = h.date ? new Date(h.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
+      return `
+        <div class="history-row">
+          <div class="history-icon">${typeIcon(h.type)}</div>
+          <div class="history-info">
+            <div class="history-name">${h.name || '골퍼'}</div>
+            <div class="history-meta">${h.type} · ${h.ref || ''} · ${date}</div>
+          </div>
+          <div class="history-pts">+${h.amount}<span> pts</span></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.switchTab = function(tab) {
+    ['rank','history','guide'].forEach(t => {
+      document.getElementById('panel-' + t).style.display = t === tab ? 'block' : 'none';
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+  };
+</script>
+</body>
+</html>
