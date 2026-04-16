@@ -774,7 +774,10 @@ function buildCard(j) {
       </div>
       <div class="participant-list">
         <div class="participant-list-top">
-          <span class="participant-list-label">참석자</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="participant-list-label">참석자</span>
+            <span style="font-size:10px;color:rgba(240,192,64,0.6);font-weight:700;">★ 주최자</span>
+          </div>
           <span class="participant-count-badge">${currentCount}/${j.capacity}</span>
         </div>
         ${participants.length === 0
