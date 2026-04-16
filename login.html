@@ -90,6 +90,17 @@
     .divider-text::before { left: 0; }
     .divider-text::after { right: 0; }
 
+    .google-btn {
+      width: 100%; padding: 14px;
+      background: #fff; color: #3c4043;
+      font-size: 15px; font-weight: 700;
+      border-radius: 14px; border: none; cursor: pointer;
+      font-family: inherit; -webkit-tap-highlight-color: transparent;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.2s;
+    }
+    .google-btn:active { background: #f1f3f4; }
+
     .kakao-btn {
       width: 100%; padding: 14px;
       background: #FEE500; color: #191919;
@@ -226,6 +237,10 @@
       <div class="msg" id="signup-msg"></div>
       <button class="submit-btn" id="signup-btn" onclick="doSignup()">가입하기 →</button>
       <div class="divider-text">또는</div>
+      <button class="google-btn" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        구글로 시작하기
+      </button>
       <button class="kakao-btn" disabled title="준비중">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.11 5.04L3.75 15l3.27-1.64C7.3 13.45 8.14 13.5 9 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
         카카오 로그인 (준비중)
@@ -251,6 +266,10 @@
       <button class="submit-btn" id="login-btn" onclick="doLogin()">로그인 →</button>
       <button id="resend-btn" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:12px;background:rgba(62,160,102,0.15);border:1px solid rgba(62,160,102,0.3);color:#3ea066;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="resendVerification()">인증 메일 재발송</button>
       <div class="divider-text">또는</div>
+      <button class="google-btn" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        구글로 시작하기
+      </button>
       <button class="kakao-btn" disabled title="준비중">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.11 5.04L3.75 15l3.27-1.64C7.3 13.45 8.14 13.5 9 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
         카카오 로그인 (준비중)
@@ -272,7 +291,9 @@
       updateProfile,
       onAuthStateChanged,
       setPersistence,
-      browserLocalPersistence
+      browserLocalPersistence,
+      GoogleAuthProvider,
+      signInWithPopup
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       getFirestore, doc, setDoc
@@ -369,9 +390,38 @@
 
         await sendEmailVerification(cred.user);
         showMsg('signup-msg', '가입 완료! 📧 ' + email + ' 로 인증 메일을 보냈어요. 메일함을 확인해 주세요.', 'success');
+        setLoading('signup-btn', false);
       } catch (e) {
         showMsg('signup-msg', getErrorMsg(e.code), 'error');
         setLoading('signup-btn', false);
+      }
+    };
+
+    window.doGoogleLogin = async function() {
+      const provider = new GoogleAuthProvider();
+      try {
+        const cred = await signInWithPopup(auth, provider);
+        const user = cred.user;
+        const isNew = cred._tokenResponse?.isNewUser;
+        if (isNew) {
+          await setDoc(doc(db, 'users', user.uid), {
+            nickname: user.displayName || '골퍼',
+            name: user.displayName || '',
+            birthYear2: '',
+            handicap: '',
+            region: '',
+            phone: '',
+            email: user.email,
+            createdAt: new Date().toISOString(),
+            isPaid: false
+          });
+        }
+        window.location.href = getReturnUrl();
+      } catch (e) {
+        const id = document.getElementById('panel-login').classList.contains('active') ? 'login-msg' : 'signup-msg';
+        if (e.code !== 'auth/popup-closed-by-user') {
+          showMsg(id, '구글 로그인 중 오류가 발생했어요.', 'error');
+        }
       }
     };
 
