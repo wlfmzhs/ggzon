@@ -171,7 +171,7 @@
           <div class="header-info">
             <div class="header-title">골슐랭스타<br>GOLCHELIN STAR</div>
             <div class="header-sub">초고수 아마추어 골퍼의<br>18홀 도전 기록</div>
-            <div class="header-count">역대 도전자 9명</div>
+            <div class="header-count" id="headerCount">역대 골슐랭스타 9명</div>
           </div>
         </div>
 
@@ -215,6 +215,8 @@
       { name: "김철영", stars: 1 },
       { name: "권성민", stars: 1 },
     ];
+
+    document.getElementById('headerCount').textContent = `역대 골슐랭스타 ${golfers.length}명`;
 
     const grid = document.getElementById('golferGrid');
     golfers.forEach((g, i) => {
