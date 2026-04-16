@@ -207,7 +207,9 @@
 
   <!-- 히어로 -->
   <div class="hero">
-    <div class="cup-icon">🏆</div>
+    <div class="cup-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    </div>
     <div class="hero-title">GG CUP</div>
     <div class="hero-sub">참여할수록 쌓이는 포인트 랭킹</div>
   </div>
@@ -227,9 +229,9 @@
 
   <!-- 탭 -->
   <div class="tabs">
-    <button class="tab-btn active" id="tab-rank" onclick="switchTab('rank')">🥇 랭킹</button>
-    <button class="tab-btn" id="tab-history" onclick="switchTab('history')">📋 포인트 내역</button>
-    <button class="tab-btn" id="tab-guide" onclick="switchTab('guide')">❓ 적립 기준</button>
+    <button class="tab-btn active" id="tab-rank" onclick="switchTab('rank')">랭킹</button>
+    <button class="tab-btn" id="tab-history" onclick="switchTab('history')">포인트 내역</button>
+    <button class="tab-btn" id="tab-guide" onclick="switchTab('guide')">적립 기준</button>
   </div>
 
   <!-- 스크롤 영역 -->
@@ -267,9 +269,9 @@
       <div class="point-guide">
         <div class="guide-title">대회 순위 보너스</div>
         <div class="guide-rows">
-          <div class="guide-row"><span class="guide-label">🥇 1위</span><span class="guide-pts">+30 pts</span></div>
-          <div class="guide-row"><span class="guide-label">🥈 2위</span><span class="guide-pts">+20 pts</span></div>
-          <div class="guide-row"><span class="guide-label">🥉 3위</span><span class="guide-pts">+10 pts</span></div>
+          <div class="guide-row"><span class="guide-label">1위</span><span class="guide-pts">+30 pts</span></div>
+          <div class="guide-row"><span class="guide-label">2위</span><span class="guide-pts">+20 pts</span></div>
+          <div class="guide-row"><span class="guide-label">3위</span><span class="guide-pts">+10 pts</span></div>
         </div>
       </div>
     </div>
@@ -336,7 +338,7 @@
       return;
     }
 
-    const rankIcon = (i) => i === 0 ? '<span class="rank-num g">🥇</span>' : i === 1 ? '<span class="rank-num s">🥈</span>' : i === 2 ? '<span class="rank-num b">🥉</span>' : `<span class="rank-num">${i+1}</span>`;
+    const rankIcon = (i) => `<span class="rank-num ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</span>`;
     const rankCls = (i) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
 
     el.innerHTML = users.map((u, i) => {
@@ -364,7 +366,7 @@
       return;
     }
 
-    const typeIcon = (t) => t === '조인참여' ? '⛳' : t === '대회참여' ? '🏌️' : t === '스코어' ? '📊' : t === '순위보너스' ? '🏆' : '✨';
+    const typeIcon = (t) => t === '조인참여' ? 'J' : t === '대회참여' ? 'T' : t === '스코어' ? 'S' : t === '순위보너스' ? 'R' : 'P';
 
     el.innerHTML = snap.docs.map(d => {
       const h = d.data();
