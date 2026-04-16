@@ -142,6 +142,50 @@
       100% { transform: translateY(-440px); }
     }
 
+    /* ── 대회 히스토그램 ── */
+    .chart-section {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(62,160,102,0.25);
+      border-radius: 16px;
+      padding: 18px 16px 14px;
+      margin-bottom: 20px;
+    }
+    .chart-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .chart-title { font-size: 13px; font-weight: 800; color: var(--white); }
+    .chart-link { font-size: 11px; color: var(--green-light); text-decoration: none; font-weight: 700; }
+    .chart-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 14px; }
+    .chart-bars {
+      display: flex; align-items: flex-end; gap: 6px;
+      height: 90px;
+    }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .bar-wrap { width: 100%; display: flex; align-items: flex-end; height: 68px; }
+    .bar {
+      width: 100%; border-radius: 4px 4px 0 0;
+      transform: scaleY(0); transform-origin: bottom;
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+    }
+    .bar.animated { transform: scaleY(1); }
+    .bar-count {
+      font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.5);
+      text-align: center;
+    }
+    .bar-label {
+      font-size: 9px; color: rgba(255,255,255,0.3);
+      text-align: center; white-space: nowrap;
+    }
+    .bar-col.avg-col .bar { background: var(--green-light) !important; }
+    .bar-col.avg-col .bar-label { color: var(--green-light); font-weight: 800; }
+    .chart-avg-line {
+      font-size: 10px; color: var(--green-light); font-weight: 700;
+      text-align: right; margin-top: 6px;
+    }
+
     .bottom-slogan { text-align: center; font-size: 17px; font-weight: 800; color: rgba(255,255,255,0.9); line-height: 1.6; }
     .bottom-slogan span { color: var(--green-light); }
 
@@ -247,6 +291,17 @@
       </div>
     </div>
 
+    <!-- 대회 결과 히스토그램 -->
+    <div class="chart-section" id="chartSection">
+      <div class="chart-header">
+        <div class="chart-title">2025 GPGA OPEN 타수 분포</div>
+        <a href="result-gpga-2025.html" class="chart-link">전체보기 →</a>
+      </div>
+      <div class="chart-sub">48인 스코어보드 결과</div>
+      <div class="chart-bars" id="chartBars"></div>
+      <div class="chart-avg-line">▲ 평균 +11 (파란 구간)</div>
+    </div>
+
     <div class="bottom-slogan">
       골갑존은<br />
       <span>골프를 완전히 바꿉니다.</span>
@@ -283,6 +338,37 @@
   setTimeout(() => {
     openAccordion(document.querySelector('.accordion details:first-child'));
   }, 1000);
+</script>
+
+<script src="data-gpga-2025.js"></script>
+<script>
+  // 히스토그램 렌더링
+  const maxCount = Math.max(...GPGA2025.histogram.map(b => b.count));
+  const bars = document.getElementById('chartBars');
+  GPGA2025.histogram.forEach((bin, i) => {
+    const heightPct = (bin.count / maxCount) * 100;
+    const col = document.createElement('div');
+    col.className = 'bar-col' + (bin.avg ? ' avg-col' : '');
+    col.innerHTML = `
+      <div class="bar-count">${bin.count}</div>
+      <div class="bar-wrap">
+        <div class="bar" style="height:${heightPct}%;background:${bin.avg ? 'var(--green-light)' : (i===0 ? '#e84c1e' : 'rgba(62,160,102,0.45)')};transition-delay:${i*0.08}s"></div>
+      </div>
+      <div class="bar-label">${bin.label}</div>
+    `;
+    bars.appendChild(col);
+  });
+
+  // 화면에 보이면 애니메이션 시작
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        document.querySelectorAll('.bar').forEach(b => b.classList.add('animated'));
+        observer.disconnect();
+      }
+    });
+  }, { threshold: 0.3 });
+  observer.observe(document.getElementById('chartSection'));
 </script>
 </body>
 </html>
