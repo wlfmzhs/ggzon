@@ -246,20 +246,28 @@
       border-radius: 12px;
       padding: 10px 12px;
       margin-bottom: 12px;
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .participant-list-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
     }
     .participant-list-label {
       font-size: 10px; font-weight: 700;
       color: rgba(255,255,255,0.4); letter-spacing: 0.5px;
-      white-space: nowrap; flex-shrink: 0;
+    }
+    .participant-chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
     }
     .participant-name-chip {
-      font-size: 12px; font-weight: 800;
+      font-size: 11px; font-weight: 800;
       color: var(--gold);
       background: rgba(240,192,64,0.1);
       border: 1px solid rgba(240,192,64,0.25);
-      border-radius: 20px; padding: 3px 10px;
-      white-space: nowrap;
+      border-radius: 20px; padding: 4px 6px;
+      white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; text-align: center;
     }
     .participant-name-chip.me {
       background: rgba(240,192,64,0.2);
@@ -271,7 +279,7 @@
       background: rgba(62,160,102,0.15);
       border: 1px solid rgba(62,160,102,0.3);
       padding: 2px 8px; border-radius: 10px;
-      white-space: nowrap; flex-shrink: 0; margin-left: auto;
+      white-space: nowrap; flex-shrink: 0;
     }
     .participant-empty {
       font-size: 11px; color: rgba(255,255,255,0.2);
@@ -765,18 +773,20 @@ function buildCard(j) {
         <div class="card-progress-bar"><div class="card-progress-fill" style="width:${fillPct}%"></div></div>
       </div>
       <div class="participant-list">
-        <span class="participant-list-label">참석자</span>
+        <div class="participant-list-top">
+          <span class="participant-list-label">참석자</span>
+          <span class="participant-count-badge">${currentCount}/${j.capacity}</span>
+        </div>
         ${participants.length === 0
           ? `<span class="participant-empty">아직 없음</span>`
-          : participants.map((p, i) => {
+          : `<div class="participant-chips">${participants.map((p, i) => {
               const isMe = currentUser && p.uid === currentUser.uid;
               const canView = isAdmin;
               const click = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
               const style = canView ? 'cursor:pointer;' : '';
-              return `<span class="participant-name-chip${isMe ? ' me' : ''}" ${click} style="${style}">${p.name}${i===0?' (주최자)':''}</span>`;
-            }).join('')
+              return `<span class="participant-name-chip${isMe ? ' me' : ''}" ${click} style="${style}">${p.name}${i===0?' ★':''}</span>`;
+            }).join('')}</div>`
         }
-        <span class="participant-count-badge">${currentCount}/${j.capacity}</span>
       </div>
       ${memo}
       <button class="${joinBtnClass}" ${isFull && !alreadyJoined ? 'disabled' : ''} onclick="window.participateJoin('${j.id}')">
