@@ -260,7 +260,7 @@
       transform: translateY(30px) scale(0.97);
       transition: opacity 0.45s ease, transform 0.45s ease;
       box-shadow: 0 6px 28px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.14);
-      background: #fff;
+      background: #f3f2f0;
       border: 2.5px solid #1a1a1a;
       position: relative;
     }
@@ -337,7 +337,7 @@
     .cert-footer-logo {
       display: flex; flex-direction: column; align-items: center; gap: 3px;
     }
-    .cert-footer-logo img { width: 30px; height: 30px; object-fit: contain; }
+    .cert-footer-logo img { width: 44px; height: 44px; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
     .cert-footer-logo-text {
       font-size: 8px; font-weight: 900; letter-spacing: 0.1em; color: #1a1a1a;
     }
@@ -1098,7 +1098,7 @@ window.downloadCert = async (id) => {
   try {
     const canvas = await html2canvas(card, {
       scale: 2,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#f3f2f0',
       useCORS: true,
       logging: false,
     });
