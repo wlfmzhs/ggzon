@@ -205,6 +205,232 @@
 
     .empty-msg { text-align: center; color: rgba(255,255,255,0.3); font-size: 13px; padding: 32px 0; }
     .hidden { display: none !important; }
+
+    /* =============================================
+       명예 기록 오버레이
+       ============================================= */
+    .ach-overlay {
+      position: absolute; inset: 0;
+      background: var(--green-dark);
+      z-index: 150;
+      display: flex; flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .ach-overlay.show { transform: translateY(0); }
+
+    .ach-appbar {
+      flex-shrink: 0;
+      padding: 32px 18px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ach-appbar-title { font-size: 16px; font-weight: 900; flex: 1; }
+    .ach-appbar-sub { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+    .ach-stats {
+      flex-shrink: 0;
+      display: flex; gap: 8px;
+      padding: 0 16px 16px;
+    }
+    .ach-stat {
+      flex: 1; text-align: center;
+      background: rgba(62,160,102,0.08);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 6px;
+    }
+    .ach-stat-num { font-size: 20px; font-weight: 900; }
+    .ach-stat-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .stat-eagle .ach-stat-num { color: #3ea066; }
+    .stat-holeinone .ach-stat-num { color: #d4a017; }
+    .stat-award .ach-stat-num { color: #b070d4; }
+
+    .ach-scroll {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+      padding: 4px 16px 100px;
+    }
+    .ach-scroll::-webkit-scrollbar { display: none; }
+
+    /* 상장 카드 */
+    .cert-card {
+      width: 100%;
+      border-radius: 18px;
+      margin-bottom: 18px;
+      padding: 2px;
+      opacity: 0;
+      transform: translateY(30px) scale(0.97);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+    .cert-card.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .cert-card.eagle {
+      background: linear-gradient(135deg, #3ea066 0%, #6dcf9a 40%, #2d7a4f 60%, #3ea066 100%);
+    }
+    .cert-card.holeinone {
+      background: linear-gradient(135deg, #c49010 0%, #f0c040 40%, #8b6914 60%, #d4a017 100%);
+    }
+    .cert-card.award {
+      background: linear-gradient(135deg, #8b42a8 0%, #c070e0 40%, #5e2080 60%, #9b59b6 100%);
+    }
+
+    .cert-inner {
+      border-radius: 16px;
+      padding: 22px 20px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cert-card.eagle .cert-inner { background: linear-gradient(160deg, #061510 0%, #0c2416 55%, #061510 100%); }
+    .cert-card.holeinone .cert-inner { background: linear-gradient(160deg, #160e00 0%, #271800 55%, #160e00 100%); }
+    .cert-card.award .cert-inner { background: linear-gradient(160deg, #0e0518 0%, #1a0828 55%, #0e0518 100%); }
+
+    /* 배경 수식 패턴 */
+    .cert-inner::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 20px,
+        rgba(255,255,255,0.012) 20px,
+        rgba(255,255,255,0.012) 21px
+      );
+      pointer-events: none;
+    }
+
+    /* 내부 장식 테두리 */
+    .cert-deco {
+      position: absolute; inset: 10px;
+      border-radius: 10px;
+      pointer-events: none;
+    }
+    .cert-card.eagle .cert-deco { border: 1px solid rgba(62,160,102,0.22); }
+    .cert-card.holeinone .cert-deco { border: 1px solid rgba(212,160,23,0.22); }
+    .cert-card.award .cert-deco { border: 1px solid rgba(155,89,182,0.22); }
+
+    /* 코너 장식 */
+    .cert-corner { position: absolute; width: 16px; height: 16px; }
+    .cert-corner.tl { top: 14px; left: 14px; }
+    .cert-corner.tr { top: 14px; right: 14px; transform: scaleX(-1); }
+    .cert-corner.bl { bottom: 14px; left: 14px; transform: scaleY(-1); }
+    .cert-corner.br { bottom: 14px; right: 14px; transform: scale(-1,-1); }
+    .cert-card.eagle .cert-corner { color: rgba(62,160,102,0.5); }
+    .cert-card.holeinone .cert-corner { color: rgba(212,160,23,0.5); }
+    .cert-card.award .cert-corner { color: rgba(155,89,182,0.5); }
+
+    /* 상단 */
+    .cert-header { text-align: center; position: relative; margin-bottom: 14px; }
+    .cert-ggzon {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.25em;
+      color: rgba(255,255,255,0.35); margin-bottom: 10px;
+    }
+    .cert-hr { height: 1px; margin: 0 20px; }
+    .cert-card.eagle .cert-hr { background: rgba(62,160,102,0.3); }
+    .cert-card.holeinone .cert-hr { background: rgba(212,160,23,0.3); }
+    .cert-card.award .cert-hr { background: rgba(155,89,182,0.3); }
+
+    .cert-icon-wrap {
+      width: 50px; height: 50px; border-radius: 50%;
+      margin: 12px auto 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cert-card.eagle .cert-icon-wrap { background: rgba(62,160,102,0.18); color: #5ecf8a; }
+    .cert-card.holeinone .cert-icon-wrap { background: rgba(212,160,23,0.18); color: #f0c040; }
+    .cert-card.award .cert-icon-wrap { background: rgba(155,89,182,0.18); color: #c080e8; }
+
+    .cert-type-ko {
+      font-size: 24px; font-weight: 900; letter-spacing: 0.18em;
+      text-align: center; margin: 6px 0 12px;
+    }
+    .cert-card.eagle .cert-type-ko { color: #6ee09c; }
+    .cert-card.holeinone .cert-type-ko { color: #f5c842; }
+    .cert-card.award .cert-type-ko { color: #cc88f5; }
+
+    /* 본문 */
+    .cert-body { text-align: center; padding: 0 8px; position: relative; }
+    .cert-nick {
+      font-size: 15px; font-weight: 800; margin-bottom: 10px;
+    }
+    .cert-nick-suffix { font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.45); }
+    .cert-achievement-text {
+      font-size: 12px; line-height: 2; color: rgba(255,255,255,0.65);
+    }
+    .cert-detail-em {
+      font-weight: 700;
+    }
+    .cert-card.eagle .cert-detail-em { color: #6ee09c; }
+    .cert-card.holeinone .cert-detail-em { color: #f5c842; }
+    .cert-card.award .cert-detail-em { color: #cc88f5; }
+
+    /* 하단 */
+    .cert-footer {
+      text-align: center; margin-top: 14px; padding-top: 12px; position: relative;
+    }
+    .cert-date { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+    .cert-seal {
+      width: 42px; height: 42px; border-radius: 50%;
+      margin: 0 auto;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      font-size: 7px; font-weight: 900; letter-spacing: 0.03em;
+      line-height: 1.4; text-align: center;
+    }
+    .cert-card.eagle .cert-seal {
+      border: 1.5px solid rgba(62,160,102,0.5);
+      color: rgba(62,160,102,0.7);
+    }
+    .cert-card.holeinone .cert-seal {
+      border: 1.5px solid rgba(212,160,23,0.5);
+      color: rgba(212,160,23,0.7);
+    }
+    .cert-card.award .cert-seal {
+      border: 1.5px solid rgba(155,89,182,0.5);
+      color: rgba(155,89,182,0.7);
+    }
+
+    /* 삭제 버튼 */
+    .cert-delete-btn {
+      position: absolute; top: 14px; right: 14px;
+      background: rgba(255,80,80,0.12); border: none; color: rgba(255,100,100,0.5);
+      font-size: 11px; cursor: pointer; border-radius: 8px; padding: 4px 8px;
+      font-family: inherit;
+    }
+    .cert-delete-btn:active { background: rgba(255,80,80,0.25); }
+
+    /* FAB 추가 버튼 */
+    .fab-add {
+      position: absolute; bottom: 28px; right: 20px;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--green-light);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(62,160,102,0.45);
+      z-index: 10; color: #fff;
+      transition: transform 0.15s;
+    }
+    .fab-add:active { transform: scale(0.91); }
+
+    /* 기록 추가 모달 */
+    .add-ach-modal { background: #0d2518; }
+    .type-pills { display: flex; gap: 8px; margin-bottom: 18px; }
+    .type-pill {
+      flex: 1; padding: 10px 6px; border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.12);
+      background: transparent; color: rgba(255,255,255,0.4);
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      font-family: inherit; text-align: center;
+      transition: all 0.15s;
+    }
+    .type-pill.sel-eagle { border-color: #3ea066; color: #3ea066; background: rgba(62,160,102,0.12); }
+    .type-pill.sel-holeinone { border-color: #d4a017; color: #d4a017; background: rgba(212,160,23,0.12); }
+    .type-pill.sel-award { border-color: #9b59b6; color: #b070d4; background: rgba(155,89,182,0.12); }
+
+    .field-row { display: flex; gap: 10px; }
+    .field-row .field-group { flex: 1; }
+
+    #add-ach-hole-group,
+    #add-ach-tournament-group,
+    #add-ach-rank-group { display: none; }
   </style>
 </head>
 <body>
@@ -212,7 +438,7 @@
   <div id="loading-overlay"><div class="spinner"></div></div>
 
   <div class="appbar">
-    <button id="btn-back">‹</button>
+    <button id="btn-back">&#8249;</button>
     <span class="appbar-title">MY</span>
   </div>
 
@@ -229,19 +455,19 @@
       </div>
     </div>
 
-    <!-- 어드민: 관리자 페이지 -->
+    <!-- 어드민 -->
     <div class="section hidden" id="admin-section" style="margin-bottom:8px;">
       <div class="section-label">관리자</div>
       <div class="menu-item" onclick="location.href='admin.html'">
         <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
         <div class="menu-text">관리자 페이지<div class="menu-desc">회원 · 조인 · 통계</div></div>
-        <div class="menu-arrow">›</div>
+        <div class="menu-arrow">&#8250;</div>
       </div>
       <div class="divider"></div>
       <div class="menu-item" onclick="openNoticeWriteModal()">
         <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
         <div class="menu-text">공지사항 작성</div>
-        <div class="menu-arrow">›</div>
+        <div class="menu-arrow">&#8250;</div>
       </div>
     </div>
 
@@ -251,23 +477,31 @@
       <div class="menu-item" onclick="openEditModal()">
         <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
         <div class="menu-text">가입 정보 수정<div class="menu-desc">닉네임, 핸디캡, 거주지</div></div>
-        <div class="menu-arrow">›</div>
+        <div class="menu-arrow">&#8250;</div>
       </div>
       <div class="divider"></div>
       <div class="menu-item" onclick="openPwModal()">
         <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
         <div class="menu-text">비밀번호 변경</div>
-        <div class="menu-arrow">›</div>
+        <div class="menu-arrow">&#8250;</div>
       </div>
     </div>
 
     <!-- 활동 -->
     <div class="section">
       <div class="section-label">활동</div>
+      <div class="menu-item" onclick="openAchOverlay()">
+        <div class="menu-icon" style="background:rgba(212,160,23,0.15);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a017" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v10a6 6 0 0 1-12 0V2z"/><path d="M6 7H2a4 4 0 0 0 4 4"/><path d="M18 7h4a4 4 0 0 1-4 4"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+        </div>
+        <div class="menu-text">명예 기록<div class="menu-desc" id="ach-menu-desc">이글 · 홀인원 · 대회 수상 상장</div></div>
+        <div class="menu-arrow">&#8250;</div>
+      </div>
+      <div class="divider"></div>
       <div class="menu-item" onclick="openJoinModal()">
         <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div class="menu-text">내 조인 내역</div>
-        <div class="menu-arrow">›</div>
+        <div class="menu-arrow">&#8250;</div>
       </div>
     </div>
 
@@ -277,13 +511,13 @@
       <div class="menu-item" onclick="openNoticeModal()">
         <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
         <div class="menu-text">공지사항<div class="menu-desc" id="notice-count-label"></div></div>
-        <div class="menu-arrow">›</div>
+        <div class="menu-arrow">&#8250;</div>
       </div>
       <div class="divider"></div>
       <a class="menu-item" href="mailto:WLFMZHS@NAVER.COM">
         <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
         <div class="menu-text">고객센터<div class="menu-desc">WLFMZHS@NAVER.COM</div></div>
-        <div class="menu-arrow">›</div>
+        <div class="menu-arrow">&#8250;</div>
       </a>
       <div class="divider"></div>
       <div class="menu-item" style="cursor:default;">
@@ -303,10 +537,97 @@
 
   </div><!-- /scroll-area -->
 
+  <!-- ============== 명예 기록 오버레이 ============== -->
+  <div class="ach-overlay" id="ach-overlay">
+    <div class="ach-appbar">
+      <button id="ach-back" style="background:none;border:none;cursor:pointer;padding:4px 8px 4px 0;color:var(--green-light);font-size:20px;line-height:1;">&#8249;</button>
+      <span class="ach-appbar-title">명예 기록</span>
+      <span class="ach-appbar-sub">나의 골프 히스토리</span>
+    </div>
+
+    <!-- 통계 -->
+    <div class="ach-stats">
+      <div class="ach-stat stat-eagle">
+        <div class="ach-stat-num" id="stat-eagle">0</div>
+        <div class="ach-stat-label">이 글</div>
+      </div>
+      <div class="ach-stat stat-holeinone">
+        <div class="ach-stat-num" id="stat-holeinone">0</div>
+        <div class="ach-stat-label">홀인원</div>
+      </div>
+      <div class="ach-stat stat-award">
+        <div class="ach-stat-num" id="stat-award">0</div>
+        <div class="ach-stat-label">대회 수상</div>
+      </div>
+    </div>
+
+    <!-- 카드 리스트 -->
+    <div class="ach-scroll" id="ach-card-list">
+      <div class="empty-msg" id="ach-empty" style="display:none;">아직 등록된 기록이 없습니다<br><span style="font-size:11px;margin-top:6px;display:block;">+ 버튼으로 첫 기록을 추가해보세요</span></div>
+    </div>
+
+    <!-- FAB 추가 -->
+    <button class="fab-add" id="fab-add-ach" onclick="openAddAchModal()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- ============== 기록 추가 모달 ============== -->
+  <div class="modal-overlay" id="modal-add-ach">
+    <div class="modal add-ach-modal">
+      <div class="modal-title">기록 추가 <button class="modal-close" onclick="closeModal('modal-add-ach')">&#215;</button></div>
+
+      <!-- 종류 선택 -->
+      <div class="field-group">
+        <div class="field-label">종류 선택</div>
+        <div class="type-pills">
+          <button class="type-pill" id="pill-eagle" onclick="selectAchType('eagle')">이 글</button>
+          <button class="type-pill" id="pill-holeinone" onclick="selectAchType('holeinone')">홀인원</button>
+          <button class="type-pill" id="pill-award" onclick="selectAchType('award')">대회 수상</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">날짜</div>
+        <input class="field-input" id="add-ach-date" type="date" />
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">골프장 이름</div>
+        <input class="field-input" id="add-ach-course" type="text" placeholder="예: 남부CC, 블루헤런GC" />
+      </div>
+
+      <!-- 홀 번호 (이글/홀인원) -->
+      <div class="field-group" id="add-ach-hole-group">
+        <div class="field-label">홀 번호</div>
+        <input class="field-input" id="add-ach-hole" type="number" placeholder="예: 7" min="1" max="18" />
+      </div>
+
+      <!-- 대회명 (수상) -->
+      <div class="field-group" id="add-ach-tournament-group">
+        <div class="field-label">대회명</div>
+        <input class="field-input" id="add-ach-tournament" type="text" placeholder="예: 2026 GPGA 오픈" />
+      </div>
+
+      <!-- 순위 (수상) -->
+      <div class="field-group" id="add-ach-rank-group">
+        <div class="field-label">수상 내용</div>
+        <input class="field-input" id="add-ach-rank" type="text" placeholder="예: 우승, 준우승, 3위, 베스트스코어상" />
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">메모 (선택)</div>
+        <input class="field-input" id="add-ach-memo" type="text" placeholder="짧은 메모를 남겨보세요" />
+      </div>
+
+      <button class="btn-primary" onclick="saveAchievement()">상장 발급</button>
+    </div>
+  </div>
+
   <!-- 가입정보 수정 모달 -->
   <div class="modal-overlay" id="modal-edit">
     <div class="modal">
-      <div class="modal-title">가입 정보 수정 <button class="modal-close" onclick="closeModal('modal-edit')">×</button></div>
+      <div class="modal-title">가입 정보 수정 <button class="modal-close" onclick="closeModal('modal-edit')">&#215;</button></div>
       <div class="field-group">
         <div class="field-label">닉네임</div>
         <input class="field-input" id="edit-nick" type="text" placeholder="닉네임" />
@@ -330,7 +651,7 @@
   <!-- 비밀번호 변경 모달 -->
   <div class="modal-overlay" id="modal-pw">
     <div class="modal">
-      <div class="modal-title">비밀번호 변경 <button class="modal-close" onclick="closeModal('modal-pw')">×</button></div>
+      <div class="modal-title">비밀번호 변경 <button class="modal-close" onclick="closeModal('modal-pw')">&#215;</button></div>
       <div class="field-group">
         <div class="field-label">새 비밀번호</div>
         <input class="field-input" id="pw-new" type="password" placeholder="새 비밀번호 (6자 이상)" />
@@ -346,7 +667,7 @@
   <!-- 내 조인 내역 모달 -->
   <div class="modal-overlay" id="modal-join">
     <div class="modal">
-      <div class="modal-title">내 조인 내역 <button class="modal-close" onclick="closeModal('modal-join')">×</button></div>
+      <div class="modal-title">내 조인 내역 <button class="modal-close" onclick="closeModal('modal-join')">&#215;</button></div>
       <div id="join-list-content"></div>
     </div>
   </div>
@@ -354,7 +675,7 @@
   <!-- 공지사항 모달 -->
   <div class="modal-overlay" id="modal-notice">
     <div class="modal">
-      <div class="modal-title">공지사항 <button class="modal-close" onclick="closeModal('modal-notice')">×</button></div>
+      <div class="modal-title">공지사항 <button class="modal-close" onclick="closeModal('modal-notice')">&#215;</button></div>
       <div id="notice-list-content"></div>
     </div>
   </div>
@@ -362,7 +683,7 @@
   <!-- 공지 작성 모달 (어드민) -->
   <div class="modal-overlay" id="modal-notice-write">
     <div class="modal">
-      <div class="modal-title">공지사항 작성 <button class="modal-close" onclick="closeModal('modal-notice-write')">×</button></div>
+      <div class="modal-title">공지사항 작성 <button class="modal-close" onclick="closeModal('modal-notice-write')">&#215;</button></div>
       <div class="field-group">
         <div class="field-label">제목</div>
         <input class="field-input" id="notice-title-input" type="text" placeholder="공지 제목" />
@@ -380,9 +701,10 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, serverTimestamp, orderBy
+  getFirestore, doc, getDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
+  query, serverTimestamp, orderBy, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -400,6 +722,8 @@ let currentUser = null;
 let userData = {};
 let allJoins = [];
 let notices = [];
+let achievements = [];
+let selectedAchType = '';
 const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
 // ── Auth ──────────────────────────────────────────────
@@ -407,10 +731,11 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) { window.location.href = 'login.html'; return; }
   currentUser = user;
 
-  const [userSnap, joinsSnap, noticesSnap] = await Promise.all([
+  const [userSnap, joinsSnap, noticesSnap, achSnap] = await Promise.all([
     getDoc(doc(db, 'users', user.uid)),
     getDocs(collection(db, 'joins')),
     getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'))),
+    getDocs(query(collection(db, 'achievements'), where('uid', '==', user.uid), orderBy('date', 'desc'))),
   ]);
 
   if (userSnap.exists()) {
@@ -422,9 +747,12 @@ onAuthStateChanged(auth, async (user) => {
 
   allJoins = joinsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   notices = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  achievements = achSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
   const unread = notices.length;
   if (unread > 0) document.getElementById('notice-count-label').textContent = `${unread}개의 공지`;
+
+  updateAchMenuDesc();
 
   if (user.email === ADMIN_EMAIL) {
     document.getElementById('admin-section').classList.remove('hidden');
@@ -435,6 +763,7 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── 뒤로가기 ──────────────────────────────────────────
 document.getElementById('btn-back').addEventListener('click', () => history.back());
+document.getElementById('ach-back').addEventListener('click', closeAchOverlay);
 
 // ── 로그아웃 ──────────────────────────────────────────
 document.getElementById('btn-logout').addEventListener('click', async () => {
@@ -516,7 +845,7 @@ window.openJoinModal = () => {
 };
 
 window.openNoticeModal = () => {
-  renderNotices(false);
+  renderNotices();
   document.getElementById('modal-notice').classList.add('show');
 };
 
@@ -539,7 +868,7 @@ window.saveNotice = async () => {
   } catch (e) { showToast('등록 실패: ' + e.message); }
 };
 
-function renderNotices(isAdmin) {
+function renderNotices() {
   const el = document.getElementById('notice-list-content');
   if (notices.length === 0) {
     el.innerHTML = '<div class="empty-msg">공지사항이 없습니다</div>';
@@ -562,7 +891,226 @@ window.deleteNotice = async (id) => {
   try {
     await deleteDoc(doc(db, 'notices', id));
     notices = notices.filter(n => n.id !== id);
-    renderNotices(true);
+    renderNotices();
+    showToast('삭제되었습니다');
+  } catch (e) { showToast('삭제 실패'); }
+};
+
+// ══════════════════════════════════════════════════════
+//  명예 기록 기능
+// ══════════════════════════════════════════════════════
+
+function updateAchMenuDesc() {
+  const eagle = achievements.filter(a => a.type === 'eagle').length;
+  const holeinone = achievements.filter(a => a.type === 'holeinone').length;
+  const award = achievements.filter(a => a.type === 'award').length;
+  const parts = [];
+  if (eagle > 0) parts.push(`이글 ${eagle}`);
+  if (holeinone > 0) parts.push(`홀인원 ${holeinone}`);
+  if (award > 0) parts.push(`수상 ${award}`);
+  const desc = document.getElementById('ach-menu-desc');
+  desc.textContent = parts.length > 0 ? parts.join(' · ') : '이글 · 홀인원 · 대회 수상 상장';
+}
+
+window.openAchOverlay = () => {
+  document.getElementById('ach-overlay').classList.add('show');
+  renderAchCards();
+};
+
+function closeAchOverlay() {
+  document.getElementById('ach-overlay').classList.remove('show');
+}
+
+function getAchTypeLabel(type) {
+  return { eagle: '이  글', holeinone: '홀인원', award: '대회 수상' }[type] || type;
+}
+
+function getAchIcon(type) {
+  if (type === 'eagle') return `
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C9.5 4 7 5.5 5 8C6.5 9.5 8.5 10 10 9.5L6 14H8L5 18L9 16V20L12 17L15 20V16L19 18L16 14H18L14 9.5C15.5 10 17.5 9.5 19 8C17 5.5 14.5 4 12 2Z"/>
+    </svg>`;
+  if (type === 'holeinone') return `
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="12" cy="7" r="3.5" fill="currentColor" stroke="none"/>
+      <ellipse cx="12" cy="20" rx="5.5" ry="1.8" fill="currentColor" opacity="0.35" stroke="none"/>
+      <line x1="12" y1="10.5" x2="12" y2="18.2"/>
+      <path d="M12 12.5L16.5 10.5L12 8.5" fill="currentColor" stroke="none"/>
+    </svg>`;
+  if (type === 'award') return `
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 2h12v10a6 6 0 0 1-12 0V2z"/>
+      <path d="M6 7H3a3 3 0 0 0 3 3"/>
+      <path d="M18 7h3a3 3 0 0 1-3 3"/>
+      <line x1="12" y1="18" x2="12" y2="22"/>
+      <line x1="8" y1="22" x2="16" y2="22"/>
+    </svg>`;
+  return '';
+}
+
+function getAchBodyText(a) {
+  const nick = userData.nickname || '선수';
+  if (a.type === 'eagle') {
+    const hole = a.hole ? `${a.hole}홀` : '';
+    const course = a.course || '';
+    return `<span class="cert-detail-em">${nick}</span> 선수는<br>${course} ${hole}에서<br>이글을 달성하였기에<br>이 상장을 수여합니다.`;
+  }
+  if (a.type === 'holeinone') {
+    const hole = a.hole ? `${a.hole}홀` : '';
+    const course = a.course || '';
+    return `<span class="cert-detail-em">${nick}</span> 선수는<br>${course} ${hole}에서<br>홀인원의 기적을 이루었기에<br>이 상장을 수여합니다.`;
+  }
+  if (a.type === 'award') {
+    const tournament = a.tournamentName || '';
+    const rank = a.rank || '';
+    return `<span class="cert-detail-em">${nick}</span> 선수는<br>${tournament}에서<br><span class="cert-detail-em">${rank}</span>을 차지하여<br>탁월한 실력을 입증하였기에<br>이 상장을 수여합니다.`;
+  }
+  return '';
+}
+
+function formatCertDate(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[0]}년 ${parseInt(parts[1])}월 ${parseInt(parts[2])}일`;
+}
+
+function cornerSvg() {
+  return `<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M1 15 L1 1 L15 1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+    <circle cx="1" cy="1" r="2" fill="currentColor"/>
+  </svg>`;
+}
+
+function renderAchCards() {
+  const list = document.getElementById('ach-card-list');
+  const empty = document.getElementById('ach-empty');
+
+  // 통계
+  document.getElementById('stat-eagle').textContent = achievements.filter(a => a.type === 'eagle').length;
+  document.getElementById('stat-holeinone').textContent = achievements.filter(a => a.type === 'holeinone').length;
+  document.getElementById('stat-award').textContent = achievements.filter(a => a.type === 'award').length;
+
+  // 기존 카드 제거
+  list.querySelectorAll('.cert-card').forEach(el => el.remove());
+
+  if (achievements.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  achievements.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = `cert-card ${a.type}`;
+    card.dataset.id = a.id;
+    const deleteBtn = `<button class="cert-delete-btn" onclick="deleteAchievement('${a.id}')">삭제</button>`;
+    card.innerHTML = `
+      <div class="cert-inner">
+        <div class="cert-deco"></div>
+        <div class="cert-corner tl">${cornerSvg()}</div>
+        <div class="cert-corner tr">${cornerSvg()}</div>
+        <div class="cert-corner bl">${cornerSvg()}</div>
+        <div class="cert-corner br">${cornerSvg()}</div>
+        ${deleteBtn}
+        <div class="cert-header">
+          <div class="cert-ggzon">GOLGAB ZONE</div>
+          <div class="cert-hr"></div>
+          <div class="cert-icon-wrap">${getAchIcon(a.type)}</div>
+          <div class="cert-type-ko">${getAchTypeLabel(a.type)}</div>
+          <div class="cert-hr"></div>
+        </div>
+        <div class="cert-body">
+          <div class="cert-achievement-text">${getAchBodyText(a)}</div>
+          ${a.memo ? `<div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">${a.memo}</div>` : ''}
+        </div>
+        <div class="cert-footer">
+          <div class="cert-hr" style="margin-bottom:12px;"></div>
+          <div class="cert-date">${formatCertDate(a.date)}</div>
+          <div class="cert-seal">GOLGAB<br>ZONE</div>
+        </div>
+      </div>`;
+    list.appendChild(card);
+
+    // 순차 애니메이션
+    setTimeout(() => card.classList.add('visible'), 80 + i * 120);
+  });
+}
+
+// 기록 추가 모달
+window.openAddAchModal = () => {
+  selectedAchType = '';
+  document.querySelectorAll('.type-pill').forEach(p => p.className = 'type-pill');
+  document.getElementById('add-ach-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('add-ach-course').value = '';
+  document.getElementById('add-ach-hole').value = '';
+  document.getElementById('add-ach-tournament').value = '';
+  document.getElementById('add-ach-rank').value = '';
+  document.getElementById('add-ach-memo').value = '';
+  toggleAchFields('');
+  document.getElementById('modal-add-ach').classList.add('show');
+};
+
+window.selectAchType = (type) => {
+  selectedAchType = type;
+  document.querySelectorAll('.type-pill').forEach(p => p.className = 'type-pill');
+  document.getElementById(`pill-${type}`).className = `type-pill sel-${type}`;
+  toggleAchFields(type);
+};
+
+function toggleAchFields(type) {
+  document.getElementById('add-ach-hole-group').style.display = (type === 'eagle' || type === 'holeinone') ? 'block' : 'none';
+  document.getElementById('add-ach-tournament-group').style.display = (type === 'award') ? 'block' : 'none';
+  document.getElementById('add-ach-rank-group').style.display = (type === 'award') ? 'block' : 'none';
+}
+
+window.saveAchievement = async () => {
+  if (!selectedAchType) { showToast('종류를 선택해주세요'); return; }
+  const date = document.getElementById('add-ach-date').value;
+  const course = document.getElementById('add-ach-course').value.trim();
+  if (!date) { showToast('날짜를 입력해주세요'); return; }
+  if (!course && selectedAchType !== 'award') { showToast('골프장 이름을 입력해주세요'); return; }
+
+  const data = {
+    uid: currentUser.uid,
+    nickname: userData.nickname || '',
+    type: selectedAchType,
+    date,
+    course,
+    memo: document.getElementById('add-ach-memo').value.trim(),
+    createdAt: serverTimestamp(),
+  };
+
+  if (selectedAchType === 'eagle' || selectedAchType === 'holeinone') {
+    const hole = document.getElementById('add-ach-hole').value;
+    if (!hole) { showToast('홀 번호를 입력해주세요'); return; }
+    data.hole = Number(hole);
+  }
+  if (selectedAchType === 'award') {
+    const tournament = document.getElementById('add-ach-tournament').value.trim();
+    const rank = document.getElementById('add-ach-rank').value.trim();
+    if (!tournament) { showToast('대회명을 입력해주세요'); return; }
+    if (!rank) { showToast('수상 내용을 입력해주세요'); return; }
+    data.tournamentName = tournament;
+    data.rank = rank;
+  }
+
+  try {
+    const ref = await addDoc(collection(db, 'achievements'), data);
+    achievements.unshift({ id: ref.id, ...data });
+    closeModal('modal-add-ach');
+    updateAchMenuDesc();
+    renderAchCards();
+    showToast('상장이 발급되었습니다!');
+  } catch (e) { showToast('저장 실패: ' + e.message); }
+};
+
+window.deleteAchievement = async (id) => {
+  try {
+    await deleteDoc(doc(db, 'achievements', id));
+    achievements = achievements.filter(a => a.id !== id);
+    updateAchMenuDesc();
+    renderAchCards();
     showToast('삭제되었습니다');
   } catch (e) { showToast('삭제 실패'); }
 };
