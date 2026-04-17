@@ -270,90 +270,87 @@
     }
     .ach-scroll::-webkit-scrollbar { display: none; }
 
-    /* 2열 그리드 */
-    .ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* 1열 */
+    .ach-grid { display: flex; flex-direction: column; }
 
-    /* 상장 카드 - 컴팩트 2열 가로형 */
+    /* 상장 카드 - 1열 가로형 */
     .cert-wrapper { display: flex; flex-direction: column; }
     .cert-card {
-      aspect-ratio: 4 / 3;
-      overflow: hidden;
+      width: 100%;
       opacity: 0;
-      transform: translateY(20px) scale(0.97);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.22);
+      transform: translateY(24px) scale(0.97);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.26);
       background: #f3f2f0;
-      border: 2px solid #1a1a1a;
+      border: 2.5px solid #1a1a1a;
       position: relative;
     }
     .cert-card.visible { opacity: 1; transform: translateY(0) scale(1); }
 
     .cert-deco {
-      position: absolute; inset: 5px;
-      border: 0.8px solid #1a1a1a;
+      position: absolute; inset: 6px;
+      border: 1px solid #1a1a1a;
       pointer-events: none; z-index: 0;
     }
 
     .cert-inner {
-      padding: 9px 9px 7px;
+      padding: 18px 20px 14px;
       position: relative; z-index: 1;
       text-align: center;
-      height: 100%;
-      display: flex; flex-direction: column; justify-content: space-between;
     }
 
     .cert-title {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-      color: #111; margin-bottom: 2px; line-height: 1;
+      font-size: 22px; font-weight: 700; letter-spacing: 0.12em;
+      color: #111; margin-bottom: 4px; line-height: 1;
     }
     .cert-subtitle {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-      color: #cc0000; margin-bottom: 6px; line-height: 1;
+      font-size: 22px; font-weight: 700; letter-spacing: 0.1em;
+      color: #cc0000; margin-bottom: 8px; line-height: 1;
     }
-    .cert-hr { height: 1px; background: #1a1a1a; margin: 0 8px 4px; }
+    .cert-hr { height: 1px; background: #1a1a1a; margin: 0 20px 8px; }
 
     .cert-presented {
-      font-size: 6px; font-weight: 700; letter-spacing: 0.14em;
-      color: #777; margin-bottom: 2px;
+      font-size: 8px; font-weight: 700; letter-spacing: 0.22em;
+      color: #777; margin-bottom: 4px;
     }
     .cert-nick {
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      font-size: 13px; font-weight: 900;
-      color: #111; line-height: 1.2; margin-bottom: 3px;
+      font-size: 24px; font-weight: 900;
+      color: #111; line-height: 1.2; margin-bottom: 6px;
     }
-    .cert-achievement-text { font-size: 8.5px; line-height: 1.5; color: #444; }
+    .cert-achievement-text { font-size: 11px; line-height: 1.75; color: #444; }
     .cert-detail-em { font-weight: 700; color: #111; }
 
     .cert-footer {
       display: flex; align-items: center; justify-content: space-between;
-      padding-top: 5px;
-      border-top: 0.8px solid #ccc;
+      margin-top: 10px; padding-top: 8px;
+      border-top: 1px solid #ddd;
     }
     .cert-footer-col { flex: 1; text-align: center; }
-    .cert-footer-label { font-size: 5.5px; font-weight: 700; letter-spacing: 0.1em; color: #999; margin-bottom: 1px; }
-    .cert-date { font-size: 7px; color: #333; font-weight: 600; }
-    .cert-sig { font-family: 'Dancing Script', cursive; font-size: 11px; color: #333; line-height: 1; }
+    .cert-footer-label { font-size: 7px; font-weight: 700; letter-spacing: 0.15em; color: #999; margin-bottom: 3px; }
+    .cert-date { font-size: 10px; color: #333; font-weight: 600; }
+    .cert-sig { font-family: 'Dancing Script', cursive; font-size: 16px; color: #333; line-height: 1; }
 
-    .cert-footer-logo { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-    .cert-footer-logo img { width: 22px; height: 22px; object-fit: contain; }
-    .cert-footer-logo-text { font-size: 5.5px; font-weight: 900; letter-spacing: 0.05em; color: #1a1a1a; }
+    .cert-footer-logo { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .cert-footer-logo img { width: 44px; height: 44px; object-fit: contain; }
+    .cert-footer-logo-text { font-size: 8px; font-weight: 900; letter-spacing: 0.1em; color: #1a1a1a; }
 
     /* 카드 액션 버튼 */
     .cert-actions {
-      display: flex; gap: 5px; padding: 5px 0 0;
+      display: flex; justify-content: flex-end; gap: 8px; padding: 7px 0 0;
     }
     .cert-action-dl {
-      flex: 1; background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3);
-      color: var(--green-light); font-size: 10px; font-weight: 700;
-      padding: 5px 0; border-radius: 8px; cursor: pointer; font-family: inherit; text-align: center;
+      background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3);
+      color: var(--green-light); font-size: 11px; font-weight: 700;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
     }
     .cert-action-dl:active { background: rgba(62,160,102,0.22); }
     .cert-action-del {
-      flex: 1; background: rgba(200,0,0,0.07); border: 1px solid rgba(200,0,0,0.18);
-      color: rgba(200,50,50,0.75); font-size: 10px; font-weight: 700;
-      padding: 5px 0; border-radius: 8px; cursor: pointer; font-family: inherit; text-align: center;
+      background: rgba(200,0,0,0.07); border: 1px solid rgba(200,0,0,0.18);
+      color: rgba(200,50,50,0.75); font-size: 11px; font-weight: 700;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
     }
     .cert-action-del:active { background: rgba(200,0,0,0.15); }
 
