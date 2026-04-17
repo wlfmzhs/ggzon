@@ -250,152 +250,137 @@
     }
     .ach-scroll::-webkit-scrollbar { display: none; }
 
-    /* 상장 카드 */
+    /* 상장 카드 - 흰 바탕 */
     .cert-card {
       width: 100%;
-      border-radius: 18px;
-      margin-bottom: 18px;
-      padding: 2px;
+      border-radius: 14px;
+      margin-bottom: 20px;
       opacity: 0;
       transform: translateY(30px) scale(0.97);
       transition: opacity 0.45s ease, transform 0.45s ease;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12);
+      overflow: hidden;
+      background: #fff;
     }
     .cert-card.visible {
       opacity: 1;
       transform: translateY(0) scale(1);
     }
-    .cert-card.eagle {
-      background: linear-gradient(135deg, #3ea066 0%, #6dcf9a 40%, #2d7a4f 60%, #3ea066 100%);
+
+    /* 상단 컬러 리본 */
+    .cert-ribbon {
+      height: 6px; width: 100%;
     }
-    .cert-card.holeinone {
-      background: linear-gradient(135deg, #c49010 0%, #f0c040 40%, #8b6914 60%, #d4a017 100%);
-    }
-    .cert-card.award {
-      background: linear-gradient(135deg, #8b42a8 0%, #c070e0 40%, #5e2080 60%, #9b59b6 100%);
-    }
+    .cert-card.eagle .cert-ribbon { background: linear-gradient(90deg, #2d7a4f, #3ea066, #2d7a4f); }
+    .cert-card.holeinone .cert-ribbon { background: linear-gradient(90deg, #9a7010, #d4a017, #9a7010); }
+    .cert-card.award .cert-ribbon { background: linear-gradient(90deg, #6b3090, #9b59b6, #6b3090); }
 
     .cert-inner {
-      border-radius: 16px;
-      padding: 22px 20px 18px;
+      padding: 20px 22px 22px;
       position: relative;
-      overflow: hidden;
-    }
-    .cert-card.eagle .cert-inner { background: linear-gradient(160deg, #061510 0%, #0c2416 55%, #061510 100%); }
-    .cert-card.holeinone .cert-inner { background: linear-gradient(160deg, #160e00 0%, #271800 55%, #160e00 100%); }
-    .cert-card.award .cert-inner { background: linear-gradient(160deg, #0e0518 0%, #1a0828 55%, #0e0518 100%); }
-
-    /* 배경 수식 패턴 */
-    .cert-inner::before {
-      content: '';
-      position: absolute; inset: 0;
-      background-image: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 20px,
-        rgba(255,255,255,0.012) 20px,
-        rgba(255,255,255,0.012) 21px
-      );
-      pointer-events: none;
+      background: #fff;
     }
 
     /* 내부 장식 테두리 */
     .cert-deco {
       position: absolute; inset: 10px;
-      border-radius: 10px;
+      border-radius: 6px;
       pointer-events: none;
     }
-    .cert-card.eagle .cert-deco { border: 1px solid rgba(62,160,102,0.22); }
-    .cert-card.holeinone .cert-deco { border: 1px solid rgba(212,160,23,0.22); }
-    .cert-card.award .cert-deco { border: 1px solid rgba(155,89,182,0.22); }
+    .cert-card.eagle .cert-deco { border: 1px solid rgba(45,122,79,0.15); }
+    .cert-card.holeinone .cert-deco { border: 1px solid rgba(154,112,16,0.15); }
+    .cert-card.award .cert-deco { border: 1px solid rgba(107,48,144,0.15); }
 
     /* 코너 장식 */
-    .cert-corner { position: absolute; width: 16px; height: 16px; }
-    .cert-corner.tl { top: 14px; left: 14px; }
-    .cert-corner.tr { top: 14px; right: 14px; transform: scaleX(-1); }
-    .cert-corner.bl { bottom: 14px; left: 14px; transform: scaleY(-1); }
-    .cert-corner.br { bottom: 14px; right: 14px; transform: scale(-1,-1); }
-    .cert-card.eagle .cert-corner { color: rgba(62,160,102,0.5); }
-    .cert-card.holeinone .cert-corner { color: rgba(212,160,23,0.5); }
-    .cert-card.award .cert-corner { color: rgba(155,89,182,0.5); }
+    .cert-corner { position: absolute; width: 14px; height: 14px; }
+    .cert-corner.tl { top: 12px; left: 12px; }
+    .cert-corner.tr { top: 12px; right: 12px; transform: scaleX(-1); }
+    .cert-corner.bl { bottom: 12px; left: 12px; transform: scaleY(-1); }
+    .cert-corner.br { bottom: 12px; right: 12px; transform: scale(-1,-1); }
+    .cert-card.eagle .cert-corner { color: rgba(45,122,79,0.35); }
+    .cert-card.holeinone .cert-corner { color: rgba(154,112,16,0.35); }
+    .cert-card.award .cert-corner { color: rgba(107,48,144,0.35); }
 
     /* 상단 */
-    .cert-header { text-align: center; position: relative; margin-bottom: 14px; }
-    .cert-ggzon {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.25em;
-      color: rgba(255,255,255,0.35); margin-bottom: 10px;
+    .cert-header { text-align: center; position: relative; margin-bottom: 10px; }
+    .cert-logo-wrap {
+      margin: 4px auto 10px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .cert-hr { height: 1px; margin: 0 20px; }
-    .cert-card.eagle .cert-hr { background: rgba(62,160,102,0.3); }
-    .cert-card.holeinone .cert-hr { background: rgba(212,160,23,0.3); }
-    .cert-card.award .cert-hr { background: rgba(155,89,182,0.3); }
+    .cert-logo-img { width: 32px; height: 32px; object-fit: contain; }
+    .cert-logo-text {
+      font-size: 13px; font-weight: 900; letter-spacing: 0.06em;
+      color: #1a1a1a;
+    }
+    .cert-logo-sub {
+      font-size: 8px; font-weight: 600; letter-spacing: 0.15em;
+      color: #888; display: block; margin-top: 1px;
+    }
 
-    .cert-icon-wrap {
-      width: 50px; height: 50px; border-radius: 50%;
-      margin: 12px auto 8px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .cert-card.eagle .cert-icon-wrap { background: rgba(62,160,102,0.18); color: #5ecf8a; }
-    .cert-card.holeinone .cert-icon-wrap { background: rgba(212,160,23,0.18); color: #f0c040; }
-    .cert-card.award .cert-icon-wrap { background: rgba(155,89,182,0.18); color: #c080e8; }
+    .cert-hr { height: 1px; margin: 0 16px; }
+    .cert-card.eagle .cert-hr { background: linear-gradient(90deg, transparent, #2d7a4f, transparent); }
+    .cert-card.holeinone .cert-hr { background: linear-gradient(90deg, transparent, #9a7010, transparent); }
+    .cert-card.award .cert-hr { background: linear-gradient(90deg, transparent, #6b3090, transparent); }
 
     .cert-type-ko {
-      font-size: 24px; font-weight: 900; letter-spacing: 0.18em;
-      text-align: center; margin: 6px 0 12px;
+      font-size: 26px; font-weight: 900; letter-spacing: 0.22em;
+      text-align: center; margin: 10px 0 8px;
     }
-    .cert-card.eagle .cert-type-ko { color: #6ee09c; }
-    .cert-card.holeinone .cert-type-ko { color: #f5c842; }
-    .cert-card.award .cert-type-ko { color: #cc88f5; }
+    .cert-card.eagle .cert-type-ko { color: #2d7a4f; }
+    .cert-card.holeinone .cert-type-ko { color: #9a7010; }
+    .cert-card.award .cert-type-ko { color: #6b3090; }
+
+    .cert-icon-wrap {
+      width: 44px; height: 44px; border-radius: 50%;
+      margin: 0 auto 6px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cert-card.eagle .cert-icon-wrap { background: rgba(45,122,79,0.1); color: #2d7a4f; }
+    .cert-card.holeinone .cert-icon-wrap { background: rgba(154,112,16,0.1); color: #9a7010; }
+    .cert-card.award .cert-icon-wrap { background: rgba(107,48,144,0.1); color: #6b3090; }
 
     /* 본문 */
-    .cert-body { text-align: center; padding: 0 8px; position: relative; }
+    .cert-body { text-align: center; padding: 6px 8px 0; position: relative; }
+    .cert-certify {
+      font-size: 11px; color: #888; font-style: italic; margin-bottom: 6px;
+    }
     .cert-nick {
-      font-size: 15px; font-weight: 800; margin-bottom: 10px;
+      font-size: 20px; font-weight: 900; color: #111; margin-bottom: 12px;
+      letter-spacing: 0.04em;
     }
-    .cert-nick-suffix { font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.45); }
     .cert-achievement-text {
-      font-size: 12px; line-height: 2; color: rgba(255,255,255,0.65);
+      font-size: 12px; line-height: 2; color: #444;
     }
-    .cert-detail-em {
-      font-weight: 700;
-    }
-    .cert-card.eagle .cert-detail-em { color: #6ee09c; }
-    .cert-card.holeinone .cert-detail-em { color: #f5c842; }
-    .cert-card.award .cert-detail-em { color: #cc88f5; }
+    .cert-detail-em { font-weight: 700; }
+    .cert-card.eagle .cert-detail-em { color: #2d7a4f; }
+    .cert-card.holeinone .cert-detail-em { color: #9a7010; }
+    .cert-card.award .cert-detail-em { color: #6b3090; }
 
     /* 하단 */
     .cert-footer {
-      text-align: center; margin-top: 14px; padding-top: 12px; position: relative;
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-top: 16px; padding-top: 12px;
     }
-    .cert-date { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+    .cert-date { font-size: 11px; color: #888; line-height: 1.6; }
     .cert-seal {
-      width: 42px; height: 42px; border-radius: 50%;
-      margin: 0 auto;
+      width: 44px; height: 44px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       flex-direction: column;
       font-size: 7px; font-weight: 900; letter-spacing: 0.03em;
       line-height: 1.4; text-align: center;
     }
-    .cert-card.eagle .cert-seal {
-      border: 1.5px solid rgba(62,160,102,0.5);
-      color: rgba(62,160,102,0.7);
-    }
-    .cert-card.holeinone .cert-seal {
-      border: 1.5px solid rgba(212,160,23,0.5);
-      color: rgba(212,160,23,0.7);
-    }
-    .cert-card.award .cert-seal {
-      border: 1.5px solid rgba(155,89,182,0.5);
-      color: rgba(155,89,182,0.7);
-    }
+    .cert-card.eagle .cert-seal { border: 1.5px solid #2d7a4f; color: #2d7a4f; }
+    .cert-card.holeinone .cert-seal { border: 1.5px solid #9a7010; color: #9a7010; }
+    .cert-card.award .cert-seal { border: 1.5px solid #6b3090; color: #6b3090; }
 
     /* 삭제 버튼 */
     .cert-delete-btn {
-      position: absolute; top: 14px; right: 14px;
-      background: rgba(255,80,80,0.12); border: none; color: rgba(255,100,100,0.5);
-      font-size: 11px; cursor: pointer; border-radius: 8px; padding: 4px 8px;
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(200,0,0,0.06); border: none; color: rgba(180,0,0,0.4);
+      font-size: 10px; cursor: pointer; border-radius: 6px; padding: 3px 7px;
       font-family: inherit;
     }
-    .cert-delete-btn:active { background: rgba(255,80,80,0.25); }
+    .cert-delete-btn:active { background: rgba(200,0,0,0.12); }
 
     /* FAB 추가 버튼 */
     .fab-add {
@@ -957,21 +942,20 @@ function getAchIcon(type) {
 }
 
 function getAchBodyText(a) {
-  const nick = userData.nickname || '선수';
   if (a.type === 'eagle') {
-    const hole = a.hole ? `${a.hole}홀` : '';
-    const course = a.course || '';
-    return `<span class="cert-detail-em">${nick}</span> 선수는<br>${course} ${hole}에서<br>이글을 달성하였기에<br>이 상장을 수여합니다.`;
+    const hole = a.hole ? `<span class="cert-detail-em">${a.hole}홀</span>` : '';
+    const course = a.course ? `<span class="cert-detail-em">${a.course}</span>` : '';
+    return `${course} ${hole}에서<br>이글을 달성하였음을 증명합니다.`;
   }
   if (a.type === 'holeinone') {
-    const hole = a.hole ? `${a.hole}홀` : '';
-    const course = a.course || '';
-    return `<span class="cert-detail-em">${nick}</span> 선수는<br>${course} ${hole}에서<br>홀인원의 기적을 이루었기에<br>이 상장을 수여합니다.`;
+    const hole = a.hole ? `<span class="cert-detail-em">${a.hole}홀</span>` : '';
+    const course = a.course ? `<span class="cert-detail-em">${a.course}</span>` : '';
+    return `${course} ${hole}에서<br>홀인원을 달성하였음을 증명합니다.`;
   }
   if (a.type === 'award') {
-    const tournament = a.tournamentName || '';
-    const rank = a.rank || '';
-    return `<span class="cert-detail-em">${nick}</span> 선수는<br>${tournament}에서<br><span class="cert-detail-em">${rank}</span>을 차지하여<br>탁월한 실력을 입증하였기에<br>이 상장을 수여합니다.`;
+    const tournament = a.tournamentName ? `<span class="cert-detail-em">${a.tournamentName}</span>` : '';
+    const rank = a.rank ? `<span class="cert-detail-em">${a.rank}</span>` : '';
+    return `${tournament}에서<br>${rank}을 수상하였음을 증명합니다.`;
   }
   return '';
 }
@@ -1014,6 +998,7 @@ function renderAchCards() {
     card.dataset.id = a.id;
     const deleteBtn = `<button class="cert-delete-btn" onclick="deleteAchievement('${a.id}')">삭제</button>`;
     card.innerHTML = `
+      <div class="cert-ribbon"></div>
       <div class="cert-inner">
         <div class="cert-deco"></div>
         <div class="cert-corner tl">${cornerSvg()}</div>
@@ -1022,18 +1007,25 @@ function renderAchCards() {
         <div class="cert-corner br">${cornerSvg()}</div>
         ${deleteBtn}
         <div class="cert-header">
-          <div class="cert-ggzon">GOLGAB ZONE</div>
+          <div class="cert-logo-wrap">
+            <img class="cert-logo-img" src="image/golgab-logo.png" alt="GOLGAB ZONE" />
+            <div>
+              <div class="cert-logo-text">GOLGAB ZONE</div>
+              <span class="cert-logo-sub">GOLF COMMUNITY</span>
+            </div>
+          </div>
           <div class="cert-hr"></div>
-          <div class="cert-icon-wrap">${getAchIcon(a.type)}</div>
           <div class="cert-type-ko">${getAchTypeLabel(a.type)}</div>
+          <div class="cert-icon-wrap">${getAchIcon(a.type)}</div>
           <div class="cert-hr"></div>
         </div>
         <div class="cert-body">
+          <div class="cert-certify">This is to certify that</div>
+          <div class="cert-nick">${userData.nickname || ''}</div>
           <div class="cert-achievement-text">${getAchBodyText(a)}</div>
-          ${a.memo ? `<div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">${a.memo}</div>` : ''}
+          ${a.memo ? `<div style="margin-top:8px;font-size:11px;color:#aaa;font-style:italic;">${a.memo}</div>` : ''}
         </div>
         <div class="cert-footer">
-          <div class="cert-hr" style="margin-bottom:12px;"></div>
           <div class="cert-date">${formatCertDate(a.date)}</div>
           <div class="cert-seal">GOLGAB<br>ZONE</div>
         </div>
