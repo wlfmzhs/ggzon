@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MY - GOLGAB ZONE</title>
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root {
@@ -341,14 +342,24 @@
       font-size: 8px; font-weight: 900; letter-spacing: 0.1em; color: #1a1a1a;
     }
 
-    /* 삭제 버튼 */
-    .cert-delete-btn {
-      position: absolute; top: 8px; right: 8px; z-index: 2;
-      background: rgba(200,0,0,0.06); border: none; color: rgba(180,0,0,0.4);
-      font-size: 10px; cursor: pointer; border-radius: 6px; padding: 3px 7px;
-      font-family: inherit;
+    /* 카드 래퍼 + 외부 액션 버튼 */
+    .cert-wrapper { margin-bottom: 24px; }
+    .cert-actions {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 7px 2px 0;
     }
-    .cert-delete-btn:active { background: rgba(200,0,0,0.12); }
+    .cert-action-dl {
+      background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3);
+      color: var(--green-light); font-size: 11px; font-weight: 700;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+    }
+    .cert-action-dl:active { background: rgba(62,160,102,0.22); }
+    .cert-action-del {
+      background: rgba(200,0,0,0.07); border: 1px solid rgba(200,0,0,0.18);
+      color: rgba(200,50,50,0.75); font-size: 11px; font-weight: 700;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+    }
+    .cert-action-del:active { background: rgba(200,0,0,0.15); }
 
     /* FAB 추가 버튼 */
     .fab-add {
@@ -963,13 +974,14 @@ function renderAchCards() {
   empty.style.display = 'none';
 
   achievements.forEach((a, i) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'cert-wrapper';
+
     const card = document.createElement('div');
     card.className = `cert-card ${a.type}`;
     card.dataset.id = a.id;
-    const deleteBtn = `<button class="cert-delete-btn" onclick="deleteAchievement('${a.id}')">삭제</button>`;
     card.innerHTML = `
       <div class="cert-deco"></div>
-      ${deleteBtn}
       <div class="cert-inner">
         <div class="cert-title">CERTIFICATE</div>
         <div class="cert-subtitle">${getAchTypeLabel(a.type)}</div>
@@ -985,8 +997,8 @@ function renderAchCards() {
           </div>
           <div class="cert-footer-col">
             <div class="cert-footer-logo">
-              <img src="image/golgab-logo.png" alt="GOLGAB ZONE" />
-              <div class="cert-footer-logo-text">GOLGAB ZONE</div>
+              <img src="image/golgab-logo.png" alt="GOLGAB GG ZONE APP" />
+              <div class="cert-footer-logo-text">GOLGAB GG ZONE APP</div>
             </div>
           </div>
           <div class="cert-footer-col">
@@ -995,7 +1007,16 @@ function renderAchCards() {
           </div>
         </div>
       </div>`;
-    list.appendChild(card);
+
+    const actions = document.createElement('div');
+    actions.className = 'cert-actions';
+    actions.innerHTML = `
+      <button class="cert-action-dl" onclick="downloadCert('${a.id}')">JPG 저장</button>
+      <button class="cert-action-del" onclick="deleteAchievement('${a.id}')">삭제</button>`;
+
+    wrapper.appendChild(card);
+    wrapper.appendChild(actions);
+    list.appendChild(wrapper);
 
     // 순차 애니메이션
     setTimeout(() => card.classList.add('visible'), 80 + i * 120);
@@ -1068,6 +1089,28 @@ window.saveAchievement = async () => {
     renderAchCards();
     showToast('상장이 발급되었습니다!');
   } catch (e) { showToast('저장 실패: ' + e.message); }
+};
+
+window.downloadCert = async (id) => {
+  const card = document.querySelector(`.cert-card[data-id="${id}"]`);
+  if (!card) return;
+  showToast('저장 중...');
+  try {
+    const canvas = await html2canvas(card, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+    });
+    const link = document.createElement('a');
+    const nick = (userData.nickname || 'certificate').replace(/\s/g, '_');
+    link.download = `GOLGAB_CERTIFICATE_${nick}.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+    showToast('저장되었습니다');
+  } catch (e) {
+    showToast('저장 실패: ' + e.message);
+  }
 };
 
 window.deleteAchievement = async (id) => {
