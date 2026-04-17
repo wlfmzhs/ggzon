@@ -246,118 +246,110 @@
     .stat-holeinone .ach-stat-num { color: #d4a017; }
     .stat-award .ach-stat-num { color: #b070d4; }
 
+    /* 탭 필터 */
+    .ach-tabs {
+      flex-shrink: 0;
+      display: flex; gap: 6px;
+      padding: 0 16px 14px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .ach-tabs::-webkit-scrollbar { display: none; }
+    .ach-tab {
+      flex-shrink: 0;
+      padding: 7px 16px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: transparent; color: rgba(255,255,255,0.45);
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all 0.15s; white-space: nowrap;
+    }
+    .ach-tab.active { background: var(--green-light); border-color: var(--green-light); color: #fff; }
+
     .ach-scroll {
       flex: 1; overflow-y: auto; scrollbar-width: none;
       padding: 4px 16px 100px;
     }
     .ach-scroll::-webkit-scrollbar { display: none; }
 
-    /* 상장 카드 - 가로형 */
+    /* 2열 그리드 */
+    .ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* 상장 카드 - 컴팩트 2열 */
+    .cert-wrapper { display: flex; flex-direction: column; }
     .cert-card {
-      width: 100%;
-      margin-bottom: 20px;
       opacity: 0;
-      transform: translateY(30px) scale(0.97);
-      transition: opacity 0.45s ease, transform 0.45s ease;
-      box-shadow: 0 6px 28px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.14);
+      transform: translateY(20px) scale(0.97);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.22);
       background: #f3f2f0;
-      border: 2.5px solid #1a1a1a;
+      border: 2px solid #1a1a1a;
       position: relative;
     }
-    .cert-card.visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
+    .cert-card.visible { opacity: 1; transform: translateY(0) scale(1); }
 
-    /* 내부 얇은 테두리 (이중 테두리 효과) */
     .cert-deco {
-      position: absolute; inset: 6px;
-      border: 1px solid #1a1a1a;
+      position: absolute; inset: 5px;
+      border: 0.8px solid #1a1a1a;
       pointer-events: none; z-index: 0;
     }
 
-    /* 코너/장식 없음 */
-
     .cert-inner {
-      padding: 18px 20px 14px;
+      padding: 12px 10px 10px;
       position: relative; z-index: 1;
       text-align: center;
     }
 
-    /* CERTIFICATE 타이틀 */
     .cert-title {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 22px; font-weight: 700; letter-spacing: 0.12em;
-      color: #111; margin-bottom: 4px; line-height: 1;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      color: #111; margin-bottom: 2px; line-height: 1;
     }
     .cert-subtitle {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 22px; font-weight: 700; letter-spacing: 0.1em;
-      color: #cc0000; margin-bottom: 8px; line-height: 1;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      color: #cc0000; margin-bottom: 6px; line-height: 1;
     }
+    .cert-hr { height: 1px; background: #1a1a1a; margin: 0 8px 6px; }
 
-    .cert-hr { height: 1px; background: #1a1a1a; margin: 0 20px 8px; }
-
-    /* PROUDLY PRESENTED TO */
     .cert-presented {
-      font-size: 8px; font-weight: 700; letter-spacing: 0.22em;
-      color: #777; margin-bottom: 4px;
+      font-size: 6.5px; font-weight: 700; letter-spacing: 0.16em;
+      color: #777; margin-bottom: 3px;
     }
-
-    /* 이름 - 고딕 */
     .cert-nick {
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      font-size: 24px; font-weight: 900;
-      color: #111; line-height: 1.2; margin-bottom: 6px;
+      font-size: 15px; font-weight: 900;
+      color: #111; line-height: 1.2; margin-bottom: 4px;
     }
-
-    /* 내용 */
-    .cert-achievement-text {
-      font-size: 11px; line-height: 1.75; color: #444;
-    }
+    .cert-achievement-text { font-size: 9.5px; line-height: 1.55; color: #444; }
     .cert-detail-em { font-weight: 700; color: #111; }
 
-    /* 하단 */
     .cert-footer {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 10px; padding-top: 8px;
-      border-top: 1px solid #ddd;
+      margin-top: 7px; padding-top: 6px;
+      border-top: 0.8px solid #ccc;
     }
-    .cert-footer-col {
-      flex: 1; text-align: center;
-    }
-    .cert-footer-label {
-      font-size: 7px; font-weight: 700; letter-spacing: 0.15em;
-      color: #999; margin-bottom: 3px;
-    }
-    .cert-date { font-size: 10px; color: #333; font-weight: 600; }
-    .cert-sig { font-family: 'Dancing Script', cursive; font-size: 16px; color: #333; line-height: 1; }
+    .cert-footer-col { flex: 1; text-align: center; }
+    .cert-footer-label { font-size: 6px; font-weight: 700; letter-spacing: 0.1em; color: #999; margin-bottom: 2px; }
+    .cert-date { font-size: 8px; color: #333; font-weight: 600; }
+    .cert-sig { font-family: 'Dancing Script', cursive; font-size: 12px; color: #333; line-height: 1; }
 
-    /* 하단 로고 */
-    .cert-footer-logo {
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-    }
-    .cert-footer-logo img { width: 44px; height: 44px; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
-    .cert-footer-logo-text {
-      font-size: 8px; font-weight: 900; letter-spacing: 0.1em; color: #1a1a1a;
-    }
+    .cert-footer-logo { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .cert-footer-logo img { width: 26px; height: 26px; object-fit: contain; }
+    .cert-footer-logo-text { font-size: 6px; font-weight: 900; letter-spacing: 0.06em; color: #1a1a1a; }
 
-    /* 카드 래퍼 + 외부 액션 버튼 */
-    .cert-wrapper { margin-bottom: 24px; }
+    /* 카드 액션 버튼 */
     .cert-actions {
-      display: flex; justify-content: flex-end; gap: 8px;
-      padding: 7px 2px 0;
+      display: flex; gap: 5px; padding: 5px 0 0;
     }
     .cert-action-dl {
-      background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3);
-      color: var(--green-light); font-size: 11px; font-weight: 700;
-      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+      flex: 1; background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3);
+      color: var(--green-light); font-size: 10px; font-weight: 700;
+      padding: 5px 0; border-radius: 8px; cursor: pointer; font-family: inherit; text-align: center;
     }
     .cert-action-dl:active { background: rgba(62,160,102,0.22); }
     .cert-action-del {
-      background: rgba(200,0,0,0.07); border: 1px solid rgba(200,0,0,0.18);
-      color: rgba(200,50,50,0.75); font-size: 11px; font-weight: 700;
-      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+      flex: 1; background: rgba(200,0,0,0.07); border: 1px solid rgba(200,0,0,0.18);
+      color: rgba(200,50,50,0.75); font-size: 10px; font-weight: 700;
+      padding: 5px 0; border-radius: 8px; cursor: pointer; font-family: inherit; text-align: center;
     }
     .cert-action-del:active { background: rgba(200,0,0,0.15); }
 
@@ -525,6 +517,14 @@
       </div>
     </div>
 
+    <!-- 탭 필터 -->
+    <div class="ach-tabs">
+      <button class="ach-tab active" id="tab-all" onclick="filterAch('all')">전체보기</button>
+      <button class="ach-tab" id="tab-eagle" onclick="filterAch('eagle')">이글</button>
+      <button class="ach-tab" id="tab-holeinone" onclick="filterAch('holeinone')">홀인원</button>
+      <button class="ach-tab" id="tab-award" onclick="filterAch('award')">대회수상</button>
+    </div>
+
     <!-- 카드 리스트 -->
     <div class="ach-scroll" id="ach-card-list">
       <div class="empty-msg" id="ach-empty" style="display:none;">아직 등록된 기록이 없습니다<br><span style="font-size:11px;margin-top:6px;display:block;">+ 버튼으로 첫 기록을 추가해보세요</span></div>
@@ -688,6 +688,7 @@ let allJoins = [];
 let notices = [];
 let achievements = [];
 let selectedAchType = '';
+let currentFilter = 'all';
 const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
 // ── Auth ──────────────────────────────────────────────
@@ -939,6 +940,32 @@ function getAchBodyText(a) {
   return '';
 }
 
+function getAchBodyTextShort(a) {
+  if (a.type === 'eagle') {
+    const hole = a.hole ? `<span class="cert-detail-em">${a.hole}홀</span>` : '';
+    const course = a.course ? `<span class="cert-detail-em">${a.course}</span>` : '';
+    return `${course} ${hole}<br>이글 달성`;
+  }
+  if (a.type === 'holeinone') {
+    const hole = a.hole ? `<span class="cert-detail-em">${a.hole}홀</span>` : '';
+    const course = a.course ? `<span class="cert-detail-em">${a.course}</span>` : '';
+    return `${course} ${hole}<br>홀인원 달성`;
+  }
+  if (a.type === 'award') {
+    const tournament = a.tournamentName ? `<span class="cert-detail-em">${a.tournamentName}</span>` : '';
+    const rank = a.rank ? `<span class="cert-detail-em">${a.rank}</span>` : '';
+    return `${tournament}<br>${rank}`;
+  }
+  return '';
+}
+
+function formatCertDateShort(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[0]}.${parseInt(parts[1])}.${parseInt(parts[2])}`;
+}
+
 function formatCertDate(dateStr) {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -955,6 +982,13 @@ function cornerSvg() {
   </svg>`;
 }
 
+window.filterAch = (type) => {
+  currentFilter = type;
+  document.querySelectorAll('.ach-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + type).classList.add('active');
+  renderAchCards();
+};
+
 function renderAchCards() {
   const list = document.getElementById('ach-card-list');
   const empty = document.getElementById('ach-empty');
@@ -964,16 +998,22 @@ function renderAchCards() {
   document.getElementById('stat-holeinone').textContent = achievements.filter(a => a.type === 'holeinone').length;
   document.getElementById('stat-award').textContent = achievements.filter(a => a.type === 'award').length;
 
-  // 기존 카드 제거
-  list.querySelectorAll('.cert-card').forEach(el => el.remove());
+  // 기존 그리드 제거
+  list.querySelectorAll('.ach-grid').forEach(el => el.remove());
 
-  if (achievements.length === 0) {
+  // 필터
+  const filtered = currentFilter === 'all' ? achievements : achievements.filter(a => a.type === currentFilter);
+
+  if (filtered.length === 0) {
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
 
-  achievements.forEach((a, i) => {
+  const grid = document.createElement('div');
+  grid.className = 'ach-grid';
+
+  filtered.forEach((a, i) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'cert-wrapper';
 
@@ -988,12 +1028,11 @@ function renderAchCards() {
         <div class="cert-hr"></div>
         <div class="cert-presented">PROUDLY PRESENTED TO</div>
         <div class="cert-nick">${userData.nickname || ''}</div>
-        <div class="cert-achievement-text">${getAchBodyText(a)}</div>
-        ${a.memo ? `<div style="margin-top:5px;font-size:10px;color:#aaa;font-style:italic;">${a.memo}</div>` : ''}
+        <div class="cert-achievement-text">${getAchBodyTextShort(a)}</div>
         <div class="cert-footer">
           <div class="cert-footer-col">
             <div class="cert-footer-label">DATE</div>
-            <div class="cert-date">${formatCertDate(a.date)}</div>
+            <div class="cert-date">${formatCertDateShort(a.date)}</div>
           </div>
           <div class="cert-footer-col">
             <div class="cert-footer-logo">
@@ -1003,7 +1042,7 @@ function renderAchCards() {
           </div>
           <div class="cert-footer-col">
             <div class="cert-footer-label">ISSUED BY</div>
-            <div class="cert-sig" style="font-family:'Dancing Script',cursive;font-size:16px;color:#333;">Golgab</div>
+            <div class="cert-sig">Golgab</div>
           </div>
         </div>
       </div>`;
@@ -1011,16 +1050,17 @@ function renderAchCards() {
     const actions = document.createElement('div');
     actions.className = 'cert-actions';
     actions.innerHTML = `
-      <button class="cert-action-dl" onclick="downloadCert('${a.id}')">JPG 저장</button>
+      <button class="cert-action-dl" onclick="downloadCert('${a.id}')">JPG</button>
       <button class="cert-action-del" onclick="deleteAchievement('${a.id}')">삭제</button>`;
 
     wrapper.appendChild(card);
     wrapper.appendChild(actions);
-    list.appendChild(wrapper);
+    grid.appendChild(wrapper);
 
-    // 순차 애니메이션
-    setTimeout(() => card.classList.add('visible'), 80 + i * 120);
+    setTimeout(() => card.classList.add('visible'), 60 + i * 80);
   });
+
+  list.appendChild(grid);
 }
 
 // 기록 추가 모달
