@@ -275,21 +275,7 @@
       pointer-events: none; z-index: 0;
     }
 
-    /* 코너 리프 장식 */
-    .cert-corner { position: absolute; width: 38px; height: 38px; z-index: 1; }
-    .cert-corner.tl { top: -1px; left: -1px; }
-    .cert-corner.tr { top: -1px; right: -1px; transform: scaleX(-1); }
-    .cert-corner.bl { bottom: -1px; left: -1px; transform: scaleY(-1); }
-    .cert-corner.br { bottom: -1px; right: -1px; transform: scale(-1,-1); }
-
-    /* 상단/하단 중앙 장식 */
-    .cert-top-orn, .cert-bot-orn {
-      position: absolute; left: 50%; transform: translateX(-50%);
-      display: flex; align-items: center; gap: 6px; z-index: 1;
-      font-size: 0;
-    }
-    .cert-top-orn { top: 6px; }
-    .cert-bot-orn { bottom: 6px; }
+    /* 코너/장식 없음 */
 
     .cert-inner {
       padding: 18px 20px 14px;
@@ -297,27 +283,17 @@
       text-align: center;
     }
 
-    /* 로고 */
-    .cert-logo-wrap {
-      display: flex; align-items: center; justify-content: center; gap: 7px;
-      margin-bottom: 8px;
-    }
-    .cert-logo-img { width: 26px; height: 26px; object-fit: contain; }
-    .cert-logo-text { font-size: 11px; font-weight: 900; letter-spacing: 0.1em; color: #1a1a1a; }
-
     /* CERTIFICATE 타이틀 */
     .cert-title {
       font-family: 'Playfair Display', Georgia, serif;
       font-size: 22px; font-weight: 700; letter-spacing: 0.12em;
-      color: #111; margin-bottom: 2px; line-height: 1;
+      color: #111; margin-bottom: 4px; line-height: 1;
     }
     .cert-subtitle {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.28em;
-      color: #555; margin-bottom: 8px;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22px; font-weight: 700; letter-spacing: 0.1em;
+      color: #cc0000; margin-bottom: 8px; line-height: 1;
     }
-    .cert-card.eagle .cert-subtitle { color: #2d7a4f; }
-    .cert-card.holeinone .cert-subtitle { color: #9a7010; }
-    .cert-card.award .cert-subtitle { color: #6b3090; }
 
     .cert-hr { height: 1px; background: #1a1a1a; margin: 0 20px 8px; }
 
@@ -327,11 +303,11 @@
       color: #777; margin-bottom: 4px;
     }
 
-    /* 이름 - 커시브 폰트 */
+    /* 이름 - 고딕 */
     .cert-nick {
-      font-family: 'Dancing Script', cursive;
-      font-size: 28px; font-weight: 700;
-      color: #111; line-height: 1.1; margin-bottom: 6px;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      font-size: 24px; font-weight: 900;
+      color: #111; line-height: 1.2; margin-bottom: 6px;
     }
 
     /* 내용 */
@@ -356,24 +332,13 @@
     .cert-date { font-size: 10px; color: #333; font-weight: 600; }
     .cert-sig { font-family: 'Dancing Script', cursive; font-size: 16px; color: #333; line-height: 1; }
 
-    /* 골드 씰 */
-    .cert-seal {
-      width: 46px; height: 46px; border-radius: 50%;
-      background: radial-gradient(circle at 38% 38%, #f5d878, #c49010 70%);
-      border: 2px solid #9a7010;
-      display: flex; align-items: center; justify-content: center;
-      flex-direction: column;
-      font-size: 6px; font-weight: 900; letter-spacing: 0.04em;
-      color: #4a2800; text-align: center; line-height: 1.5;
-      box-shadow: 0 2px 8px rgba(154,112,16,0.45), inset 0 1px 2px rgba(255,255,255,0.4);
-      margin: 0 auto;
+    /* 하단 로고 */
+    .cert-footer-logo {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
     }
-    .cert-seal-inner {
-      width: 36px; height: 36px; border-radius: 50%;
-      border: 1px solid rgba(74,40,0,0.4);
-      display: flex; align-items: center; justify-content: center;
-      flex-direction: column;
-      font-size: 6px; font-weight: 900; line-height: 1.4;
+    .cert-footer-logo img { width: 30px; height: 30px; object-fit: contain; }
+    .cert-footer-logo-text {
+      font-size: 8px; font-weight: 900; letter-spacing: 0.1em; color: #1a1a1a;
     }
 
     /* 삭제 버튼 */
@@ -1004,22 +969,8 @@ function renderAchCards() {
     const deleteBtn = `<button class="cert-delete-btn" onclick="deleteAchievement('${a.id}')">삭제</button>`;
     card.innerHTML = `
       <div class="cert-deco"></div>
-      <div class="cert-corner tl">${cornerSvg()}</div>
-      <div class="cert-corner tr">${cornerSvg()}</div>
-      <div class="cert-corner bl">${cornerSvg()}</div>
-      <div class="cert-corner br">${cornerSvg()}</div>
       ${deleteBtn}
-      <div class="cert-top-orn">
-        <svg width="60" height="8" viewBox="0 0 60 8"><line x1="0" y1="4" x2="24" y2="4" stroke="#1a1a1a" stroke-width="0.8"/><circle cx="30" cy="4" r="2.5" fill="none" stroke="#1a1a1a" stroke-width="0.8"/><line x1="36" y1="4" x2="60" y2="4" stroke="#1a1a1a" stroke-width="0.8"/></svg>
-      </div>
-      <div class="cert-bot-orn">
-        <svg width="60" height="8" viewBox="0 0 60 8"><line x1="0" y1="4" x2="24" y2="4" stroke="#1a1a1a" stroke-width="0.8"/><circle cx="30" cy="4" r="2.5" fill="none" stroke="#1a1a1a" stroke-width="0.8"/><line x1="36" y1="4" x2="60" y2="4" stroke="#1a1a1a" stroke-width="0.8"/></svg>
-      </div>
       <div class="cert-inner">
-        <div class="cert-logo-wrap">
-          <img class="cert-logo-img" src="image/golgab-logo.png" alt="GOLGAB ZONE" />
-          <div class="cert-logo-text">GOLGAB ZONE</div>
-        </div>
         <div class="cert-title">CERTIFICATE</div>
         <div class="cert-subtitle">${getAchTypeLabel(a.type)}</div>
         <div class="cert-hr"></div>
@@ -1033,11 +984,14 @@ function renderAchCards() {
             <div class="cert-date">${formatCertDate(a.date)}</div>
           </div>
           <div class="cert-footer-col">
-            <div class="cert-seal"><div class="cert-seal-inner">GOLGAB<br>ZONE</div></div>
+            <div class="cert-footer-logo">
+              <img src="image/golgab-logo.png" alt="GOLGAB ZONE" />
+              <div class="cert-footer-logo-text">GOLGAB ZONE</div>
+            </div>
           </div>
           <div class="cert-footer-col">
             <div class="cert-footer-label">ISSUED BY</div>
-            <div class="cert-sig">Golgab Zone</div>
+            <div class="cert-sig" style="font-family:'Dancing Script',cursive;font-size:16px;color:#333;">Golgab Zone</div>
           </div>
         </div>
       </div>`;
