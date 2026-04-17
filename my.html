@@ -273,9 +273,11 @@
     /* 2열 그리드 */
     .ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    /* 상장 카드 - 컴팩트 2열 */
+    /* 상장 카드 - 컴팩트 2열 가로형 */
     .cert-wrapper { display: flex; flex-direction: column; }
     .cert-card {
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
       opacity: 0;
       transform: translateY(20px) scale(0.97);
       transition: opacity 0.4s ease, transform 0.4s ease;
@@ -293,9 +295,11 @@
     }
 
     .cert-inner {
-      padding: 12px 10px 10px;
+      padding: 9px 9px 7px;
       position: relative; z-index: 1;
       text-align: center;
+      height: 100%;
+      display: flex; flex-direction: column; justify-content: space-between;
     }
 
     .cert-title {
@@ -308,33 +312,33 @@
       font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
       color: #cc0000; margin-bottom: 6px; line-height: 1;
     }
-    .cert-hr { height: 1px; background: #1a1a1a; margin: 0 8px 6px; }
+    .cert-hr { height: 1px; background: #1a1a1a; margin: 0 8px 4px; }
 
     .cert-presented {
-      font-size: 6.5px; font-weight: 700; letter-spacing: 0.16em;
-      color: #777; margin-bottom: 3px;
+      font-size: 6px; font-weight: 700; letter-spacing: 0.14em;
+      color: #777; margin-bottom: 2px;
     }
     .cert-nick {
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      font-size: 15px; font-weight: 900;
-      color: #111; line-height: 1.2; margin-bottom: 4px;
+      font-size: 13px; font-weight: 900;
+      color: #111; line-height: 1.2; margin-bottom: 3px;
     }
-    .cert-achievement-text { font-size: 9.5px; line-height: 1.55; color: #444; }
+    .cert-achievement-text { font-size: 8.5px; line-height: 1.5; color: #444; }
     .cert-detail-em { font-weight: 700; color: #111; }
 
     .cert-footer {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 7px; padding-top: 6px;
+      padding-top: 5px;
       border-top: 0.8px solid #ccc;
     }
     .cert-footer-col { flex: 1; text-align: center; }
-    .cert-footer-label { font-size: 6px; font-weight: 700; letter-spacing: 0.1em; color: #999; margin-bottom: 2px; }
-    .cert-date { font-size: 8px; color: #333; font-weight: 600; }
-    .cert-sig { font-family: 'Dancing Script', cursive; font-size: 12px; color: #333; line-height: 1; }
+    .cert-footer-label { font-size: 5.5px; font-weight: 700; letter-spacing: 0.1em; color: #999; margin-bottom: 1px; }
+    .cert-date { font-size: 7px; color: #333; font-weight: 600; }
+    .cert-sig { font-family: 'Dancing Script', cursive; font-size: 11px; color: #333; line-height: 1; }
 
-    .cert-footer-logo { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .cert-footer-logo img { width: 26px; height: 26px; object-fit: contain; }
-    .cert-footer-logo-text { font-size: 6px; font-weight: 900; letter-spacing: 0.06em; color: #1a1a1a; }
+    .cert-footer-logo { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .cert-footer-logo img { width: 22px; height: 22px; object-fit: contain; }
+    .cert-footer-logo-text { font-size: 5.5px; font-weight: 900; letter-spacing: 0.05em; color: #1a1a1a; }
 
     /* 카드 액션 버튼 */
     .cert-actions {
