@@ -339,7 +339,7 @@
 
     /* 카드 액션 버튼 */
     .cert-actions {
-      display: flex; justify-content: flex-end; gap: 8px; padding: 7px 0 0;
+      display: flex; justify-content: flex-end; gap: 8px; padding: 10px 0 24px;
     }
     .cert-action-dl {
       background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3);
@@ -347,6 +347,12 @@
       padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
     }
     .cert-action-dl:active { background: rgba(62,160,102,0.22); }
+    .cert-action-edit {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 700;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+    }
+    .cert-action-edit:active { background: rgba(255,255,255,0.14); }
     .cert-action-del {
       background: rgba(200,0,0,0.07); border: 1px solid rgba(200,0,0,0.18);
       color: rgba(200,50,50,0.75); font-size: 11px; font-weight: 700;
@@ -585,7 +591,7 @@
         <input class="field-input" id="add-ach-memo" type="text" placeholder="짧은 메모를 남겨보세요" />
       </div>
 
-      <button class="btn-primary" onclick="saveAchievement()">상장 발급</button>
+      <button class="btn-primary" id="btn-save-ach" onclick="saveAchievement()">상장 발급</button>
     </div>
   </div>
 
@@ -690,6 +696,7 @@ let notices = [];
 let achievements = [];
 let selectedAchType = '';
 let currentFilter = 'all';
+let editingAchId = null;
 const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
 // ── Auth ──────────────────────────────────────────────
@@ -1052,6 +1059,7 @@ function renderAchCards() {
     actions.className = 'cert-actions';
     actions.innerHTML = `
       <button class="cert-action-dl" onclick="downloadCert('${a.id}')">JPG</button>
+      <button class="cert-action-edit" onclick="openEditAchModal('${a.id}')">수정</button>
       <button class="cert-action-del" onclick="deleteAchievement('${a.id}')">삭제</button>`;
 
     wrapper.appendChild(card);
@@ -1066,6 +1074,7 @@ function renderAchCards() {
 
 // 기록 추가 모달
 window.openAddAchModal = () => {
+  editingAchId = null;
   selectedAchType = '';
   document.querySelectorAll('.type-pill').forEach(p => p.className = 'type-pill');
   document.getElementById('add-ach-date').value = new Date().toISOString().split('T')[0];
@@ -1075,6 +1084,27 @@ window.openAddAchModal = () => {
   document.getElementById('add-ach-rank').value = '';
   document.getElementById('add-ach-memo').value = '';
   toggleAchFields('');
+  document.querySelector('#modal-add-ach .modal-title').childNodes[0].textContent = '기록 추가 ';
+  document.getElementById('btn-save-ach').textContent = '상장 발급';
+  document.getElementById('modal-add-ach').classList.add('show');
+};
+
+window.openEditAchModal = (id) => {
+  const a = achievements.find(a => a.id === id);
+  if (!a) return;
+  editingAchId = id;
+  selectedAchType = a.type;
+  document.querySelectorAll('.type-pill').forEach(p => p.className = 'type-pill');
+  document.getElementById(`pill-${a.type}`).className = `type-pill sel-${a.type}`;
+  document.getElementById('add-ach-date').value = a.date || '';
+  document.getElementById('add-ach-course').value = a.course || '';
+  document.getElementById('add-ach-hole').value = a.hole || '';
+  document.getElementById('add-ach-tournament').value = a.tournamentName || '';
+  document.getElementById('add-ach-rank').value = a.rank || '';
+  document.getElementById('add-ach-memo').value = a.memo || '';
+  toggleAchFields(a.type);
+  document.querySelector('#modal-add-ach .modal-title').childNodes[0].textContent = '기록 수정 ';
+  document.getElementById('btn-save-ach').textContent = '수정 저장';
   document.getElementById('modal-add-ach').classList.add('show');
 };
 
@@ -1123,12 +1153,24 @@ window.saveAchievement = async () => {
   }
 
   try {
-    const ref = await addDoc(collection(db, 'achievements'), data);
-    achievements.unshift({ id: ref.id, ...data });
-    closeModal('modal-add-ach');
-    updateAchMenuDesc();
-    renderAchCards();
-    showToast('상장이 발급되었습니다!');
+    if (editingAchId) {
+      // 수정 모드
+      await updateDoc(doc(db, 'achievements', editingAchId), data);
+      const idx = achievements.findIndex(a => a.id === editingAchId);
+      if (idx !== -1) achievements[idx] = { ...achievements[idx], ...data };
+      closeModal('modal-add-ach');
+      updateAchMenuDesc();
+      renderAchCards();
+      showToast('수정되었습니다');
+    } else {
+      // 신규 등록
+      const ref = await addDoc(collection(db, 'achievements'), data);
+      achievements.unshift({ id: ref.id, ...data });
+      closeModal('modal-add-ach');
+      updateAchMenuDesc();
+      renderAchCards();
+      showToast('상장이 발급되었습니다!');
+    }
   } catch (e) { showToast('저장 실패: ' + e.message); }
 };
 
