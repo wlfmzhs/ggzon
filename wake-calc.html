@@ -121,7 +121,10 @@
   <div class="scroll-area">
 
     <div class="field-group">
-      <div class="field-label">출발지 (집 주소)</div>
+      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>출발지 (집 주소)</span>
+        <button id="btn-save-home" onclick="saveHome()" style="display:none;background:none;border:1px solid var(--green-light);border-radius:6px;color:var(--green-light);font-size:10px;padding:2px 8px;cursor:pointer;font-family:inherit;">기본 주소 저장</button>
+      </div>
       <div class="location-wrap" style="position:relative;">
         <input class="field-input" id="calc-origin" type="text" placeholder="주소 입력 또는 현재 위치 사용" autocomplete="off" />
         <button class="loc-btn" id="btn-gps" title="현재 위치">
@@ -129,6 +132,7 @@
         </button>
         <div class="autocomplete-list" id="list-origin" style="display:none;position:absolute;top:100%;left:0;right:0;"></div>
       </div>
+      <div id="home-saved-tag" style="display:none;font-size:10px;color:rgba(255,255,255,0.3);margin-top:5px;padding-left:2px;">저장된 집 주소</div>
     </div>
 
     <div class="field-group">
@@ -205,11 +209,40 @@
 <script>
   const MAPS_KEY = 'AIzaSyAXV5rH2xNgeYAki_6HkFqTb3pMftHCtpU';
   let originLocation = null;
-  let originLocation = null;
   let destLocation   = null;
   let sessionToken   = null;
 
   document.getElementById('btn-back').addEventListener('click', () => history.back());
+
+  // 집 주소 불러오기
+  function loadHome() {
+    const saved = localStorage.getItem('wakeCalcHome');
+    if (!saved) return;
+    const { text, lat, lng } = JSON.parse(saved);
+    document.getElementById('calc-origin').value = text;
+    originLocation = { latitude: lat, longitude: lng };
+    document.getElementById('home-saved-tag').style.display = 'block';
+  }
+  loadHome();
+
+  function saveHome() {
+    if (!originLocation || typeof originLocation !== 'object') return;
+    const text = document.getElementById('calc-origin').value.trim();
+    localStorage.setItem('wakeCalcHome', JSON.stringify({ text, lat: originLocation.latitude, lng: originLocation.longitude }));
+    const btn = document.getElementById('btn-save-home');
+    btn.textContent = '저장됨';
+    btn.style.borderColor = 'rgba(255,255,255,0.3)';
+    btn.style.color = 'rgba(255,255,255,0.3)';
+    document.getElementById('home-saved-tag').style.display = 'block';
+  }
+
+  function showSaveBtn() {
+    document.getElementById('btn-save-home').style.display = 'inline-block';
+    document.getElementById('btn-save-home').textContent = '기본 주소 저장';
+    document.getElementById('btn-save-home').style.borderColor = 'var(--green-light)';
+    document.getElementById('btn-save-home').style.color = 'var(--green-light)';
+    document.getElementById('home-saved-tag').style.display = 'none';
+  }
 
   function newToken() {
     return Math.random().toString(36).slice(2);
@@ -255,6 +288,7 @@
         const name    = el.dataset.name;
         if (listId === 'list-origin') {
           document.getElementById('calc-origin').value = el.querySelector('strong').textContent + (el.querySelector('span') ? ' ' + el.querySelector('span').textContent : '');
+          showSaveBtn();
           getPlaceLatLng(placeId, 'origin');
         } else {
           document.getElementById('calc-course').value = name;
@@ -332,6 +366,7 @@
       } catch(e) {}
       badge.textContent = '현재 위치 확인됨 — 골프장도 선택해주세요';
       badge.style.color = 'rgba(255,255,255,0.4)';
+      showSaveBtn();
       calcDistance();
     });
   });
