@@ -379,13 +379,21 @@
   });
 
   function calcWakeTime() {
+    const originVal = document.getElementById('calc-origin').value.trim();
+    const courseVal = document.getElementById('calc-course').value.trim();
+    if (!originVal || !courseVal) {
+      const badge = document.getElementById('travel-badge');
+      badge.textContent = '출발지와 골프장(도착지)를 입력해 주세요';
+      badge.style.color = '#f87171';
+      return;
+    }
     const ampm   = document.getElementById('calc-ampm').value;
     const hour   = parseInt(document.getElementById('calc-hour').value);
     const min    = parseInt(document.getElementById('calc-min').value);
     const travel = parseInt(document.getElementById('calc-travel').value) || 0;
     const prep   = parseInt(document.getElementById('calc-prep').value) || 0;
     const buffer = parseInt(document.getElementById('calc-buffer').value) || 0;
-    const course = document.getElementById('calc-course').value.trim() || '골프장';
+    const course = courseVal || '골프장';
 
     let teeH24 = ampm === 'PM' && hour !== 12 ? hour + 12 : ampm === 'AM' && hour === 12 ? 0 : hour;
     let teeMinutes = teeH24 * 60 + min;
