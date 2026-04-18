@@ -310,7 +310,13 @@
         badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
         badge.classList.add('show');
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error('Routes API 오류:', e);
+      const badge = document.getElementById('travel-badge');
+      badge.textContent = '이동시간 자동 계산 실패 — 직접 입력해주세요';
+      badge.style.color = '#f87171';
+      badge.classList.add('show');
+    }
 
     btn.textContent = '계산하기';
     btn.disabled = false;
