@@ -668,7 +668,7 @@
         const isScreen = j.joinType === 'screen';
         const typeBadge = `<span class="live-badge ${isScreen ? 'screen' : 'field'}">${isScreen ? '스크린' : '필드'}</span>`;
         const meta = [date, time, `${cur}/${max}명`].filter(Boolean).join(' · ');
-        return `<div class="live-card" onclick="checkPaidAndGo('join.html')">`
+        return `<div class="live-card" onclick="checkPaidAndGo('join.html')">
           <div class="live-card-icon">${joinIcon}</div>
           <div class="live-card-info">
             <div class="live-card-top">
@@ -694,7 +694,7 @@
       if (items.length === 0) { el.innerHTML = '<div class="live-empty">현재 모집 중인 대회가 없습니다</div>'; return; }
       el.innerHTML = items.map(t => {
         const meta = [t.date, t.golfCourseName, t.totalParticipants ? `${t.totalParticipants}명` : ''].filter(Boolean).join(' · ');
-        return `<div class="live-card" onclick="checkPaidAndGo('event.html')">`
+        return `<div class="live-card" onclick="checkPaidAndGo('event.html')">
           <div class="live-card-icon">${tournIcon}</div>
           <div class="live-card-info">
             <div class="live-card-top">
