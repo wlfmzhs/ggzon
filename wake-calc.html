@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>기상시간 계산 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --border: rgba(62,160,102,0.18);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 768px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+
+    .appbar {
+      flex-shrink: 0; padding: 32px 18px 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #btn-back { background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0; color: var(--green-light); font-size: 20px; line-height: 1; }
+    .appbar-title { font-size: 16px; font-weight: 900; }
+    .appbar-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-left: auto; }
+
+    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 16px 20px 40px; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    .field-group { margin-bottom: 18px; }
+    .field-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; margin-bottom: 8px; }
+    .field-input {
+      width: 100%; padding: 14px 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 12px; color: #fff;
+      font-size: 15px; font-family: inherit; outline: none;
+    }
+    .field-input:focus { border-color: var(--green-light); }
+    .field-input::placeholder { color: rgba(255,255,255,0.2); }
+    select.field-input option { background: #0f2d18; }
+
+    .row { display: flex; gap: 10px; }
+    .row .field-group { flex: 1; }
+
+    .divider { height: 1px; background: var(--border); margin: 8px 0 20px; }
+
+    .section-title {
+      font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.08em; margin-bottom: 14px;
+    }
+
+    .calc-btn {
+      width: 100%; padding: 16px;
+      background: var(--green); color: #fff;
+      font-size: 16px; font-weight: 900;
+      border-radius: 14px; border: none; cursor: pointer;
+      font-family: inherit; margin-top: 8px;
+      transition: background 0.2s;
+    }
+    .calc-btn:active { background: var(--green-light); }
+
+    .result-box {
+      display: none;
+      margin-top: 24px;
+      background: rgba(62,160,102,0.1);
+      border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 20px; padding: 28px 20px;
+      text-align: center;
+    }
+    .result-box.show { display: block; }
+    .result-course { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+    .result-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+    .result-time { font-size: 52px; font-weight: 900; color: var(--green-light); letter-spacing: -2px; line-height: 1; }
+    .result-ampm { font-size: 20px; font-weight: 700; color: var(--green-light); margin-bottom: 16px; }
+    .result-breakdown {
+      display: flex; justify-content: center; gap: 0;
+      flex-wrap: wrap; margin-top: 16px;
+    }
+    .breakdown-item {
+      text-align: center; padding: 10px 14px;
+      border-right: 1px solid var(--border);
+    }
+    .breakdown-item:last-child { border-right: none; }
+    .breakdown-val { font-size: 16px; font-weight: 900; color: #fff; }
+    .breakdown-key { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div class="appbar">
+    <button id="btn-back">&#8249;</button>
+    <span class="appbar-title">기상시간 계산</span>
+    <span class="appbar-sub">티업 역산</span>
+  </div>
+
+  <div class="scroll-area">
+
+    <div class="field-group">
+      <div class="field-label">골프장명</div>
+      <input class="field-input" id="calc-course" type="text" placeholder="예) 스카이72 오션코스" />
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">티업 시간</div>
+      <div class="row">
+        <div class="field-group" style="max-width:90px;">
+          <select class="field-input" id="calc-ampm">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <select class="field-input" id="calc-hour">
+            <option value="1">01시</option>
+            <option value="2">02시</option>
+            <option value="3">03시</option>
+            <option value="4">04시</option>
+            <option value="5">05시</option>
+            <option value="6">06시</option>
+            <option value="7" selected>07시</option>
+            <option value="8">08시</option>
+            <option value="9">09시</option>
+            <option value="10">10시</option>
+            <option value="11">11시</option>
+            <option value="12">12시</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <select class="field-input" id="calc-min">
+            <option value="0">00분</option>
+            <option value="10">10분</option>
+            <option value="20">20분</option>
+            <option value="30">30분</option>
+            <option value="40">40분</option>
+            <option value="50">50분</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">기본 설정 (분 단위)</div>
+
+    <div class="row">
+      <div class="field-group">
+        <div class="field-label">이동 시간</div>
+        <input class="field-input" id="calc-travel" type="number" value="60" min="0" />
+      </div>
+      <div class="field-group">
+        <div class="field-label">준비 시간</div>
+        <input class="field-input" id="calc-prep" type="number" value="60" min="0" />
+      </div>
+      <div class="field-group">
+        <div class="field-label">여유 시간</div>
+        <input class="field-input" id="calc-buffer" type="number" value="30" min="0" />
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calcWakeTime()">계산하기</button>
+
+    <div class="result-box" id="result-box">
+      <div class="result-course" id="result-course"></div>
+      <div class="result-label">기상 시간</div>
+      <div class="result-ampm" id="result-ampm"></div>
+      <div class="result-time" id="result-time"></div>
+      <div class="result-breakdown">
+        <div class="breakdown-item">
+          <div class="breakdown-val" id="bd-travel"></div>
+          <div class="breakdown-key">이동</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-val" id="bd-prep"></div>
+          <div class="breakdown-key">준비</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-val" id="bd-buffer"></div>
+          <div class="breakdown-key">여유</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-val" id="bd-total"></div>
+          <div class="breakdown-key">총 역산</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.getElementById('btn-back').addEventListener('click', () => history.back());
+
+  function calcWakeTime() {
+    const ampm   = document.getElementById('calc-ampm').value;
+    const hour   = parseInt(document.getElementById('calc-hour').value);
+    const min    = parseInt(document.getElementById('calc-min').value);
+    const travel = parseInt(document.getElementById('calc-travel').value) || 0;
+    const prep   = parseInt(document.getElementById('calc-prep').value) || 0;
+    const buffer = parseInt(document.getElementById('calc-buffer').value) || 0;
+    const course = document.getElementById('calc-course').value.trim() || '골프장';
+
+    let teeH24 = ampm === 'PM' && hour !== 12 ? hour + 12 : ampm === 'AM' && hour === 12 ? 0 : hour;
+    let teeMinutes = teeH24 * 60 + min;
+
+    const totalBack = travel + prep + buffer;
+    let wakeMinutes = teeMinutes - totalBack;
+    if (wakeMinutes < 0) wakeMinutes += 1440;
+
+    const wakeH24 = Math.floor(wakeMinutes / 60);
+    const wakeM   = wakeMinutes % 60;
+    const wakeAmpm = wakeH24 < 12 ? 'AM' : 'PM';
+    const wakeH12  = wakeH24 === 0 ? 12 : wakeH24 > 12 ? wakeH24 - 12 : wakeH24;
+
+    const teeStr = `${ampm} ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+
+    document.getElementById('result-course').textContent = `${course} · 티업 ${teeStr}`;
+    document.getElementById('result-ampm').textContent = wakeAmpm;
+    document.getElementById('result-time').textContent = `${String(wakeH12).padStart(2,'0')}:${String(wakeM).padStart(2,'0')}`;
+    document.getElementById('bd-travel').textContent = travel + '분';
+    document.getElementById('bd-prep').textContent = prep + '분';
+    document.getElementById('bd-buffer').textContent = buffer + '분';
+    document.getElementById('bd-total').textContent = totalBack + '분';
+    document.getElementById('result-box').classList.add('show');
+  }
+</script>
+</body>
+</html>

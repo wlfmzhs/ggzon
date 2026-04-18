@@ -466,64 +466,13 @@
         <div class="menu-text">내 조인 내역</div>
         <div class="menu-arrow">&#8250;</div>
       </div>
-    </div>
-
-    <!-- 기상시간계산 -->
-    <div class="section" id="wake-calc">
-      <div class="section-label">기상시간 계산</div>
-      <div style="padding:4px 0 16px;">
-
-        <div style="margin-bottom:12px;">
-          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;">골프장명</div>
-          <input id="calc-course" type="text" placeholder="예) 스카이72 오션코스" style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
+      <div class="divider"></div>
+      <div class="menu-item" onclick="location.href='wake-calc.html'">
+        <div class="menu-icon" style="background:rgba(62,160,102,0.12);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-
-        <div style="margin-bottom:12px;">
-          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;">티업 시간</div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <select id="calc-ampm" style="padding:12px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;">
-              <option value="AM">AM</option>
-              <option value="PM">PM</option>
-            </select>
-            <select id="calc-hour" style="flex:1;padding:12px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;">
-              <option value="1">01시</option><option value="2">02시</option><option value="3">03시</option><option value="4">04시</option><option value="5">05시</option><option value="6">06시</option><option value="7" selected>07시</option><option value="8">08시</option><option value="9">09시</option><option value="10">10시</option><option value="11">11시</option><option value="12">12시</option>
-            </select>
-            <select id="calc-min" style="flex:1;padding:12px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;">
-              <option value="0">00분</option>
-              <option value="10">10분</option>
-              <option value="20">20분</option>
-              <option value="30">30분</option>
-              <option value="40">40분</option>
-              <option value="50">50분</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="margin-bottom:12px;">
-          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;">이동 시간 (분)</div>
-          <input id="calc-travel" type="number" placeholder="예) 60" value="60" min="0" style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
-        </div>
-
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <div style="flex:1;">
-            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;">준비 시간 (분)</div>
-            <input id="calc-prep" type="number" value="60" min="0" style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
-          </div>
-          <div style="flex:1;">
-            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;">여유 시간 (분)</div>
-            <input id="calc-buffer" type="number" value="30" min="0" style="width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
-          </div>
-        </div>
-
-        <button onclick="calcWakeTime()" style="width:100%;padding:14px;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;">계산하기</button>
-
-        <div id="calc-result" style="display:none;margin-top:16px;background:rgba(62,160,102,0.12);border:1px solid rgba(62,160,102,0.3);border-radius:14px;padding:20px;text-align:center;">
-          <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:6px;" id="calc-course-label"></div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">기상 시간</div>
-          <div style="font-size:42px;font-weight:900;color:#3ea066;letter-spacing:-1px;" id="calc-wake-time"></div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:10px;line-height:1.8;" id="calc-breakdown"></div>
-        </div>
-
+        <div class="menu-text">기상시간 계산<div class="menu-desc">티업 시간으로 기상 시간 역산</div></div>
+        <div class="menu-arrow">&#8250;</div>
       </div>
     </div>
 
@@ -824,44 +773,6 @@ onAuthStateChanged(auth, async (user) => {
 // ── 뒤로가기 ──────────────────────────────────────────
 document.getElementById('btn-back').addEventListener('click', () => history.back());
 document.getElementById('ach-back').addEventListener('click', closeAchOverlay);
-
-// ── 기상시간 계산 ─────────────────────────────────────
-window.calcWakeTime = function() {
-  const ampm   = document.getElementById('calc-ampm').value;
-  const hour   = parseInt(document.getElementById('calc-hour').value);
-  const min    = parseInt(document.getElementById('calc-min').value);
-  const travel = parseInt(document.getElementById('calc-travel').value) || 0;
-  const prep   = parseInt(document.getElementById('calc-prep').value) || 0;
-  const buffer = parseInt(document.getElementById('calc-buffer').value) || 0;
-  const course = document.getElementById('calc-course').value.trim() || '골프장';
-
-  let teeupMinutes = (ampm === 'PM' && hour !== 12 ? hour + 12 : (ampm === 'AM' && hour === 12 ? 0 : hour)) * 60 + min;
-  const totalBack = buffer + travel + prep;
-  let wakeMinutes = teeupMinutes - totalBack;
-  if (wakeMinutes < 0) wakeMinutes += 1440;
-
-  const wakeH = Math.floor(wakeMinutes / 60);
-  const wakeM = wakeMinutes % 60;
-  const wakeAmpm = wakeH < 12 ? 'AM' : 'PM';
-  const wakeH12 = wakeH === 0 ? 12 : wakeH > 12 ? wakeH - 12 : wakeH;
-  const wakeStr = `${wakeAmpm} ${String(wakeH12).padStart(2,'0')}:${String(wakeM).padStart(2,'0')}`;
-
-  const teeH12 = hour;
-  const teeStr = `${ampm} ${String(teeH12).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
-
-  document.getElementById('calc-course-label').textContent = `${course} · 티업 ${teeStr}`;
-  document.getElementById('calc-wake-time').textContent = wakeStr;
-  document.getElementById('calc-breakdown').textContent =
-    `준비 ${prep}분 + 이동 ${travel}분 + 여유 ${buffer}분 = 총 ${totalBack}분 전`;
-  document.getElementById('calc-result').style.display = 'block';
-};
-
-// 해시로 기상계산 섹션 자동 스크롤
-if (window.location.hash === '#wake-calc') {
-  setTimeout(() => {
-    document.getElementById('wake-calc')?.scrollIntoView({ behavior: 'smooth' });
-  }, 600);
-}
 
 // ── 로그아웃 ──────────────────────────────────────────
 document.getElementById('btn-logout').addEventListener('click', async () => {
