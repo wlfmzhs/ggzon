@@ -232,6 +232,22 @@
 
   document.getElementById('btn-back').addEventListener('click', () => history.back());
 
+  // 준비/여유 시간 저장 및 불러오기
+  function loadTimeSettings() {
+    const prep   = localStorage.getItem('wakeCalcPrep');
+    const buffer = localStorage.getItem('wakeCalcBuffer');
+    if (prep)   document.getElementById('calc-prep').value   = prep;
+    if (buffer) document.getElementById('calc-buffer').value = buffer;
+  }
+  loadTimeSettings();
+
+  document.getElementById('calc-prep').addEventListener('change', e => {
+    localStorage.setItem('wakeCalcPrep', e.target.value);
+  });
+  document.getElementById('calc-buffer').addEventListener('change', e => {
+    localStorage.setItem('wakeCalcBuffer', e.target.value);
+  });
+
   // 집 주소 불러오기
   function loadHome() {
     const saved = localStorage.getItem('wakeCalcHome');
