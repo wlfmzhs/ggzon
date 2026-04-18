@@ -309,7 +309,7 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': MAPS_KEY,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
+          'X-Goog-FieldMask': '*'
         },
         body: JSON.stringify({
           origin: { location: { latLng: { latitude: originLocation.latitude, longitude: originLocation.longitude } } },
@@ -329,7 +329,7 @@
         badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
         badge.style.color = 'var(--green-light)';
       } else {
-        badge.textContent = `Routes API 오류: ${JSON.stringify(data).slice(0, 80)}`;
+        badge.textContent = `Routes API 오류: ${JSON.stringify(data).slice(0, 150)}`;
         badge.style.color = '#f87171';
       }
     } catch(e) {
