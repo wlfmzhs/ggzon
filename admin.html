@@ -146,7 +146,10 @@
       <input class="search-input" id="member-search" type="text" placeholder="이름, 닉네임, 연락처 검색..." oninput="filterMembers()" />
     </div>
 
-    <div class="section-title">회원 목록</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="section-title" style="margin-bottom:0;">회원 목록</div>
+      <button id="btn-all-paid" onclick="window.setAllPaid()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;cursor:pointer;font-family:inherit;">전체 유료 전환</button>
+    </div>
     <div id="member-list"></div>
   </div>
 
@@ -276,18 +279,47 @@ window.showMember = function(id) {
   const m = allMembers.find(x => x.id === id);
   if (!m) return;
   document.getElementById('member-detail').innerHTML = `
-    <div class="detail-row"><div class="detail-label">닉네임</div><div class="detail-value">${m.nickname || '-'}${m.isPaid ? ' ⭐ 유료' : ' (무료)'}</div></div>
+    <div class="detail-row"><div class="detail-label">닉네임</div><div class="detail-value">${m.nickname || '-'}</div></div>
     <div class="detail-row"><div class="detail-label">이름</div><div class="detail-value">${m.name || '-'}${m.birthYear2 ? ' / ' + m.birthYear2 + '년생' : ''}</div></div>
     <div class="detail-row"><div class="detail-label">연락처</div><div class="detail-value">${m.phone ? `<a href="tel:${m.phone}" style="color:var(--green-light);text-decoration:none;">${m.phone}</a>` : '미등록'}</div></div>
     <div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value"><a href="mailto:${m.email}" style="color:var(--green-light);text-decoration:none;">${m.email || '-'}</a></div></div>
     <div class="detail-row"><div class="detail-label">핸디캡 / 거주지</div><div class="detail-value">${[m.handicap, m.region].filter(Boolean).join(' / ') || '-'}</div></div>
     <div class="detail-row"><div class="detail-label">가입일</div><div class="detail-value">${m.createdAt ? m.createdAt.slice(0,10) : '-'}</div></div>
+    <button onclick="window.togglePaid('${m.id}', ${!!m.isPaid})" id="btn-toggle-paid" style="width:100%;padding:13px;border-radius:12px;background:${m.isPaid ? 'rgba(62,160,102,0.2)' : 'rgba(240,192,64,0.15)'};border:1px solid ${m.isPaid ? 'rgba(62,160,102,0.4)' : 'rgba(240,192,64,0.4)'};color:${m.isPaid ? 'var(--green-light)' : '#f0c040'};font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:inherit;">${m.isPaid ? '유료 회원 → 무료로 전환' : '무료 회원 → 유료로 전환'}</button>
     <button onclick="window.forceWithdraw('${m.id}', '${(m.nickname||'').replace(/'/g,'')}')" style="width:100%;padding:13px;border-radius:12px;background:rgba(220,50,50,0.2);border:1px solid rgba(220,50,50,0.4);color:#ff6b6b;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;">강제 탈퇴</button>
   `;
   document.getElementById('modal-member').classList.add('show');
 };
 
 window.closeModal = () => document.getElementById('modal-member').classList.remove('show');
+
+window.togglePaid = async function(uid, currentIsPaid) {
+  const newVal = !currentIsPaid;
+  try {
+    await updateDoc(doc(db, 'users', uid), { isPaid: newVal });
+    showToast(newVal ? '유료 회원으로 전환했습니다.' : '무료 회원으로 전환했습니다.');
+    window.closeModal();
+    await loadMembers();
+  } catch (e) {
+    showToast('처리 중 오류가 발생했습니다.');
+  }
+};
+
+window.setAllPaid = async function() {
+  if (!confirm('모든 회원을 유료 회원으로 전환하시겠어요?\n테스트 종료 후 실제 운영 시 사용하세요.')) return;
+  const btn = document.getElementById('btn-all-paid');
+  btn.textContent = '처리 중...';
+  btn.disabled = true;
+  try {
+    await Promise.all(allMembers.map(m => updateDoc(doc(db, 'users', m.id), { isPaid: true })));
+    showToast(`${allMembers.length}명 전원 유료 전환 완료!`);
+    await loadMembers();
+  } catch (e) {
+    showToast('처리 중 오류가 발생했습니다.');
+  }
+  btn.textContent = '전체 유료 전환';
+  btn.disabled = false;
+};
 
 window.forceWithdraw = async function(uid, nickname) {
   if (!confirm(`"${nickname}" 회원을 강제 탈퇴 처리하시겠어요?\n탈퇴 후 해당 회원은 로그인이 차단됩니다.`)) return;
