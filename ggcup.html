@@ -302,6 +302,21 @@
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = 'login.html?return=ggcup.html'; return; }
     currentUser = user;
+    if (user.email !== 'wlfmzhs@naver.com') {
+      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      if (!userSnap.exists() || userSnap.data().isPaid !== true) {
+        document.getElementById('loading-overlay').classList.add('hidden');
+        document.querySelector('.scroll-area').innerHTML = `
+          <div style="text-align:center;padding:60px 24px;">
+            <div style="font-size:40px;margin-bottom:16px;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(62,160,102,0.6)" stroke-width="1.5"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+            </div>
+            <div style="font-size:17px;font-weight:900;margin-bottom:10px;">유료 회원 전용</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.7;">GG CUP은 유료 회원에게만 공개됩니다.<br>관리자에게 문의해 주세요.</div>
+          </div>`;
+        return;
+      }
+    }
     document.getElementById('loading-overlay').classList.add('hidden');
     await loadRanking();
     await loadHistory();

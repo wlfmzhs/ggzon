@@ -378,9 +378,9 @@
 
   <div class="top-tabs">
     <button class="top-tab active">홈</button>
-    <button class="top-tab" onclick="location.href='event.html'">단체라운드 대회</button>
-    <button class="top-tab" onclick="location.href='join.html'">조인</button>
-    <button class="top-tab ggcup-tab" onclick="location.href='ggcup.html'">GG CUP</button>
+    <button class="top-tab" onclick="checkPaidAndGo('event.html')">단체라운드 대회</button>
+    <button class="top-tab" onclick="checkPaidAndGo('join.html')">조인</button>
+    <button class="top-tab ggcup-tab" onclick="checkPaidAndGo('ggcup.html')">GG CUP</button>
     <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
     <button class="top-tab" onclick="showToast('준비 중입니다')">구독자라운드</button>
     <button class="top-tab" onclick="location.href='round-map.html'">라운드지도</button>
@@ -424,25 +424,25 @@
         </div>
 
         <!-- 카드 3: 조인 -->
-        <div class="banner-card" onclick="location.href='join.html'">
+        <div class="banner-card" onclick="checkPaidAndGo('join.html')">
           <img class="banner-card-img" src="image/조인.jpg" alt="조인" style="object-position: 60% center;" />
           <div class="banner-card-overlay"></div>
           <div class="banner-card-body">
             <div class="banner-card-title">조인<br>JOIN</div>
             <div class="banner-card-sub">골갑 멤버들과<br>함께하는 라운드</div>
           </div>
-          <button class="banner-card-cta" onclick="event.stopPropagation(); location.href='join.html'">참여하기 ›</button>
+          <button class="banner-card-cta" onclick="event.stopPropagation(); checkPaidAndGo('join.html')">참여하기 ›</button>
         </div>
 
         <!-- 카드 4: 단체라운드 대회 -->
-        <div class="banner-card" onclick="location.href='event.html'">
+        <div class="banner-card" onclick="checkPaidAndGo('event.html')">
           <img class="banner-card-img" src="image/대회.webp" alt="단체라운드 대회" />
           <div class="banner-card-overlay"></div>
           <div class="banner-card-body">
             <div class="banner-card-title">단체라운드<br>대회</div>
             <div class="banner-card-sub">GPGA OPEN<br>흑백대전 · 멤버십 대회</div>
           </div>
-          <button class="banner-card-cta" onclick="event.stopPropagation(); location.href='event.html'">참가하기 ›</button>
+          <button class="banner-card-cta" onclick="event.stopPropagation(); checkPaidAndGo('event.html')">참가하기 ›</button>
         </div>
 
       </div>
@@ -529,7 +529,7 @@
       <!-- 조인 모집 -->
       <div class="section-header section-gap">
         <span class="section-title">조인 모집</span>
-        <span class="section-more" onclick="location.href='join.html'">더보기 ›</span>
+        <span class="section-more" onclick="checkPaidAndGo('join.html')">더보기 ›</span>
       </div>
       <div id="live-list">
         <div class="live-empty">불러오는 중...</div>
@@ -538,7 +538,7 @@
       <!-- 대회 모집 -->
       <div class="section-header section-gap" style="margin-top:20px;">
         <span class="section-title">대회 모집</span>
-        <span class="section-more" onclick="location.href='event.html'">더보기 ›</span>
+        <span class="section-more" onclick="checkPaidAndGo('event.html')">더보기 ›</span>
       </div>
       <div id="tournament-list">
         <div class="live-empty">불러오는 중...</div>
@@ -619,10 +619,17 @@
       document.getElementById('user-nick').textContent = d.nickname;
       const parts = [d.name, d.birthYear2 ? d.birthYear2 + '년생' : '', d.region].filter(Boolean);
       document.getElementById('header-name').textContent = parts.length ? parts.join(' / ') : d.nickname;
+      window._isPaidUser = d.isPaid === true || user.email === 'wlfmzhs@naver.com';
     } else {
       document.getElementById('user-nick').textContent = user.displayName || '멤버';
+      window._isPaidUser = false;
     }
   });
+
+  window.checkPaidAndGo = function(url) {
+    if (!window._isPaidUser) { showToast('유료 회원 전용 기능입니다. 관리자에게 문의해 주세요.'); return; }
+    location.href = url;
+  };
 
   // 공지사항 로드
   async function loadNotices() {
@@ -661,7 +668,7 @@
         const isScreen = j.joinType === 'screen';
         const typeBadge = `<span class="live-badge ${isScreen ? 'screen' : 'field'}">${isScreen ? '스크린' : '필드'}</span>`;
         const meta = [date, time, `${cur}/${max}명`].filter(Boolean).join(' · ');
-        return `<div class="live-card" onclick="location.href='join.html'">
+        return `<div class="live-card" onclick="checkPaidAndGo('join.html')">`
           <div class="live-card-icon">${joinIcon}</div>
           <div class="live-card-info">
             <div class="live-card-top">
@@ -687,7 +694,7 @@
       if (items.length === 0) { el.innerHTML = '<div class="live-empty">현재 모집 중인 대회가 없습니다</div>'; return; }
       el.innerHTML = items.map(t => {
         const meta = [t.date, t.golfCourseName, t.totalParticipants ? `${t.totalParticipants}명` : ''].filter(Boolean).join(' · ');
-        return `<div class="live-card" onclick="location.href='event.html'">
+        return `<div class="live-card" onclick="checkPaidAndGo('event.html')">`
           <div class="live-card-icon">${tournIcon}</div>
           <div class="live-card-info">
             <div class="live-card-top">

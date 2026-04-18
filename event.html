@@ -1672,6 +1672,9 @@ function updateRegisterButton() {
 window.openRegisterSheet = async function() {
   if (!selectedSeat) return;
   if (myRegistration) return;
+  const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+  const isPaid = userSnap.exists() && userSnap.data().isPaid === true;
+  if (!isPaid && currentUser.email !== 'wlfmzhs@naver.com') { showToast('유료 회원 전용 기능입니다. 관리자에게 문의해 주세요.'); return; }
 
   const courseNames = getCourseNamesFor(currentTournament);
   const seatLetters = ['A', 'B', 'C', 'D'];
