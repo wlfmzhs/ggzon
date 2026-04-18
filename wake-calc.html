@@ -37,7 +37,6 @@
       .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
       .phone::before { display: none; }
     }
-
     .appbar {
       flex-shrink: 0; padding: 32px 18px 10px;
       display: flex; align-items: center; gap: 8px;
@@ -45,11 +44,9 @@
     #btn-back { background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0; color: var(--green-light); font-size: 20px; line-height: 1; }
     .appbar-title { font-size: 16px; font-weight: 900; }
     .appbar-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-left: auto; }
-
     .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 16px 20px 40px; }
     .scroll-area::-webkit-scrollbar { display: none; }
-
-    .field-group { margin-bottom: 18px; }
+    .field-group { margin-bottom: 16px; }
     .field-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; margin-bottom: 8px; }
     .field-input {
       width: 100%; padding: 14px 16px;
@@ -61,52 +58,62 @@
     .field-input:focus { border-color: var(--green-light); }
     .field-input::placeholder { color: rgba(255,255,255,0.2); }
     select.field-input option { background: #0f2d18; }
-
     .row { display: flex; gap: 10px; }
     .row .field-group { flex: 1; }
+    .divider { height: 1px; background: var(--border); margin: 4px 0 18px; }
+    .section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 0.08em; margin-bottom: 14px; }
 
-    .divider { height: 1px; background: var(--border); margin: 8px 0 20px; }
-
-    .section-title {
-      font-size: 11px; font-weight: 700;
-      color: rgba(255,255,255,0.35);
-      letter-spacing: 0.08em; margin-bottom: 14px;
+    /* 위치 입력 래퍼 */
+    .location-wrap { position: relative; }
+    .location-wrap .field-input { padding-right: 48px; }
+    .loc-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: rgba(62,160,102,0.2); border: none; border-radius: 8px;
+      padding: 6px 8px; cursor: pointer; color: var(--green-light); line-height: 0;
     }
+    .loc-btn:active { background: rgba(62,160,102,0.35); }
+
+    /* 이동시간 자동 배지 */
+    .travel-badge {
+      display: none; font-size: 11px; color: var(--green-light);
+      margin-top: 6px; padding-left: 2px;
+    }
+    .travel-badge.show { display: block; }
 
     .calc-btn {
       width: 100%; padding: 16px;
       background: var(--green); color: #fff;
       font-size: 16px; font-weight: 900;
       border-radius: 14px; border: none; cursor: pointer;
-      font-family: inherit; margin-top: 8px;
+      font-family: inherit; margin-top: 4px;
       transition: background 0.2s;
     }
     .calc-btn:active { background: var(--green-light); }
+    .calc-btn:disabled { opacity: 0.5; }
 
     .result-box {
-      display: none;
-      margin-top: 24px;
+      display: none; margin-top: 24px;
       background: rgba(62,160,102,0.1);
       border: 1px solid rgba(62,160,102,0.3);
-      border-radius: 20px; padding: 28px 20px;
-      text-align: center;
+      border-radius: 20px; padding: 28px 20px; text-align: center;
     }
     .result-box.show { display: block; }
     .result-course { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
-    .result-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
-    .result-time { font-size: 52px; font-weight: 900; color: var(--green-light); letter-spacing: -2px; line-height: 1; }
-    .result-ampm { font-size: 20px; font-weight: 700; color: var(--green-light); margin-bottom: 16px; }
-    .result-breakdown {
-      display: flex; justify-content: center; gap: 0;
-      flex-wrap: wrap; margin-top: 16px;
-    }
-    .breakdown-item {
-      text-align: center; padding: 10px 14px;
-      border-right: 1px solid var(--border);
-    }
+    .result-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+    .result-ampm { font-size: 18px; font-weight: 700; color: var(--green-light); }
+    .result-time { font-size: 52px; font-weight: 900; color: var(--green-light); letter-spacing: -2px; line-height: 1.1; margin-bottom: 16px; }
+    .result-breakdown { display: flex; justify-content: center; }
+    .breakdown-item { text-align: center; padding: 10px 12px; border-right: 1px solid var(--border); }
     .breakdown-item:last-child { border-right: none; }
-    .breakdown-val { font-size: 16px; font-weight: 900; color: #fff; }
+    .breakdown-val { font-size: 15px; font-weight: 900; color: #fff; }
     .breakdown-key { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+    /* 구글 자동완성 드롭다운 스타일 보정 */
+    .pac-container { border-radius: 12px; border: 1px solid var(--border); background: #0f2d18; margin-top: 4px; font-family: inherit; }
+    .pac-item { color: rgba(255,255,255,0.8); padding: 10px 14px; cursor: pointer; font-size: 13px; }
+    .pac-item:hover { background: rgba(62,160,102,0.15); }
+    .pac-item-query { color: #fff; font-weight: 700; }
+    .pac-matched { color: var(--green-light); }
   </style>
 </head>
 <body>
@@ -119,44 +126,46 @@
 
   <div class="scroll-area">
 
+    <!-- 출발지 -->
     <div class="field-group">
-      <div class="field-label">골프장명</div>
-      <input class="field-input" id="calc-course" type="text" placeholder="예) 스카이72 오션코스" />
+      <div class="field-label">출발지 (집 주소)</div>
+      <div class="location-wrap">
+        <input class="field-input" id="calc-origin" type="text" placeholder="주소 입력 또는 현재 위치 사용" />
+        <button class="loc-btn" onclick="useCurrentLocation()" title="현재 위치 사용">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9" stroke-dasharray="2 4"/></svg>
+        </button>
+      </div>
     </div>
 
+    <!-- 골프장 -->
+    <div class="field-group">
+      <div class="field-label">골프장</div>
+      <input class="field-input" id="calc-course" type="text" placeholder="예) 스카이72 오션코스" />
+      <div class="travel-badge" id="travel-badge"></div>
+    </div>
+
+    <!-- 티업 시간 -->
     <div class="field-group">
       <div class="field-label">티업 시간</div>
       <div class="row">
-        <div class="field-group" style="max-width:90px;">
+        <div class="field-group" style="max-width:90px;margin-bottom:0;">
           <select class="field-input" id="calc-ampm">
             <option value="AM">AM</option>
             <option value="PM">PM</option>
           </select>
         </div>
-        <div class="field-group">
+        <div class="field-group" style="margin-bottom:0;">
           <select class="field-input" id="calc-hour">
-            <option value="1">01시</option>
-            <option value="2">02시</option>
-            <option value="3">03시</option>
-            <option value="4">04시</option>
-            <option value="5">05시</option>
-            <option value="6">06시</option>
-            <option value="7" selected>07시</option>
-            <option value="8">08시</option>
-            <option value="9">09시</option>
-            <option value="10">10시</option>
-            <option value="11">11시</option>
-            <option value="12">12시</option>
+            <option value="1">01시</option><option value="2">02시</option><option value="3">03시</option>
+            <option value="4">04시</option><option value="5">05시</option><option value="6">06시</option>
+            <option value="7" selected>07시</option><option value="8">08시</option><option value="9">09시</option>
+            <option value="10">10시</option><option value="11">11시</option><option value="12">12시</option>
           </select>
         </div>
-        <div class="field-group">
+        <div class="field-group" style="margin-bottom:0;">
           <select class="field-input" id="calc-min">
-            <option value="0">00분</option>
-            <option value="10">10분</option>
-            <option value="20">20분</option>
-            <option value="30">30분</option>
-            <option value="40">40분</option>
-            <option value="50">50분</option>
+            <option value="0">00분</option><option value="10">10분</option><option value="20">20분</option>
+            <option value="30">30분</option><option value="40">40분</option><option value="50">50분</option>
           </select>
         </div>
       </div>
@@ -180,7 +189,7 @@
       </div>
     </div>
 
-    <button class="calc-btn" onclick="calcWakeTime()">계산하기</button>
+    <button class="calc-btn" id="calc-btn" onclick="calcWakeTime()">계산하기</button>
 
     <div class="result-box" id="result-box">
       <div class="result-course" id="result-course"></div>
@@ -188,22 +197,10 @@
       <div class="result-ampm" id="result-ampm"></div>
       <div class="result-time" id="result-time"></div>
       <div class="result-breakdown">
-        <div class="breakdown-item">
-          <div class="breakdown-val" id="bd-travel"></div>
-          <div class="breakdown-key">이동</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-val" id="bd-prep"></div>
-          <div class="breakdown-key">준비</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-val" id="bd-buffer"></div>
-          <div class="breakdown-key">여유</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-val" id="bd-total"></div>
-          <div class="breakdown-key">총 역산</div>
-        </div>
+        <div class="breakdown-item"><div class="breakdown-val" id="bd-travel"></div><div class="breakdown-key">이동</div></div>
+        <div class="breakdown-item"><div class="breakdown-val" id="bd-prep"></div><div class="breakdown-key">준비</div></div>
+        <div class="breakdown-item"><div class="breakdown-val" id="bd-buffer"></div><div class="breakdown-key">여유</div></div>
+        <div class="breakdown-item"><div class="breakdown-val" id="bd-total"></div><div class="breakdown-key">총 역산</div></div>
       </div>
     </div>
 
@@ -211,7 +208,85 @@
 </div>
 
 <script>
+  const MAPS_KEY = 'AIzaSyAXV5rH2xNgeYAki_6HkFqTb3pMftHCtpU';
+  let originPlace = null;
+  let destPlace   = null;
+  let autoTravelMin = null;
+
   document.getElementById('btn-back').addEventListener('click', () => history.back());
+
+  // 구글 Maps API 로드
+  function loadMapsAPI() {
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places&language=ko&callback=initAutocomplete`;
+    s.async = true;
+    document.head.appendChild(s);
+  }
+
+  window.initAutocomplete = function() {
+    const opts = { componentRestrictions: { country: 'kr' } };
+
+    const originAC = new google.maps.places.Autocomplete(document.getElementById('calc-origin'), opts);
+    originAC.addListener('place_changed', () => {
+      originPlace = originAC.getPlace();
+      autoTravelMin = null;
+      document.getElementById('travel-badge').classList.remove('show');
+      tryAutoDistance();
+    });
+
+    const courseAC = new google.maps.places.Autocomplete(document.getElementById('calc-course'), {
+      ...opts, types: ['establishment']
+    });
+    courseAC.addListener('place_changed', () => {
+      destPlace = courseAC.getPlace();
+      autoTravelMin = null;
+      document.getElementById('travel-badge').classList.remove('show');
+      tryAutoDistance();
+    });
+  };
+
+  function tryAutoDistance() {
+    if (!originPlace?.geometry || !destPlace?.geometry) return;
+    const btn = document.getElementById('calc-btn');
+    btn.textContent = '이동시간 계산 중...';
+    btn.disabled = true;
+
+    const svc = new google.maps.DistanceMatrixService();
+    svc.getDistanceMatrix({
+      origins: [originPlace.geometry.location],
+      destinations: [destPlace.geometry.location],
+      travelMode: google.maps.TravelMode.DRIVING,
+      language: 'ko'
+    }, (res, status) => {
+      btn.textContent = '계산하기';
+      btn.disabled = false;
+      if (status === 'OK') {
+        const el = res.rows[0].elements[0];
+        if (el.status === 'OK') {
+          autoTravelMin = Math.ceil(el.duration.value / 60);
+          document.getElementById('calc-travel').value = autoTravelMin;
+          const badge = document.getElementById('travel-badge');
+          badge.textContent = `자동 계산: 약 ${el.duration.text} (${el.distance.text})`;
+          badge.classList.add('show');
+        }
+      }
+    });
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) { alert('위치 정보를 지원하지 않는 브라우저입니다.'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat, lng }, language: 'ko' }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          document.getElementById('calc-origin').value = results[0].formatted_address;
+          originPlace = { geometry: { location: new google.maps.LatLng(lat, lng) } };
+          tryAutoDistance();
+        }
+      });
+    }, () => alert('위치 정보를 가져올 수 없습니다.'));
+  }
 
   function calcWakeTime() {
     const ampm   = document.getElementById('calc-ampm').value;
@@ -224,17 +299,15 @@
 
     let teeH24 = ampm === 'PM' && hour !== 12 ? hour + 12 : ampm === 'AM' && hour === 12 ? 0 : hour;
     let teeMinutes = teeH24 * 60 + min;
-
     const totalBack = travel + prep + buffer;
     let wakeMinutes = teeMinutes - totalBack;
     if (wakeMinutes < 0) wakeMinutes += 1440;
 
-    const wakeH24 = Math.floor(wakeMinutes / 60);
-    const wakeM   = wakeMinutes % 60;
+    const wakeH24  = Math.floor(wakeMinutes / 60);
+    const wakeM    = wakeMinutes % 60;
     const wakeAmpm = wakeH24 < 12 ? 'AM' : 'PM';
     const wakeH12  = wakeH24 === 0 ? 12 : wakeH24 > 12 ? wakeH24 - 12 : wakeH24;
-
-    const teeStr = `${ampm} ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+    const teeStr   = `${ampm} ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
 
     document.getElementById('result-course').textContent = `${course} · 티업 ${teeStr}`;
     document.getElementById('result-ampm').textContent = wakeAmpm;
@@ -244,7 +317,10 @@
     document.getElementById('bd-buffer').textContent = buffer + '분';
     document.getElementById('bd-total').textContent = totalBack + '분';
     document.getElementById('result-box').classList.add('show');
+    document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
   }
+
+  loadMapsAPI();
 </script>
 </body>
 </html>
