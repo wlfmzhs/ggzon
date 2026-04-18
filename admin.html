@@ -193,7 +193,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -278,15 +278,29 @@ window.showMember = function(id) {
   document.getElementById('member-detail').innerHTML = `
     <div class="detail-row"><div class="detail-label">닉네임</div><div class="detail-value">${m.nickname || '-'}${m.isPaid ? ' ⭐ 유료' : ' (무료)'}</div></div>
     <div class="detail-row"><div class="detail-label">이름</div><div class="detail-value">${m.name || '-'}${m.birthYear2 ? ' / ' + m.birthYear2 + '년생' : ''}</div></div>
-    <div class="detail-row"><div class="detail-label">연락처</div><div class="detail-value">${m.phone ? `<a href="tel:${m.phone}">📞 ${m.phone}</a>` : '미등록'}</div></div>
-    <div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value"><a href="mailto:${m.email}">${m.email || '-'}</a></div></div>
+    <div class="detail-row"><div class="detail-label">연락처</div><div class="detail-value">${m.phone ? `<a href="tel:${m.phone}" style="color:var(--green-light);text-decoration:none;">${m.phone}</a>` : '미등록'}</div></div>
+    <div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value"><a href="mailto:${m.email}" style="color:var(--green-light);text-decoration:none;">${m.email || '-'}</a></div></div>
     <div class="detail-row"><div class="detail-label">핸디캡 / 거주지</div><div class="detail-value">${[m.handicap, m.region].filter(Boolean).join(' / ') || '-'}</div></div>
     <div class="detail-row"><div class="detail-label">가입일</div><div class="detail-value">${m.createdAt ? m.createdAt.slice(0,10) : '-'}</div></div>
+    <button onclick="window.forceWithdraw('${m.id}', '${(m.nickname||'').replace(/'/g,'')}')" style="width:100%;padding:13px;border-radius:12px;background:rgba(220,50,50,0.2);border:1px solid rgba(220,50,50,0.4);color:#ff6b6b;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;">강제 탈퇴</button>
   `;
   document.getElementById('modal-member').classList.add('show');
 };
 
 window.closeModal = () => document.getElementById('modal-member').classList.remove('show');
+
+window.forceWithdraw = async function(uid, nickname) {
+  if (!confirm(`"${nickname}" 회원을 강제 탈퇴 처리하시겠어요?\n탈퇴 후 해당 회원은 로그인이 차단됩니다.`)) return;
+  try {
+    await setDoc(doc(db, 'banned', uid), { bannedAt: serverTimestamp(), nickname });
+    await deleteDoc(doc(db, 'users', uid));
+    showToast(`${nickname} 회원이 탈퇴 처리되었습니다.`);
+    window.closeModal();
+    await loadMembers();
+  } catch (e) {
+    showToast('처리 중 오류가 발생했습니다.');
+  }
+};
 
 // ── 조인 로드 ─────────────────────────────────────────
 async function loadJoins() {
