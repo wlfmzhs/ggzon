@@ -202,9 +202,8 @@
 <script>
   const MAPS_KEY = 'AIzaSyAXV5rH2xNgeYAki_6HkFqTb3pMftHCtpU';
   let originLocation = null;
+  let originLocation = null;
   let destLocation   = null;
-  let originPlaceId  = null;
-  let destPlaceId    = null;
   let sessionToken   = null;
 
   document.getElementById('btn-back').addEventListener('click', () => history.back());
@@ -253,17 +252,10 @@
         const name    = el.dataset.name;
         if (listId === 'list-origin') {
           document.getElementById('calc-origin').value = el.querySelector('strong').textContent + (el.querySelector('span') ? ' ' + el.querySelector('span').textContent : '');
-          originPlaceId = placeId;
-          originLocation = true;
-          const badge = document.getElementById('travel-badge');
-          badge.textContent = '출발지 확인됨 — 골프장도 선택해주세요';
-          badge.style.color = 'rgba(255,255,255,0.4)';
-          tryAutoDistance();
+          getPlaceLatLng(placeId, 'origin');
         } else {
           document.getElementById('calc-course').value = name;
-          destPlaceId = placeId;
-          destLocation = true;
-          tryAutoDistance();
+          getPlaceLatLng(placeId, 'dest');
         }
         list.style.display = 'none';
         sessionToken = newToken();
@@ -271,73 +263,67 @@
     });
   }
 
-  async function tryAutoDistance() {
+  async function getPlaceLatLng(placeId, type) {
     const badge = document.getElementById('travel-badge');
-    if (!originPlaceId || !destPlaceId) return;
-
-    const btn = document.getElementById('calc-btn');
-    btn.textContent = '이동시간 계산 중...';
-    btn.disabled = true;
-    badge.textContent = '이동시간 계산 중...';
-    badge.style.color = 'rgba(255,255,255,0.4)';
-
     try {
-      const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': MAPS_KEY,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
-        },
-        body: JSON.stringify({
-          origin: { placeId: originPlaceId },
-          destination: { placeId: destPlaceId },
-          travelMode: 'DRIVE'
-        })
+      const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+        headers: { 'X-Goog-Api-Key': MAPS_KEY, 'X-Goog-FieldMask': 'location' }
       });
       const data = await res.json();
-      if (data.routes && data.routes[0]) {
-        const route = data.routes[0];
-        const durStr = route.duration;
-        const secs  = parseFloat(typeof durStr === 'string' ? durStr : String(durStr));
-        const mins  = Math.ceil(secs / 60);
-        const km    = (route.distanceMeters / 1000).toFixed(1);
-        const hStr  = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
-        document.getElementById('calc-travel').value = mins;
-        badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
-        badge.style.color = 'var(--green-light)';
-      } else {
-        badge.textContent = `오류: ${JSON.stringify(data).slice(0, 120)}`;
-        badge.style.color = '#f87171';
+      if (data.location) {
+        if (type === 'origin') {
+          originLocation = data.location;
+          badge.textContent = '출발지 확인됨 — 골프장도 선택해주세요';
+          badge.style.color = 'rgba(255,255,255,0.4)';
+        } else {
+          destLocation = data.location;
+        }
+        calcDistance();
       }
     } catch(e) {
-      badge.textContent = '이동시간 계산 실패: ' + e.message;
+      badge.textContent = '위치 확인 실패';
       badge.style.color = '#f87171';
     }
-
-    btn.textContent = '계산하기';
-    btn.disabled = false;
   }
 
-  // 현재 위치 (GPS → Geocoding → 주소 표시만, placeId는 자동완성 선택 필요)
+  function haversineKm(a, b) {
+    const R = 6371;
+    const dLat = (b.latitude - a.latitude) * Math.PI / 180;
+    const dLng = (b.longitude - a.longitude) * Math.PI / 180;
+    const s = Math.sin(dLat/2) ** 2 + Math.cos(a.latitude * Math.PI/180) * Math.cos(b.latitude * Math.PI/180) * Math.sin(dLng/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+  }
+
+  function calcDistance() {
+    if (!originLocation || !destLocation) return;
+    const badge = document.getElementById('travel-badge');
+    const straightKm = haversineKm(originLocation, destLocation);
+    const roadKm = straightKm * 1.4;
+    const mins = Math.ceil(roadKm / 80 * 60);
+    const km = roadKm.toFixed(1);
+    const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
+    document.getElementById('calc-travel').value = mins;
+    badge.textContent = `예상 이동시간: 약 ${hStr} (도로거리 약 ${km}km)`;
+    badge.style.color = 'var(--green-light)';
+  }
+
+  // 현재 위치
   document.getElementById('btn-gps').addEventListener('click', () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async pos => {
       const { latitude: lat, longitude: lng } = pos.coords;
+      originLocation = { latitude: lat, longitude: lng };
       const badge = document.getElementById('travel-badge');
       try {
         const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ko&key=${MAPS_KEY}`);
         const data = await res.json();
         if (data.results && data.results[0]) {
-          const addr = data.results[0].formatted_address;
-          document.getElementById('calc-origin').value = addr;
-          originPlaceId = data.results[0].place_id;
-          originLocation = true;
-          badge.textContent = '현재 위치 확인됨 — 골프장도 선택해주세요';
-          badge.style.color = 'rgba(255,255,255,0.4)';
-          tryAutoDistance();
+          document.getElementById('calc-origin').value = data.results[0].formatted_address;
         }
       } catch(e) {}
+      badge.textContent = '현재 위치 확인됨 — 골프장도 선택해주세요';
+      badge.style.color = 'rgba(255,255,255,0.4)';
+      calcDistance();
     });
   });
 
@@ -346,13 +332,11 @@
   document.getElementById('calc-origin').addEventListener('input', e => {
     clearTimeout(originTimer);
     originLocation = null;
-    originPlaceId = null;
     originTimer = setTimeout(() => fetchSuggestions(e.target.value, 'list-origin', false), 300);
   });
   document.getElementById('calc-course').addEventListener('input', e => {
     clearTimeout(courseTimer);
     destLocation = null;
-    destPlaceId = null;
     const badge = document.getElementById('travel-badge');
     badge.textContent = '골프장 선택 시 자동 계산됩니다';
     badge.style.color = 'rgba(255,255,255,0.25)';
