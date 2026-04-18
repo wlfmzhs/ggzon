@@ -360,12 +360,14 @@
     const ADMIN_EMAIL = 'wlfmzhs@naver.com';
     onAuthStateChanged(auth, async (user) => {
       if (user && (user.emailVerified || user.email === ADMIN_EMAIL)) {
-        const bannedSnap = await getDoc(doc(db, 'banned', user.uid));
-        if (bannedSnap.exists()) {
-          await auth.signOut();
-          showMsg('login-msg', '이 계정은 관리자에 의해 탈퇴 처리되었습니다.', 'error');
-          return;
-        }
+        try {
+          const bannedSnap = await getDoc(doc(db, 'banned', user.uid));
+          if (bannedSnap.exists()) {
+            await auth.signOut();
+            showMsg('login-msg', '이 계정은 관리자에 의해 탈퇴 처리되었습니다.', 'error');
+            return;
+          }
+        } catch (e) {}
         window.location.href = getReturnUrl();
       }
     });
