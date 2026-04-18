@@ -68,8 +68,8 @@
       padding: 6px 8px; cursor: pointer; color: var(--green-light); line-height: 0;
     }
 
-    .travel-badge { display: none; font-size: 11px; color: var(--green-light); margin-top: 6px; padding-left: 2px; }
-    .travel-badge.show { display: block; }
+    .travel-badge { display: block; font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 6px; padding-left: 2px; }
+    .travel-badge.show { color: var(--green-light); }
 
     /* 자동완성 드롭다운 */
     .autocomplete-list {
@@ -137,7 +137,7 @@
         <input class="field-input" id="calc-course" type="text" placeholder="예) 스카이72 오션코스" autocomplete="off" />
         <div class="autocomplete-list" id="list-course" style="display:none;position:absolute;top:100%;left:0;right:0;"></div>
       </div>
-      <div class="travel-badge" id="travel-badge"></div>
+        <div class="travel-badge" id="travel-badge">골프장 선택 시 자동 계산됩니다</div>
     </div>
 
     <div class="field-group">
@@ -171,10 +171,6 @@
 
     <div class="row">
       <div class="field-group">
-        <div class="field-label">이동 시간</div>
-        <input class="field-input" id="calc-travel" type="number" value="60" min="0" />
-      </div>
-      <div class="field-group">
         <div class="field-label">준비 시간</div>
         <input class="field-input" id="calc-prep" type="number" value="60" min="0" />
       </div>
@@ -183,6 +179,7 @@
         <input class="field-input" id="calc-buffer" type="number" value="30" min="0" />
       </div>
     </div>
+    <input type="hidden" id="calc-travel" value="60" />
 
     <button class="calc-btn" id="calc-btn" onclick="calcWakeTime()">계산하기</button>
 
