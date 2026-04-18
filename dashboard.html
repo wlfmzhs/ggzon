@@ -526,12 +526,21 @@
         <div class="chart-bars" id="chartBars"></div>
       </div>
 
-      <!-- 진행 중인 조인 / 대회 -->
+      <!-- 조인 모집 -->
       <div class="section-header section-gap">
-        <span class="section-title">조인 · 대회 모집</span>
+        <span class="section-title">조인 모집</span>
         <span class="section-more" onclick="location.href='join.html'">더보기 ›</span>
       </div>
       <div id="live-list">
+        <div class="live-empty">불러오는 중...</div>
+      </div>
+
+      <!-- 대회 모집 -->
+      <div class="section-header section-gap" style="margin-top:20px;">
+        <span class="section-title">대회 모집</span>
+        <span class="section-more" onclick="location.href='event.html'">더보기 ›</span>
+      </div>
+      <div id="tournament-list">
         <div class="live-empty">불러오는 중...</div>
       </div>
 
@@ -603,6 +612,7 @@
     if (!user) { window.location.href = 'login.html'; return; }
     loadNotices();
     loadLiveList();
+    loadTournamentList();
     const snap = await getDoc(doc(db, 'users', user.uid));
     if (snap.exists()) {
       const d = snap.data();
@@ -635,12 +645,11 @@
     } catch(e) { el.innerHTML = '<div class="notice-empty">불러오기 실패</div>'; }
   }
 
-  // 조인/대회 모집 로드
+  // 조인 모집 로드
   async function loadLiveList() {
     const el = document.getElementById('live-list');
     try {
       const snap = await getDocs(query(collection(db, 'joins'), orderBy('createdAt', 'desc'), limit(5)));
-      if (snap.empty) { el.innerHTML = '<div class="live-empty">현재 모집 중인 조인이 없습니다</div>'; return; }
       const joinIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(j => j.status !== 'closed');
       if (items.length === 0) { el.innerHTML = '<div class="live-empty">현재 모집 중인 조인이 없습니다</div>'; return; }
@@ -649,7 +658,7 @@
         const time = j.time || '';
         const cur = (j.participants || []).length;
         const max = j.capacity || '-';
-        const isScreen = j.type === 'screen';
+        const isScreen = j.joinType === 'screen';
         const typeBadge = `<span class="live-badge ${isScreen ? 'screen' : 'field'}">${isScreen ? '스크린' : '필드'}</span>`;
         const meta = [date, time, `${cur}/${max}명`].filter(Boolean).join(' · ');
         return `<div class="live-card" onclick="location.href='join.html'">
@@ -659,6 +668,31 @@
               <div class="live-card-title">${j.course || '조인 모집'}</div>
               <span class="live-badge active">진행중</span>
               ${typeBadge}
+            </div>
+            <div class="live-card-meta">${meta}</div>
+          </div>
+          <div class="live-card-arrow">›</div>
+        </div>`;
+      }).join('');
+    } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
+  }
+
+  // 대회 모집 로드
+  async function loadTournamentList() {
+    const el = document.getElementById('tournament-list');
+    try {
+      const snap = await getDocs(query(collection(db, 'tournaments'), orderBy('createdAt', 'desc'), limit(5)));
+      const tournIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>`;
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.status !== 'closed');
+      if (items.length === 0) { el.innerHTML = '<div class="live-empty">현재 모집 중인 대회가 없습니다</div>'; return; }
+      el.innerHTML = items.map(t => {
+        const meta = [t.date, t.golfCourseName, t.totalParticipants ? `${t.totalParticipants}명` : ''].filter(Boolean).join(' · ');
+        return `<div class="live-card" onclick="location.href='event.html'">
+          <div class="live-card-icon">${tournIcon}</div>
+          <div class="live-card-info">
+            <div class="live-card-top">
+              <div class="live-card-title">${t.name || '대회 모집'}</div>
+              <span class="live-badge active">모집중</span>
             </div>
             <div class="live-card-meta">${meta}</div>
           </div>
