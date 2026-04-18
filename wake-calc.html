@@ -179,7 +179,10 @@
         <input class="field-input" id="calc-buffer" type="number" value="30" min="0" />
       </div>
     </div>
-    <input type="hidden" id="calc-travel" value="60" />
+    <div class="field-group" style="margin-top:4px;">
+      <div class="field-label">이동 시간 (분) — 자동 계산 또는 직접 수정</div>
+      <input class="field-input" id="calc-travel" type="number" value="60" min="0" />
+    </div>
 
     <button class="calc-btn" id="calc-btn" onclick="calcWakeTime()">계산하기</button>
 
@@ -286,25 +289,31 @@
     }
   }
 
-  function haversineKm(a, b) {
-    const R = 6371;
-    const dLat = (b.latitude - a.latitude) * Math.PI / 180;
-    const dLng = (b.longitude - a.longitude) * Math.PI / 180;
-    const s = Math.sin(dLat/2) ** 2 + Math.cos(a.latitude * Math.PI/180) * Math.cos(b.latitude * Math.PI/180) * Math.sin(dLng/2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
-  }
-
-  function calcDistance() {
+  async function calcDistance() {
     if (!originLocation || !destLocation) return;
     const badge = document.getElementById('travel-badge');
-    const straightKm = haversineKm(originLocation, destLocation);
-    const roadKm = straightKm * 1.4;
-    const mins = Math.ceil(roadKm / 80 * 60);
-    const km = roadKm.toFixed(1);
-    const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
-    document.getElementById('calc-travel').value = mins;
-    badge.textContent = `예상 이동시간: 약 ${hStr} (도로거리 약 ${km}km)`;
-    badge.style.color = 'var(--green-light)';
+    badge.textContent = '이동시간 계산 중...';
+    badge.style.color = 'rgba(255,255,255,0.4)';
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${originLocation.longitude},${originLocation.latitude};${destLocation.longitude},${destLocation.latitude}?overview=false`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.code === 'Ok' && data.routes && data.routes[0]) {
+        const route = data.routes[0];
+        const mins = Math.ceil(route.duration / 60);
+        const km   = (route.distance / 1000).toFixed(1);
+        const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
+        document.getElementById('calc-travel').value = mins;
+        badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
+        badge.style.color = 'var(--green-light)';
+      } else {
+        badge.textContent = '경로 계산 실패 — 이동시간을 직접 입력해주세요';
+        badge.style.color = '#f87171';
+      }
+    } catch(e) {
+      badge.textContent = '경로 계산 실패 — 이동시간을 직접 입력해주세요';
+      badge.style.color = '#f87171';
+    }
   }
 
   // 현재 위치
