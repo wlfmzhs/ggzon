@@ -203,6 +203,8 @@
   const MAPS_KEY = 'AIzaSyAXV5rH2xNgeYAki_6HkFqTb3pMftHCtpU';
   let originLocation = null;
   let destLocation   = null;
+  let originPlaceId  = null;
+  let destPlaceId    = null;
   let sessionToken   = null;
 
   document.getElementById('btn-back').addEventListener('click', () => history.back());
@@ -251,10 +253,17 @@
         const name    = el.dataset.name;
         if (listId === 'list-origin') {
           document.getElementById('calc-origin').value = el.querySelector('strong').textContent + (el.querySelector('span') ? ' ' + el.querySelector('span').textContent : '');
-          getPlaceLatLng(placeId, 'origin');
+          originPlaceId = placeId;
+          originLocation = true;
+          const badge = document.getElementById('travel-badge');
+          badge.textContent = '출발지 확인됨 — 골프장도 선택해주세요';
+          badge.style.color = 'rgba(255,255,255,0.4)';
+          tryAutoDistance();
         } else {
           document.getElementById('calc-course').value = name;
-          getPlaceLatLng(placeId, 'dest');
+          destPlaceId = placeId;
+          destLocation = true;
+          tryAutoDistance();
         }
         list.style.display = 'none';
         sessionToken = newToken();
@@ -262,46 +271,15 @@
     });
   }
 
-  async function getPlaceLatLng(placeId, type) {
-    const badge = document.getElementById('travel-badge');
-    badge.textContent = '위치 좌표 확인 중...';
-    badge.style.color = 'rgba(255,255,255,0.4)';
-    try {
-      const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-        headers: {
-          'X-Goog-Api-Key': MAPS_KEY,
-          'X-Goog-FieldMask': 'location'
-        }
-      });
-      const data = await res.json();
-      if (data.location) {
-        if (type === 'origin') originLocation = data.location;
-        else destLocation = data.location;
-        badge.textContent = type === 'origin' ? '출발지 확인됨 — 골프장도 선택해주세요' : '골프장 확인됨 — 이동시간 계산 중...';
-        badge.style.color = 'rgba(255,255,255,0.4)';
-        tryAutoDistance();
-      } else {
-        badge.textContent = '위치 좌표 오류: ' + JSON.stringify(data).slice(0, 80);
-        badge.style.color = '#f87171';
-      }
-    } catch(e) {
-      badge.textContent = '위치 확인 실패: ' + e.message;
-      badge.style.color = '#f87171';
-    }
-  }
-
   async function tryAutoDistance() {
     const badge = document.getElementById('travel-badge');
-    if (!originLocation) {
-      badge.textContent = '출발지를 목록에서 선택해주세요';
-      badge.style.color = '#f87171';
-      return;
-    }
-    if (!destLocation) return;
+    if (!originPlaceId || !destPlaceId) return;
 
     const btn = document.getElementById('calc-btn');
     btn.textContent = '이동시간 계산 중...';
     btn.disabled = true;
+    badge.textContent = '이동시간 계산 중...';
+    badge.style.color = 'rgba(255,255,255,0.4)';
 
     try {
       const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
@@ -309,11 +287,11 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': MAPS_KEY,
-          'X-Goog-FieldMask': '*'
+          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
         },
         body: JSON.stringify({
-          origin: { location: { latLng: { latitude: originLocation.latitude, longitude: originLocation.longitude } } },
-          destination: { location: { latLng: { latitude: destLocation.latitude, longitude: destLocation.longitude } } },
+          origin: { placeId: originPlaceId },
+          destination: { placeId: destPlaceId },
           travelMode: 'DRIVE'
         })
       });
@@ -329,7 +307,7 @@
         badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
         badge.style.color = 'var(--green-light)';
       } else {
-        badge.textContent = `Routes API 오류: ${JSON.stringify(data).slice(0, 150)}`;
+        badge.textContent = `오류: ${JSON.stringify(data).slice(0, 120)}`;
         badge.style.color = '#f87171';
       }
     } catch(e) {
@@ -341,18 +319,25 @@
     btn.disabled = false;
   }
 
-  // 현재 위치
+  // 현재 위치 (GPS → Geocoding → 주소 표시만, placeId는 자동완성 선택 필요)
   document.getElementById('btn-gps').addEventListener('click', () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async pos => {
       const { latitude: lat, longitude: lng } = pos.coords;
-      originLocation = { latitude: lat, longitude: lng };
-      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ko&key=${MAPS_KEY}`);
-      const data = await res.json();
-      if (data.results && data.results[0]) {
-        document.getElementById('calc-origin').value = data.results[0].formatted_address;
-      }
-      tryAutoDistance();
+      const badge = document.getElementById('travel-badge');
+      try {
+        const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ko&key=${MAPS_KEY}`);
+        const data = await res.json();
+        if (data.results && data.results[0]) {
+          const addr = data.results[0].formatted_address;
+          document.getElementById('calc-origin').value = addr;
+          originPlaceId = data.results[0].place_id;
+          originLocation = true;
+          badge.textContent = '현재 위치 확인됨 — 골프장도 선택해주세요';
+          badge.style.color = 'rgba(255,255,255,0.4)';
+          tryAutoDistance();
+        }
+      } catch(e) {}
     });
   });
 
@@ -361,12 +346,16 @@
   document.getElementById('calc-origin').addEventListener('input', e => {
     clearTimeout(originTimer);
     originLocation = null;
+    originPlaceId = null;
     originTimer = setTimeout(() => fetchSuggestions(e.target.value, 'list-origin', false), 300);
   });
   document.getElementById('calc-course').addEventListener('input', e => {
     clearTimeout(courseTimer);
     destLocation = null;
-    document.getElementById('travel-badge').classList.remove('show');
+    destPlaceId = null;
+    const badge = document.getElementById('travel-badge');
+    badge.textContent = '골프장 선택 시 자동 계산됩니다';
+    badge.style.color = 'rgba(255,255,255,0.25)';
     courseTimer = setTimeout(() => fetchSuggestions(e.target.value, 'list-course', true), 300);
   });
 
