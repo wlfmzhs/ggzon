@@ -84,11 +84,11 @@
     .chip-under { background: #e74c3c !important; border-radius: 50% !important; color: #fff !important; border: none !important; }
     /* 파 0: 숫자만 */
     .chip-zero  { color: #fff !important; background: none !important; border: none !important; }
-    /* +1: 사각 테두리 1줄 */
-    .chip-p1    { color: #fff !important; background: none !important; border: 1.5px solid rgba(255,255,255,0.75) !important; border-radius: 0 !important; }
-    /* +2 이상: 사각 테두리 2줄 */
-    .chip-p2up  { color: #fff !important; background: none !important; border: 1.5px solid rgba(255,255,255,0.75) !important; border-radius: 0 !important;
-                  outline: 1.5px solid rgba(255,255,255,0.75); outline-offset: 2px; }
+    /* +1 이상: 숫자만 */
+    .chip-p1    { color: #fff !important; background: none !important; border: none !important; }
+    .chip-p2up  { color: #fff !important; background: none !important; border: none !important; }
+    /* 빈 셀: 얇은 테두리 */
+    .score-chip.empty { border: 1px solid rgba(255,255,255,0.12) !important; border-radius: 3px !important; }
 
     /* 픽커 */
     .picker-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: flex-end; }
@@ -288,10 +288,11 @@ function buildTable(players, scores, canEdit, from, to) {
       const idx = from + i;
       const cc  = chipClass(v);
       const cl  = chipLabel(v);
+      const emptyCls = v === null ? 'empty' : '';
       if (canEdit) {
-        return `<td><button class="score-chip mine ${cc}" onclick="window._openPicker('${p.uid}',${idx})">${cl}</button></td>`;
+        return `<td><button class="score-chip mine ${cc} ${emptyCls}" onclick="window._openPicker('${p.uid}',${idx})">${cl}</button></td>`;
       }
-      return `<td><div class="score-chip ${cc}">${cl}</div></td>`;
+      return `<td><div class="score-chip ${cc} ${emptyCls}">${cl}</div></td>`;
     }).join('');
 
     html += `<tr class="tr-player">
