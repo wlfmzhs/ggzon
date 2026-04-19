@@ -134,6 +134,10 @@
   </div>
 
   <div class="scroll-area">
+    <div id="non-participant-notice" style="display:none;align-items:center;gap:8px;margin:10px 16px 0;padding:10px 14px;background:rgba(255,200,60,0.08);border:1px solid rgba(255,200,60,0.25);border-radius:12px;font-size:12px;color:rgba(255,200,60,0.85);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      참석자만 스코어를 입력할 수 있습니다. 조회만 가능합니다.
+    </div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:#c9a8ff"></div>알바트로스</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ff6b5b;border-radius:50%"></div>이글</div>
@@ -228,6 +232,14 @@ onAuthStateChanged(auth, user => {
     if (!snap.exists()) return;
     joinData = { id: snap.id, ...snap.data() };
     document.getElementById('course-name').textContent = joinData.course || '스코어';
+
+    // 스크린 조인은 스코어 페이지 비공개
+    if (joinData.joinType === 'screen') {
+      showToast('스크린 조인은 스코어 입력 기능이 없습니다');
+      setTimeout(() => history.back(), 1500);
+      return;
+    }
+
     render();
   });
 });
@@ -235,6 +247,12 @@ onAuthStateChanged(auth, user => {
 function render() {
   const players = joinData.participants || [];
   const scores  = joinData.scores || {};
+  const isParticipant = players.some(p => p.uid === currentUser.uid);
+
+  if (!isParticipant) {
+    const notice = document.getElementById('non-participant-notice');
+    if (notice) notice.style.display = 'flex';
+  }
 
   let html = `<thead><tr>
     <th class="th-name">선수</th>
@@ -246,7 +264,7 @@ function render() {
   </tr></thead><tbody>`;
 
   players.forEach((p, pi) => {
-    const isMe   = currentUser && p.uid === currentUser.uid;
+    const isMe   = isParticipant && currentUser && p.uid === currentUser.uid;
     const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const out    = holes.slice(0,9).reduce((a,v) => a + (v ?? 0), 0);
     const inVal  = holes.slice(9).reduce((a,v)  => a + (v ?? 0), 0);
