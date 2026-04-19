@@ -286,6 +286,18 @@
       font-style: italic;
     }
 
+    /* 스코어 버튼 */
+    .card-score-btn {
+      width: 100%; padding: 10px;
+      background: rgba(240,192,64,0.1);
+      border: 1px solid rgba(240,192,64,0.3);
+      color: var(--gold); font-size: 13px; font-weight: 800;
+      border-radius: 12px; cursor: pointer; font-family: inherit;
+      margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: background 0.15s;
+    }
+    .card-score-btn:active { background: rgba(240,192,64,0.2); }
+
     /* 하단 보조 버튼 행 */
     .card-bottom-row { display: flex; gap: 8px; }
     .card-share-btn {
@@ -799,6 +811,10 @@ function buildCard(j) {
       ${memo}
       <button class="${joinBtnClass}" ${isFull && !alreadyJoined ? 'disabled' : ''} onclick="window.participateJoin('${j.id}')">
         ${joinBtnText}
+      </button>
+      <button class="card-score-btn" onclick="location.href='score.html?id=${j.id}'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+        스코어 입력 / 보기
       </button>
       <div class="card-bottom-row">
         <button class="card-share-btn" onclick="window.shareCard('${j.id}')">공유용 이미지 저장</button>

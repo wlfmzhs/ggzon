@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스코어 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --gold: #f0c040;
+    }
+    html, body { width: 100%; height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #fff; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .phone { width: 390px; height: 844px; background: var(--green-dark); border-radius: 40px; box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+    .phone::before { content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100; }
+
+    #loading-overlay { position: absolute; inset: 0; background: var(--green-dark); display: flex; align-items: center; justify-content: center; z-index: 999; border-radius: 40px; }
+    #loading-overlay.hidden { display: none; }
+    .spinner { width: 32px; height: 32px; border: 3px solid rgba(62,160,102,0.3); border-top-color: var(--green-light); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .appbar { flex-shrink: 0; padding: 32px 18px 12px; display: flex; align-items: center; gap: 10px; }
+    .back-btn { background: none; border: none; cursor: pointer; padding: 0 8px 0 0; color: var(--green-light); font-size: 24px; line-height: 1; flex-shrink: 0; }
+    .appbar-info { flex: 1; min-width: 0; }
+    .appbar-title { font-size: 16px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .appbar-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+    .live-dot { width: 6px; height: 6px; background: #e74c3c; border-radius: 50%; display: inline-block; animation: blink 1.2s ease-in-out infinite; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+    .scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* 범례 */
+    .legend { display: flex; gap: 8px; padding: 8px 16px 10px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: rgba(255,255,255,0.4); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+    /* 스코어카드 */
+    .scorecard-outer { overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+    .scorecard-outer::-webkit-scrollbar { display: none; }
+    table.scorecard { border-collapse: separate; border-spacing: 2px; margin: 12px 12px 0; }
+
+    /* 헤더 */
+    .th-name { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 700; text-align: left; padding: 4px 8px 4px 0; min-width: 58px; position: sticky; left: 0; background: var(--green-dark); z-index: 3; white-space: nowrap; }
+    .th-hole { font-size: 9px; color: rgba(255,255,255,0.3); font-weight: 800; text-align: center; padding: 4px 0; min-width: 30px; width: 30px; }
+    .th-sub  { font-size: 9px; color: var(--green-light); font-weight: 800; text-align: center; padding: 4px 2px; min-width: 34px; background: rgba(62,160,102,0.08); border-radius: 6px; }
+    .th-tot  { font-size: 9px; color: var(--gold); font-weight: 800; text-align: center; padding: 4px 2px; min-width: 38px; background: rgba(240,192,64,0.08); border-radius: 6px; }
+
+    /* 플레이어 행 */
+    .td-name { font-size: 12px; font-weight: 800; padding: 6px 8px 6px 0; position: sticky; left: 0; background: var(--green-dark); z-index: 2; white-space: nowrap; vertical-align: middle; }
+    .me-tag  { font-size: 9px; color: var(--green-light); font-weight: 700; margin-left: 4px; }
+    .td-score { text-align: center; vertical-align: middle; padding: 3px 1px; }
+    .score-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      font-size: 10px; font-weight: 800;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: inherit; color: rgba(255,255,255,0.2);
+      transition: opacity 0.1s;
+    }
+    .score-btn.mine { border-color: rgba(62,160,102,0.35); background: rgba(62,160,102,0.07); cursor: pointer; color: rgba(255,255,255,0.25); }
+    .score-btn.mine:active { opacity: 0.6; }
+
+    /* 점수 색상 */
+    .s-n3 { background: rgba(123,47,255,0.35) !important; border-color: rgba(123,47,255,0.7) !important; color: #c9a8ff !important; }
+    .s-n2 { background: rgba(231,76,60,0.4) !important; border-color: rgba(231,76,60,0.8) !important; color: #ffa09a !important; border-radius: 50% !important; }
+    .s-n1 { background: rgba(231,76,60,0.25) !important; border-color: rgba(231,76,60,0.6) !important; color: #ff8b7b !important; }
+    .s-0  { background: transparent !important; border-color: rgba(255,255,255,0.35) !important; color: #fff !important; }
+    .s-p1 { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.18) !important; color: rgba(255,255,255,0.75) !important; }
+    .s-p2 { background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.22) !important; color: rgba(255,255,255,0.85) !important; }
+    .s-p3 { background: rgba(255,200,60,0.18) !important; border-color: rgba(255,200,60,0.4) !important; color: #f0c040 !important; }
+    .s-p4 { background: rgba(255,130,50,0.18) !important; border-color: rgba(255,130,50,0.4) !important; color: #ff8c32 !important; }
+    .s-p5 { background: rgba(255,60,60,0.18) !important; border-color: rgba(255,60,60,0.4) !important; color: #ff5555 !important; }
+
+    .td-sub { font-size: 11px; font-weight: 900; text-align: center; padding: 3px 2px; min-width: 34px; vertical-align: middle; }
+    .td-tot { font-size: 13px; font-weight: 900; text-align: center; padding: 3px 2px; min-width: 38px; vertical-align: middle; color: var(--gold); }
+
+    /* 픽커 */
+    .picker-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: flex-end; }
+    .picker-overlay.open { opacity: 1; pointer-events: all; }
+    .picker-sheet { width: 100%; background: #0f2e1a; border-radius: 24px 24px 0 0; padding: 22px 18px 36px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+    .picker-overlay.open .picker-sheet { transform: translateY(0); }
+    .picker-title { font-size: 14px; font-weight: 900; text-align: center; margin-bottom: 18px; color: rgba(255,255,255,0.85); }
+    .picker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+    .picker-opt {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; padding: 10px 4px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
+      cursor: pointer; font-family: inherit; transition: transform 0.1s;
+    }
+    .picker-opt:active { transform: scale(0.92); }
+    .picker-opt .pv { font-size: 15px; font-weight: 900; }
+    .picker-opt .pl { font-size: 9px; color: rgba(255,255,255,0.45); font-weight: 700; }
+    .po-n3 { background: rgba(123,47,255,0.2) !important; border-color: rgba(123,47,255,0.5) !important; } .po-n3 .pv { color: #c9a8ff; }
+    .po-n2 { background: rgba(231,76,60,0.25) !important; border-color: rgba(231,76,60,0.6) !important; } .po-n2 .pv { color: #ff6b5b; }
+    .po-n1 { background: rgba(231,76,60,0.15) !important; border-color: rgba(231,76,60,0.4) !important; } .po-n1 .pv { color: #ff9080; }
+    .po-0  { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.25) !important; } .po-0 .pv { color: #fff; }
+    .po-p1 { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.15) !important; } .po-p1 .pv { color: rgba(255,255,255,0.7); }
+    .po-p2 { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.2) !important;  } .po-p2 .pv { color: rgba(255,255,255,0.8); }
+    .po-p3 { background: rgba(255,200,60,0.12) !important; border-color: rgba(255,200,60,0.35) !important; } .po-p3 .pv { color: #f0c040; }
+    .po-p4 { background: rgba(255,130,50,0.12) !important; border-color: rgba(255,130,50,0.35) !important; } .po-p4 .pv { color: #ff8c32; }
+    .po-p5 { background: rgba(255,60,60,0.12) !important; border-color: rgba(255,60,60,0.35) !important;   } .po-p5 .pv { color: #ff5555; }
+    .picker-cancel { width: 100%; padding: 13px; background: rgba(255,255,255,0.07); border: none; border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    .row-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0; }
+
+    .toast { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(20,20,20,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <div id="loading-overlay"><div class="spinner"></div></div>
+
+  <div class="appbar">
+    <button class="back-btn" id="btn-back">‹</button>
+    <div class="appbar-info">
+      <div class="appbar-title" id="course-name">로딩중...</div>
+      <div class="appbar-sub"><span class="live-dot"></span>실시간 스코어</div>
+    </div>
+  </div>
+
+  <div class="scroll-area">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c9a8ff"></div>알바트로스</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff6b5b;border-radius:50%"></div>이글</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff9080"></div>버디</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35)"></div>파</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.12)"></div>보기 이상</div>
+    </div>
+
+    <div class="scorecard-outer">
+      <table class="scorecard" id="scorecard"></table>
+    </div>
+  </div>
+
+  <!-- 픽커 -->
+  <div class="picker-overlay" id="picker-overlay">
+    <div class="picker-sheet">
+      <div class="picker-title" id="picker-title">1번 홀</div>
+      <div class="picker-grid" id="picker-grid"></div>
+      <button class="picker-cancel" id="picker-cancel">취소</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const joinId = new URLSearchParams(location.search).get('id');
+if (!joinId) location.href = 'join.html';
+
+let currentUser = null;
+let joinData    = null;
+let pickerHole  = null;
+
+const OPTS = [
+  { v: -3, label: '알바', cls: 'po-n3' },
+  { v: -2, label: '이글', cls: 'po-n2' },
+  { v: -1, label: '버디', cls: 'po-n1' },
+  { v:  0, label: '파',   cls: 'po-0'  },
+  { v:  1, label: '보기', cls: 'po-p1' },
+  { v:  2, label: '더블', cls: 'po-p2' },
+  { v:  3, label: '트리플', cls: 'po-p3' },
+  { v:  4, label: '+4',   cls: 'po-p4' },
+  { v:  5, label: '+5',   cls: 'po-p5' },
+];
+
+function scoreClass(v) {
+  if (v === null) return '';
+  const map = { '-3':'s-n3','-2':'s-n2','-1':'s-n1','0':'s-0','1':'s-p1','2':'s-p2','3':'s-p3','4':'s-p4','5':'s-p5' };
+  return map[String(v)] || 's-p5';
+}
+function scoreLabel(v) {
+  if (v === null) return '';
+  if (v === 0) return 'E';
+  return v > 0 ? `+${v}` : String(v);
+}
+function totLabel(n) {
+  if (n === 0) return 'E';
+  return n > 0 ? `+${n}` : String(n);
+}
+function totColor(n) {
+  if (n < 0) return '#e74c3c';
+  if (n === 0) return 'rgba(255,255,255,0.8)';
+  return 'rgba(255,255,255,0.55)';
+}
+
+document.getElementById('btn-back').onclick = () => history.back();
+document.getElementById('picker-cancel').onclick = closePicker;
+document.getElementById('picker-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('picker-overlay')) closePicker();
+});
+
+onAuthStateChanged(auth, user => {
+  if (!user) { location.href = 'login.html'; return; }
+  currentUser = user;
+  document.getElementById('loading-overlay').classList.add('hidden');
+  onSnapshot(doc(db, 'joins', joinId), snap => {
+    if (!snap.exists()) return;
+    joinData = { id: snap.id, ...snap.data() };
+    document.getElementById('course-name').textContent = joinData.course || '스코어';
+    render();
+  });
+});
+
+function render() {
+  const players = joinData.participants || [];
+  const scores  = joinData.scores || {};
+
+  let html = `<thead><tr>
+    <th class="th-name">선수</th>
+    ${Array.from({length:9},(_,i)=>`<th class="th-hole">${i+1}</th>`).join('')}
+    <th class="th-sub">OUT</th>
+    ${Array.from({length:9},(_,i)=>`<th class="th-hole">${i+10}</th>`).join('')}
+    <th class="th-sub">IN</th>
+    <th class="th-tot">TOT</th>
+  </tr></thead><tbody>`;
+
+  players.forEach((p, pi) => {
+    const isMe   = currentUser && p.uid === currentUser.uid;
+    const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
+    const out    = holes.slice(0,9).reduce((a,v) => a + (v ?? 0), 0);
+    const inVal  = holes.slice(9).reduce((a,v)  => a + (v ?? 0), 0);
+    const tot    = out + inVal;
+    const hasAny = holes.some(v => v !== null);
+
+    const cells = holes.map((v, idx) => {
+      const sc  = scoreClass(v);
+      const lbl = scoreLabel(v);
+      if (isMe) {
+        return `<td class="td-score"><button class="score-btn mine${v!==null?' '+sc:''}" onclick="window._openPicker(${idx})">${lbl}</button></td>`;
+      }
+      return `<td class="td-score"><div class="score-btn${v!==null?' '+sc:''}">${lbl}</div></td>`;
+    });
+
+    const outColor = totColor(out);
+    const inColor  = totColor(inVal);
+    const tColor   = totColor(tot);
+
+    html += `<tr>
+      <td class="td-name">${p.name}${isMe ? '<span class="me-tag">나</span>' : ''}</td>
+      ${cells.slice(0,9).join('')}
+      <td class="td-sub" style="color:${outColor}">${hasAny ? totLabel(out) : '-'}</td>
+      ${cells.slice(9).join('')}
+      <td class="td-sub" style="color:${inColor}">${hasAny ? totLabel(inVal) : '-'}</td>
+      <td class="td-tot" style="color:${tColor}">${hasAny ? totLabel(tot) : '-'}</td>
+    </tr>`;
+    if (pi < players.length - 1) html += `<tr><td colspan="22"><div class="row-divider"></div></td></tr>`;
+  });
+
+  html += '</tbody>';
+  document.getElementById('scorecard').innerHTML = html;
+}
+
+window._openPicker = function(holeIdx) {
+  pickerHole = holeIdx;
+  document.getElementById('picker-title').textContent = `${holeIdx + 1}번 홀`;
+  document.getElementById('picker-grid').innerHTML = OPTS.map(o =>
+    `<button class="picker-opt ${o.cls}" onclick="window._selectScore(${o.v})">
+      <span class="pv">${o.v === 0 ? 'E' : o.v > 0 ? '+'+o.v : o.v}</span>
+      <span class="pl">${o.label}</span>
+    </button>`
+  ).join('');
+  document.getElementById('picker-overlay').classList.add('open');
+};
+
+function closePicker() {
+  document.getElementById('picker-overlay').classList.remove('open');
+  pickerHole = null;
+}
+
+window._selectScore = async function(val) {
+  if (pickerHole === null || !currentUser || !joinData) return;
+  closePicker();
+  const scores = joinData.scores || {};
+  const holes  = [...((scores[currentUser.uid] || {}).holes || Array(18).fill(null))];
+  holes[pickerHole] = val;
+  try {
+    await updateDoc(doc(db, 'joins', joinId), {
+      [`scores.${currentUser.uid}.holes`]: holes
+    });
+  } catch (e) { showToast('저장 오류: ' + e.message); }
+};
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
