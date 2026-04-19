@@ -9,16 +9,14 @@
     :root {
       --green: #2d7a4f;
       --green-light: #3ea066;
-      --green-dark: #e8e8e8;
-      --text: #0A2406;
-      --text-muted: rgba(10,36,6,0.45);
+      --green-dark: #0A2406;
       --border: rgba(62,160,102,0.15);
     }
     html, body {
       width: 100%; height: 100%;
-      background: #0f0f0f;
+      background: #1a1a1a;
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      color: var(--text);
+      color: #fff;
     }
     body { display: flex; align-items: center; justify-content: center; }
     .phone {
@@ -47,7 +45,7 @@
     .appbar-left { display: flex; align-items: center; gap: 4px; font-size: 16px; font-weight: 900; }
     .appbar-left .arrow { font-size: 13px; color: var(--green-light); }
     .appbar-right { display: flex; gap: 14px; }
-    .appbar-right button { background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-muted); line-height: 0; }
+    .appbar-right button { background: none; border: none; cursor: pointer; padding: 4px; color: rgba(255,255,255,0.6); line-height: 0; }
     .top-tabs {
       flex-shrink: 0; display: flex; align-items: center;
       padding: 0 4px; border-bottom: 1px solid var(--border);
@@ -56,11 +54,11 @@
     .top-tabs::-webkit-scrollbar { display: none; }
     .top-tab {
       flex-shrink: 0; padding: 10px 14px;
-      font-size: 13px; font-weight: 700; color: var(--text-muted);
+      font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4);
       border: none; background: none; cursor: pointer; font-family: inherit;
       border-bottom: 2px solid transparent; white-space: nowrap;
     }
-    .top-tab.active { color: var(--text); border-bottom-color: var(--green-light); }
+    .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
     .ggcup-tab { color: #f0c040 !important; }
     .ggcup-tab.active { border-bottom-color: #f0c040; }
     .content {
@@ -72,7 +70,7 @@
     }
     .content::-webkit-scrollbar { display: none; }
     .greeting { margin-bottom: 24px; }
-    .greeting .sub { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .greeting .sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
     .greeting .name { font-size: 20px; font-weight: 900; }
     .greeting .name span { color: var(--green-light); }
     /* ── 배너 슬라이드 ── */
@@ -93,7 +91,7 @@
     .banner-card {
       flex: 0 0 calc(100% - 48px);
       height: 360px;
-      background: #1c1c1e;
+      background: #1A4831;
       border-radius: 20px;
       overflow: hidden;
       scroll-snap-align: start;
@@ -222,9 +220,9 @@
     }
     .ad-dot.active { background: #fff; }
     /* 배경 (이미지 없을 때) */
-    .ad-bg-1 { background: linear-gradient(135deg, #1a1a1a 0%, #222 100%); }
-    .ad-bg-2 { background: linear-gradient(135deg, #1a1a1a 0%, #1e2a1e 100%); }
-    .ad-bg-3 { background: linear-gradient(135deg, #1a1a1a 0%, #222 100%); }
+    .ad-bg-1 { background: linear-gradient(135deg, #0d3320 0%, #1a5c38 100%); }
+    .ad-bg-2 { background: linear-gradient(135deg, #1a2a4a 0%, #0d3320 100%); }
+    .ad-bg-3 { background: linear-gradient(135deg, #2a1a0d 0%, #4a3010 100%); }
 
     /* 섹션 공통 */
     .section-header {
@@ -232,7 +230,7 @@
       margin-bottom: 12px;
     }
     .section-title {
-      font-size: 15px; font-weight: 900; color: var(--text); letter-spacing: -0.3px;
+      font-size: 15px; font-weight: 900; color: #f0ebe0; letter-spacing: -0.3px;
     }
     .section-more {
       font-size: 12px; color: var(--green-light); cursor: pointer;
@@ -241,44 +239,44 @@
     .notice-item {
       display: flex; align-items: center; gap: 12px;
       padding: 14px 16px;
-      background: rgba(255,255,255,0.7);
-      border: 1px solid rgba(10,36,6,0.1);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
       border-radius: 14px; margin-bottom: 8px; cursor: pointer;
       transition: background 0.15s;
     }
-    .notice-item:active { background: rgba(255,255,255,0.9); }
+    .notice-item:active { background: rgba(255,255,255,0.08); }
     .notice-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--green-light); flex-shrink: 0;
     }
     .notice-text { flex: 1; }
-    .notice-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .notice-date { font-size: 11px; color: var(--text-muted); }
-    .notice-arrow { font-size: 16px; color: rgba(10,36,6,0.25); }
-    .notice-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 18px 0; }
+    .notice-title { font-size: 13px; font-weight: 700; color: #f0ebe0; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notice-date { font-size: 11px; color: rgba(240,235,224,0.35); }
+    .notice-arrow { font-size: 16px; color: rgba(255,255,255,0.2); }
+    .notice-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
     /* 히스토그램 */
     .chart-section {
-      width: 100%; background: rgba(255,255,255,0.7);
-      border: 1px solid rgba(62,160,102,0.3); border-radius: 16px;
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(62,160,102,0.25); border-radius: 16px;
       padding: 16px 16px 12px; margin-bottom: 16px;
     }
     .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .chart-title { font-size: 13px; font-weight: 800; color: var(--text); }
+    .chart-title { font-size: 13px; font-weight: 800; color: #fff; }
     .chart-link { font-size: 11px; color: var(--green-light); text-decoration: none; font-weight: 700; }
     .chart-highlight {
       display: flex; align-items: center;
-      background: rgba(10,36,6,0.05); border-radius: 12px;
+      background: rgba(255,255,255,0.04); border-radius: 12px;
       padding: 12px 8px; margin-bottom: 14px;
     }
     .chart-highlight-item { flex: 1; text-align: center; }
     .chart-highlight-num {
-      font-size: 20px; font-weight: 900; color: var(--text); line-height: 1.1;
+      font-size: 20px; font-weight: 900; color: #fff; line-height: 1.1;
     }
     .chart-highlight-num span { font-size: 12px; font-weight: 700; margin-left: 1px; }
     .chart-highlight-num.highlight-avg { color: var(--green-light); }
     .chart-highlight-num.highlight-top { font-size: 16px; color: #e84c1e; }
-    .chart-highlight-label { font-size: 10px; color: var(--text-muted); margin-top: 3px; font-weight: 600; }
-    .chart-highlight-divider { width: 1px; height: 32px; background: rgba(10,36,6,0.15); flex-shrink: 0; }
+    .chart-highlight-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 3px; font-weight: 600; }
+    .chart-highlight-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.1); flex-shrink: 0; }
     .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; }
     .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .bar-wrap { width: 100%; display: flex; align-items: flex-end; height: 60px; }
@@ -288,20 +286,20 @@
       transition: transform 0.78s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .bar.animated { transform: scaleY(1); }
-    .bar-count { font-size: 10px; font-weight: 800; color: var(--text-muted); }
-    .bar-label { font-size: 9px; color: rgba(10,36,6,0.4); white-space: nowrap; }
+    .bar-count { font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.5); }
+    .bar-label { font-size: 9px; color: rgba(255,255,255,0.3); white-space: nowrap; }
     .bar-col.avg-col .bar-label { color: var(--green-light); font-weight: 800; }
 
     /* 조인/대회 카드 */
     .live-card {
       display: flex; align-items: center; gap: 14px;
       padding: 14px 16px;
-      background: rgba(255,255,255,0.7);
-      border: 1px solid rgba(10,36,6,0.1);
+      background: #1A4831;
+      border: 1px solid rgba(62,160,102,0.2);
       border-radius: 16px; margin-bottom: 10px; cursor: pointer;
       transition: background 0.15s;
     }
-    .live-card:active { background: rgba(255,255,255,0.9); }
+    .live-card:active { background: #0f4a26; }
     .live-card-icon {
       width: 46px; height: 46px; border-radius: 12px;
       background: rgba(62,160,102,0.15);
@@ -310,7 +308,7 @@
     }
     .live-card-info { flex: 1; min-width: 0; }
     .live-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-    .live-card-title { font-size: 14px; font-weight: 900; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live-card-title { font-size: 14px; font-weight: 900; color: #f0ebe0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .live-badge {
       font-size: 10px; font-weight: 800; padding: 2px 7px;
       border-radius: 20px; flex-shrink: 0;
@@ -318,9 +316,9 @@
     .live-badge.active { background: rgba(62,160,102,0.2); color: var(--green-light); border: 1px solid rgba(62,160,102,0.4); }
     .live-badge.field  { background: rgba(255,200,80,0.15); color: #f5c842; border: 1px solid rgba(255,200,80,0.3); }
     .live-badge.screen { background: rgba(100,160,255,0.15); color: #7ab4ff; border: 1px solid rgba(100,160,255,0.3); }
-    .live-card-meta { font-size: 11px; color: var(--text-muted); }
-    .live-card-arrow { font-size: 18px; color: rgba(10,36,6,0.25); flex-shrink: 0; }
-    .live-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 18px 0; }
+    .live-card-meta { font-size: 11px; color: rgba(240,235,224,0.45); }
+    .live-card-arrow { font-size: 18px; color: rgba(240,235,224,0.2); flex-shrink: 0; }
+    .live-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
     .section-gap { margin-top: 24px; }
     .my-btn {
       font-size: 12px; font-weight: 700; color: var(--green-light);
@@ -349,7 +347,7 @@
       box-shadow: 0 4px 16px rgba(62,160,102,0.5);
     }
     @media (max-width: 480px) {
-      html, body { background: #0f0f0f; }
+      html, body { background: var(--green-dark); }
       body { align-items: flex-start; }
       .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
       .phone::before { display: none; }
