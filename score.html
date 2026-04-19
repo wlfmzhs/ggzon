@@ -54,17 +54,30 @@
 
     /* HOLE 헤더 행 */
     .sc-table .tr-header { background: var(--header-bg); }
-    .sc-table .tr-header th { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.85); text-align: center; padding: 8px 0; }
+    .sc-table .tr-header th { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.85); text-align: center; padding: 6px 0; }
     .sc-table .tr-header th.th-name-col { text-align: left; padding-left: 6px; font-size: 10px; letter-spacing: 0.5px; }
-    .sc-table .tr-header th.th-t { color: #5bc8f5; }
+    .sc-table .tr-header th.th-hole-num {
+      padding: 4px 1px;
+    }
+    .sc-table .tr-header th.th-hole-num span {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px;
+      background: rgba(255,255,255,0.92); color: #111;
+      border-radius: 4px; font-size: 10px; font-weight: 900;
+    }
+    .sc-table .tr-header th.th-t { color: #f0c040; font-size: 12px; }
 
     /* 플레이어 행 */
     .sc-table .tr-player { border-bottom: 1px solid rgba(255,255,255,0.06); }
     .sc-table .tr-player:last-child { border-bottom: none; }
     .sc-table .tr-player td { text-align: center; padding: 5px 0; vertical-align: middle; }
-    .sc-table .tr-player td.td-name { text-align: left; padding-left: 6px; font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.85); white-space: nowrap; }
+    .sc-table .tr-player td.td-name {
+      text-align: left; padding-left: 6px; font-size: 12px; font-weight: 800;
+      color: rgba(255,255,255,0.85); white-space: nowrap;
+      background: var(--header-bg);
+    }
     .me-tag { font-size: 9px; color: var(--green-light); margin-left: 3px; font-weight: 700; }
-    .sc-table .tr-player td.td-t { font-size: 13px; font-weight: 900; color: #5bc8f5; }
+    .sc-table .tr-player td.td-t { font-size: 13px; font-weight: 900; color: #f0c040; }
 
     /* 점수 셀 */
     .score-chip {
@@ -346,7 +359,7 @@ function buildTable(players, scores, canEdit, from, to) {
 
   let html = `<thead><tr class="tr-header">
     <th class="th-name-col">HOLE</th>
-    ${holeNums.map(n => `<th>${n}</th>`).join('')}
+    ${holeNums.map(n => `<th class="th-hole-num"><span>${n}</span></th>`).join('')}
     <th class="th-t">T</th>
   </tr></thead><tbody>`;
 
