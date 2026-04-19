@@ -572,11 +572,6 @@
     <div class="score-hist-scroll" id="score-hist-list">
       <div class="empty-msg">불러오는 중...</div>
     </div>
-    <div style="flex-shrink:0;padding:16px 20px 32px;text-align:center;border-top:1px solid rgba(62,160,102,0.12);">
-      <div style="font-size:13px;font-style:italic;color:rgba(255,255,255,0.55);line-height:1.7;margin-bottom:6px;">"골프는 대부분 스스로를 심판하는 게임이다."</div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:8px;">R&amp;A &amp; USGA – 골프 규칙 서문 (Spirit of the Game)</div>
-      <div style="font-size:12px;font-weight:700;color:var(--green-light);">우리는 골갑 멤버를 믿습니다</div>
-    </div>
   </div>
 
   <!-- ============== 명예 기록 오버레이 ============== -->
@@ -1322,6 +1317,13 @@ window.deleteAchievement = async (id) => {
 // ══════════════════════════════════════════════════════
 //  스코어 기록 기능
 // ══════════════════════════════════════════════════════
+const SCORE_QUOTE = `
+  <div style="margin-top:28px;padding:20px 4px 8px;text-align:center;border-top:1px solid rgba(62,160,102,0.12);">
+    <div style="font-size:13px;font-style:italic;color:rgba(255,255,255,0.55);line-height:1.7;margin-bottom:6px;">"골프는 대부분 스스로를 심판하는 게임이다."</div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:8px;">R&amp;A &amp; USGA – 골프 규칙 서문 (Spirit of the Game)</div>
+    <div style="font-size:12px;font-weight:700;color:var(--green-light);">우리는 골갑 멤버를 믿습니다</div>
+  </div>`;
+
 window.openScoreHistOverlay = async () => {
   document.getElementById('score-hist-overlay').classList.add('show');
   const el = document.getElementById('score-hist-list');
@@ -1331,16 +1333,12 @@ window.openScoreHistOverlay = async () => {
       query(collection(db, 'users', currentUser.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
     );
     if (snap.empty) {
-      el.innerHTML = '<div class="empty-msg">저장된 스코어 기록이 없습니다<br><span style="font-size:11px;margin-top:6px;display:block;">라운드 후 스코어 페이지에서 제출하세요</span></div>';
-
-      // 메뉴 desc 업데이트
+      el.innerHTML = '<div class="empty-msg">저장된 스코어 기록이 없습니다<br><span style="font-size:11px;margin-top:6px;display:block;">라운드 후 스코어 페이지에서 제출하세요</span></div>' + SCORE_QUOTE;
       document.getElementById('score-hist-desc').textContent = '라운드 스코어 누적 기록';
       return;
     }
 
     const records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // 메뉴 desc 업데이트
     document.getElementById('score-hist-desc').textContent = `${records.length}회 기록`;
 
     el.innerHTML = records.map(r => {
@@ -1349,18 +1347,17 @@ window.openScoreHistOverlay = async () => {
       const label = !hasScore ? '-' : tot === 0 ? 'E' : tot > 0 ? `+${tot}` : String(tot);
       const cls   = tot < 0 ? 'under' : tot === 0 ? 'even' : 'over';
       const companions = (r.companions || []).map(c => c.name || c).join(', ');
-      const date = r.date || '';
       return `<div class="score-hist-card">
         <div class="score-hist-top">
           <div class="score-hist-course">${r.course || '골프장'}</div>
           <div class="score-hist-chip ${cls}">${label}</div>
         </div>
-        <div class="score-hist-meta">${date}</div>
+        <div class="score-hist-meta">${r.date || ''}</div>
         ${companions ? `<div class="score-hist-companions">동반자: ${companions}</div>` : ''}
       </div>`;
-    }).join('');
+    }).join('') + SCORE_QUOTE;
   } catch (e) {
-    el.innerHTML = '<div class="empty-msg">불러오기 실패</div>';
+    el.innerHTML = '<div class="empty-msg">불러오기 실패</div>' + SCORE_QUOTE;
   }
 };
 
