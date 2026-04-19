@@ -9,12 +9,12 @@
     :root {
       --green: #2d7a4f;
       --green-light: #3ea066;
-      --green-dark: #0A2406;
+      --green-dark: #111111;
       --border: rgba(62,160,102,0.15);
     }
     html, body {
       width: 100%; height: 100%;
-      background: #1a1a1a;
+      background: #0f0f0f;
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
       color: #fff;
     }
@@ -91,7 +91,7 @@
     .banner-card {
       flex: 0 0 calc(100% - 48px);
       height: 360px;
-      background: #1A4831;
+      background: #1c1c1e;
       border-radius: 20px;
       overflow: hidden;
       scroll-snap-align: start;
@@ -220,9 +220,9 @@
     }
     .ad-dot.active { background: #fff; }
     /* 배경 (이미지 없을 때) */
-    .ad-bg-1 { background: linear-gradient(135deg, #0d3320 0%, #1a5c38 100%); }
-    .ad-bg-2 { background: linear-gradient(135deg, #1a2a4a 0%, #0d3320 100%); }
-    .ad-bg-3 { background: linear-gradient(135deg, #2a1a0d 0%, #4a3010 100%); }
+    .ad-bg-1 { background: linear-gradient(135deg, #1a1a1a 0%, #222 100%); }
+    .ad-bg-2 { background: linear-gradient(135deg, #1a1a1a 0%, #1e2a1e 100%); }
+    .ad-bg-3 { background: linear-gradient(135deg, #1a1a1a 0%, #222 100%); }
 
     /* 섹션 공통 */
     .section-header {
@@ -294,12 +294,12 @@
     .live-card {
       display: flex; align-items: center; gap: 14px;
       padding: 14px 16px;
-      background: #1A4831;
-      border: 1px solid rgba(62,160,102,0.2);
+      background: #1c1c1e;
+      border: 1px solid rgba(255,255,255,0.07);
       border-radius: 16px; margin-bottom: 10px; cursor: pointer;
       transition: background 0.15s;
     }
-    .live-card:active { background: #0f4a26; }
+    .live-card:active { background: #2a2a2c; }
     .live-card-icon {
       width: 46px; height: 46px; border-radius: 12px;
       background: rgba(62,160,102,0.15);
@@ -347,7 +347,7 @@
       box-shadow: 0 4px 16px rgba(62,160,102,0.5);
     }
     @media (max-width: 480px) {
-      html, body { background: var(--green-dark); }
+      html, body { background: #0f0f0f; }
       body { align-items: flex-start; }
       .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
       .phone::before { display: none; }
@@ -710,7 +710,8 @@
     } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
   }
 
-  document.getElementById('tab-logout').addEventListener('click', async () => {
+  const logoutBtn = document.getElementById('tab-logout');
+  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
     await signOut(auth);
     window.location.href = 'index.html';
   });
