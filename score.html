@@ -30,7 +30,7 @@
     .live-dot { width: 6px; height: 6px; background: #e74c3c; border-radius: 50%; display: inline-block; animation: blink 1.2s ease-in-out infinite; }
     @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-    .scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+    .scroll-area { flex: 1; overflow-y: auto; overflow-x: auto; scrollbar-width: none; }
     .scroll-area::-webkit-scrollbar { display: none; }
 
     /* 범례 */
@@ -185,6 +185,7 @@ if (!joinId) location.href = 'join.html';
 let currentUser = null;
 let joinData    = null;
 let pickerHole  = null;
+let pickerUid   = null;
 
 const OPTS = [
   { v: -3, label: '알바', cls: 'po-n3' },
@@ -271,11 +272,12 @@ function render() {
     const tot    = out + inVal;
     const hasAny = holes.some(v => v !== null);
 
+    const isMyRow = currentUser && p.uid === currentUser.uid;
     const cells = holes.map((v, idx) => {
       const sc  = scoreClass(v);
       const lbl = scoreLabel(v);
       if (isMe) {
-        return `<td class="td-score"><button class="score-btn mine${v!==null?' '+sc:''}" onclick="window._openPicker(${idx})">${lbl}</button></td>`;
+        return `<td class="td-score"><button class="score-btn mine${v!==null?' '+sc:''}" onclick="window._openPicker('${p.uid}',${idx})">${lbl}</button></td>`;
       }
       return `<td class="td-score"><div class="score-btn${v!==null?' '+sc:''}">${lbl}</div></td>`;
     });
@@ -285,7 +287,7 @@ function render() {
     const tColor   = totColor(tot);
 
     html += `<tr>
-      <td class="td-name">${p.name}${isMe ? '<span class="me-tag">나</span>' : ''}</td>
+      <td class="td-name">${p.name}${isMyRow ? '<span class="me-tag">나</span>' : ''}</td>
       ${cells.slice(0,9).join('')}
       <td class="td-sub" style="color:${outColor}">${hasAny ? totLabel(out) : '-'}</td>
       ${cells.slice(9).join('')}
@@ -299,8 +301,9 @@ function render() {
   document.getElementById('scorecard').innerHTML = html;
 }
 
-window._openPicker = function(holeIdx) {
+window._openPicker = function(uid, holeIdx) {
   pickerHole = holeIdx;
+  pickerUid  = uid;
   document.getElementById('picker-title').textContent = `${holeIdx + 1}번 홀`;
   document.getElementById('picker-grid').innerHTML = OPTS.map(o =>
     `<button class="picker-opt ${o.cls}" onclick="window._selectScore(${o.v})">
@@ -314,17 +317,20 @@ window._openPicker = function(holeIdx) {
 function closePicker() {
   document.getElementById('picker-overlay').classList.remove('open');
   pickerHole = null;
+  pickerUid  = null;
 }
 
 window._selectScore = async function(val) {
-  if (pickerHole === null || !currentUser || !joinData) return;
+  if (pickerHole === null || !pickerUid || !joinData) return;
+  const targetUid = pickerUid;
+  const holeIdx   = pickerHole;
   closePicker();
   const scores = joinData.scores || {};
-  const holes  = [...((scores[currentUser.uid] || {}).holes || Array(18).fill(null))];
-  holes[pickerHole] = val;
+  const holes  = [...((scores[targetUid] || {}).holes || Array(18).fill(null))];
+  holes[holeIdx] = val;
   try {
     await updateDoc(doc(db, 'joins', joinId), {
-      [`scores.${currentUser.uid}.holes`]: holes
+      [`scores.${targetUid}.holes`]: holes
     });
   } catch (e) { showToast('저장 오류: ' + e.message); }
 };
