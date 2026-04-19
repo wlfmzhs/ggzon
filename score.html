@@ -11,6 +11,7 @@
       --green-light: #3ea066;
       --green-dark: #0A2406;
       --gold: #f0c040;
+      --header-bg: #0f2a1a;
     }
     html, body { width: 100%; height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #fff; }
     body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -22,7 +23,8 @@
     .spinner { width: 32px; height: 32px; border: 3px solid rgba(62,160,102,0.3); border-top-color: var(--green-light); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .appbar { flex-shrink: 0; padding: 32px 18px 12px; display: flex; align-items: center; gap: 10px; }
+    /* 앱바 */
+    .appbar { flex-shrink: 0; padding: 32px 18px 10px; display: flex; align-items: center; gap: 10px; }
     .back-btn { background: none; border: none; cursor: pointer; padding: 0 8px 0 0; color: var(--green-light); font-size: 24px; line-height: 1; flex-shrink: 0; }
     .appbar-info { flex: 1; min-width: 0; }
     .appbar-title { font-size: 16px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -30,56 +32,63 @@
     .live-dot { width: 6px; height: 6px; background: #e74c3c; border-radius: 50%; display: inline-block; animation: blink 1.2s ease-in-out infinite; }
     @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
 
+    /* 스크롤 */
     .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; }
     .scroll-area::-webkit-scrollbar { display: none; }
 
-    /* 범례 */
-    .legend { display: flex; gap: 10px; padding: 8px 14px 10px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 9px; color: rgba(255,255,255,0.4); }
-    .legend-samp { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 900; color: #fff; flex-shrink: 0; }
+    /* 비참석자 안내 */
+    .notice-bar { display: none; align-items: center; gap: 8px; margin: 8px 14px; padding: 10px 14px; background: rgba(255,200,60,0.08); border: 1px solid rgba(255,200,60,0.25); border-radius: 10px; font-size: 12px; color: rgba(255,200,60,0.85); }
 
-    /* 스코어카드 */
-    table.scorecard { border-collapse: collapse; width: calc(100% - 24px); margin: 10px 12px 0; table-layout: fixed; }
+    /* 요약 바 */
+    .summary-bar { display: flex; margin: 10px 14px 14px; background: rgba(255,255,255,0.05); border-radius: 14px; overflow: hidden; }
+    .summary-player { flex: 1; text-align: center; padding: 12px 6px; border-right: 1px solid rgba(255,255,255,0.08); }
+    .summary-player:last-child { border-right: none; }
+    .summary-name { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 5px; font-weight: 600; }
+    .summary-score { font-size: 22px; font-weight: 900; color: #fff; }
+    .summary-score.under { color: #e74c3c; }
+    .summary-score.even  { color: rgba(255,255,255,0.8); }
 
-    /* 헤더 */
-    .th-name { font-size: 9px; color: rgba(255,255,255,0.3); font-weight: 700; text-align: left; padding: 4px 4px 4px 0; width: 52px; }
-    .th-hole { font-size: 9px; color: rgba(255,255,255,0.3); font-weight: 800; text-align: center; padding: 4px 0; }
-    .th-sub  { font-size: 9px; color: var(--green-light); font-weight: 800; text-align: center; padding: 4px 0; background: rgba(62,160,102,0.1); }
-    .th-tot  { font-size: 9px; color: var(--gold); font-weight: 800; text-align: center; padding: 4px 0; background: rgba(240,192,64,0.08); }
-    .th-blank { }
+    /* 스코어 테이블 공통 */
+    .score-section { margin: 0 14px 16px; }
+    table.sc-table { width: 100%; border-collapse: collapse; }
+
+    /* HOLE 헤더 행 */
+    .sc-table .tr-header { background: var(--header-bg); }
+    .sc-table .tr-header th { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.85); text-align: center; padding: 8px 0; }
+    .sc-table .tr-header th.th-name-col { text-align: left; padding-left: 6px; font-size: 10px; letter-spacing: 0.5px; }
+    .sc-table .tr-header th.th-t { color: #5bc8f5; }
 
     /* 플레이어 행 */
-    .td-name { font-size: 12px; font-weight: 800; padding: 2px 4px 2px 0; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .me-tag  { font-size: 9px; color: var(--green-light); font-weight: 700; margin-left: 3px; }
-    .td-score { text-align: center; vertical-align: middle; padding: 3px 1px; }
-    .score-btn {
+    .sc-table .tr-player { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sc-table .tr-player:last-child { border-bottom: none; }
+    .sc-table .tr-player td { text-align: center; padding: 5px 0; vertical-align: middle; }
+    .sc-table .tr-player td.td-name { text-align: left; padding-left: 6px; font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.85); white-space: nowrap; }
+    .me-tag { font-size: 9px; color: var(--green-light); margin-left: 3px; font-weight: 700; }
+    .sc-table .tr-player td.td-t { font-size: 13px; font-weight: 900; color: #5bc8f5; }
+
+    /* 점수 셀 */
+    .score-chip {
       width: 26px; height: 26px;
-      border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.03);
-      font-size: 10px; font-weight: 900;
       display: inline-flex; align-items: center; justify-content: center;
-      font-family: inherit; color: rgba(255,255,255,0.18);
+      font-size: 11px; font-weight: 900; color: rgba(255,255,255,0.2);
+      background: none; border: none; border-radius: 4px;
+      font-family: inherit;
     }
-    .score-btn.mine { border-color: rgba(62,160,102,0.3); background: rgba(62,160,102,0.06); cursor: pointer; }
-    .score-btn.mine:active { opacity: 0.6; }
+    button.score-chip { cursor: pointer; }
+    button.score-chip:active { opacity: 0.6; }
 
-    /* 점수 스타일 */
-    /* 언더파: 빨간 원 + 흰 숫자 */
-    .s-under { background: #e74c3c !important; border: none !important; border-radius: 50% !important; color: #fff !important; }
-    /* 파(0): 스타일 없음 */
-    .s-zero  { background: transparent !important; border: none !important; color: #fff !important; }
+    /* 입력 가능 빈 셀 */
+    button.score-chip.mine { color: rgba(255,255,255,0.2); }
+
+    /* 언더파: 빨간 원, 흰 숫자 */
+    .chip-under { background: #e74c3c !important; border-radius: 50% !important; color: #fff !important; border: none !important; }
+    /* 파 0: 숫자만 */
+    .chip-zero  { color: #fff !important; background: none !important; border: none !important; }
     /* +1: 사각 테두리 1줄 */
-    .s-p1    { background: transparent !important; border: 1.5px solid #fff !important; border-radius: 0 !important; color: #fff !important; }
+    .chip-p1    { color: #fff !important; background: none !important; border: 1.5px solid rgba(255,255,255,0.75) !important; border-radius: 0 !important; }
     /* +2 이상: 사각 테두리 2줄 */
-    .s-p2up  { background: transparent !important; border: 1.5px solid #fff !important; border-radius: 0 !important; color: #fff !important;
-               box-shadow: 0 0 0 3px var(--green-dark), 0 0 0 4.5px #fff; }
-
-    .td-sub { font-size: 11px; font-weight: 900; text-align: center; padding: 2px 0; vertical-align: middle; }
-    .td-tot { font-size: 13px; font-weight: 900; text-align: center; padding: 2px 0; vertical-align: middle; color: var(--gold); }
-    .td-blank { }
-    .player-divider td { padding: 5px 0; }
-    .player-divider-line { height: 1px; background: rgba(255,255,255,0.07); }
+    .chip-p2up  { color: #fff !important; background: none !important; border: 1.5px solid rgba(255,255,255,0.75) !important; border-radius: 0 !important;
+                  outline: 1.5px solid rgba(255,255,255,0.75); outline-offset: 2px; }
 
     /* 픽커 */
     .picker-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: flex-end; }
@@ -88,27 +97,15 @@
     .picker-overlay.open .picker-sheet { transform: translateY(0); }
     .picker-title { font-size: 14px; font-weight: 900; text-align: center; margin-bottom: 18px; color: rgba(255,255,255,0.85); }
     .picker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
-    .picker-opt {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 3px; padding: 10px 4px; border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
-      cursor: pointer; font-family: inherit; transition: transform 0.1s;
-    }
+    .picker-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 11px 4px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); cursor: pointer; font-family: inherit; transition: transform 0.1s; }
     .picker-opt:active { transform: scale(0.92); }
-    .picker-opt .pv { font-size: 15px; font-weight: 900; }
+    .picker-opt .pv { font-size: 16px; font-weight: 900; color: #fff; }
     .picker-opt .pl { font-size: 9px; color: rgba(255,255,255,0.45); font-weight: 700; }
-    .po-n3 { background: rgba(123,47,255,0.2) !important; border-color: rgba(123,47,255,0.5) !important; } .po-n3 .pv { color: #c9a8ff; }
-    .po-n2 { background: rgba(231,76,60,0.25) !important; border-color: rgba(231,76,60,0.6) !important; } .po-n2 .pv { color: #ff6b5b; }
-    .po-n1 { background: rgba(231,76,60,0.15) !important; border-color: rgba(231,76,60,0.4) !important; } .po-n1 .pv { color: #ff9080; }
-    .po-0  { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.25) !important; } .po-0 .pv { color: #fff; }
-    .po-p1 { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.15) !important; } .po-p1 .pv { color: rgba(255,255,255,0.7); }
-    .po-p2 { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.2) !important;  } .po-p2 .pv { color: rgba(255,255,255,0.8); }
-    .po-p3 { background: rgba(255,200,60,0.12) !important; border-color: rgba(255,200,60,0.35) !important; } .po-p3 .pv { color: #f0c040; }
-    .po-p4 { background: rgba(255,130,50,0.12) !important; border-color: rgba(255,130,50,0.35) !important; } .po-p4 .pv { color: #ff8c32; }
-    .po-p5 { background: rgba(255,60,60,0.12) !important; border-color: rgba(255,60,60,0.35) !important;   } .po-p5 .pv { color: #ff5555; }
+    .po-under { background: rgba(231,76,60,0.2) !important; border-color: rgba(231,76,60,0.5) !important; } .po-under .pv { color: #ff7b6b; }
+    .po-zero  { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.2) !important; }
+    .po-p1    { background: none !important; border: 1.5px solid rgba(255,255,255,0.5) !important; border-radius: 0 !important; }
+    .po-p2up  { background: none !important; border: 1.5px solid rgba(255,255,255,0.5) !important; border-radius: 0 !important; outline: 1.5px solid rgba(255,255,255,0.5); outline-offset: 3px; }
     .picker-cancel { width: 100%; padding: 13px; background: rgba(255,255,255,0.07); border: none; border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
-
-    .row-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0; }
 
     .toast { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(20,20,20,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -136,21 +133,25 @@
   </div>
 
   <div class="scroll-area">
-    <div id="non-participant-notice" style="display:none;align-items:center;gap:8px;margin:10px 16px 0;padding:10px 14px;background:rgba(255,200,60,0.08);border:1px solid rgba(255,200,60,0.25);border-radius:12px;font-size:12px;color:rgba(255,200,60,0.85);">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      참석자만 스코어를 입력할 수 있습니다. 조회만 가능합니다.
-    </div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-samp" style="background:#e74c3c;border-radius:50%;width:18px;height:18px;">-1</div>버디↑</div>
-      <div class="legend-item"><div class="legend-samp" style="color:rgba(255,255,255,0.4);">0</div>파</div>
-      <div class="legend-item"><div class="legend-samp" style="border:1.5px solid #fff;border-radius:0;">+1</div>보기</div>
-      <div class="legend-item"><div class="legend-samp" style="border:1.5px solid #fff;border-radius:0;box-shadow:0 0 0 3px #0A2406,0 0 0 4.5px #fff;">+2</div>더블↑</div>
+    <div class="notice-bar" id="notice-bar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      참석자만 스코어를 입력할 수 있습니다.
     </div>
 
-    <table class="scorecard" id="scorecard"></table>
+    <!-- 요약 바 -->
+    <div class="summary-bar" id="summary-bar"></div>
+
+    <!-- 전반 -->
+    <div class="score-section">
+      <table class="sc-table" id="table-front"></table>
+    </div>
+
+    <!-- 후반 -->
+    <div class="score-section">
+      <table class="sc-table" id="table-back"></table>
+    </div>
   </div>
 
-  <!-- 픽커 -->
   <div class="picker-overlay" id="picker-overlay">
     <div class="picker-sheet">
       <div class="picker-title" id="picker-title">1번 홀</div>
@@ -187,37 +188,33 @@ let pickerHole  = null;
 let pickerUid   = null;
 
 const OPTS = [
-  { v: -3, label: '알바', cls: 'po-n3' },
-  { v: -2, label: '이글', cls: 'po-n2' },
-  { v: -1, label: '버디', cls: 'po-n1' },
-  { v:  0, label: '파',   cls: 'po-0'  },
-  { v:  1, label: '보기', cls: 'po-p1' },
-  { v:  2, label: '더블', cls: 'po-p2' },
-  { v:  3, label: '트리플', cls: 'po-p3' },
-  { v:  4, label: '+4',   cls: 'po-p4' },
-  { v:  5, label: '+5',   cls: 'po-p5' },
+  { v: -3, label: '알바', cls: 'po-under' },
+  { v: -2, label: '이글', cls: 'po-under' },
+  { v: -1, label: '버디', cls: 'po-under' },
+  { v:  0, label: '파',   cls: 'po-zero'  },
+  { v:  1, label: '보기', cls: 'po-p1'    },
+  { v:  2, label: '더블', cls: 'po-p2up'  },
+  { v:  3, label: '트리', cls: 'po-p2up'  },
+  { v:  4, label: '+4',   cls: 'po-p2up'  },
+  { v:  5, label: '+5',   cls: 'po-p2up'  },
 ];
 
-function scoreClass(v) {
+function chipClass(v) {
   if (v === null) return '';
-  if (v < 0)  return 's-under';
-  if (v === 0) return 's-zero';
-  if (v === 1) return 's-p1';
-  return 's-p2up';
+  if (v < 0)  return 'chip-under';
+  if (v === 0) return 'chip-zero';
+  if (v === 1) return 'chip-p1';
+  return 'chip-p2up';
 }
-function scoreLabel(v) {
+function chipLabel(v) {
   if (v === null) return '';
   if (v === 0) return '0';
   return v > 0 ? `+${v}` : String(v);
 }
-function totLabel(n) {
-  if (n === 0) return 'E';
+function totLabel(n, hasAny) {
+  if (!hasAny) return '-';
+  if (n === 0) return '0';
   return n > 0 ? `+${n}` : String(n);
-}
-function totColor(n) {
-  if (n < 0) return '#e74c3c';
-  if (n === 0) return 'rgba(255,255,255,0.8)';
-  return 'rgba(255,255,255,0.55)';
 }
 
 document.getElementById('btn-back').onclick = () => history.back();
@@ -234,82 +231,78 @@ onAuthStateChanged(auth, user => {
     if (!snap.exists()) return;
     joinData = { id: snap.id, ...snap.data() };
     document.getElementById('course-name').textContent = joinData.course || '스코어';
-
-    // 스크린 조인은 스코어 페이지 비공개
     if (joinData.joinType === 'screen') {
-      showToast('스크린 조인은 스코어 입력 기능이 없습니다');
+      showToast('스크린 조인은 스코어 기능이 없습니다');
       setTimeout(() => history.back(), 1500);
       return;
     }
-
     render();
   });
 });
 
 function render() {
-  const players = joinData.participants || [];
-  const scores  = joinData.scores || {};
+  const players      = joinData.participants || [];
+  const scores       = joinData.scores || {};
   const isParticipant = players.some(p => p.uid === currentUser.uid);
 
-  if (!isParticipant) {
-    const notice = document.getElementById('non-participant-notice');
-    if (notice) notice.style.display = 'flex';
-  }
+  if (!isParticipant) document.getElementById('notice-bar').style.display = 'flex';
 
-  // 헤더: 전반(1-9)+OUT+빈칸 / 후반(10-18)+IN+TOT
-  let html = `<thead>
-    <tr>
-      <th class="th-name" rowspan="2">선수</th>
-      ${Array.from({length:9},(_,i)=>`<th class="th-hole">${i+1}</th>`).join('')}
-      <th class="th-sub">OUT</th>
-      <th class="th-blank"></th>
-    </tr>
-    <tr>
-      ${Array.from({length:9},(_,i)=>`<th class="th-hole">${i+10}</th>`).join('')}
-      <th class="th-sub">IN</th>
-      <th class="th-tot">TOT</th>
-    </tr>
-  </thead><tbody>`;
+  // 요약 바
+  document.getElementById('summary-bar').innerHTML = players.map(p => {
+    const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
+    const hasAny = holes.some(v => v !== null);
+    const tot    = hasAny ? holes.reduce((a, v) => a + (v ?? 0), 0) : null;
+    const label  = tot === null ? '-' : tot === 0 ? 'E' : tot > 0 ? `+${tot}` : String(tot);
+    const cls    = tot === null ? '' : tot < 0 ? 'under' : tot === 0 ? 'even' : '';
+    const isMe   = currentUser && p.uid === currentUser.uid;
+    return `<div class="summary-player">
+      <div class="summary-name">${p.name}${isMe ? '<span class="me-tag">나</span>' : ''}</div>
+      <div class="summary-score ${cls}">${label}</div>
+    </div>`;
+  }).join('');
 
-  players.forEach((p, pi) => {
-    const canEdit = isParticipant;
+  // 전반 테이블
+  document.getElementById('table-front').innerHTML = buildTable(players, scores, isParticipant, 0, 9);
+  // 후반 테이블
+  document.getElementById('table-back').innerHTML  = buildTable(players, scores, isParticipant, 9, 18);
+}
+
+function buildTable(players, scores, canEdit, from, to) {
+  const count = to - from;
+  const holeNums = Array.from({length: count}, (_, i) => from + i + 1);
+
+  let html = `<thead><tr class="tr-header">
+    <th class="th-name-col">HOLE</th>
+    ${holeNums.map(n => `<th>${n}</th>`).join('')}
+    <th class="th-t">T</th>
+  </tr></thead><tbody>`;
+
+  players.forEach(p => {
     const isMyRow = currentUser && p.uid === currentUser.uid;
     const holes   = (scores[p.uid] || {}).holes || Array(18).fill(null);
-    const out     = holes.slice(0,9).reduce((a,v) => a + (v ?? 0), 0);
-    const inVal   = holes.slice(9).reduce((a,v)  => a + (v ?? 0), 0);
-    const tot     = out + inVal;
-    const hasAny  = holes.some(v => v !== null);
+    const slice   = holes.slice(from, to);
+    const hasAny  = slice.some(v => v !== null);
+    const sub     = slice.reduce((a, v) => a + (v ?? 0), 0);
 
-    const cell = (v, idx) => {
-      const sc  = scoreClass(v);
-      const lbl = scoreLabel(v);
-      const btn = canEdit
-        ? `<button class="score-btn mine${v!==null?' '+sc:''}" onclick="window._openPicker('${p.uid}',${idx})">${lbl}</button>`
-        : `<div class="score-btn${v!==null?' '+sc:''}">${lbl}</div>`;
-      return `<td class="td-score">${btn}</td>`;
-    };
+    const cells = slice.map((v, i) => {
+      const idx = from + i;
+      const cc  = chipClass(v);
+      const cl  = chipLabel(v);
+      if (canEdit) {
+        return `<td><button class="score-chip mine ${cc}" onclick="window._openPicker('${p.uid}',${idx})">${cl}</button></td>`;
+      }
+      return `<td><div class="score-chip ${cc}">${cl}</div></td>`;
+    }).join('');
 
-    // 전반행
-    html += `<tr>
-      <td class="td-name" rowspan="2">${p.name}${isMyRow?'<br><span class="me-tag">나</span>':''}</td>
-      ${holes.slice(0,9).map((v,i) => cell(v, i)).join('')}
-      <td class="td-sub" style="color:${totColor(out)}">${hasAny ? totLabel(out) : '-'}</td>
-      <td class="td-blank"></td>
+    html += `<tr class="tr-player">
+      <td class="td-name">${p.name}${isMyRow ? '<span class="me-tag">나</span>' : ''}</td>
+      ${cells}
+      <td class="td-t">${totLabel(sub, hasAny)}</td>
     </tr>`;
-    // 후반행
-    html += `<tr>
-      ${holes.slice(9).map((v,i) => cell(v, i+9)).join('')}
-      <td class="td-sub" style="color:${totColor(inVal)}">${hasAny ? totLabel(inVal) : '-'}</td>
-      <td class="td-tot" style="color:${totColor(tot)}">${hasAny ? totLabel(tot) : '-'}</td>
-    </tr>`;
-
-    if (pi < players.length - 1) {
-      html += `<tr class="player-divider"><td colspan="12"><div class="player-divider-line"></div></td></tr>`;
-    }
   });
 
   html += '</tbody>';
-  document.getElementById('scorecard').innerHTML = html;
+  return html;
 }
 
 window._openPicker = function(uid, holeIdx) {
@@ -318,7 +311,7 @@ window._openPicker = function(uid, holeIdx) {
   document.getElementById('picker-title').textContent = `${holeIdx + 1}번 홀`;
   document.getElementById('picker-grid').innerHTML = OPTS.map(o =>
     `<button class="picker-opt ${o.cls}" onclick="window._selectScore(${o.v})">
-      <span class="pv">${o.v === 0 ? 'E' : o.v > 0 ? '+'+o.v : o.v}</span>
+      <span class="pv">${o.v === 0 ? '0' : o.v > 0 ? '+'+o.v : o.v}</span>
       <span class="pl">${o.label}</span>
     </button>`
   ).join('');
