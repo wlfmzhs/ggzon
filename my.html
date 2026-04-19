@@ -208,6 +208,78 @@
     .empty-msg { text-align: center; color: rgba(255,255,255,0.3); font-size: 13px; padding: 32px 0; }
     .hidden { display: none !important; }
 
+    /* ── 스코어카드 상세 오버레이 ── */
+    .scorecard-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      z-index: 160; display: flex; flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.32,0.72,0,1);
+    }
+    .scorecard-overlay.show { transform: translateY(0); }
+    .scorecard-appbar {
+      flex-shrink: 0; padding: 32px 18px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .scorecard-appbar-info { flex: 1; min-width: 0; }
+    .scorecard-appbar-title { font-size: 15px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scorecard-appbar-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .scorecard-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; padding: 8px 14px 40px; }
+    .scorecard-scroll::-webkit-scrollbar { display: none; }
+
+    /* 스코어카드 테이블 */
+    .sc2-section { margin-bottom: 16px; }
+    table.sc2-table { width: 100%; border-collapse: collapse; }
+    .sc2-table .tr-header { background: #0f2a1a; }
+    .sc2-table .tr-header th { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.85); text-align: center; padding: 8px 0; }
+    .sc2-table .tr-header th.th-t { color: #5bc8f5; }
+    .sc2-table .tr-data { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sc2-table .tr-data td { text-align: center; padding: 5px 0; vertical-align: middle; }
+    .sc2-table .tr-data td.td-t { font-size: 13px; font-weight: 900; color: #5bc8f5; }
+
+    /* 점수 칩 */
+    .sc2-chip {
+      width: 26px; height: 26px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900; color: rgba(255,255,255,0.2);
+      background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;
+      font-family: inherit;
+    }
+    button.sc2-chip { cursor: pointer; }
+    button.sc2-chip:active { opacity: 0.6; }
+    .sc2-chip.chip-under { background: #e74c3c !important; border-radius: 50% !important; color: #fff !important; border: none !important; }
+    .sc2-chip.chip-zero  { color: #fff !important; background: none !important; border: none !important; }
+    .sc2-chip.chip-p1    { color: #fff !important; background: none !important; border: none !important; }
+    .sc2-chip.chip-p2up  { color: #fff !important; background: none !important; border: none !important; }
+
+    /* 관리자 픽커 */
+    .sc2-picker-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: flex-end; }
+    .sc2-picker-overlay.open { opacity: 1; pointer-events: all; }
+    .sc2-picker-sheet { width: 100%; background: #0f2e1a; border-radius: 24px 24px 0 0; padding: 22px 18px 36px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+    .sc2-picker-overlay.open .sc2-picker-sheet { transform: translateY(0); }
+    .sc2-picker-title { font-size: 14px; font-weight: 900; text-align: center; margin-bottom: 18px; color: rgba(255,255,255,0.85); }
+    .sc2-picker-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-bottom: 14px; }
+    .sc2-picker-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 11px 4px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); cursor: pointer; font-family: inherit; }
+    .sc2-picker-opt .pv { font-size: 16px; font-weight: 900; color: #fff; }
+    .sc2-picker-opt .pl { font-size: 9px; color: rgba(255,255,255,0.45); font-weight: 700; }
+    .sc2-po-under { background: rgba(231,76,60,0.2) !important; border-color: rgba(231,76,60,0.5) !important; } .sc2-po-under .pv { color: #ff7b6b; }
+    .sc2-po-zero  { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.2) !important; }
+
+    /* 스코어카드 다시보기 버튼 */
+    .btn-scorecard-view {
+      margin-top: 10px; width: 100%; padding: 9px;
+      background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.25);
+      border-radius: 10px; color: var(--green-light);
+      font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .btn-scorecard-view:active { background: rgba(62,160,102,0.2); }
+
+    /* 요약 바 */
+    .sc2-summary { display: flex; gap: 8px; margin-bottom: 14px; }
+    .sc2-summary-item { flex: 1; text-align: center; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 10px 6px; }
+    .sc2-summary-label { font-size: 10px; color: rgba(255,255,255,0.35); margin-bottom: 3px; }
+    .sc2-summary-val { font-size: 18px; font-weight: 900; color: #fff; }
+    .sc2-summary-val.under { color: #e74c3c; }
+
     /* =============================================
        명예 기록 오버레이
        ============================================= */
@@ -580,6 +652,31 @@
 
   </div><!-- /scroll-area -->
 
+  <!-- ============== 스코어카드 상세 오버레이 ============== -->
+  <div class="scorecard-overlay" id="scorecard-overlay">
+    <div class="scorecard-appbar">
+      <button id="scorecard-back" style="background:none;border:none;cursor:pointer;padding:4px 8px 4px 0;color:var(--green-light);font-size:20px;line-height:1;">&#8249;</button>
+      <div class="scorecard-appbar-info">
+        <div class="scorecard-appbar-title" id="sc-appbar-title">스코어카드</div>
+        <div class="scorecard-appbar-sub" id="sc-appbar-sub"></div>
+      </div>
+      <div id="sc-admin-badge" style="display:none;font-size:10px;font-weight:700;color:#f0c040;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.3);padding:3px 8px;border-radius:8px;">수정 가능</div>
+    </div>
+    <div class="scorecard-scroll">
+      <div class="sc2-summary" id="sc2-summary"></div>
+      <div class="sc2-section"><table class="sc2-table" id="sc2-front"></table></div>
+      <div class="sc2-section"><table class="sc2-table" id="sc2-back"></table></div>
+    </div>
+    <!-- 관리자 홀 수정 픽커 -->
+    <div class="sc2-picker-overlay" id="sc2-picker-overlay">
+      <div class="sc2-picker-sheet">
+        <div class="sc2-picker-title" id="sc2-picker-title">1번 홀</div>
+        <div class="sc2-picker-grid" id="sc2-picker-grid"></div>
+        <button style="width:100%;padding:13px;background:rgba(255,255,255,0.07);border:none;border-radius:12px;color:rgba(255,255,255,0.55);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;" id="sc2-picker-cancel">취소</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============== 스코어 기록 오버레이 ============== -->
   <div class="score-hist-overlay" id="score-hist-overlay">
     <div class="score-hist-appbar">
@@ -844,6 +941,13 @@ document.getElementById('btn-back').addEventListener('click', () => history.back
 document.getElementById('ach-back').addEventListener('click', closeAchOverlay);
 document.getElementById('score-hist-back').addEventListener('click', () => {
   document.getElementById('score-hist-overlay').classList.remove('show');
+});
+document.getElementById('scorecard-back').addEventListener('click', () => {
+  document.getElementById('scorecard-overlay').classList.remove('show');
+});
+document.getElementById('sc2-picker-cancel').addEventListener('click', closeSc2Picker);
+document.getElementById('sc2-picker-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('sc2-picker-overlay')) closeSc2Picker();
 });
 
 // ── 로그아웃 ──────────────────────────────────────────
@@ -1334,6 +1438,22 @@ window.deleteAchievement = async (id) => {
 // ══════════════════════════════════════════════════════
 //  스코어 기록 기능
 // ══════════════════════════════════════════════════════
+let allScoreHistory = [];
+let sc2Record = null;
+let sc2HoleIdx = null;
+
+const SC2_OPTS = [
+  { v: -3, label: '알바', cls: 'sc2-po-under' },
+  { v: -2, label: '이글', cls: 'sc2-po-under' },
+  { v: -1, label: '버디', cls: 'sc2-po-under' },
+  { v:  0, label: '파',   cls: 'sc2-po-zero'  },
+  { v:  1, label: '보기', cls: '' },
+  { v:  2, label: '더블', cls: '' },
+  { v:  3, label: '트리', cls: '' },
+  { v:  4, label: '+4',   cls: '' },
+  { v:  5, label: '+5',   cls: '' },
+];
+
 const SCORE_QUOTE = `
   <div style="margin-top:28px;padding:20px 4px 8px;text-align:center;border-top:1px solid rgba(62,160,102,0.12);">
     <div style="font-size:13px;font-style:italic;color:rgba(255,255,255,0.55);line-height:1.7;margin-bottom:6px;">"골프는 대부분 스스로를 심판하는 게임이다."</div>
@@ -1356,6 +1476,7 @@ window.openScoreHistOverlay = async () => {
     }
 
     const records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allScoreHistory = records;
     document.getElementById('score-hist-desc').textContent = `${records.length}회 기록`;
 
     // 핸디캡 계산 (최근 10경기)
@@ -1390,10 +1511,132 @@ window.openScoreHistOverlay = async () => {
         </div>
         <div class="score-hist-meta">${r.date || ''}</div>
         ${companions ? `<div class="score-hist-companions">동반자: ${companions}</div>` : ''}
+        <button class="btn-scorecard-view" onclick="openScorecard('${r.id}')">스코어카드 다시 보기</button>
       </div>`;
     }).join('') + SCORE_QUOTE;
   } catch (e) {
     el.innerHTML = '<div class="empty-msg">불러오기 실패</div>' + SCORE_QUOTE;
+  }
+};
+
+// ══════════════════════════════════════════════════════
+//  스코어카드 상세 보기
+// ══════════════════════════════════════════════════════
+function chipClass(v) {
+  if (v === null) return '';
+  if (v < 0) return 'chip-under';
+  if (v === 0) return 'chip-zero';
+  if (v === 1) return 'chip-p1';
+  return 'chip-p2up';
+}
+function chipLabel(v) {
+  if (v === null) return '';
+  if (v === 0) return '0';
+  return v > 0 ? `+${v}` : String(v);
+}
+
+window.openScorecard = (recordId) => {
+  const r = allScoreHistory.find(x => x.id === recordId);
+  if (!r) return;
+  sc2Record = r;
+  const isAdmin = currentUser?.email === ADMIN_EMAIL;
+
+  document.getElementById('sc-appbar-title').textContent = r.course || '스코어카드';
+  document.getElementById('sc-appbar-sub').textContent = r.date || '';
+  document.getElementById('sc-admin-badge').style.display = isAdmin ? 'block' : 'none';
+
+  renderSc2Tables(isAdmin);
+  document.getElementById('scorecard-overlay').classList.add('show');
+};
+
+function renderSc2Tables(isAdmin) {
+  const holes = sc2Record.holes || Array(18).fill(null);
+  const front = holes.slice(0, 9);
+  const back  = holes.slice(9, 18);
+  const frontTot = front.reduce((a, v) => a + (v ?? 0), 0);
+  const backTot  = back.reduce((a, v) => a + (v ?? 0), 0);
+  const total    = frontTot + backTot;
+  const hasAny   = holes.some(v => v !== null);
+
+  // 요약
+  const totLabel = !hasAny ? '-' : total === 0 ? 'E' : total > 0 ? `+${total}` : String(total);
+  const totCls   = total < 0 ? 'under' : '';
+  document.getElementById('sc2-summary').innerHTML = `
+    <div class="sc2-summary-item"><div class="sc2-summary-label">전반</div><div class="sc2-summary-val">${front.some(v=>v!==null) ? (frontTot>0?'+'+frontTot:frontTot===0?'E':frontTot) : '-'}</div></div>
+    <div class="sc2-summary-item"><div class="sc2-summary-label">후반</div><div class="sc2-summary-val">${back.some(v=>v!==null) ? (backTot>0?'+'+backTot:backTot===0?'E':backTot) : '-'}</div></div>
+    <div class="sc2-summary-item"><div class="sc2-summary-label">합계</div><div class="sc2-summary-val ${totCls}">${totLabel}</div></div>
+  `;
+
+  document.getElementById('sc2-front').innerHTML = buildSc2Table(holes, isAdmin, 0, 9);
+  document.getElementById('sc2-back').innerHTML  = buildSc2Table(holes, isAdmin, 9, 18);
+}
+
+function buildSc2Table(holes, canEdit, from, to) {
+  const nums = Array.from({length: to - from}, (_, i) => from + i + 1);
+  const slice = holes.slice(from, to);
+  const sub   = slice.reduce((a, v) => a + (v ?? 0), 0);
+  const hasAny = slice.some(v => v !== null);
+
+  const cells = slice.map((v, i) => {
+    const idx = from + i;
+    const cc = chipClass(v);
+    const cl = chipLabel(v);
+    const emptyCls = v === null ? '' : '';
+    if (canEdit) {
+      return `<td><button class="sc2-chip ${cc}" onclick="openSc2Picker(${idx})">${cl}</button></td>`;
+    }
+    return `<td><div class="sc2-chip ${cc}">${cl}</div></td>`;
+  }).join('');
+
+  const totStr = !hasAny ? '-' : sub === 0 ? 'E' : sub > 0 ? `+${sub}` : String(sub);
+
+  return `<thead><tr class="tr-header">
+    <th style="text-align:left;padding-left:6px;font-size:10px;">HOLE</th>
+    ${nums.map(n => `<th>${n}</th>`).join('')}
+    <th class="th-t">T</th>
+  </tr></thead><tbody>
+  <tr class="tr-data">${cells}<td class="td-t">${totStr}</td></tr>
+  </tbody>`;
+}
+
+window.openSc2Picker = (idx) => {
+  sc2HoleIdx = idx;
+  document.getElementById('sc2-picker-title').textContent = `${idx + 1}번 홀 수정`;
+  document.getElementById('sc2-picker-grid').innerHTML = SC2_OPTS.map(o =>
+    `<button class="sc2-picker-opt ${o.cls}" onclick="selectSc2Score(${o.v})">
+      <span class="pv">${o.v > 0 ? '+' + o.v : o.v}</span>
+      <span class="pl">${o.label}</span>
+    </button>`
+  ).join('');
+  document.getElementById('sc2-picker-overlay').classList.add('open');
+};
+
+function closeSc2Picker() {
+  document.getElementById('sc2-picker-overlay').classList.remove('open');
+  sc2HoleIdx = null;
+}
+
+window.selectSc2Score = async (val) => {
+  if (sc2HoleIdx === null || !sc2Record) return;
+  const idx = sc2HoleIdx;
+  closeSc2Picker();
+  const holes = [...(sc2Record.holes || Array(18).fill(null))];
+  holes[idx] = val;
+  sc2Record = { ...sc2Record, holes, totalScore: holes.reduce((a, v) => a + (v ?? 0), 0) };
+
+  // allScoreHistory도 동기화
+  const ri = allScoreHistory.findIndex(x => x.id === sc2Record.id);
+  if (ri !== -1) allScoreHistory[ri] = sc2Record;
+
+  try {
+    await updateDoc(doc(db, 'users', currentUser.uid, 'scoreHistory', sc2Record.id), {
+      holes,
+      totalScore: sc2Record.totalScore,
+    });
+    renderSc2Tables(true);
+    showToast('수정되었습니다');
+  } catch (e) {
+    showToast('저장 실패: ' + e.message);
   }
 };
 
