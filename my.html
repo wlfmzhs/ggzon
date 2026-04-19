@@ -394,6 +394,38 @@
     #add-ach-hole-group,
     #add-ach-tournament-group,
     #add-ach-rank-group { display: none; }
+
+    /* ── 스코어 기록 오버레이 ── */
+    .score-hist-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      z-index: 150; display: flex; flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.32,0.72,0,1);
+    }
+    .score-hist-overlay.show { transform: translateY(0); }
+    .score-hist-appbar {
+      flex-shrink: 0; padding: 32px 18px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .score-hist-appbar-title { font-size: 16px; font-weight: 900; flex: 1; }
+    .score-hist-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 8px 16px 40px; }
+    .score-hist-scroll::-webkit-scrollbar { display: none; }
+    .score-hist-card {
+      background: rgba(62,160,102,0.07);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+    }
+    .score-hist-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .score-hist-course { font-size: 15px; font-weight: 900; color: #f0ebe0; }
+    .score-hist-chip {
+      font-size: 15px; font-weight: 900; padding: 3px 12px;
+      border-radius: 20px;
+    }
+    .score-hist-chip.under { background: rgba(231,76,60,0.18); color: #e74c3c; }
+    .score-hist-chip.even  { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
+    .score-hist-chip.over  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65); }
+    .score-hist-meta { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .score-hist-companions { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 5px; }
   </style>
 </head>
 <body>
@@ -467,6 +499,14 @@
         <div class="menu-arrow">&#8250;</div>
       </div>
       <div class="divider"></div>
+      <div class="menu-item" onclick="openScoreHistOverlay()">
+        <div class="menu-icon" style="background:rgba(91,200,245,0.12);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5bc8f5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <div class="menu-text">스코어 기록<div class="menu-desc" id="score-hist-desc">라운드 스코어 누적 기록</div></div>
+        <div class="menu-arrow">&#8250;</div>
+      </div>
+      <div class="divider"></div>
       <div class="menu-item" onclick="location.href='wake-calc.html'">
         <div class="menu-icon" style="background:rgba(62,160,102,0.12);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -522,6 +562,17 @@
     </div>
 
   </div><!-- /scroll-area -->
+
+  <!-- ============== 스코어 기록 오버레이 ============== -->
+  <div class="score-hist-overlay" id="score-hist-overlay">
+    <div class="score-hist-appbar">
+      <button id="score-hist-back" style="background:none;border:none;cursor:pointer;padding:4px 8px 4px 0;color:var(--green-light);font-size:20px;line-height:1;">&#8249;</button>
+      <span class="score-hist-appbar-title">스코어 기록</span>
+    </div>
+    <div class="score-hist-scroll" id="score-hist-list">
+      <div class="empty-msg">불러오는 중...</div>
+    </div>
+  </div>
 
   <!-- ============== 명예 기록 오버레이 ============== -->
   <div class="ach-overlay" id="ach-overlay">
@@ -706,6 +757,7 @@ import {
   query, serverTimestamp, orderBy, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
   authDomain: "ggzon-b33cb.firebaseapp.com",
@@ -773,6 +825,9 @@ onAuthStateChanged(auth, async (user) => {
 // ── 뒤로가기 ──────────────────────────────────────────
 document.getElementById('btn-back').addEventListener('click', () => history.back());
 document.getElementById('ach-back').addEventListener('click', closeAchOverlay);
+document.getElementById('score-hist-back').addEventListener('click', () => {
+  document.getElementById('score-hist-overlay').classList.remove('show');
+});
 
 // ── 로그아웃 ──────────────────────────────────────────
 document.getElementById('btn-logout').addEventListener('click', async () => {
@@ -1257,6 +1312,51 @@ window.deleteAchievement = async (id) => {
     renderAchCards();
     showToast('삭제되었습니다');
   } catch (e) { showToast('삭제 실패'); }
+};
+
+// ══════════════════════════════════════════════════════
+//  스코어 기록 기능
+// ══════════════════════════════════════════════════════
+window.openScoreHistOverlay = async () => {
+  document.getElementById('score-hist-overlay').classList.add('show');
+  const el = document.getElementById('score-hist-list');
+  el.innerHTML = '<div class="empty-msg">불러오는 중...</div>';
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'users', currentUser.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+    );
+    if (snap.empty) {
+      el.innerHTML = '<div class="empty-msg">저장된 스코어 기록이 없습니다<br><span style="font-size:11px;margin-top:6px;display:block;">라운드 후 스코어 페이지에서 제출하세요</span></div>';
+
+      // 메뉴 desc 업데이트
+      document.getElementById('score-hist-desc').textContent = '라운드 스코어 누적 기록';
+      return;
+    }
+
+    const records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // 메뉴 desc 업데이트
+    document.getElementById('score-hist-desc').textContent = `${records.length}회 기록`;
+
+    el.innerHTML = records.map(r => {
+      const tot = r.totalScore ?? 0;
+      const hasScore = r.holes && r.holes.some(v => v !== null);
+      const label = !hasScore ? '-' : tot === 0 ? 'E' : tot > 0 ? `+${tot}` : String(tot);
+      const cls   = tot < 0 ? 'under' : tot === 0 ? 'even' : 'over';
+      const companions = (r.companions || []).map(c => c.name || c).join(', ');
+      const date = r.date || '';
+      return `<div class="score-hist-card">
+        <div class="score-hist-top">
+          <div class="score-hist-course">${r.course || '골프장'}</div>
+          <div class="score-hist-chip ${cls}">${label}</div>
+        </div>
+        <div class="score-hist-meta">${date}</div>
+        ${companions ? `<div class="score-hist-companions">동반자: ${companions}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div class="empty-msg">불러오기 실패</div>';
+  }
 };
 
 // ── 토스트 ────────────────────────────────────────────

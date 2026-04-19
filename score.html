@@ -107,6 +107,47 @@
     .po-p2up  { background: none !important; border: 1.5px solid rgba(255,255,255,0.5) !important; border-radius: 0 !important; outline: 1.5px solid rgba(255,255,255,0.5); outline-offset: 3px; }
     .picker-cancel { width: 100%; padding: 13px; background: rgba(255,255,255,0.07); border: none; border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
+    /* 제출 버튼 영역 */
+    .submit-bar { flex-shrink: 0; padding: 10px 14px 24px; display: none; }
+    .submit-bar.show { display: block; }
+    .btn-submit {
+      width: 100%; padding: 15px; border-radius: 14px;
+      background: var(--green-light); color: #fff;
+      font-size: 15px; font-weight: 900; border: none;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .btn-submit:active { opacity: 0.8; }
+
+    /* 제출 확인 시트 */
+    .submit-sheet-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: flex-end; }
+    .submit-sheet-overlay.open { opacity: 1; pointer-events: all; }
+    .submit-sheet { width: 100%; background: #0f2e1a; border-radius: 24px 24px 0 0; padding: 24px 18px 36px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+    .submit-sheet-overlay.open .submit-sheet { transform: translateY(0); }
+    .submit-sheet-title { font-size: 16px; font-weight: 900; margin-bottom: 6px; }
+    .submit-sheet-sub { font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 20px; }
+    .submit-summary-box {
+      background: rgba(255,255,255,0.05); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 20px;
+    }
+    .submit-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 13px; }
+    .submit-row-label { color: rgba(255,255,255,0.5); }
+    .submit-row-val { font-weight: 700; color: #fff; }
+    .submit-row-val.under { color: #e74c3c; }
+    .submit-row-val.over  { color: rgba(255,255,255,0.8); }
+    .submit-row + .submit-row { border-top: 1px solid rgba(255,255,255,0.07); }
+    .btn-submit-confirm {
+      width: 100%; padding: 14px; border-radius: 12px;
+      background: var(--green-light); color: #fff;
+      font-size: 15px; font-weight: 700; border: none;
+      cursor: pointer; font-family: inherit; margin-bottom: 10px;
+    }
+    .btn-submit-cancel {
+      width: 100%; padding: 13px; background: rgba(255,255,255,0.07); border: none;
+      border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+
     .toast { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(20,20,20,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -152,6 +193,22 @@
     </div>
   </div>
 
+  <!-- 제출 버튼 -->
+  <div class="submit-bar" id="submit-bar">
+    <button class="btn-submit" id="btn-submit-open">라운드 기록 제출</button>
+  </div>
+
+  <!-- 제출 확인 시트 -->
+  <div class="submit-sheet-overlay" id="submit-sheet-overlay">
+    <div class="submit-sheet">
+      <div class="submit-sheet-title">라운드 기록 제출</div>
+      <div class="submit-sheet-sub">제출하면 내 활동에 스코어 기록이 저장됩니다</div>
+      <div class="submit-summary-box" id="submit-summary"></div>
+      <button class="btn-submit-confirm" id="btn-submit-confirm">제출하기</button>
+      <button class="btn-submit-cancel" id="btn-submit-cancel">취소</button>
+    </div>
+  </div>
+
   <div class="picker-overlay" id="picker-overlay">
     <div class="picker-sheet">
       <div class="picker-title" id="picker-title">1번 홀</div>
@@ -166,7 +223,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -219,6 +276,14 @@ function totLabel(n, hasAny) {
 
 document.getElementById('btn-back').onclick = () => history.back();
 document.getElementById('picker-cancel').onclick = closePicker;
+
+// 제출 시트
+document.getElementById('btn-submit-open').onclick = openSubmitSheet;
+document.getElementById('btn-submit-cancel').onclick = closeSubmitSheet;
+document.getElementById('btn-submit-confirm').onclick = submitScore;
+document.getElementById('submit-sheet-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('submit-sheet-overlay')) closeSubmitSheet();
+});
 document.getElementById('picker-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('picker-overlay')) closePicker();
 });
@@ -246,6 +311,7 @@ function render() {
   const isParticipant = players.some(p => p.uid === currentUser.uid);
 
   if (!isParticipant) document.getElementById('notice-bar').style.display = 'flex';
+  if (isParticipant) document.getElementById('submit-bar').classList.add('show');
 
   // 요약 바
   document.getElementById('summary-bar').innerHTML = players.map(p => {
@@ -339,6 +405,70 @@ window._selectScore = async function(val) {
     });
   } catch (e) { showToast('저장 오류: ' + e.message); }
 };
+
+function openSubmitSheet() {
+  if (!joinData || !currentUser) return;
+  const players  = joinData.participants || [];
+  const scores   = joinData.scores || {};
+  const myHoles  = (scores[currentUser.uid] || {}).holes || Array(18).fill(null);
+  const myTotal  = myHoles.reduce((a, v) => a + (v ?? 0), 0);
+  const hasAny   = myHoles.some(v => v !== null);
+  const entered  = myHoles.filter(v => v !== null).length;
+  const companions = players.filter(p => p.uid !== currentUser.uid).map(p => p.name);
+
+  const scoreLabel = !hasAny ? '미입력'
+    : myTotal === 0 ? 'E (파)'
+    : myTotal > 0 ? `+${myTotal} (${myTotal}오버파)` : `${myTotal} (${Math.abs(myTotal)}언더파)`;
+  const scoreClass = myTotal < 0 ? 'under' : 'over';
+
+  document.getElementById('submit-summary').innerHTML = `
+    <div class="submit-row"><span class="submit-row-label">골프장</span><span class="submit-row-val">${joinData.course || '-'}</span></div>
+    <div class="submit-row"><span class="submit-row-label">날짜</span><span class="submit-row-val">${joinData.date || '-'}</span></div>
+    <div class="submit-row"><span class="submit-row-label">동반자</span><span class="submit-row-val">${companions.length ? companions.join(', ') : '없음'}</span></div>
+    <div class="submit-row"><span class="submit-row-label">최종 스코어</span><span class="submit-row-val ${scoreClass}">${scoreLabel}</span></div>
+    <div class="submit-row"><span class="submit-row-label">입력 홀 수</span><span class="submit-row-val">${entered} / 18홀</span></div>
+  `;
+  document.getElementById('submit-sheet-overlay').classList.add('open');
+}
+
+function closeSubmitSheet() {
+  document.getElementById('submit-sheet-overlay').classList.remove('open');
+}
+
+async function submitScore() {
+  if (!joinData || !currentUser) return;
+  const btn = document.getElementById('btn-submit-confirm');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+
+  const players  = joinData.participants || [];
+  const scores   = joinData.scores || {};
+  const myHoles  = (scores[currentUser.uid] || {}).holes || Array(18).fill(null);
+  const myTotal  = myHoles.reduce((a, v) => a + (v ?? 0), 0);
+  const companions = players.filter(p => p.uid !== currentUser.uid).map(p => ({ name: p.name, uid: p.uid }));
+
+  try {
+    await setDoc(
+      doc(db, 'users', currentUser.uid, 'scoreHistory', joinId),
+      {
+        course:     joinData.course || '',
+        date:       joinData.date   || '',
+        companions,
+        totalScore: myTotal,
+        holes:      myHoles,
+        joinId,
+        submittedAt: serverTimestamp(),
+      }
+    );
+    closeSubmitSheet();
+    showToast('스코어 기록이 저장되었습니다!');
+  } catch (e) {
+    showToast('저장 실패: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '제출하기';
+  }
+}
 
 function showToast(msg) {
   const el = document.getElementById('toast');
