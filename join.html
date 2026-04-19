@@ -1002,6 +1002,20 @@ window.participateJoin = async function(id) {
     });
   } else {
     if (participants.length >= j.capacity) { showToast('정원이 마감되었습니다'); return; }
+
+    // 1개월 4회 한도 체크
+    const now = new Date();
+    const thisYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthlyCount = joins.filter(x =>
+      x.id !== id &&
+      (x.participants || []).some(p => p.uid === currentUser.uid) &&
+      (x.date || '').slice(0, 7) === thisYM
+    ).length;
+    if (monthlyCount >= 4) {
+      showToast('이번 달 조인 참여 한도(4회)를 초과했습니다');
+      return;
+    }
+
     // 개인정보 동의 모달 - 기존 전화번호 미리 채우기
     pendingJoinId = id;
     try {
