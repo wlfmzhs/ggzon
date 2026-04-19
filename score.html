@@ -52,11 +52,11 @@
     .score-section { margin: 0 14px 16px; }
     table.sc-table { width: 100%; border-collapse: collapse; }
 
-    /* HOLE 헤더 행 — 밝은 바 전체 */
+    /* HOLE 헤더 행 — 밝은 바 전체 (T 포함) */
     .sc-table .tr-header { background: rgba(255,255,255,0.88); }
     .sc-table .tr-header th { font-size: 11px; font-weight: 900; color: #111; text-align: center; padding: 8px 0; }
     .sc-table .tr-header th.th-name-col { text-align: left; padding-left: 6px; font-size: 10px; letter-spacing: 0.5px; }
-    .sc-table .tr-header th.th-t { color: #f0c040; background: var(--header-bg); }
+    .sc-table .tr-header th.th-t { color: #f0c040; width: 36px; min-width: 36px; }
 
     /* 플레이어 행 */
     .sc-table .tr-player { border-bottom: 1px solid rgba(255,255,255,0.06); }
@@ -64,7 +64,7 @@
     .sc-table .tr-player td { text-align: center; padding: 5px 0; vertical-align: middle; }
     .sc-table .tr-player td.td-name { text-align: left; padding-left: 6px; font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.85); white-space: nowrap; }
     .me-tag { font-size: 9px; color: var(--green-light); margin-left: 3px; font-weight: 700; }
-    .sc-table .tr-player td.td-t { font-size: 13px; font-weight: 900; color: #f0c040; background: var(--header-bg); }
+    .sc-table .tr-player td.td-t { font-size: 12px; font-weight: 900; color: #f0c040; background: var(--header-bg); width: 36px; min-width: 36px; }
 
     /* 점수 셀 */
     .score-chip {
