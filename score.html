@@ -264,7 +264,7 @@ function render() {
   </tr></thead><tbody>`;
 
   players.forEach((p, pi) => {
-    const isMe   = isParticipant && currentUser && p.uid === currentUser.uid;
+    const isMe   = isParticipant; // 참석자는 동반자 스코어도 입력 가능
     const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const out    = holes.slice(0,9).reduce((a,v) => a + (v ?? 0), 0);
     const inVal  = holes.slice(9).reduce((a,v)  => a + (v ?? 0), 0);
