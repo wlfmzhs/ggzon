@@ -345,20 +345,41 @@
     .info-cell-value { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); }
     .info-cell-value.highlight { color: var(--green-light); font-size: 15px; }
 
+    /* prizes display */
     .prizes-box {
       background: rgba(240,192,64,0.06);
       border: 1px solid rgba(240,192,64,0.2);
       border-radius: 12px; padding: 14px;
-      margin-bottom: 20px;
+      margin-bottom: 20px; cursor: pointer; user-select: none;
     }
-    .prizes-title {
-      font-size: 11px; color: var(--gold); font-weight: 700;
-      letter-spacing: 0.5px; margin-bottom: 8px;
-    }
-    .prizes-text {
-      font-size: 12px; color: rgba(255,255,255,0.65);
-      line-height: 1.7; white-space: pre-wrap;
-    }
+    .prizes-box-header { display: flex; justify-content: space-between; align-items: center; }
+    .prizes-title { font-size: 11px; color: var(--gold); font-weight: 700; letter-spacing: 0.5px; }
+    .prizes-toggle-arrow { font-size: 10px; color: rgba(255,255,255,0.3); margin-left: 4px; display: inline-block; transition: transform 0.2s; }
+    .prizes-box.open .prizes-toggle-arrow { transform: rotate(180deg); }
+    .prizes-total-chip { font-size: 11px; font-weight: 700; color: var(--gold); background: rgba(240,192,64,0.12); padding: 3px 9px; border-radius: 10px; white-space: nowrap; }
+    .prizes-detail { margin-top: 12px; display: none; }
+    .prizes-box.open .prizes-detail { display: block; }
+    .prizes-table { width: 100%; border-collapse: collapse; }
+    .prizes-table th { font-size: 9px; color: rgba(255,255,255,0.35); font-weight: 700; text-align: left; padding: 0 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .prizes-table td { font-size: 11px; color: rgba(255,255,255,0.7); padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+    .prizes-table td.amt { text-align: right; color: #fff; font-weight: 700; white-space: nowrap; }
+    .prizes-table tfoot td { font-size: 11px; font-weight: 900; color: var(--gold); border-top: 1px solid rgba(240,192,64,0.2); border-bottom: none; padding-top: 8px; }
+    .prizes-table tfoot td.amt { text-align: right; }
+
+    /* prizes editor (admin) */
+    .prizes-editor { margin-top: 4px; }
+    .prizes-header-row { display: grid; grid-template-columns: 1.1fr 0.9fr 1.1fr 0.85fr 0.85fr 26px; gap: 4px; margin-bottom: 5px; }
+    .prizes-header-row span { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; padding-left: 2px; }
+    .prizes-row { display: grid; grid-template-columns: 1.1fr 0.9fr 1.1fr 0.85fr 0.85fr 26px; gap: 4px; margin-bottom: 5px; align-items: center; }
+    .prizes-input { background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 12px; font-family: inherit; padding: 8px 8px; outline: none; width: 100%; min-width: 0; }
+    .prizes-input:focus { border-color: var(--green-light); }
+    .prizes-input::placeholder { color: rgba(255,255,255,0.18); font-size: 11px; }
+    .prizes-input.amt-input { text-align: right; }
+    .prizes-row-del { background: rgba(255,255,255,0.06); border: none; border-radius: 6px; color: rgba(255,255,255,0.35); font-size: 14px; cursor: pointer; width: 26px; height: 34px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .prizes-total-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 2px 4px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
+    .prizes-total-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; }
+    .prizes-total-val { font-size: 14px; font-weight: 900; color: var(--gold); }
+    .prizes-add-btn { width: 100%; padding: 10px; background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.13); border-radius: 8px; color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; }
 
     /* ── Seat map ── */
     .seat-map-section { margin-bottom: 20px; }
@@ -1057,7 +1078,17 @@
       <div class="admin-section-title">시상 & 찬조</div>
       <div class="admin-form-group">
         <label class="admin-label">시상 및 찬조 물품 내역</label>
-        <textarea class="admin-textarea" id="admin-prizes" placeholder="예) 우승: 트로피 + 상품권 100,000원&#10;준우승: 상품권 50,000원&#10;니어리스트: XX 찬조 골프공 1세트"></textarea>
+        <div class="prizes-editor">
+          <div class="prizes-header-row">
+            <span>항목</span><span>업체</span><span>상품명</span><span>금액</span><span>기타</span><span></span>
+          </div>
+          <div id="prizes-rows"></div>
+          <div class="prizes-total-bar">
+            <span class="prizes-total-label">합계</span>
+            <span class="prizes-total-val" id="prizes-total">0원</span>
+          </div>
+          <button type="button" class="prizes-add-btn" onclick="addPrizesRow()">+ 항목 추가</button>
+        </div>
         <div class="admin-hint">대회 중 언제든지 수정 가능합니다</div>
       </div>
 
@@ -1487,10 +1518,31 @@ function renderDetailHeader(t) {
       </div>
     </div>
 
-    ${t.prizes ? `<div class="prizes-box">
-      <div class="prizes-title">시상 및 찬조 물품</div>
-      <div class="prizes-text">${escHtml(t.prizes)}</div>
-    </div>` : ''}
+    ${(() => {
+      const pd = t.prizesData;
+      if (!pd || !pd.length) return '';
+      const total = pd.reduce((s, r) => s + (r.amount || 0), 0);
+      const rows = pd.map(r => `<tr>
+        <td>${escHtml(r.category)}</td>
+        <td>${escHtml(r.company)}</td>
+        <td>${escHtml(r.product)}</td>
+        <td class="amt">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</td>
+        <td>${escHtml(r.note)}</td>
+      </tr>`).join('');
+      return `<div class="prizes-box" id="prizes-box-${t.id}" onclick="togglePrizes('${t.id}')">
+        <div class="prizes-box-header">
+          <div class="prizes-title">시상 및 찬조 물품 <span class="prizes-toggle-arrow">▼</span></div>
+          <div class="prizes-total-chip">총 ${total.toLocaleString()}원</div>
+        </div>
+        <div class="prizes-detail">
+          <table class="prizes-table">
+            <thead><tr><th>항목</th><th>업체</th><th>상품명</th><th>금액</th><th>기타</th></tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr><td colspan="3">합계</td><td class="amt">${total.toLocaleString()}원</td><td></td></tr></tfoot>
+          </table>
+        </div>
+      </div>`;
+    })()}
 
     <div class="seat-map-section">
       <div class="seat-map-title">좌석 선택 <span>— 조를 선택해 신청하세요</span></div>
@@ -1799,11 +1851,76 @@ window.closeAdminModal = function() {
   document.getElementById('admin-overlay').classList.remove('open');
 };
 
+// ── Prizes editor ─────────────────────────────────────
+window.addPrizesRow = function(data = {}) {
+  const row = document.createElement('div');
+  row.className = 'prizes-row';
+  row.innerHTML = `
+    <input class="prizes-input" placeholder="항목명" value="${escAttr(data.category || '')}" />
+    <input class="prizes-input" placeholder="업체" value="${escAttr(data.company || '')}" />
+    <input class="prizes-input" placeholder="상품명" value="${escAttr(data.product || '')}" />
+    <input class="prizes-input amt-input" placeholder="금액" inputmode="numeric"
+      value="${data.amount ? data.amount.toLocaleString() : ''}"
+      oninput="formatPrizesAmt(this);calcPrizesTotal()" />
+    <input class="prizes-input" placeholder="기타" value="${escAttr(data.note || '')}" />
+    <button type="button" class="prizes-row-del" onclick="removePrizesRow(this)">×</button>
+  `;
+  document.getElementById('prizes-rows').appendChild(row);
+  calcPrizesTotal();
+};
+
+window.removePrizesRow = function(btn) {
+  btn.closest('.prizes-row').remove();
+  calcPrizesTotal();
+};
+
+window.formatPrizesAmt = function(input) {
+  const raw = input.value.replace(/[^0-9]/g, '');
+  input.value = raw ? parseInt(raw).toLocaleString() : '';
+};
+
+function calcPrizesTotal() {
+  let total = 0;
+  document.querySelectorAll('#prizes-rows .prizes-row').forEach(row => {
+    const v = parseInt((row.querySelectorAll('.prizes-input')[3].value || '').replace(/[^0-9]/g, '')) || 0;
+    total += v;
+  });
+  document.getElementById('prizes-total').textContent = total.toLocaleString() + '원';
+}
+
+function getPrizesData() {
+  return Array.from(document.querySelectorAll('#prizes-rows .prizes-row')).map(row => {
+    const inp = row.querySelectorAll('.prizes-input');
+    return {
+      category: inp[0].value.trim(),
+      company:  inp[1].value.trim(),
+      product:  inp[2].value.trim(),
+      amount:   parseInt((inp[3].value || '').replace(/[^0-9]/g, '')) || 0,
+      note:     inp[4].value.trim(),
+    };
+  }).filter(r => r.category || r.company || r.product || r.amount);
+}
+
+function renderPrizesEditor(data = []) {
+  document.getElementById('prizes-rows').innerHTML = '';
+  const rows = data.length ? data : [{},{},{},{}];
+  rows.forEach(r => addPrizesRow(r));
+}
+
+function escAttr(s) {
+  return String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+window.togglePrizes = function(id) {
+  document.getElementById('prizes-box-' + id).classList.toggle('open');
+};
+
 function clearAdminForm() {
   ['admin-name','admin-slogan','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
-   'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-prizes','admin-date','admin-tee-interval'].forEach(id => {
+   'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-date','admin-tee-interval'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  renderPrizesEditor([]);
   // 타임피커 초기화
   ['tee','gather'].forEach(p => {
     document.getElementById(`${p}-hour`).value = '';
@@ -1831,7 +1948,7 @@ function fillAdminForm(t) {
   document.getElementById('admin-courses').value = t.courseCount || '2';
   document.getElementById('admin-green-fee').value = fmtMoneyInput(t.greenFee);
   document.getElementById('admin-caddy-fee').value = fmtMoneyInput(t.caddyFee);
-  document.getElementById('admin-prizes').value = t.prizes || '';
+  renderPrizesEditor(t.prizesData || []);
   // 코스명 복원
   renderCourseNameInputs(t.courseNames || []);
   // 타임피커 복원
@@ -1975,7 +2092,7 @@ window.saveTournament = async function() {
     courseNames: getCourseNames(),
     greenFee: document.getElementById('admin-green-fee').value.trim(),
     caddyFee: document.getElementById('admin-caddy-fee').value.trim(),
-    prizes: document.getElementById('admin-prizes').value.trim(),
+    prizesData: getPrizesData(),
     teeInterval: parseInt(document.getElementById('admin-tee-interval').value) || 7,
   };
 
