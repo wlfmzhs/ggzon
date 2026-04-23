@@ -620,10 +620,10 @@
       document.getElementById('user-nick').textContent = d.nickname;
       const parts = [d.name, d.birthYear2 ? d.birthYear2 + '년생' : '', d.region].filter(Boolean);
       document.getElementById('header-name').textContent = parts.length ? parts.join(' / ') : d.nickname;
-      window._isPaidUser = d.isPaid === true || user.email === 'wlfmzhs@naver.com';
+      window._isPaidUser = true;
     } else {
       document.getElementById('user-nick').textContent = user.displayName || '멤버';
-      window._isPaidUser = false;
+      window._isPaidUser = true;
     }
   });
 
