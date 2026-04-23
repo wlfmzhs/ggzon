@@ -317,9 +317,6 @@
     </div>
   </div>
 
-  <!-- Kakao SDK -->
-  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -455,40 +452,36 @@
 
     // 카카오 로그인 후 Firebase 연결
     async function handleKakaoLogin(accessToken) {
-      if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
-      window.Kakao.Auth.setAccessToken(accessToken);
-      window.Kakao.API.request({
-        url: '/v2/user/me',
-        success: async function(res) {
-          const kakaoId    = res.id;
-          const nickname   = res.kakao_account?.profile?.nickname || res.properties?.nickname || '골퍼';
-          const kakaoEmail = res.kakao_account?.email || null;
-          const proxyEmail = `kakao_${kakaoId}@kakao.ggzon.app`;
-          const proxyPw    = `Kk_${kakaoId}_ggz0n!`;
-          try {
-            await setPersistence(auth, browserLocalPersistence);
-            try {
-              await signInWithEmailAndPassword(auth, proxyEmail, proxyPw);
-            } catch (e) {
-              if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-                const cred = await createUserWithEmailAndPassword(auth, proxyEmail, proxyPw);
-                await updateProfile(cred.user, { displayName: nickname });
-                await setDoc(doc(db, 'users', cred.user.uid), {
-                  nickname, name: nickname, birthYear2: '', handicap: '',
-                  region: '', phone: '',
-                  email: kakaoEmail || proxyEmail,
-                  createdAt: new Date().toISOString(),
-                  isPaid: false, provider: 'kakao', kakaoId: String(kakaoId),
-                });
-              } else { throw e; }
-            }
-            window.location.href = getReturnUrl();
-          } catch(e) {
-            showMsg('login-msg', '카카오 로그인 중 오류가 발생했어요.', 'error');
-          }
-        },
-        fail: function() { showMsg('login-msg', '카카오 정보를 가져오지 못했어요.', 'error'); }
-      });
+      try {
+        const meRes = await fetch('https://kapi.kakao.com/v2/user/me', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const res = await meRes.json();
+        const kakaoId    = res.id;
+        const nickname   = res.kakao_account?.profile?.nickname || res.properties?.nickname || '골퍼';
+        const kakaoEmail = res.kakao_account?.email || null;
+        const proxyEmail = `kakao_${kakaoId}@kakao.ggzon.app`;
+        const proxyPw    = `Kk_${kakaoId}_ggz0n!`;
+        await setPersistence(auth, browserLocalPersistence);
+        try {
+          await signInWithEmailAndPassword(auth, proxyEmail, proxyPw);
+        } catch (e) {
+          if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+            const cred = await createUserWithEmailAndPassword(auth, proxyEmail, proxyPw);
+            await updateProfile(cred.user, { displayName: nickname });
+            await setDoc(doc(db, 'users', cred.user.uid), {
+              nickname, name: nickname, birthYear2: '', handicap: '',
+              region: '', phone: '',
+              email: kakaoEmail || proxyEmail,
+              createdAt: new Date().toISOString(),
+              isPaid: false, provider: 'kakao', kakaoId: String(kakaoId),
+            });
+          } else { throw e; }
+        }
+        window.location.href = getReturnUrl();
+      } catch(e) {
+        showMsg('login-msg', '카카오 로그인 중 오류가 발생했어요.', 'error');
+      }
     }
 
     // 페이지 로드 시 카카오 인가코드 감지 → 토큰 교환
@@ -520,8 +513,11 @@
     }
 
     window.doKakaoLogin = function() {
-      if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
-      window.Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT });
+      window.location.href =
+        `https://kauth.kakao.com/oauth/authorize` +
+        `?client_id=${KAKAO_JS_KEY}` +
+        `&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}` +
+        `&response_type=code`;
     };
 
     window.doGoogleLogin = async function() {
