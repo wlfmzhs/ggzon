@@ -372,7 +372,7 @@
     .prizes-header-row span { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; padding-left: 2px; text-align: center; }
     .prizes-header-row span:nth-child(n+3) { text-align: left; }
     .prizes-row { display: grid; grid-template-columns: 42px 0.9fr 1.1fr 0.85fr 0.85fr 26px; gap: 4px; margin-bottom: 5px; align-items: center; }
-    .prizes-row.faded .prizes-input { color: rgba(255,255,255,0.25); }
+    .prizes-row.faded .prizes-input { color: rgba(255,255,255,0.85); }
     .prizes-received-btn { width: 42px; height: 34px; border-radius: 8px; border: 1px solid rgba(62,160,102,0.4); background: rgba(62,160,102,0.15); color: var(--green-light); font-size: 12px; font-weight: 900; cursor: pointer; font-family: inherit; flex-shrink: 0; transition: all 0.15s; }
     .prizes-received-btn.no { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.25); }
     .prizes-input { background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 12px; font-family: inherit; padding: 8px 8px; outline: none; width: 100%; min-width: 0; transition: color 0.15s; }
@@ -1529,13 +1529,12 @@ function renderDetailHeader(t) {
       const total = pd.reduce((s, r) => s + (r.amount || 0), 0);
       const rows = pd.map(r => {
         const no = r.received === false;
-        const cls = no ? ' class="received-no"' : '';
-        return `<tr style="${no ? 'opacity:0.35' : ''}">
-          <td${cls}>${no ? '무' : '유'}</td>
-          <td${cls}>${escHtml(r.company)}</td>
-          <td${cls}>${escHtml(r.product)}</td>
-          <td class="amt${no ? ' received-no' : ''}">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</td>
-          <td${cls}>${escHtml(r.note)}</td>
+        return `<tr>
+          <td style="${no ? 'color:rgba(255,255,255,0.25)' : 'color:var(--green-light);font-weight:700'}">${no ? '무' : '유'}</td>
+          <td>${escHtml(r.company)}</td>
+          <td>${escHtml(r.product)}</td>
+          <td class="amt">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</td>
+          <td>${escHtml(r.note)}</td>
         </tr>`;
       }).join('');
       return `<div class="prizes-box" id="prizes-box-${t.id}" onclick="togglePrizes('${t.id}')">
