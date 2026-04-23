@@ -676,7 +676,7 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   isAdmin = user.email === 'wlfmzhs@naver.com';
   isPaidUser = true;
-  if (isAdmin) { document.getElementById('btn-new-join').style.display = 'block'; }
+  document.getElementById('btn-new-join').style.display = 'block';
   document.getElementById('loading-overlay').classList.add('hidden');
   await loadJoins();
 });
