@@ -453,9 +453,8 @@
     const KAKAO_JS_KEY   = 'a14a8368381df22cac7c0fd0841fd28e';
     const KAKAO_REDIRECT = 'https://wlfmzhs.github.io/ggzon/login.html';
 
-    // 카카오 OAuth 리다이렉트 후 토큰 처리
-    async function handleKakaoToken(accessToken) {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
+    // 카카오 로그인 후 Firebase 연결
+    async function handleKakaoLogin(accessToken) {
       if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
       window.Kakao.Auth.setAccessToken(accessToken);
       window.Kakao.API.request({
@@ -492,18 +491,37 @@
       });
     }
 
-    // 페이지 로드 시 카카오 리다이렉트 토큰 감지
-    const _hash = window.location.hash;
-    if (_hash && _hash.includes('access_token')) {
-      const _p = new URLSearchParams(_hash.substring(1));
-      const _token = _p.get('access_token');
-      if (_token) handleKakaoToken(_token);
+    // 페이지 로드 시 카카오 인가코드 감지 → 토큰 교환
+    const _kakaoCode = new URLSearchParams(window.location.search).get('code');
+    if (_kakaoCode) {
+      history.replaceState(null, '', window.location.pathname);
+      (async () => {
+        try {
+          const res = await fetch('https://kauth.kakao.com/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+            body: new URLSearchParams({
+              grant_type: 'authorization_code',
+              client_id: KAKAO_JS_KEY,
+              redirect_uri: KAKAO_REDIRECT,
+              code: _kakaoCode
+            })
+          });
+          const data = await res.json();
+          if (data.access_token) {
+            await handleKakaoLogin(data.access_token);
+          } else {
+            showMsg('login-msg', '카카오 로그인 중 오류가 발생했어요.', 'error');
+          }
+        } catch(e) {
+          showMsg('login-msg', '카카오 로그인 중 오류가 발생했어요.', 'error');
+        }
+      })();
     }
 
     window.doKakaoLogin = function() {
-      window.location.href =
-        `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_JS_KEY}` +
-        `&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=token`;
+      if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
+      window.Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT });
     };
 
     window.doGoogleLogin = async function() {
