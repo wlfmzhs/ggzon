@@ -269,9 +269,9 @@
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         구글로 시작하기
       </button>
-      <button class="kakao-btn" disabled title="준비중">
+      <button class="kakao-btn" onclick="doKakaoLogin()">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.11 5.04L3.75 15l3.27-1.64C7.3 13.45 8.14 13.5 9 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
-        카카오 로그인 (준비중)
+        카카오로 시작하기
       </button>
     </div>
 
@@ -298,9 +298,9 @@
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         구글로 시작하기
       </button>
-      <button class="kakao-btn" disabled title="준비중">
+      <button class="kakao-btn" onclick="doKakaoLogin()">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.09 1.24 3.93 3.11 5.04L3.75 15l3.27-1.64C7.3 13.45 8.14 13.5 9 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
-        카카오 로그인 (준비중)
+        카카오로 시작하기
       </button>
     </div>
 
@@ -317,6 +317,14 @@
       <button onclick="agreeAndClose()" style="width:100%;padding:14px;border-radius:12px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;margin-top:16px;">동의하기</button>
     </div>
   </div>
+
+  <!-- Kakao SDK -->
+  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
+  <script>
+    if (window.Kakao && !window.Kakao.isInitialized()) {
+      window.Kakao.init('a14a8368381df22cac7c0fd0841fd28e');
+    }
+  </script>
 
   <!-- Firebase SDK -->
   <script type="module">
@@ -358,8 +366,9 @@
 
     // 이미 로그인된 상태면 이동 (이메일 인증 완료된 경우만, 차단 계정 제외)
     const ADMIN_EMAIL = 'wlfmzhs@naver.com';
+    const isKakaoUser = (u) => u?.email?.endsWith('@kakao.ggzon.app');
     onAuthStateChanged(auth, async (user) => {
-      if (user && (user.emailVerified || user.email === ADMIN_EMAIL)) {
+      if (user && (user.emailVerified || user.email === ADMIN_EMAIL || isKakaoUser(user))) {
         try {
           const bannedSnap = await getDoc(doc(db, 'banned', user.uid));
           if (bannedSnap.exists()) {
@@ -445,6 +454,58 @@
         showMsg('signup-msg', getErrorMsg(e.code), 'error');
         setLoading('signup-btn', false);
       }
+    };
+
+    window.doKakaoLogin = function() {
+      const msgId = document.getElementById('panel-login').classList.contains('active') ? 'login-msg' : 'signup-msg';
+      if (!window.Kakao?.isInitialized()) {
+        showMsg(msgId, '카카오 SDK 로딩 중입니다. 잠시 후 다시 시도해 주세요.', 'error'); return;
+      }
+      window.Kakao.Auth.login({
+        success: function() {
+          window.Kakao.API.request({
+            url: '/v2/user/me',
+            success: async function(res) {
+              const kakaoId   = res.id;
+              const nickname  = res.kakao_account?.profile?.nickname || res.properties?.nickname || '골퍼';
+              const kakaoEmail = res.kakao_account?.email || null;
+              const proxyEmail = `kakao_${kakaoId}@kakao.ggzon.app`;
+              const proxyPw    = `Kk_${kakaoId}_ggz0n!`;
+              try {
+                await setPersistence(auth, browserLocalPersistence);
+                try {
+                  await signInWithEmailAndPassword(auth, proxyEmail, proxyPw);
+                } catch (e) {
+                  if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+                    const cred = await createUserWithEmailAndPassword(auth, proxyEmail, proxyPw);
+                    await updateProfile(cred.user, { displayName: nickname });
+                    await setDoc(doc(db, 'users', cred.user.uid), {
+                      nickname,
+                      name: nickname,
+                      birthYear2: '',
+                      handicap: '',
+                      region: '',
+                      phone: '',
+                      email: kakaoEmail || proxyEmail,
+                      createdAt: new Date().toISOString(),
+                      isPaid: false,
+                      provider: 'kakao',
+                      kakaoId: String(kakaoId),
+                    });
+                  } else { throw e; }
+                }
+                window.location.href = getReturnUrl();
+              } catch(e) {
+                showMsg(msgId, '카카오 로그인 중 오류가 발생했어요.', 'error');
+              }
+            },
+            fail: function() { showMsg(msgId, '카카오 정보를 가져오지 못했어요.', 'error'); }
+          });
+        },
+        fail: function(err) {
+          if (err.error !== 'access_denied') showMsg(msgId, '카카오 로그인에 실패했어요.', 'error');
+        }
+      });
     };
 
     window.doGoogleLogin = async function() {
