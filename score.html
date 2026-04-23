@@ -41,10 +41,16 @@
 
     /* 요약 바 */
     .summary-bar { display: flex; margin: 10px 14px 14px; background: rgba(255,255,255,0.05); border-radius: 14px; overflow: hidden; }
-    .summary-player { flex: 1; text-align: center; padding: 12px 6px; border-right: 1px solid rgba(255,255,255,0.08); }
+    .summary-player { flex: 1; text-align: center; padding: 10px 6px; border-right: 1px solid rgba(255,255,255,0.08); }
     .summary-player:last-child { border-right: none; }
-    .summary-name { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 5px; font-weight: 600; }
-    .summary-score { font-size: 22px; font-weight: 900; color: #fff; }
+    .summary-player.rank-1st { background: rgba(240,192,64,0.07); }
+    .rank-badge { font-size: 9px; font-weight: 900; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .rank-badge.r1 { color: #f0c040; }
+    .rank-badge.r2 { color: rgba(255,255,255,0.55); }
+    .rank-badge.r3 { color: #cd8c5a; }
+    .rank-badge.rn { color: rgba(255,255,255,0.25); }
+    .summary-name { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px; font-weight: 600; }
+    .summary-score { font-size: 20px; font-weight: 900; color: #fff; }
     .summary-score.under { color: #e74c3c; }
     .summary-score.even  { color: rgba(255,255,255,0.8); }
 
@@ -320,15 +326,28 @@ function render() {
   if (!isParticipant) document.getElementById('notice-bar').style.display = 'flex';
   if (isParticipant) document.getElementById('submit-bar').classList.add('show');
 
-  // 요약 바
-  document.getElementById('summary-bar').innerHTML = players.map(p => {
+  // 요약 바 (실시간 순위)
+  const playerStats = players.map(p => {
     const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const hasAny = holes.some(v => v !== null);
     const tot    = hasAny ? holes.reduce((a, v) => a + (v ?? 0), 0) : null;
-    const label  = tot === null ? '-' : tot === 0 ? 'E' : tot > 0 ? `+${tot}` : String(tot);
-    const cls    = tot === null ? '' : tot < 0 ? 'under' : tot === 0 ? 'even' : '';
+    return { ...p, tot, hasAny };
+  });
+  const ranked = [...playerStats].sort((a, b) => {
+    if (a.hasAny && !b.hasAny) return -1;
+    if (!a.hasAny && b.hasAny) return 1;
+    if (!a.hasAny && !b.hasAny) return 0;
+    return a.tot - b.tot;
+  });
+  const rankLabels = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH'];
+  const rankCls    = ['r1', 'r2', 'r3', 'rn', 'rn', 'rn'];
+  document.getElementById('summary-bar').innerHTML = ranked.map((p, i) => {
+    const label  = p.tot === null ? '-' : p.tot === 0 ? 'E' : p.tot > 0 ? `+${p.tot}` : String(p.tot);
+    const cls    = p.tot === null ? '' : p.tot < 0 ? 'under' : p.tot === 0 ? 'even' : '';
     const isMe   = currentUser && p.uid === currentUser.uid;
-    return `<div class="summary-player">
+    const topCls = i === 0 && p.hasAny ? 'rank-1st' : '';
+    return `<div class="summary-player ${topCls}">
+      <div class="rank-badge ${rankCls[i] || 'rn'}">${rankLabels[i] || `${i+1}TH`}</div>
       <div class="summary-name">${p.name}${isMe ? '<span class="me-tag">나</span>' : ''}</div>
       <div class="summary-score ${cls}">${label}</div>
     </div>`;
