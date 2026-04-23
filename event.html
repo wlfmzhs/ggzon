@@ -1898,7 +1898,7 @@ window.formatPrizesAmt = function(input) {
 function calcPrizesTotal() {
   let total = 0;
   document.querySelectorAll('#prizes-rows .prizes-row').forEach(row => {
-    const v = parseInt((row.querySelectorAll('.prizes-input')[3].value || '').replace(/[^0-9]/g, '')) || 0;
+    const v = parseInt((row.querySelectorAll('.prizes-input')[2].value || '').replace(/[^0-9]/g, '')) || 0;
     total += v;
   });
   document.getElementById('prizes-total').textContent = total.toLocaleString() + '원';
