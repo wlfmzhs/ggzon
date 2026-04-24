@@ -78,7 +78,7 @@
       text-align: center;
     }
     .hero-title {
-      font-size: 42px; font-weight: 200; color: #fff;
+      font-size: 42px; font-weight: 900; color: #fff;
       letter-spacing: 6px; margin-bottom: 4px;
     }
     .hero-sub { font-size: 12px; color: rgba(255,255,255,0.35); }
@@ -371,8 +371,14 @@
 
   // 포인트 내역 로드
   async function loadHistory() {
-    const snap = await getDocs(query(collection(db, 'pointHistory'), orderBy('date', 'desc'), limit(50)));
     const el = document.getElementById('history-list');
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db, 'pointHistory'), orderBy('date', 'desc'), limit(50)));
+    } catch (e) {
+      el.innerHTML = '<div class="empty-state">아직 포인트 내역이 없어요</div>';
+      return;
+    }
 
     if (snap.empty) {
       el.innerHTML = '<div class="empty-state">아직 포인트 내역이 없어요</div>';
