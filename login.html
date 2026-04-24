@@ -267,6 +267,7 @@
       <div class="msg" id="login-msg"></div>
       <button class="submit-btn" id="login-btn" onclick="doLogin()">로그인 →</button>
       <button id="resend-btn" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:12px;background:rgba(62,160,102,0.15);border:1px solid rgba(62,160,102,0.3);color:#3ea066;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="resendVerification()">인증 메일 재발송</button>
+      <button type="button" onclick="doResetPassword()" style="margin-top:14px;background:none;border:none;color:rgba(255,255,255,0.35);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;text-align:center;">비밀번호를 잊으셨나요?</button>
     </div>
 
     <a href="index.html" class="back-link">← <span>골갑존 소개</span>로 돌아가기</a>
@@ -291,6 +292,7 @@
       createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
       sendEmailVerification,
+      sendPasswordResetEmail,
       updateProfile,
       onAuthStateChanged,
       setPersistence,
@@ -418,6 +420,22 @@
         await sendEmailVerification(cred.user);
         showMsg('login-msg', '인증 메일을 재발송했어요. 메일함을 확인해 주세요.', 'success');
       } catch (e) { showMsg('login-msg', getErrorMsg(e.code), 'error'); }
+    };
+
+    window.doResetPassword = async function() {
+      const email = document.getElementById('login-email').value.trim();
+      if (!email) {
+        document.getElementById('login-msg').textContent = '이메일을 먼저 입력해주세요';
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        document.getElementById('login-msg').style.color = '#3ea066';
+        document.getElementById('login-msg').textContent = '비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해주세요.';
+      } catch (e) {
+        document.getElementById('login-msg').style.color = '#e74c3c';
+        document.getElementById('login-msg').textContent = '등록되지 않은 이메일입니다';
+      }
     };
 
     window.doLogin = async function() {
