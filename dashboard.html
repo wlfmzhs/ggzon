@@ -76,13 +76,11 @@
     .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
     .ggcup-tab { color: #f0c040 !important; }
     .ggcup-tab.active { border-bottom-color: #f0c040; }
-    @keyframes shimmer {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(300%); }
+    @keyframes goldGlow {
+      0%, 100% { text-shadow: 0 0 6px rgba(240,192,64,0.4), 0 0 12px rgba(240,192,64,0.2); }
+      50% { text-shadow: 0 0 10px rgba(240,192,64,0.9), 0 0 22px rgba(240,192,64,0.6), 0 0 36px rgba(240,192,64,0.3); }
     }
     .ggpoint-appbar-btn {
-      position: relative;
-      overflow: hidden;
       color: #f0c040 !important;
       -webkit-text-fill-color: #f0c040 !important;
       background: none !important;
@@ -90,15 +88,7 @@
       padding: 4px 2px;
       border: none !important; cursor: pointer; font-family: inherit;
       letter-spacing: 0.5px; line-height: 1.4 !important;
-    }
-    .ggpoint-appbar-btn::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 35%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,248,180,0.75), transparent);
-      animation: shimmer 1.8s linear infinite;
-      pointer-events: none;
+      animation: goldGlow 2s ease-in-out infinite;
     }
     .content {
       flex: 1; overflow-y: auto; scrollbar-width: none;
