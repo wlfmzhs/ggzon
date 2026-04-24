@@ -425,16 +425,14 @@
     window.doResetPassword = async function() {
       const email = document.getElementById('login-email').value.trim();
       if (!email) {
-        document.getElementById('login-msg').textContent = '이메일을 먼저 입력해주세요';
+        showMsg('login-msg', '이메일을 먼저 입력해주세요', 'error');
         return;
       }
       try {
         await sendPasswordResetEmail(auth, email);
-        document.getElementById('login-msg').style.color = '#3ea066';
-        document.getElementById('login-msg').textContent = '비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해주세요.';
+        showMsg('login-msg', '비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해주세요.', 'success');
       } catch (e) {
-        document.getElementById('login-msg').style.color = '#e74c3c';
-        document.getElementById('login-msg').textContent = '등록되지 않은 이메일입니다';
+        showMsg('login-msg', '등록되지 않은 이메일입니다', 'error');
       }
     };
 
