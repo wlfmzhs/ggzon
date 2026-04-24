@@ -1113,6 +1113,7 @@ function renderNotices() {
 }
 
 window.deleteNotice = async (id) => {
+  if (!confirm('삭제 시 복구할 수 없습니다. 삭제하시겠습니까?')) return;
   try {
     await deleteDoc(doc(db, 'notices', id));
     notices = notices.filter(n => n.id !== id);
@@ -1441,6 +1442,7 @@ window.downloadCert = async (id) => {
 };
 
 window.deleteAchievement = async (id) => {
+  if (!confirm('삭제 시 복구할 수 없습니다. 삭제하시겠습니까?')) return;
   try {
     await deleteDoc(doc(db, 'achievements', id));
     achievements = achievements.filter(a => a.id !== id);
