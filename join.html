@@ -1046,6 +1046,14 @@ window.participateJoin = async function(id) {
   }
 };
 
+// ── 동명이인 처리: 이미 있는 이름이면 홍길동2, 홍길동3 순으로 부여 ──
+function getUniqueName(baseName, existingNames) {
+  if (!existingNames.includes(baseName)) return baseName;
+  let n = 2;
+  while (existingNames.includes(baseName + n)) n++;
+  return baseName + n;
+}
+
 // ── 개인정보 동의 후 참여 처리 ────────────────────────
 let pendingJoinId = null;
 window.confirmConsent = async function() {
@@ -1056,15 +1064,20 @@ window.confirmConsent = async function() {
   document.getElementById('consent-modal').classList.remove('show');
   if (!id) return;
   try {
-    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    const [userSnap, joinSnap] = await Promise.all([
+      getDoc(doc(db, 'users', currentUser.uid)),
+      getDoc(doc(db, 'joins', id))
+    ]);
     let realName = currentUser.displayName || currentUser.email.split('@')[0];
     if (userSnap.exists()) {
       const d = userSnap.data();
       realName = d.name || d.nickname || realName;
     }
+    const existingNames = joinSnap.exists() ? (joinSnap.data().participants || []).map(p => p.name) : [];
+    const uniqueName = getUniqueName(realName, existingNames);
     // 프로필에 전화번호 저장
     await updateDoc(doc(db, 'users', currentUser.uid), { phone });
-    const entry = { uid: currentUser.uid, name: realName, phone, joinedAt: new Date().toISOString(), consentGiven: true };
+    const entry = { uid: currentUser.uid, name: uniqueName, phone, joinedAt: new Date().toISOString(), consentGiven: true };
     await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
     showToast('참여 신청이 완료되었습니다!');
     await loadJoins();

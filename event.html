@@ -1764,6 +1764,13 @@ window.onSheetOverlayClick = function(e) {
   }
 };
 
+function getUniqueName(baseName, existingNames) {
+  if (!existingNames.includes(baseName)) return baseName;
+  let n = 2;
+  while (existingNames.includes(baseName + n)) n++;
+  return baseName + n;
+}
+
 window.submitRegistration = async function() {
   if (!selectedSeat || !currentTournament) return;
 
@@ -1793,9 +1800,11 @@ window.submitRegistration = async function() {
   }
 
   try {
+    const existingNames = allRegistrations.map(r => r.name);
+    const uniqueName = getUniqueName(name, existingNames);
     await addDoc(collection(db, 'tournaments', currentTournament.id, 'registrations'), {
       userId: currentUser.uid,
-      name, phone,
+      name: uniqueName, phone,
       handicap: parseInt(handicap),
       refundAccount: account,
       courseIndex: selectedSeat.courseIdx,
