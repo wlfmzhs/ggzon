@@ -76,6 +76,19 @@
     .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
     .ggcup-tab { color: #f0c040 !important; }
     .ggcup-tab.active { border-bottom-color: #f0c040; }
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    .ggpoint-appbar-btn {
+      background: linear-gradient(90deg, #c8a020 0%, #f0c040 30%, #fffbe6 50%, #f0c040 70%, #c8a020 100%);
+      background-size: 200% auto;
+      animation: shimmer 2s linear infinite;
+      color: #0A2406; font-size: 11px; font-weight: 900;
+      padding: 4px 10px; border-radius: 20px;
+      border: none !important; cursor: pointer; font-family: inherit;
+      letter-spacing: 0.5px; line-height: 1.4 !important;
+    }
     .content {
       flex: 1; overflow-y: auto; scrollbar-width: none;
       padding: 16px 0 24px;
@@ -386,6 +399,7 @@
       <button class="my-btn" onclick="location.href='my.html'">MY</button>
     </div>
     <div class="appbar-right">
+      <button class="ggpoint-appbar-btn" onclick="checkPaidAndGo('ggcup.html')">GG POINT</button>
       <button onclick="location.href='wake-calc.html'" title="기상시간계산"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
     </div>
   </div>
@@ -394,7 +408,6 @@
     <button class="top-tab active">홈</button>
     <button class="top-tab" onclick="checkPaidAndGo('event.html')">단체라운드 대회</button>
     <button class="top-tab" onclick="checkPaidAndGo('join.html')">조인</button>
-    <button class="top-tab ggcup-tab" onclick="checkPaidAndGo('ggcup.html')">GG POINT</button>
     <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
     <button class="top-tab" onclick="showToast('준비 중입니다')">구독자라운드</button>
     <button class="top-tab" onclick="location.href='round-map.html'">라운드지도</button>
