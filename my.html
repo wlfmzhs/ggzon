@@ -530,6 +530,18 @@
     .score-hist-chip.white { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.55); }
     .score-hist-meta { font-size: 11px; color: rgba(255,255,255,0.4); }
     .score-hist-companions { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 5px; }
+
+    /* ── 스코어 그래프 ── */
+    .sg-card { background:rgba(255,255,255,0.04); border:1px solid rgba(62,160,102,0.2); border-radius:16px; padding:14px 14px 8px; margin-bottom:14px; }
+    .sg-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .sg-title { font-size:12px; font-weight:800; color:rgba(255,255,255,0.7); }
+    .sg-sub { font-size:9px; color:rgba(255,255,255,0.3); }
+    .sgp { animation: sgDraw 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s forwards; }
+    @keyframes sgDraw { to { stroke-dashoffset: 0; } }
+    .sgd { transform-box:fill-box; transform-origin:center; transform:scale(0); animation:sgPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    .sgl { opacity:0; animation:sgFade 0.25s ease forwards; }
+    @keyframes sgPop { to { transform:scale(1); } }
+    @keyframes sgFade { to { opacity:1; } }
   </style>
 </head>
 <body>
@@ -1478,6 +1490,49 @@ const SCORE_QUOTE = `
     <div style="font-size:12px;font-weight:700;color:var(--green-light);">우리는 골갑 멤버를 믿습니다</div>
   </div>`;
 
+function buildScoreGraph(recent) {
+  if (recent.length < 2) return '';
+  const chrono = [...recent].reverse();
+  const scores = chrono.map(r => r.totalScore ?? 0);
+  const minS = Math.min(...scores);
+  const maxS = Math.max(...scores);
+  const range = maxS - minS || 2;
+  const W = 300, H = 90, pX = 18, pY = 14;
+  const iW = W - pX * 2, iH = H - pY * 2;
+  const n = scores.length;
+  const pts = scores.map((s, i) => ({
+    x: pX + (n > 1 ? i / (n - 1) : 0.5) * iW,
+    y: pY + ((maxS - s) / range) * iH,
+    s
+  }));
+  const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const len = pts.reduce((a, p, i) => i === 0 ? 0 : a + Math.hypot(p.x - pts[i-1].x, p.y - pts[i-1].y), 0);
+  const dlen = Math.ceil(len + 10);
+  const dots = pts.map((p, i) => {
+    const c = p.s < 0 ? '#e74c3c' : p.s <= 9 ? '#ffb3c8' : 'rgba(255,255,255,0.65)';
+    const lbl = p.s === 0 ? 'E' : p.s > 0 ? `+${p.s}` : String(p.s);
+    const delay = (0.6 + i * 0.07).toFixed(2);
+    return `<circle class="sgd" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="${c}" stroke="#0A2406" stroke-width="1.5" style="animation-delay:${delay}s"/>
+<text class="sgl" x="${p.x.toFixed(1)}" y="${(p.y - 9).toFixed(1)}" text-anchor="middle" font-size="9" fill="${c}" font-weight="800" style="animation-delay:${delay}s">${lbl}</text>`;
+  }).join('');
+  const xLbls = chrono.map((r, i) => {
+    const x = (pX + (n > 1 ? i / (n - 1) : 0.5) * iW).toFixed(1);
+    const d = r.date ? r.date.slice(5).replace('-', '/') : `${i + 1}`;
+    return `<text x="${x}" y="${H + 14}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.22)">${d}</text>`;
+  }).join('');
+  return `<div class="sg-card">
+  <div class="sg-header"><span class="sg-title">최근 ${n}경기 추이</span><span class="sg-sub">오래된 순 &middot; 낮을수록 좋음</span></div>
+  <svg viewBox="0 0 ${W} ${H + 18}" width="100%" height="${H + 18}" overflow="visible" style="display:block;">
+    <line x1="${pX}" y1="${pY}" x2="${W-pX}" y2="${pY}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <line x1="${pX}" y1="${(pY+iH/2).toFixed(1)}" x2="${W-pX}" y2="${(pY+iH/2).toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="${pX}" y1="${pY+iH}" x2="${W-pX}" y2="${pY+iH}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    ${xLbls}
+    <path class="sgp" d="${pathD}" fill="none" stroke="var(--green-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke-dasharray:${dlen};stroke-dashoffset:${dlen}"/>
+    ${dots}
+  </svg>
+</div>`;
+}
+
 window.openScoreHistOverlay = async () => {
   document.getElementById('score-hist-overlay').classList.add('show');
   const el = document.getElementById('score-hist-list');
@@ -1515,7 +1570,7 @@ window.openScoreHistOverlay = async () => {
       </div>
     </div>`;
 
-    el.innerHTML = handiCard + records.map(r => {
+    el.innerHTML = handiCard + buildScoreGraph(recent) + records.map(r => {
       const tot = r.totalScore ?? 0;
       const hasScore = r.holes && r.holes.some(v => v !== null);
       const label = !hasScore ? '-' : tot === 0 ? 'E' : tot > 0 ? `+${tot}` : String(tot);
