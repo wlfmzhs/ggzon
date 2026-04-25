@@ -384,30 +384,26 @@
     }
     /* GG PLAYER 미니 랭킹 */
     .gp-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 11px 14px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(62,160,102,0.12);
-      border-radius: 13px; margin-bottom: 7px; cursor: pointer;
-      transition: background 0.15s;
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 2px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
     }
-    .gp-row:active { background: rgba(255,255,255,0.07); }
-    .gp-rank { font-size: 15px; font-weight: 900; width: 20px; text-align: center; flex-shrink: 0; color: rgba(255,255,255,0.22); }
+    .gp-row:last-of-type { border-bottom: none; }
+    .gp-rank { font-size: 11px; font-weight: 900; width: 16px; text-align: center; flex-shrink: 0; color: rgba(255,255,255,0.22); }
     .gp-rank.r1 { color: #f0c040; }
     .gp-rank.r2 { color: #c0c0c0; }
     .gp-rank.r3 { color: #cd7f32; }
-    .gp-info { flex: 1; min-width: 0; }
-    .gp-nick { font-size: 13px; font-weight: 800; color: #f0ebe0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .gp-meta { font-size: 10px; color: rgba(255,255,255,0.32); margin-top: 1px; }
-    .gp-right { text-align: right; flex-shrink: 0; }
-    .gp-handi { font-size: 16px; font-weight: 900; line-height: 1; }
+    .gp-nick { font-size: 12px; font-weight: 800; color: #f0ebe0; white-space: nowrap; flex-shrink: 0; }
+    .gp-meta { font-size: 10px; color: rgba(255,255,255,0.28); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .gp-handi { font-size: 12px; font-weight: 900; flex-shrink: 0; }
     .gp-handi.h-under { color: #e74c3c; }
     .gp-handi.h-pink  { color: #ffb3c8; }
     .gp-handi.h-white { color: rgba(255,255,255,0.65); }
-    .gp-trend { font-size: 9px; font-weight: 700; margin-top: 2px; }
+    .gp-trend { font-size: 9px; font-weight: 700; flex-shrink: 0; }
     .gp-trend.t-down { color: #3ea066; }
     .gp-trend.t-up   { color: #e74c3c; }
-    .gp-trend.t-flat { color: rgba(255,255,255,0.25); }
+    .gp-trend.t-flat { color: rgba(255,255,255,0.22); }
   </style>
 </head>
 <body>
@@ -799,14 +795,10 @@
         }
         return `<div class="gp-row" onclick="location.href='members.html'">
   <div class="gp-rank ${rankCls[i]}">${rank}</div>
-  <div class="gp-info">
-    <div class="gp-nick">${nick}</div>
-    <div class="gp-meta">${metaParts.join(' · ')}</div>
-  </div>
-  <div class="gp-right">
-    <div class="gp-handi ${hCls}">${hLabel}</div>
-    <div class="gp-trend ${tClass}">${tText}</div>
-  </div>
+  <div class="gp-nick">${nick}</div>
+  <div class="gp-meta">${metaParts.join(' · ')}</div>
+  <div class="gp-handi ${hCls}">${hLabel}</div>
+  <div class="gp-trend ${tClass}">${tText}</div>
 </div>`;
       }).join('') + `<div style="text-align:center;padding:8px 0 2px;">
   <span style="font-size:11px;color:var(--green-light);cursor:pointer;" onclick="location.href='members.html'">전체 랭킹 보기 ›</span>
