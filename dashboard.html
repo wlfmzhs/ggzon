@@ -382,6 +382,32 @@
       .phone::before { display: none; }
       #loading-overlay { border-radius: 0; }
     }
+    /* GG PLAYER 미니 랭킹 */
+    .gp-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(62,160,102,0.12);
+      border-radius: 13px; margin-bottom: 7px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .gp-row:active { background: rgba(255,255,255,0.07); }
+    .gp-rank { font-size: 15px; font-weight: 900; width: 20px; text-align: center; flex-shrink: 0; color: rgba(255,255,255,0.22); }
+    .gp-rank.r1 { color: #f0c040; }
+    .gp-rank.r2 { color: #c0c0c0; }
+    .gp-rank.r3 { color: #cd7f32; }
+    .gp-info { flex: 1; min-width: 0; }
+    .gp-nick { font-size: 13px; font-weight: 800; color: #f0ebe0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gp-meta { font-size: 10px; color: rgba(255,255,255,0.32); margin-top: 1px; }
+    .gp-right { text-align: right; flex-shrink: 0; }
+    .gp-handi { font-size: 16px; font-weight: 900; line-height: 1; }
+    .gp-handi.h-under { color: #e74c3c; }
+    .gp-handi.h-pink  { color: #ffb3c8; }
+    .gp-handi.h-white { color: rgba(255,255,255,0.65); }
+    .gp-trend { font-size: 9px; font-weight: 700; margin-top: 2px; }
+    .gp-trend.t-down { color: #3ea066; }
+    .gp-trend.t-up   { color: #e74c3c; }
+    .gp-trend.t-flat { color: rgba(255,255,255,0.25); }
   </style>
 </head>
 <body>
@@ -572,6 +598,15 @@
         <div class="live-empty">불러오는 중...</div>
       </div>
 
+      <!-- GG PLAYER -->
+      <div class="section-header section-gap" style="margin-top:20px;">
+        <span class="section-title">GG PLAYER</span>
+        <span class="section-more" onclick="location.href='members.html'">전체보기 ›</span>
+      </div>
+      <div id="ggplayer-list">
+        <div class="live-empty">불러오는 중...</div>
+      </div>
+
     </div><!-- /content-inner-pad -->
   </div>
 
@@ -641,6 +676,7 @@
     loadNotices();
     loadLiveList();
     loadTournamentList();
+    loadGGPlayerList();
     const snap = await getDoc(doc(db, 'users', user.uid));
     if (snap.exists()) {
       const d = snap.data();
@@ -734,6 +770,47 @@
           <div class="live-card-arrow">›</div>
         </div>`;
       }).join('');
+    } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
+  }
+
+  // GG PLAYER 미니 랭킹 로드
+  async function loadGGPlayerList() {
+    const el = document.getElementById('ggplayer-list');
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), orderBy('handicap'), limit(3)));
+      if (snap.empty) { el.innerHTML = '<div class="live-empty">아직 등록된 플레이어가 없습니다</div>'; return; }
+      const rankCls = ['r1','r2','r3'];
+      el.innerHTML = snap.docs.map((d, i) => {
+        const u = d.data();
+        const rank = i + 1;
+        const nick = u.nickname || u.name || '멤버';
+        const metaParts = [];
+        if (u.birthYear2) metaParts.push(u.birthYear2 + '년생');
+        if (u.region) metaParts.push(u.region);
+        if (u.roundCount) metaParts.push(u.roundCount + '라운드');
+        const h = u.handicap ?? 0;
+        const hLabel = h === 0 ? 'E' : h > 0 ? `+${h}` : String(h);
+        const hCls = h < 0 ? 'h-under' : h <= 9 ? 'h-pink' : 'h-white';
+        const t = u.handicapTrend;
+        let tClass = 't-flat', tText = '- 유지';
+        if (t !== null && t !== undefined) {
+          if (t < -0.5) { tClass = 't-down'; tText = '&#9660; ' + Math.abs(t).toFixed(1) + ' 개선'; }
+          else if (t > 0.5) { tClass = 't-up'; tText = '&#9650; ' + t.toFixed(1) + ' 상승'; }
+        }
+        return `<div class="gp-row" onclick="location.href='members.html'">
+  <div class="gp-rank ${rankCls[i]}">${rank}</div>
+  <div class="gp-info">
+    <div class="gp-nick">${nick}</div>
+    <div class="gp-meta">${metaParts.join(' · ')}</div>
+  </div>
+  <div class="gp-right">
+    <div class="gp-handi ${hCls}">${hLabel}</div>
+    <div class="gp-trend ${tClass}">${tText}</div>
+  </div>
+</div>`;
+      }).join('') + `<div style="text-align:center;padding:8px 0 2px;">
+  <span style="font-size:11px;color:var(--green-light);cursor:pointer;" onclick="location.href='members.html'">전체 랭킹 보기 ›</span>
+</div>`;
     } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
   }
 
