@@ -1571,6 +1571,23 @@ window.openScoreHistOverlay = async () => {
     const avgRounded = Math.round(avg * 10) / 10;
     const avgLabel = avgRounded === 0 ? 'E' : avgRounded > 0 ? `+${avgRounded}` : String(avgRounded);
     const handiCls = avgRounded < 0 ? 'under' : avgRounded <= 9 ? 'pink' : 'white';
+
+    // GG PLAYER 랭킹과 동기화 (스코어 기록 열 때마다 최신값 반영)
+    const allScores = records.map(r => r.totalScore ?? 0);
+    const recent3 = allScores.slice(0, 3);
+    const prev3   = allScores.slice(3, 6);
+    const handicapTrend = (recent3.length === 3 && prev3.length === 3)
+      ? Math.round((recent3.reduce((a,b)=>a+b,0)/3 - prev3.reduce((a,b)=>a+b,0)/3) * 10) / 10
+      : null;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        handicap:      avgRounded,
+        bestScore:     Math.min(...allScores),
+        roundCount:    records.length,
+        handicapTrend,
+        statsUpdatedAt: serverTimestamp(),
+      });
+    } catch(_) {}
     const handiCard = `<div class="handi-card">
       <div class="handi-label">나의 핸디캡 (추정)</div>
       <div class="handi-top">
