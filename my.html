@@ -947,6 +947,15 @@ onAuthStateChanged(auth, async (user) => {
     achievements = achSnap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    // 기존 명예기록 → GG PLAYER 뱃지 플래그 동기화
+    const hasEagle = achievements.some(a => a.type === 'eagle');
+    const hasHoleinone = achievements.some(a => a.type === 'holeinone');
+    const update = {};
+    if (hasEagle) update.hasEagle = true;
+    if (hasHoleinone) update.hasHoleinone = true;
+    if (Object.keys(update).length) {
+      try { await updateDoc(doc(db, 'users', user.uid), update); } catch(_) {}
+    }
   } catch (e) {
     achievements = [];
   }
