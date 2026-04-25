@@ -322,7 +322,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -670,6 +670,28 @@ async function submitScore() {
         submittedAt: serverTimestamp(),
       }
     );
+    // 유저 통계 업데이트 (GG PLAYER 랭킹용)
+    try {
+      const histSnap = await getDocs(
+        query(collection(db, 'users', currentUser.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+      );
+      const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
+      const recent10 = allScores.slice(0, 10);
+      const recent3  = allScores.slice(0, 3);
+      const prev3    = allScores.slice(3, 6);
+      const handicap = recent10.length
+        ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
+        : null;
+      const bestScore = allScores.length ? Math.min(...allScores) : null;
+      const roundCount = allScores.length;
+      const handicapTrend = (recent3.length === 3 && prev3.length === 3)
+        ? Math.round((recent3.reduce((a, b) => a + b, 0) / 3 - prev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+        : null;
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        handicap, bestScore, roundCount, handicapTrend, statsUpdatedAt: serverTimestamp()
+      });
+    } catch(_) {}
+
     closeSubmitSheet();
     showToast('스코어 기록이 저장되었습니다!');
   } catch (e) {

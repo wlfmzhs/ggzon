@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GG PLAYER - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --border: rgba(62,160,102,0.15);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .appbar {
+      flex-shrink: 0; padding: 32px 18px 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .appbar-back {
+      background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0;
+      color: var(--green-light); font-size: 20px; line-height: 1;
+    }
+    .appbar-title { font-size: 17px; font-weight: 900; flex: 1; letter-spacing: -0.3px; }
+    .appbar-sub { font-size: 11px; color: rgba(255,255,255,0.3); font-weight: 600; }
+
+    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 8px 0 40px; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    .rank-note {
+      text-align: center; font-size: 10px; color: rgba(255,255,255,0.2);
+      padding: 0 16px 16px; line-height: 1.6;
+    }
+
+    .member-card {
+      margin: 0 14px 9px;
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(62,160,102,0.13);
+      display: flex; align-items: center; gap: 14px;
+      opacity: 0;
+      animation: cardIn 0.42s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .member-card.rank-1 { background: rgba(240,192,64,0.08); border-color: rgba(240,192,64,0.32); }
+    .member-card.rank-2 { background: rgba(192,192,192,0.06); border-color: rgba(192,192,192,0.22); }
+    .member-card.rank-3 { background: rgba(205,127,50,0.07); border-color: rgba(205,127,50,0.26); }
+
+    .rank-num {
+      font-size: 22px; font-weight: 900; width: 28px; text-align: center; flex-shrink: 0;
+      color: rgba(255,255,255,0.22);
+    }
+    .rank-1 .rank-num { color: #f0c040; }
+    .rank-2 .rank-num { color: #c0c0c0; }
+    .rank-3 .rank-num { color: #cd7f32; }
+
+    .member-info { flex: 1; min-width: 0; }
+    .member-nick { font-size: 15px; font-weight: 900; color: #f0ebe0; margin-bottom: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .member-meta { font-size: 11px; color: rgba(255,255,255,0.36); line-height: 1.6; }
+    .member-badges { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+    .badge {
+      font-size: 9px; font-weight: 800; padding: 2px 8px;
+      border-radius: 20px; letter-spacing: 0.04em;
+    }
+    .badge-eagle    { background: rgba(62,160,102,0.18); color: #3ea066; border: 1px solid rgba(62,160,102,0.38); }
+    .badge-holeinone { background: rgba(240,192,64,0.16); color: #f0c040; border: 1px solid rgba(240,192,64,0.32); }
+
+    .member-right { text-align: right; flex-shrink: 0; }
+    .handi-big { font-size: 26px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+    .handi-big.cls-under { color: #e74c3c; }
+    .handi-big.cls-pink  { color: #ffb3c8; }
+    .handi-big.cls-white { color: rgba(255,255,255,0.7); }
+
+    .trend-line { font-size: 10px; font-weight: 700; }
+    .trend-down { color: #3ea066; }
+    .trend-up   { color: #e74c3c; }
+    .trend-flat { color: rgba(255,255,255,0.28); }
+
+    .empty-msg {
+      text-align: center; font-size: 13px; color: rgba(255,255,255,0.3);
+      padding: 50px 24px; line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div id="loading-overlay">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style="animation:spin 1s linear infinite">
+      <circle cx="20" cy="20" r="16" stroke="rgba(62,160,102,0.2)" stroke-width="4"/>
+      <path d="M20 4a16 16 0 0 1 16 16" stroke="#3ea066" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="appbar">
+    <button class="appbar-back" onclick="history.back()">&#8249;</button>
+    <span class="appbar-title">GG PLAYER</span>
+    <span class="appbar-sub">핸디캡 랭킹</span>
+  </div>
+
+  <div class="scroll-area">
+    <div class="rank-note" id="rank-note">랭킹 불러오는 중...</div>
+    <div id="player-list"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const app = initializeApp({
+    apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+    authDomain: "ggzon-b33cb.firebaseapp.com",
+    projectId: "ggzon-b33cb",
+    storageBucket: "ggzon-b33cb.firebasestorage.app",
+    messagingSenderId: "774722580869",
+    appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+  });
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  onAuthStateChanged(auth, (user) => {
+    document.getElementById('loading-overlay').classList.add('hidden');
+    if (!user) { window.location.href = 'login.html'; return; }
+    loadPlayers();
+  });
+
+  async function loadPlayers() {
+    const el = document.getElementById('player-list');
+    const note = document.getElementById('rank-note');
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'users'),
+        orderBy('handicap'),
+        limit(10)
+      ));
+
+      if (snap.empty) {
+        el.innerHTML = '<div class="empty-msg">아직 스코어를 제출한 멤버가 없습니다<br>라운드 후 스코어를 제출하면 자동 등록됩니다</div>';
+        note.textContent = '';
+        return;
+      }
+
+      const rankClass = ['rank-1','rank-2','rank-3'];
+
+      el.innerHTML = snap.docs.map((d, i) => {
+        const u = d.data();
+        const rank = i + 1;
+        const rc = rank <= 3 ? rankClass[rank - 1] : '';
+
+        const nick = u.nickname || u.name || '멤버';
+
+        const metaParts = [];
+        if (u.birthYear2) metaParts.push(u.birthYear2 + '년생');
+        if (u.region) metaParts.push(u.region);
+        if (u.roundCount) metaParts.push(u.roundCount + '라운드');
+
+        const h = u.handicap ?? 0;
+        const hLabel = h === 0 ? 'E' : h > 0 ? `+${h}` : String(h);
+        const hCls = h < 0 ? 'cls-under' : h <= 9 ? 'cls-pink' : 'cls-white';
+
+        const best = u.bestScore ?? null;
+        const bestStr = best === null ? '' : ` · 베스트 ${best === 0 ? 'E' : best > 0 ? '+' + best : best}`;
+
+        const t = u.handicapTrend;
+        let trendHtml = '<span class="trend-flat">- 유지</span>';
+        if (t !== null && t !== undefined) {
+          if (t < -0.5) trendHtml = `<span class="trend-down">&#9660; ${Math.abs(t).toFixed(1)} 개선</span>`;
+          else if (t > 0.5) trendHtml = `<span class="trend-up">&#9650; ${t.toFixed(1)} 상승</span>`;
+        }
+
+        const badges = [];
+        if (u.hasEagle) badges.push('<span class="badge badge-eagle">이글</span>');
+        if (u.hasHoleinone) badges.push('<span class="badge badge-holeinone">홀인원</span>');
+
+        return `<div class="member-card ${rc}" style="animation-delay:${i * 0.07}s">
+  <div class="rank-num">${rank}</div>
+  <div class="member-info">
+    <div class="member-nick">${nick}</div>
+    <div class="member-meta">${metaParts.join(' · ')}${bestStr}</div>
+    ${badges.length ? `<div class="member-badges">${badges.join('')}</div>` : ''}
+  </div>
+  <div class="member-right">
+    <div class="handi-big ${hCls}">${hLabel}</div>
+    <div class="trend-line">${trendHtml}</div>
+  </div>
+</div>`;
+      }).join('');
+
+      note.textContent = '스코어 제출 시 자동 업데이트 · 최근 10경기 평균 기준';
+    } catch(e) {
+      el.innerHTML = '<div class="empty-msg">불러오기 실패<br>잠시 후 다시 시도해주세요</div>';
+      note.textContent = '';
+    }
+  }
+</script>
+</body>
+</html>

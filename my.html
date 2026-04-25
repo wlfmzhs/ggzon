@@ -1427,6 +1427,11 @@ window.saveAchievement = async () => {
       updateAchMenuDesc();
       renderAchCards();
       showToast('상장이 발급되었습니다!');
+      // GG PLAYER 뱃지 플래그 업데이트
+      if (selectedAchType === 'eagle' || selectedAchType === 'holeinone') {
+        const field = selectedAchType === 'eagle' ? 'hasEagle' : 'hasHoleinone';
+        try { await updateDoc(doc(db, 'users', currentUser.uid), { [field]: true }); } catch(_) {}
+      }
     }
   } catch (e) { showToast('저장 실패: ' + e.message); }
 };
