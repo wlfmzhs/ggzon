@@ -244,12 +244,12 @@
     /* 스코어카드 테이블 */
     .sc2-section { margin-bottom: 16px; }
     table.sc2-table { width: 100%; border-collapse: collapse; }
-    .sc2-table .tr-header { background: #0f2a1a; }
-    .sc2-table .tr-header th { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.85); text-align: center; padding: 8px 0; }
-    .sc2-table .tr-header th.th-t { color: #5bc8f5; }
+    .sc2-table .tr-header { background: rgba(255,255,255,0.88); }
+    .sc2-table .tr-header th { font-size: 11px; font-weight: 900; color: #111; text-align: center; padding: 8px 0; }
+    .sc2-table .tr-header th.th-t { color: #f0c040; width: 36px; min-width: 36px; }
     .sc2-table .tr-data { border-bottom: 1px solid rgba(255,255,255,0.06); }
     .sc2-table .tr-data td { text-align: center; padding: 5px 0; vertical-align: middle; }
-    .sc2-table .tr-data td.td-t { font-size: 13px; font-weight: 900; color: #5bc8f5; }
+    .sc2-table .tr-data td.td-t { font-size: 12px; font-weight: 900; color: #f0c040; background: #0f2a1a; width: 36px; min-width: 36px; }
 
     /* 점수 칩 */
     .sc2-chip {
@@ -1694,7 +1694,6 @@ function buildSc2Table(holes, canEdit, from, to) {
   const totStr = !hasAny ? '-' : sub === 0 ? 'E' : sub > 0 ? `+${sub}` : String(sub);
 
   return `<thead><tr class="tr-header">
-    <th style="text-align:left;padding-left:6px;font-size:10px;">HOLE</th>
     ${nums.map(n => `<th>${n}</th>`).join('')}
     <th class="th-t">T</th>
   </tr></thead><tbody>
