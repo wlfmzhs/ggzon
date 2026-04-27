@@ -498,6 +498,28 @@
       color: #fff; font-size: 14px; font-weight: 700;
       cursor: pointer; font-family: inherit;
     }
+    /* 자동완성 */
+    .ac-wrap { position: relative; }
+    .ac-list {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+      background: #142e14; border: 1px solid rgba(62,160,102,0.35);
+      border-radius: 10px; z-index: 200; max-height: 160px;
+      overflow-y: auto; scrollbar-width: none;
+    }
+    .ac-list::-webkit-scrollbar { display: none; }
+    .ac-item {
+      padding: 11px 14px; font-size: 13px; color: #fff; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:active { background: rgba(62,160,102,0.15); }
+    .ac-sub-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .ac-chip {
+      padding: 4px 10px; background: rgba(62,160,102,0.1);
+      border: 1px solid rgba(62,160,102,0.25); border-radius: 20px;
+      font-size: 11px; font-weight: 700; color: var(--green-light); cursor: pointer;
+    }
+    .ac-chip:active { background: rgba(62,160,102,0.2); }
   </style>
 </head>
 <body>
@@ -566,7 +588,27 @@
 
       <div class="admin-form-group">
         <label class="admin-label">골프장 이름 *</label>
-        <input class="admin-input" id="admin-course" placeholder="예) 블루원 용인CC" />
+        <div class="ac-wrap">
+          <input class="admin-input" id="admin-course" placeholder="예) 블루원 용인CC" autocomplete="off" />
+          <div class="ac-list" id="ac-course" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="admin-form-group" id="front-course-group" style="display:none;">
+        <label class="admin-label">전반 코스 *</label>
+        <div class="ac-wrap">
+          <input class="admin-input" id="admin-front-course" placeholder="예) 동코스, A코스" autocomplete="off" />
+          <div class="ac-list" id="ac-front" style="display:none;"></div>
+        </div>
+        <div class="ac-sub-chips" id="front-chips"></div>
+      </div>
+      <div class="admin-form-group" id="back-course-group" style="display:none;">
+        <label class="admin-label">후반 코스 *</label>
+        <div class="ac-wrap">
+          <input class="admin-input" id="admin-back-course" placeholder="예) 서코스, B코스" autocomplete="off" />
+          <div class="ac-list" id="ac-back" style="display:none;"></div>
+        </div>
+        <div class="ac-sub-chips" id="back-chips"></div>
       </div>
 
       <div class="admin-form-group">
@@ -685,6 +727,69 @@ const icons = {
   money:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
 };
 
+// ── 골프장 자동완성 ────────────────────────────────────
+let allCoursesDocs = [];
+
+async function loadCourseDocs() {
+  try {
+    const snap = await getDocs(collection(db, 'courses'));
+    allCoursesDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(_) {}
+}
+
+function setupCourseAC() {
+  const inp  = document.getElementById('admin-course');
+  const list = document.getElementById('ac-course');
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim();
+    if (!q) { list.style.display = 'none'; return; }
+    const hits = allCoursesDocs.filter(c => (c.name || c.id).includes(q)).slice(0, 7);
+    if (!hits.length) { list.style.display = 'none'; return; }
+    list.innerHTML = hits.map(c =>
+      `<div class="ac-item" onmousedown="window._selectCourse('${c.id}')">${c.name || c.id}</div>`
+    ).join('');
+    list.style.display = 'block';
+  });
+  inp.addEventListener('blur', () => setTimeout(() => list.style.display = 'none', 200));
+}
+
+window._selectCourse = function(courseId) {
+  const cd = allCoursesDocs.find(c => c.id === courseId);
+  if (!cd) return;
+  document.getElementById('admin-course').value = cd.name || cd.id;
+  document.getElementById('ac-course').style.display = 'none';
+  updateSubCourseChips(cd.name || cd.id);
+};
+
+function updateSubCourseChips(courseName) {
+  const cd = allCoursesDocs.find(c => (c.name || c.id) === courseName);
+  const names = cd ? Object.keys(cd.nineHoles || {}) : [];
+  ['front', 'back'].forEach(side => {
+    const chips = document.getElementById(`${side}-chips`);
+    chips.innerHTML = names.map(n =>
+      `<span class="ac-chip" onmousedown="window._selectSubCourse('${side}','${n}')">${n}</span>`
+    ).join('');
+    const list  = document.getElementById(`ac-${side}`);
+    const input = document.getElementById(`admin-${side}-course`);
+    input.oninput = () => {
+      const q = input.value.trim();
+      if (!q || !names.length) { list.style.display = 'none'; return; }
+      const hits = names.filter(n => n.includes(q));
+      if (!hits.length) { list.style.display = 'none'; return; }
+      list.innerHTML = hits.map(n =>
+        `<div class="ac-item" onmousedown="window._selectSubCourse('${side}','${n}')">${n}</div>`
+      ).join('');
+      list.style.display = 'block';
+    };
+    input.onblur = () => setTimeout(() => list.style.display = 'none', 200);
+  });
+}
+
+window._selectSubCourse = function(side, name) {
+  document.getElementById(`admin-${side}-course`).value = name;
+  document.getElementById(`ac-${side}`).style.display = 'none';
+};
+
 // ── Auth ──────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -699,6 +804,8 @@ onAuthStateChanged(auth, async (user) => {
   isPaidUser = true;
   document.getElementById('btn-new-join').style.display = 'block';
   document.getElementById('loading-overlay').classList.add('hidden');
+  await loadCourseDocs();
+  setupCourseAC();
   await loadJoins();
 });
 
@@ -882,8 +989,11 @@ window.setJoinType = function(type) {
   currentJoinType = type;
   document.getElementById('toggle-field').className = 'toggle-btn' + (type === 'field' ? ' active-day' : '');
   document.getElementById('toggle-screen').className = 'toggle-btn' + (type === 'screen' ? ' active-night' : '');
-  document.getElementById('timetype-group').style.display = type === 'field' ? 'block' : 'none';
-  document.getElementById('greenfee-group').style.display = type === 'field' ? 'block' : 'none';
+  const isField = type === 'field';
+  document.getElementById('timetype-group').style.display = isField ? 'block' : 'none';
+  document.getElementById('greenfee-group').style.display = isField ? 'block' : 'none';
+  document.getElementById('front-course-group').style.display = isField ? 'block' : 'none';
+  document.getElementById('back-course-group').style.display = isField ? 'block' : 'none';
 };
 
 // ── 주간/야간 토글 ─────────────────────────────────────
@@ -908,8 +1018,11 @@ window.openAdminModal = function(id) {
       document.getElementById('admin-greenfee').value = gfRaw ? gfRaw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
       document.getElementById('admin-kakao').value = j.kakaoUrl || 'https://open.kakao.com/o/gMGNFtah';
       document.getElementById('admin-memo').value = j.memo || '';
+      document.getElementById('admin-front-course').value = j.frontCourse || '';
+      document.getElementById('admin-back-course').value = j.backCourse || '';
       window.setJoinType(j.joinType || 'field');
       window.setTimeType(j.timeType || 'day');
+      if (j.course) updateSubCourseChips(j.course);
     }
   } else {
     document.getElementById('admin-course').value = '';
@@ -919,6 +1032,8 @@ window.openAdminModal = function(id) {
     document.getElementById('admin-greenfee').value = '';
     document.getElementById('admin-kakao').value = 'https://open.kakao.com/o/gMGNFtah';
     document.getElementById('admin-memo').value = '';
+    document.getElementById('admin-front-course').value = '';
+    document.getElementById('admin-back-course').value = '';
     window.setJoinType('field');
     window.setTimeType('day');
   }
@@ -931,20 +1046,25 @@ window.closeAdminModal = function() {
 
 // ── 저장 ─────────────────────────────────────────────
 window.saveJoin = async function() {
-  const course   = document.getElementById('admin-course').value.trim();
-  const date     = document.getElementById('admin-date').value;
-  const time     = document.getElementById('admin-time').value;
-  const capacity = document.getElementById('admin-capacity').value;
-  const greenfee = document.getElementById('admin-greenfee').value.trim();
-  const kakaoUrl = document.getElementById('admin-kakao').value.trim();
-  const memo     = document.getElementById('admin-memo').value.trim();
+  const course      = document.getElementById('admin-course').value.trim();
+  const date        = document.getElementById('admin-date').value;
+  const time        = document.getElementById('admin-time').value;
+  const capacity    = document.getElementById('admin-capacity').value;
+  const greenfee    = document.getElementById('admin-greenfee').value.trim();
+  const kakaoUrl    = document.getElementById('admin-kakao').value.trim();
+  const memo        = document.getElementById('admin-memo').value.trim();
+  const frontCourse = document.getElementById('admin-front-course').value.trim();
+  const backCourse  = document.getElementById('admin-back-course').value.trim();
 
-  if (!course || !date || !time || !capacity || (currentJoinType === 'field' && !greenfee) || !kakaoUrl) {
+  if (!course || !date || !time || !capacity || !kakaoUrl) {
     showToast('필수 항목을 모두 입력해주세요'); return;
+  }
+  if (currentJoinType === 'field' && (!greenfee || !frontCourse || !backCourse)) {
+    showToast('필드 조인은 그린피·전반·후반 코스를 모두 입력해주세요'); return;
   }
 
   const data = { course, date, time, capacity: Number(capacity), kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp() };
-  if (currentJoinType === 'field') data.greenfee = greenfee;
+  if (currentJoinType === 'field') { data.greenfee = greenfee; data.frontCourse = frontCourse; data.backCourse = backCourse; }
 
   try {
     if (editingId) {
