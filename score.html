@@ -244,6 +244,7 @@
       <div class="appbar-title" id="course-name">로딩중...</div>
       <div class="appbar-sub">
         <span class="live-dot"></span>실시간 스코어
+        <span id="course-sub" style="color:rgba(255,255,255,0.5);"></span>
         <span class="party-indicator" id="party-indicator" style="display:none;">· 2팀 연결</span>
       </div>
     </div>
@@ -456,6 +457,10 @@ onAuthStateChanged(auth, user => {
     const newCourse = snap.data().course;
     joinData = { id: snap.id, ...snap.data() };
     document.getElementById('course-name').textContent = joinData.course || '스코어';
+    const fc = joinData.frontCourse;
+    const bc = joinData.backCourse;
+    const courseSubEl = document.getElementById('course-sub');
+    if (courseSubEl) courseSubEl.textContent = (fc && bc) ? `${fc} · ${bc}` : (fc || bc || '');
     if (joinData.joinType === 'screen') {
       showToast('스크린 조인은 스코어 기능이 없습니다');
       setTimeout(() => history.back(), 1500);
