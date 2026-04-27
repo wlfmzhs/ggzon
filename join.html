@@ -1388,39 +1388,22 @@ window.kakaoShare = function(id) {
   const appLink = `${APP_BASE}/join.html?joinId=${id}`;
   const participants = j.participants || [];
 
-  const contents = [
-    {
-      title: '날짜 / 시간',
-      description: `${j.date} · ${j.time}`,
-      imageUrl: 'https://www.ggzon.co.kr/image/golgab-logo.png',
-      link: { mobileWebUrl: appLink, webUrl: appLink },
-    },
-    {
-      title: `참석 인원 ${participants.length} / ${j.capacity}명`,
-      description: participants.map((p, i) => i === 0 ? `${p.name}(주최자)` : p.name).join(', '),
-      link: { mobileWebUrl: appLink, webUrl: appLink },
-    },
-  ];
-  if (j.greenfee) {
-    contents.push({
-      title: '그린피',
-      description: fmtFee(j.greenfee),
-      link: { mobileWebUrl: appLink, webUrl: appLink },
-    });
-  }
+  const typeLabel = j.joinType === 'screen' ? '스크린' : (j.timeType === 'night' ? '야간 필드' : '필드');
+  const descParts = [`${j.date} ${j.time}`, `${participants.length}/${j.capacity}명`];
+  if (j.greenfee) descParts.push(fmtFee(j.greenfee));
 
   Kakao.Share.sendDefault({
-    objectType: 'list',
-    headerTitle: `${j.course} ${j.joinType === 'screen' ? '스크린' : '필드'} 조인 모집`,
-    headerLink: { mobileWebUrl: appLink, webUrl: appLink },
-    contents,
+    objectType: 'feed',
+    content: {
+      title: `[골갑존] ${j.course} ${typeLabel} 조인 모집`,
+      description: descParts.join(' · '),
+      imageUrl: 'https://wlfmzhs.github.io/ggzon/image/kakao-share-thumb.png',
+      link: { mobileWebUrl: appLink, webUrl: appLink },
+    },
     buttons: [
       {
-        title: '앱에서 참여하기',
-        link: {
-          mobileWebUrl: appLink,
-          webUrl: appLink,
-        },
+        title: '조인 참여하기',
+        link: { mobileWebUrl: appLink, webUrl: appLink },
       },
     ],
   });
