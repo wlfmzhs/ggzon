@@ -784,14 +784,21 @@ async function submitScore() {
   const companions = players.filter(p => p.uid !== currentUser.uid).map(p => ({ name: p.name, uid: p.uid }));
 
   try {
+    const parHoles = [
+      ...(parFront || Array(9).fill(null)),
+      ...(parBack  || Array(9).fill(null)),
+    ];
     await setDoc(
       doc(db, 'users', currentUser.uid, 'scoreHistory', joinId),
       {
-        course:     joinData.course || '',
-        date:       joinData.date   || '',
+        course:      joinData.course      || '',
+        frontCourse: joinData.frontCourse || '',
+        backCourse:  joinData.backCourse  || '',
+        date:        joinData.date        || '',
         companions,
-        totalScore: myTotal,
-        holes:      myHoles,
+        totalScore:  myTotal,
+        holes:       myHoles,
+        parHoles,
         joinId,
         submittedAt: serverTimestamp(),
       }
