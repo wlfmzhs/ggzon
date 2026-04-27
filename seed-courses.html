@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>골프장 DB 임포트</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #fff; padding: 30px; max-width: 480px; margin: 0 auto; }
+    h2 { color: #3ea066; margin-bottom: 20px; }
+    .course-block { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; margin-bottom: 12px; font-size: 13px; }
+    .course-name { font-weight: 700; color: #f0c040; margin-bottom: 6px; }
+    .par-list { color: rgba(255,255,255,0.6); }
+    button {
+      width: 100%; padding: 14px; border-radius: 12px;
+      background: #3ea066; color: #fff; border: none;
+      font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 20px;
+    }
+    button:disabled { background: #555; cursor: default; }
+    #log { margin-top: 20px; font-size: 13px; line-height: 1.8; color: #aaa; }
+    .ok  { color: #3ea066; }
+    .err { color: #e74c3c; }
+  </style>
+</head>
+<body>
+  <h2>골프장 DB 임포트</h2>
+
+  <div class="course-block">
+    <div class="course-name">진해 용원CC</div>
+    <div class="par-list">
+      백로: 4-4-3-5-3-5-4-4-4<br>
+      백구: 4-4-3-5-4-3-5-4-4<br>
+      무학: 4-5-4-3-4-5-3-4-4
+    </div>
+  </div>
+
+  <button id="btn-import" onclick="runImport()">Firestore에 임포트</button>
+  <div id="log"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const COURSES_DATA = [
+  {
+    id: "진해 용원CC",
+    name: "진해 용원CC",
+    nineHoles: {
+      "백로": [4,4,3,5,3,5,4,4,4],
+      "백구": [4,4,3,5,4,3,5,4,4],
+      "무학": [4,5,4,3,4,5,3,4,4],
+    }
+  }
+];
+
+function log(msg, cls) {
+  const el = document.getElementById('log');
+  el.innerHTML += `<div class="${cls || ''}">${msg}</div>`;
+}
+
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    log('로그인이 필요합니다. GGZON에 먼저 로그인 후 이 페이지를 열어주세요.', 'err');
+    document.getElementById('btn-import').disabled = true;
+  } else {
+    log(`로그인 확인: ${user.email}`);
+  }
+});
+
+window.runImport = async function() {
+  const btn = document.getElementById('btn-import');
+  btn.disabled = true;
+  btn.textContent = '임포트 중...';
+
+  for (const course of COURSES_DATA) {
+    try {
+      await setDoc(doc(db, 'courses', course.id), {
+        name: course.name,
+        nineHoles: course.nineHoles
+      }, { merge: true });
+      const courseNames = Object.keys(course.nineHoles).join(', ');
+      log(`완료: ${course.name} (${courseNames})`, 'ok');
+    } catch(e) {
+      log(`실패: ${course.name} — ${e.message}`, 'err');
+    }
+  }
+
+  btn.textContent = '임포트 완료';
+  log('--- 완료 ---', 'ok');
+};
+</script>
+</body>
+</html>
