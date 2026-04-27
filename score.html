@@ -200,6 +200,30 @@
     .party-close-btn { width: 100%; padding: 12px; background: rgba(255,255,255,0.07); border: none; border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .party-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 16px 0; }
 
+    /* 파 행 */
+    .tr-par td { text-align: center; padding: 3px 0; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .tr-par td.par-label-cell { text-align: left; padding-left: 6px; font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3); }
+    .tr-par td.par-total-cell { font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.4); }
+    .par-chip {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; font-size: 10px; font-weight: 900;
+      color: rgba(255,255,255,0.45); background: none; border: none;
+      border-radius: 4px; font-family: inherit;
+    }
+    button.par-chip { cursor: pointer; }
+    button.par-chip:active { opacity: 0.6; }
+    .par-chip.unset { color: rgba(255,255,255,0.18); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 3px !important; }
+
+    /* 파 픽커 */
+    .par-picker-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: flex-end; }
+    .par-picker-overlay.open { opacity: 1; pointer-events: all; }
+    .par-picker-sheet { width: 100%; background: #0f2e1a; border-radius: 24px 24px 0 0; padding: 22px 18px 36px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+    .par-picker-overlay.open .par-picker-sheet { transform: translateY(0); }
+    .par-picker-title { font-size: 14px; font-weight: 900; text-align: center; margin-bottom: 18px; color: rgba(255,255,255,0.85); }
+    .par-opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .par-opt { padding: 16px 8px; border-radius: 14px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); font-size: 18px; font-weight: 900; color: #fff; cursor: pointer; font-family: inherit; text-align: center; }
+    .par-opt:active { opacity: 0.7; }
+
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); }
       body { align-items: flex-start; }
@@ -316,6 +340,20 @@
     </div>
   </div>
 
+  <!-- 파 픽커 -->
+  <div class="par-picker-overlay" id="par-picker-overlay">
+    <div class="par-picker-sheet">
+      <div class="par-picker-title" id="par-picker-title">1번 홀 파 설정</div>
+      <div class="par-opts">
+        <button class="par-opt" onclick="window._selectPar(3)">Par 3</button>
+        <button class="par-opt" onclick="window._selectPar(4)">Par 4</button>
+        <button class="par-opt" onclick="window._selectPar(5)">Par 5</button>
+        <button class="par-opt" onclick="window._selectPar(6)">Par 6</button>
+      </div>
+      <button class="picker-cancel" onclick="closeParPicker()">취소</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 </div>
 
@@ -338,12 +376,17 @@ const db   = getFirestore(app);
 const joinId = new URLSearchParams(location.search).get('id');
 if (!joinId) location.href = 'join.html';
 
-let currentUser   = null;
-let joinData      = null;
-let pickerHole    = null;
-let pickerUid     = null;
-let partyJoinData = null;
-let partyUnsub    = null;
+let currentUser    = null;
+let joinData       = null;
+let pickerHole     = null;
+let pickerUid      = null;
+let partyJoinData  = null;
+let partyUnsub     = null;
+let parFront       = null;
+let parBack        = null;
+let parPickerSide  = null;
+let parPickerIdx   = null;
+let loadedCourse   = null;
 
 const OPTS = [
   { v: -3, label: '알바', cls: 'po-under' },
@@ -377,6 +420,9 @@ function totLabel(n, hasAny) {
 
 document.getElementById('btn-back').onclick = () => history.back();
 document.getElementById('picker-cancel').onclick = closePicker;
+document.getElementById('par-picker-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('par-picker-overlay')) closeParPicker();
+});
 
 // 제출 시트
 document.getElementById('btn-submit-open').onclick = openSubmitSheet;
@@ -407,6 +453,7 @@ onAuthStateChanged(auth, user => {
   document.getElementById('loading-overlay').classList.add('hidden');
   onSnapshot(doc(db, 'joins', joinId), snap => {
     if (!snap.exists()) return;
+    const newCourse = snap.data().course;
     joinData = { id: snap.id, ...snap.data() };
     document.getElementById('course-name').textContent = joinData.course || '스코어';
     if (joinData.joinType === 'screen') {
@@ -423,6 +470,11 @@ onAuthStateChanged(auth, user => {
       partyJoinData = null;
     }
     updatePartyIndicator();
+    // 코스 파 데이터 로드 (골프장 변경시만)
+    if (newCourse !== loadedCourse) {
+      loadedCourse = newCourse;
+      loadCoursePar();
+    }
     render();
   });
 });
@@ -494,6 +546,64 @@ async function doUnlinkParty() {
   } catch(e) { showToast('오류: ' + e.message); }
 }
 
+// ── 파 데이터 로드 / 저장 ─────────────────────────────
+async function loadCoursePar() {
+  if (!joinData?.course) return;
+  try {
+    const snap = await getDoc(doc(db, 'courses', joinData.course));
+    if (!snap.exists()) { parFront = null; parBack = null; render(); return; }
+    const nh = snap.data().nineHoles || {};
+    parFront = joinData.frontCourse && nh[joinData.frontCourse] ? [...nh[joinData.frontCourse]] : null;
+    parBack  = joinData.backCourse  && nh[joinData.backCourse]  ? [...nh[joinData.backCourse]]  : null;
+  } catch(_) { parFront = null; parBack = null; }
+  render();
+}
+
+async function savePar(side) {
+  if (!joinData?.course) return;
+  const courseName = side === 'front' ? joinData.frontCourse : joinData.backCourse;
+  if (!courseName) return;
+  const arr = side === 'front' ? parFront : parBack;
+  try {
+    await setDoc(doc(db, 'courses', joinData.course), {
+      name: joinData.course,
+      nineHoles: { [courseName]: arr }
+    }, { merge: true });
+  } catch(e) { showToast('파 저장 오류: ' + e.message); }
+}
+
+// ── 파 픽커 ───────────────────────────────────────────
+window._openParPicker = function(side, idx) {
+  parPickerSide = side;
+  parPickerIdx  = idx;
+  const holeNum = (side === 'front' ? idx : idx - 9) + 1;
+  const halfLabel = side === 'front' ? '전반' : '후반';
+  document.getElementById('par-picker-title').textContent = `${halfLabel} ${holeNum}번 홀 파 설정`;
+  document.getElementById('par-picker-overlay').classList.add('open');
+};
+
+window._selectPar = async function(val) {
+  if (parPickerSide === null || parPickerIdx === null) return;
+  const side = parPickerSide;
+  const idx  = side === 'front' ? parPickerIdx : parPickerIdx - 9;
+  closeParPicker();
+  if (side === 'front') {
+    if (!parFront) parFront = Array(9).fill(null);
+    parFront[idx] = val;
+  } else {
+    if (!parBack) parBack = Array(9).fill(null);
+    parBack[idx] = val;
+  }
+  render();
+  await savePar(side);
+};
+
+function closeParPicker() {
+  document.getElementById('par-picker-overlay').classList.remove('open');
+  parPickerSide = null;
+  parPickerIdx  = null;
+}
+
 function render() {
   const myPlayers    = joinData.participants || [];
   const partyPlayers = partyJoinData ? (partyJoinData.participants || []) : [];
@@ -537,20 +647,36 @@ function render() {
   }).join('');
 
   // 전반 테이블
-  document.getElementById('table-front').innerHTML = buildTable(players, scores, myUids, 0, 9);
+  document.getElementById('table-front').innerHTML = buildTable(players, scores, myUids, 0, 9, parFront, 'front', isParticipant);
   // 후반 테이블
-  document.getElementById('table-back').innerHTML  = buildTable(players, scores, myUids, 9, 18);
+  document.getElementById('table-back').innerHTML  = buildTable(players, scores, myUids, 9, 18, parBack, 'back', isParticipant);
 }
 
-function buildTable(players, scores, myUids, from, to) {
-  const count = to - from;
+function buildTable(players, scores, myUids, from, to, parArray, side, canEditPar) {
+  const count    = to - from;
   const holeNums = Array.from({length: count}, (_, i) => from + i + 1);
+
+  // 파 행
+  const parCells = Array.from({length: count}, (_, i) => {
+    const par = parArray ? parArray[i] : null;
+    const globalIdx = from + i;
+    if (canEditPar) {
+      return `<td><button class="par-chip${par === null ? ' unset' : ''}" onclick="window._openParPicker('${side}',${globalIdx})">${par !== null ? par : '?'}</button></td>`;
+    }
+    return `<td><div class="par-chip${par === null ? ' unset' : ''}">${par !== null ? par : '?'}</div></td>`;
+  }).join('');
+  const parSum = parArray ? parArray.reduce((a, v) => a + (v || 0), 0) : '';
 
   let html = `<thead><tr class="tr-header">
     <th class="th-name-col">HOLE</th>
     ${holeNums.map(n => `<th>${n}</th>`).join('')}
     <th class="th-t">T</th>
-  </tr></thead><tbody>`;
+  </tr></thead><tbody>
+  <tr class="tr-par">
+    <td class="par-label-cell">Par</td>
+    ${parCells}
+    <td class="par-total-cell">${parSum || ''}</td>
+  </tr>`;
 
   players.forEach(p => {
     const isMyRow    = currentUser && p.uid === currentUser.uid;
