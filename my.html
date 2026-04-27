@@ -1653,7 +1653,8 @@ window.openScorecard = (recordId) => {
 };
 
 function renderSc2Tables(isAdmin) {
-  const holes = sc2Record.holes || Array(18).fill(null);
+  const holes    = sc2Record.holes    || Array(18).fill(null);
+  const parHoles = sc2Record.parHoles || Array(18).fill(null);
   const front = holes.slice(0, 9);
   const back  = holes.slice(9, 18);
   const frontTot = front.reduce((a, v) => a + (v ?? 0), 0);
@@ -1661,30 +1662,43 @@ function renderSc2Tables(isAdmin) {
   const total    = frontTot + backTot;
   const hasAny   = holes.some(v => v !== null);
 
-  // 요약
+  const fc = sc2Record.frontCourse || '';
+  const bc = sc2Record.backCourse  || '';
+
   const totLabel = !hasAny ? '-' : total === 0 ? 'E' : total > 0 ? `+${total}` : String(total);
   const totCls   = total < 0 ? 'under' : '';
   document.getElementById('sc2-summary').innerHTML = `
-    <div class="sc2-summary-item"><div class="sc2-summary-label">전반</div><div class="sc2-summary-val">${front.some(v=>v!==null) ? (frontTot>0?'+'+frontTot:frontTot===0?'E':frontTot) : '-'}</div></div>
-    <div class="sc2-summary-item"><div class="sc2-summary-label">후반</div><div class="sc2-summary-val">${back.some(v=>v!==null) ? (backTot>0?'+'+backTot:backTot===0?'E':backTot) : '-'}</div></div>
+    <div class="sc2-summary-item">
+      <div class="sc2-summary-label">전반${fc ? `<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px;">${fc}</div>` : ''}</div>
+      <div class="sc2-summary-val">${front.some(v=>v!==null) ? (frontTot>0?'+'+frontTot:frontTot===0?'E':frontTot) : '-'}</div>
+    </div>
+    <div class="sc2-summary-item">
+      <div class="sc2-summary-label">후반${bc ? `<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px;">${bc}</div>` : ''}</div>
+      <div class="sc2-summary-val">${back.some(v=>v!==null) ? (backTot>0?'+'+backTot:backTot===0?'E':backTot) : '-'}</div>
+    </div>
     <div class="sc2-summary-item"><div class="sc2-summary-label">합계</div><div class="sc2-summary-val ${totCls}">${totLabel}</div></div>
   `;
 
-  document.getElementById('sc2-front').innerHTML = buildSc2Table(holes, isAdmin, 0, 9);
-  document.getElementById('sc2-back').innerHTML  = buildSc2Table(holes, isAdmin, 9, 18);
+  document.getElementById('sc2-front').innerHTML = buildSc2Table(holes, parHoles, isAdmin, 0, 9);
+  document.getElementById('sc2-back').innerHTML  = buildSc2Table(holes, parHoles, isAdmin, 9, 18);
 }
 
-function buildSc2Table(holes, canEdit, from, to) {
-  const nums = Array.from({length: to - from}, (_, i) => from + i + 1);
+function buildSc2Table(holes, parHoles, canEdit, from, to) {
+  const nums  = Array.from({length: to - from}, (_, i) => from + i + 1);
   const slice = holes.slice(from, to);
+  const pars  = (parHoles || []).slice(from, to);
   const sub   = slice.reduce((a, v) => a + (v ?? 0), 0);
   const hasAny = slice.some(v => v !== null);
+
+  const parCells = pars.map(p =>
+    `<td style="text-align:center;padding:2px 0;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);"><span style="font-size:10px;font-weight:900;color:rgba(255,255,255,0.35);">${p !== null ? p : ''}</span></td>`
+  ).join('');
+  const parSum = pars.some(p => p !== null) ? pars.reduce((a, v) => a + (v || 0), 0) : '';
 
   const cells = slice.map((v, i) => {
     const idx = from + i;
     const cc = chipClass(v);
     const cl = chipLabel(v);
-    const emptyCls = v === null ? '' : '';
     if (canEdit) {
       return `<td><button class="sc2-chip ${cc}" onclick="openSc2Picker(${idx})">${cl}</button></td>`;
     }
@@ -1697,6 +1711,11 @@ function buildSc2Table(holes, canEdit, from, to) {
     ${nums.map(n => `<th>${n}</th>`).join('')}
     <th class="th-t">T</th>
   </tr></thead><tbody>
+  <tr>
+    <td style="text-align:left;padding:2px 0 2px 4px;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);" colspan="1">Par</td>
+    ${parCells}
+    <td style="text-align:center;padding:2px 0;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);font-size:10px;font-weight:900;color:rgba(255,255,255,0.35);">${parSum}</td>
+  </tr>
   <tr class="tr-data">${cells}<td class="td-t">${totStr}</td></tr>
   </tbody>`;
 }
