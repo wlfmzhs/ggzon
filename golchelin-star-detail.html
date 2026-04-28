@@ -89,17 +89,10 @@
       display: flex; align-items: center; gap: 18px;
       margin-bottom: 20px;
     }
-    .badge {
-      width: 80px; height: 80px; flex-shrink: 0;
-      border-radius: 50%;
-      border: 2.5px solid rgba(255,255,255,0.8);
-      background: radial-gradient(circle at 40% 35%, #B01010, #6B0000);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.5);
+    .badge-img {
+      width: 90px; height: 90px; flex-shrink: 0;
+      object-fit: contain;
     }
-    .badge-stars { font-size: 14px; color: var(--gold); letter-spacing: 1.5px; margin-bottom: 2px; }
-    .badge-text { font-size: 8px; font-weight: 900; color: #fff; letter-spacing: 0.3px; line-height: 1.4; text-align: center; }
 
     .profile-info {}
     .profile-name { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
@@ -220,10 +213,7 @@
 
         <!-- 프로필 카드 -->
         <div class="profile-card">
-          <div class="badge">
-            <div class="badge-stars" id="badgeStars"></div>
-            <div class="badge-text">GOLCHELIN<br>STAR</div>
-          </div>
+          <img class="badge-img" id="badgeImg" src="" alt="골슐랭스타" />
           <div class="profile-info">
             <div class="profile-name" id="profileName"></div>
             <div class="profile-grade" id="profileGrade"></div>
@@ -293,8 +283,8 @@
     document.getElementById('appbarTitle').textContent = g.name;
     document.getElementById('profileName').textContent = g.name;
     document.getElementById('profileGrade').textContent = gradeLabel[g.stars];
-    document.getElementById('badgeStars').textContent = '★'.repeat(g.stars);
     document.getElementById('profileStarDisp').textContent = '★'.repeat(g.stars);
+    document.getElementById('badgeImg').src = `image/골슐랭${g.stars}스타로고.png`;
 
     if (g.challengeUrl) {
       const videoId = g.challengeUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1];
