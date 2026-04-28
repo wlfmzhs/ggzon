@@ -828,8 +828,23 @@ async function loadJoins() {
   } catch (e) { joins = []; }
   renderActiveList();
   renderClosedList();
-  const sa = document.querySelector('.scroll-area');
-  if (sa) sa.scrollTop = 0;
+  scrollToHashCard();
+}
+
+function scrollToHashCard() {
+  const params = new URLSearchParams(location.search);
+  const joinId = params.get('joinId');
+  const hash = location.hash;
+  const cardId = joinId ? 'card-' + joinId : (hash.startsWith('#card-') ? hash.slice(1) : null);
+  if (!cardId) return;
+  setTimeout(() => {
+    const el = document.getElementById(cardId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.style.transition = 'box-shadow 0.3s';
+    el.style.boxShadow = '0 0 0 2px #3ea066, 0 0 20px rgba(62,160,102,0.4)';
+    setTimeout(() => { el.style.boxShadow = ''; }, 2500);
+  }, 400);
 }
 
 
