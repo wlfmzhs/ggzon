@@ -376,34 +376,25 @@
     }
   }
 
-  async function calcDistance() {
+  function haversineKm(a, b) {
+    const R = 6371;
+    const dLat = (b.latitude - a.latitude) * Math.PI / 180;
+    const dLng = (b.longitude - a.longitude) * Math.PI / 180;
+    const s = Math.sin(dLat/2) ** 2 + Math.cos(a.latitude * Math.PI/180) * Math.cos(b.latitude * Math.PI/180) * Math.sin(dLng/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+  }
+
+  function calcDistance() {
     if (!originLocation || !destLocation) return;
     const badge = document.getElementById('travel-badge');
-    badge.textContent = '이동시간 계산 중...';
-    badge.style.color = 'rgba(255,255,255,0.4)';
-    try {
-      const origin = `${originLocation.latitude},${originLocation.longitude}`;
-      const dest   = `${destLocation.latitude},${destLocation.longitude}`;
-      const res = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&mode=driving&language=ko&key=${MAPS_KEY}`
-      );
-      const data = await res.json();
-      if (data.status === 'OK' && data.routes && data.routes[0]) {
-        const leg  = data.routes[0].legs[0];
-        const mins = Math.ceil(leg.duration.value / 60);
-        const km   = (leg.distance.value / 1000).toFixed(1);
-        const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
-        document.getElementById('calc-travel').value = mins;
-        badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
-        badge.style.color = 'var(--green-light)';
-      } else {
-        badge.textContent = '경로 계산 실패 — 이동시간을 직접 입력해주세요';
-        badge.style.color = '#f87171';
-      }
-    } catch(e) {
-      badge.textContent = '경로 계산 실패 — 이동시간을 직접 입력해주세요';
-      badge.style.color = '#f87171';
-    }
+    const straightKm = haversineKm(originLocation, destLocation);
+    const roadKm = straightKm * 1.4;
+    const mins = Math.ceil(roadKm / 80 * 60);
+    const km = roadKm.toFixed(1);
+    const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
+    document.getElementById('calc-travel').value = mins;
+    badge.textContent = `예상 이동시간: 약 ${hStr} (도로거리 약 ${km}km)`;
+    badge.style.color = 'var(--green-light)';
   }
 
   // 현재 위치
