@@ -1504,11 +1504,49 @@ function showToast(msg) {
   });
 })();
 
-// window 스크롤 완전 차단 (Safari viewport 점프 방지)
-window.addEventListener('scroll', () => window.scrollTo(0, 0), { passive: false });
-window.addEventListener('touchmove', e => {
-  if (!e.target.closest('.scroll-area, .admin-scroll')) e.preventDefault();
-}, { passive: false });
+// Safari viewport 점프 완전 차단
+(function() {
+  // window 스크롤 잠금
+  window.addEventListener('scroll', () => window.scrollTo(0, 0), { passive: false });
+
+  // scroll-area 외부 touchmove 차단
+  window.addEventListener('touchmove', e => {
+    if (!e.target.closest('.scroll-area, .admin-scroll')) e.preventDefault();
+  }, { passive: false });
+
+  // 실제 헤더 높이 측정 후 scroll-area padding 동적 설정
+  function fixScrollPadding() {
+    const appbar  = document.querySelector('.appbar');
+    const tabbar  = document.querySelector('.tab-bar');
+    const filter  = document.querySelector('.filter-wrap');
+    const sa      = document.querySelector('.scroll-area');
+    if (!appbar || !tabbar || !filter || !sa) return;
+    if (window.innerWidth > 768) return;
+    const h = appbar.offsetHeight + tabbar.offsetHeight + filter.offsetHeight;
+    sa.style.paddingTop = h + 'px';
+    sa.scrollTop = 0;
+  }
+
+  // viewport resize(Safari 주소창 접힘) 감지 → 스크롤 초기화
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      const sa = document.querySelector('.scroll-area');
+      if (sa) { sa.scrollTop = 0; }
+      fixScrollPadding();
+    });
+  }
+  window.addEventListener('resize', fixScrollPadding);
+
+  // DOM 준비 후 1회 실행
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixScrollPadding);
+  } else {
+    fixScrollPadding();
+  }
+  // 데이터 로딩 완료 후도 실행 (loading overlay 사라진 후)
+  setTimeout(fixScrollPadding, 300);
+  setTimeout(fixScrollPadding, 1500);
+})();
 </script>
 <script src="/ptr.js"></script>
 </body>
