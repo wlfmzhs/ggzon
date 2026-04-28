@@ -284,7 +284,7 @@
     document.getElementById('profileName').textContent = g.name;
     document.getElementById('profileGrade').textContent = gradeLabel[g.stars];
     document.getElementById('profileStarDisp').textContent = '★'.repeat(g.stars);
-    document.getElementById('badgeImg').src = `image/star${g.stars}.png`;
+    document.getElementById('badgeImg').src = `image/${g.stars}star.png`;
 
     if (g.challengeUrl) {
       const videoId = g.challengeUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1];
