@@ -1002,15 +1002,22 @@ document.getElementById('btn-withdraw-confirm').addEventListener('click', async 
   const btn = document.getElementById('btn-withdraw-confirm');
   btn.disabled = true;
   btn.textContent = '처리 중...';
+  const uid = currentUser.uid;
   try {
-    await deleteDoc(doc(db, 'users', currentUser.uid));
+    // Auth 먼저 삭제 — 실패(재로그인 필요) 시 Firestore 데이터 건드리지 않음
     await deleteUser(currentUser);
+    // Auth 삭제 성공 후 Firestore 데이터 정리
+    try {
+      const histSnap = await getDocs(collection(db, 'users', uid, 'scoreHistory'));
+      await Promise.all(histSnap.docs.map(d => deleteDoc(d.ref)));
+      await deleteDoc(doc(db, 'users', uid));
+    } catch(_) {}
     window.location.href = 'index.html';
   } catch (e) {
     if (e.code === 'auth/requires-recent-login') {
       showToast('보안을 위해 로그아웃 후 다시 로그인하고 탈퇴해 주세요.');
     } else {
-      showToast('오류가 발생했습니다. 다시 시도해 주세요.');
+      showToast('오류: ' + e.message);
     }
     btn.disabled = false;
     btn.textContent = '탈퇴하기';
