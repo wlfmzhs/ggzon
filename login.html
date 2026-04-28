@@ -280,6 +280,19 @@
 
   </div>
 
+  <!-- PWA 설치 모달 -->
+  <div id="pwa-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;">
+    <div style="width:100%;max-width:430px;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="/image/icon-512.png" style="width:64px;height:64px;border-radius:16px;margin-bottom:12px;" />
+        <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:6px;">홈 화면에 추가</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;" id="pwa-desc">앱처럼 바로 실행할 수 있도록<br>홈 화면에 GGZON을 추가하시겠어요?</div>
+      </div>
+      <button id="pwa-install-btn" onclick="doPwaInstall()" style="width:100%;padding:15px;border-radius:14px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:900;border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;">홈 화면에 추가</button>
+      <button onclick="skipPwaInstall()" style="width:100%;padding:13px;border-radius:14px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;">다음에 하기</button>
+    </div>
+  </div>
+
   <!-- 이용약관 모달 -->
   <div class="term-overlay" id="term-modal">
     <div class="term-box" id="term-content">
@@ -459,12 +472,50 @@
           setLoading('login-btn', false);
           return;
         }
-        showMsg('login-msg', '로그인 성공! 잠시 후 이동합니다.', 'success');
-        setTimeout(() => { window.location.href = getReturnUrl(); }, 1000);
+        showMsg('login-msg', '로그인 성공!', 'success');
+        setTimeout(() => showPwaPrompt(getReturnUrl()), 800);
       } catch (e) {
         showMsg('login-msg', getErrorMsg(e.code), 'error');
         setLoading('login-btn', false);
       }
+    };
+  </script>
+
+  <script>
+    let _deferredPrompt = null;
+    let _redirectUrl    = null;
+    const _isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+    const _isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _deferredPrompt = e;
+    });
+
+    function showPwaPrompt(redirectUrl) {
+      _redirectUrl = redirectUrl;
+      if (_isInstalled) { location.href = redirectUrl; return; }
+      if (_isIos) {
+        document.getElementById('pwa-desc').innerHTML =
+          '사파리 하단 공유 버튼 → <strong style="color:#3ea066;">홈 화면에 추가</strong>를 탭하면<br>앱처럼 바로 실행할 수 있어요.';
+        document.getElementById('pwa-install-btn').style.display = 'none';
+      }
+      if (!_deferredPrompt && !_isIos) { location.href = redirectUrl; return; }
+      const overlay = document.getElementById('pwa-overlay');
+      overlay.style.display = 'flex';
+    }
+
+    window.doPwaInstall = async function() {
+      if (_deferredPrompt) {
+        _deferredPrompt.prompt();
+        await _deferredPrompt.userChoice;
+        _deferredPrompt = null;
+      }
+      location.href = _redirectUrl;
+    };
+
+    window.skipPwaInstall = function() {
+      location.href = _redirectUrl;
     };
   </script>
 
