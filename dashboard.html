@@ -82,19 +82,20 @@
     .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
     .ggcup-tab { color: #f0c040 !important; }
     .ggcup-tab.active { border-bottom-color: #f0c040; }
-    @keyframes goldBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+    @keyframes goldGlow {
+      0%, 100% { box-shadow: 0 0 6px rgba(240,192,64,0.5), 0 0 12px rgba(240,192,64,0.2); }
+      50% { box-shadow: 0 0 14px rgba(240,192,64,0.9), 0 0 28px rgba(240,192,64,0.4); }
     }
     .ggpoint-appbar-btn {
-      color: #f0c040 !important;
-      -webkit-text-fill-color: #f0c040 !important;
-      background: none !important;
-      font-size: 12px; font-weight: 900;
-      padding: 4px 2px;
+      color: #1a1a1a !important;
+      -webkit-text-fill-color: #1a1a1a !important;
+      background: linear-gradient(135deg, #f0c040, #e8a800) !important;
+      font-size: 13px; font-weight: 900;
+      padding: 6px 13px;
       border: none !important; cursor: pointer; font-family: inherit;
-      letter-spacing: 0.5px; line-height: 1.4 !important;
-      animation: goldBlink 1.6s ease-in-out infinite;
+      letter-spacing: 0.8px; line-height: 1 !important;
+      border-radius: 20px;
+      animation: goldGlow 2s ease-in-out infinite;
     }
     .content {
       flex: 1; overflow-y: auto; scrollbar-width: none;
