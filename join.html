@@ -1434,6 +1434,52 @@ function showToast(msg) {
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
 }
+
+// ── 인앱브라우저 감지 ──────────────────────────────────
+(function() {
+  const ua = navigator.userAgent;
+  const isInApp = /KAKAOTALK|Instagram|NAVER|Line|FB_IAB|Twitter/i.test(ua);
+  if (!isInApp) return;
+
+  const currentUrl = location.href;
+  const isIos = /iPhone|iPad|iPod/i.test(ua);
+  const isKakao = /KAKAOTALK/i.test(ua);
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:#0A2406;z-index:99999;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:32px 24px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#fff;
+  `;
+  overlay.innerHTML = `
+    <img src="image/GGZON_LOGO.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:24px;" />
+    <div style="font-size:20px;font-weight:900;margin-bottom:10px;">외부 브라우저에서 열기</div>
+    <div style="font-size:14px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.7;margin-bottom:32px;">
+      카카오톡 내부 브라우저에서는<br>로그인 상태가 유지되지 않아요.<br>
+      아래 버튼을 눌러 <strong style="color:#3ea066;">외부 브라우저</strong>에서 열어주세요.
+    </div>
+    <button id="btn-open-external" style="
+      width:100%;max-width:320px;padding:16px;border-radius:14px;
+      background:#2d7a4f;color:#fff;font-size:16px;font-weight:900;
+      border:none;cursor:pointer;font-family:inherit;margin-bottom:12px;
+    ">외부 브라우저에서 열기</button>
+    <div style="font-size:11px;color:rgba(255,255,255,0.25);text-align:center;line-height:1.8;">
+      버튼이 작동하지 않으면<br>주소창에서 <strong style="color:rgba(255,255,255,0.5);">www.ggzon.co.kr</strong>을 직접 입력해주세요.
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('btn-open-external').addEventListener('click', () => {
+    if (isKakao && isIos) {
+      location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
+    } else if (isKakao && !isIos) {
+      location.href = 'intent://' + currentUrl.replace(/^https?:\/\//, '') +
+        '#Intent;scheme=https;package=com.android.chrome;end';
+    } else {
+      location.href = currentUrl;
+    }
+  });
+})();
 </script>
 </body>
 </html>
