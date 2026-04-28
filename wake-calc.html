@@ -309,44 +309,48 @@
     };
     if (forGolf) body.includedPrimaryTypes = ['golf_course', 'establishment'];
 
-    const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': MAPS_KEY,
-      },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    const list = document.getElementById(listId);
-    if (!data.suggestions || data.suggestions.length === 0) { list.style.display = 'none'; return; }
-
-    list.innerHTML = data.suggestions.slice(0, 5).map(s => {
-      const place = s.placePrediction;
-      const main = place.structuredFormat?.mainText?.text || place.text?.text || '';
-      const sub  = place.structuredFormat?.secondaryText?.text || '';
-      return `<div class="autocomplete-item" data-placeid="${place.placeId}" data-name="${main}">
-        <strong>${main}</strong>${sub ? '<br><span style="font-size:11px;color:rgba(255,255,255,0.4);">' + sub + '</span>' : ''}
-      </div>`;
-    }).join('');
-    list.style.display = 'block';
-
-    list.querySelectorAll('.autocomplete-item').forEach(el => {
-      el.addEventListener('click', () => {
-        const placeId = el.dataset.placeid;
-        const name    = el.dataset.name;
-        if (listId === 'list-origin') {
-          document.getElementById('calc-origin').value = el.querySelector('strong').textContent + (el.querySelector('span') ? ' ' + el.querySelector('span').textContent : '');
-          showSaveBtn();
-          getPlaceLatLng(placeId, 'origin');
-        } else {
-          document.getElementById('calc-course').value = name;
-          getPlaceLatLng(placeId, 'dest');
-        }
-        list.style.display = 'none';
-        sessionToken = newToken();
+    try {
+      const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': MAPS_KEY,
+        },
+        body: JSON.stringify(body)
       });
-    });
+      const data = await res.json();
+      const list = document.getElementById(listId);
+      if (!data.suggestions || data.suggestions.length === 0) { list.style.display = 'none'; return; }
+
+      list.innerHTML = data.suggestions.slice(0, 5).map(s => {
+        const place = s.placePrediction;
+        const main = place.structuredFormat?.mainText?.text || place.text?.text || '';
+        const sub  = place.structuredFormat?.secondaryText?.text || '';
+        return `<div class="autocomplete-item" data-placeid="${place.placeId}" data-name="${main}">
+          <strong>${main}</strong>${sub ? '<br><span style="font-size:11px;color:rgba(255,255,255,0.4);">' + sub + '</span>' : ''}
+        </div>`;
+      }).join('');
+      list.style.display = 'block';
+
+      list.querySelectorAll('.autocomplete-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const placeId = el.dataset.placeid;
+          const name    = el.dataset.name;
+          if (listId === 'list-origin') {
+            document.getElementById('calc-origin').value = el.querySelector('strong').textContent + (el.querySelector('span') ? ' ' + el.querySelector('span').textContent : '');
+            showSaveBtn();
+            getPlaceLatLng(placeId, 'origin');
+          } else {
+            document.getElementById('calc-course').value = name;
+            getPlaceLatLng(placeId, 'dest');
+          }
+          list.style.display = 'none';
+          sessionToken = newToken();
+        });
+      });
+    } catch(e) {
+      document.getElementById(listId).style.display = 'none';
+    }
   }
 
   async function getPlaceLatLng(placeId, type) {
@@ -378,13 +382,24 @@
     badge.textContent = '이동시간 계산 중...';
     badge.style.color = 'rgba(255,255,255,0.4)';
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${originLocation.longitude},${originLocation.latitude};${destLocation.longitude},${destLocation.latitude}?overview=false`;
-      const res = await fetch(url);
+      const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': MAPS_KEY,
+          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
+        },
+        body: JSON.stringify({
+          origin:      { location: { latLng: { latitude: originLocation.latitude, longitude: originLocation.longitude } } },
+          destination: { location: { latLng: { latitude: destLocation.latitude,  longitude: destLocation.longitude  } } },
+          travelMode:  'DRIVE'
+        })
+      });
       const data = await res.json();
-      if (data.code === 'Ok' && data.routes && data.routes[0]) {
+      if (data.routes && data.routes[0]) {
         const route = data.routes[0];
-        const mins = Math.ceil(route.duration / 60);
-        const km   = (route.distance / 1000).toFixed(1);
+        const mins = Math.ceil(parseInt(route.duration) / 60);
+        const km   = (route.distanceMeters / 1000).toFixed(1);
         const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
         document.getElementById('calc-travel').value = mins;
         badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
