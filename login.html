@@ -494,18 +494,24 @@
 
     function showPwaPrompt(redirectUrl) {
       _redirectUrl = redirectUrl;
-      if (_isInstalled) { location.href = redirectUrl; return; }
-      if (_isIos) {
-        document.getElementById('pwa-desc').innerHTML =
-          '사파리 하단 공유 버튼 → <strong style="color:#3ea066;">홈 화면에 추가</strong>를 탭하면<br>앱처럼 바로 실행할 수 있어요.';
-        document.getElementById('pwa-install-btn').style.display = 'none';
+      // 이미 설치됐거나 이전에 본 적 있으면 바로 이동
+      if (_isInstalled || localStorage.getItem('pwaPromptSeen')) {
+        location.href = redirectUrl; return;
       }
-      if (!_deferredPrompt && !_isIos) { location.href = redirectUrl; return; }
-      const overlay = document.getElementById('pwa-overlay');
-      overlay.style.display = 'flex';
+      const desc = document.getElementById('pwa-desc');
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (_isIos) {
+        desc.innerHTML = '사파리 하단 <strong style="color:#3ea066;">공유 버튼</strong> → <strong style="color:#3ea066;">홈 화면에 추가</strong>를 탭하면 앱처럼 바로 실행할 수 있어요.';
+        installBtn.style.display = 'none';
+      } else if (!_deferredPrompt) {
+        desc.innerHTML = '브라우저 메뉴(⋮) → <strong style="color:#3ea066;">홈 화면에 추가</strong>를 탭하면 앱처럼 바로 실행할 수 있어요.';
+        installBtn.style.display = 'none';
+      }
+      document.getElementById('pwa-overlay').style.display = 'flex';
     }
 
     window.doPwaInstall = async function() {
+      localStorage.setItem('pwaPromptSeen', '1');
       if (_deferredPrompt) {
         _deferredPrompt.prompt();
         await _deferredPrompt.userChoice;
@@ -515,6 +521,7 @@
     };
 
     window.skipPwaInstall = function() {
+      localStorage.setItem('pwaPromptSeen', '1');
       location.href = _redirectUrl;
     };
   </script>
