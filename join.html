@@ -833,34 +833,10 @@ async function loadJoins() {
   } catch (e) { joins = []; }
   renderActiveList();
   renderClosedList();
-  scrollToHashCard();
+  const sa = document.querySelector('.scroll-area');
+  if (sa) sa.scrollTop = 0;
 }
 
-function scrollToHashCard() {
-  // ?joinId= 쿼리 파라미터 (카카오 공유 링크)
-  const params = new URLSearchParams(location.search);
-  const joinId = params.get('joinId');
-  // #card- 해시 (직접 링크 하위호환)
-  const hash = location.hash;
-  const cardId = joinId ? 'card-' + joinId : (hash.startsWith('#card-') ? hash.slice(1) : null);
-  if (!cardId) return;
-  setTimeout(() => {
-    const el = document.getElementById(cardId);
-    if (!el) return;
-    // 고정 헤더 높이만큼 오프셋 반영해서 스크롤
-    const sa = document.querySelector('.scroll-area');
-    if (sa) {
-      const headerH = el.closest('.list-content')?.offsetTop || 0;
-      const elTop = el.offsetTop + (sa.style.paddingTop ? parseInt(sa.style.paddingTop) : 0);
-      sa.scrollTop = Math.max(0, el.offsetTop);
-    } else {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    el.style.transition = 'box-shadow 0.3s';
-    el.style.boxShadow = '0 0 0 2px #3ea066, 0 0 20px rgba(62,160,102,0.4)';
-    setTimeout(() => { el.style.boxShadow = ''; }, 2500);
-  }, 600);
-}
 
 // ── 진행중 렌더 ───────────────────────────────────────
 function renderActiveList() {
