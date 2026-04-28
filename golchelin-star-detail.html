@@ -284,7 +284,7 @@
     document.getElementById('profileName').textContent = g.name;
     document.getElementById('profileGrade').textContent = gradeLabel[g.stars];
     document.getElementById('profileStarDisp').textContent = '★'.repeat(g.stars);
-    document.getElementById('badgeImg').src = `image/골슐랭${g.stars}스타로고.png`;
+    document.getElementById('badgeImg').src = `image/star${g.stars}.png`;
 
     if (g.challengeUrl) {
       const videoId = g.challengeUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1];
