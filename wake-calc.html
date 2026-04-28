@@ -382,24 +382,16 @@
     badge.textContent = '이동시간 계산 중...';
     badge.style.color = 'rgba(255,255,255,0.4)';
     try {
-      const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': MAPS_KEY,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
-        },
-        body: JSON.stringify({
-          origin:      { location: { latLng: { latitude: originLocation.latitude, longitude: originLocation.longitude } } },
-          destination: { location: { latLng: { latitude: destLocation.latitude,  longitude: destLocation.longitude  } } },
-          travelMode:  'DRIVE'
-        })
-      });
+      const origin = `${originLocation.latitude},${originLocation.longitude}`;
+      const dest   = `${destLocation.latitude},${destLocation.longitude}`;
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&mode=driving&language=ko&key=${MAPS_KEY}`
+      );
       const data = await res.json();
-      if (data.routes && data.routes[0]) {
-        const route = data.routes[0];
-        const mins = Math.ceil(parseInt(route.duration) / 60);
-        const km   = (route.distanceMeters / 1000).toFixed(1);
+      if (data.status === 'OK' && data.routes && data.routes[0]) {
+        const leg  = data.routes[0].legs[0];
+        const mins = Math.ceil(leg.duration.value / 60);
+        const km   = (leg.distance.value / 1000).toFixed(1);
         const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
         document.getElementById('calc-travel').value = mins;
         badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
