@@ -931,51 +931,51 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) { window.location.href = 'login.html'; return; }
   currentUser = user;
 
-  const [userSnap, joinsSnap, noticesSnap] = await Promise.all([
-    getDoc(doc(db, 'users', user.uid)),
-    getDocs(collection(db, 'joins')),
-    getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'))),
-  ]);
-
-  if (userSnap.exists()) {
-    userData = userSnap.data();
-    document.getElementById('prof-nick').textContent = userData.nickname || '';
-    const sub = [userData.name, userData.handicap != null ? `핸디 ${userData.handicap}` : '', userData.region].filter(Boolean).join(' · ');
-    document.getElementById('prof-sub').textContent = sub;
-  }
-
-  allJoins = joinsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  notices = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  // achievements는 별도 로드 (복합 인덱스 오류와 무관하게 메인 로딩 완료)
   try {
-    const achSnap = await getDocs(query(collection(db, 'achievements'), where('uid', '==', user.uid)));
-    achievements = achSnap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    // 기존 명예기록 → GG PLAYER 뱃지 플래그 동기화
-    const hasEagle = achievements.some(a => a.type === 'eagle');
-    const hasHoleinone = achievements.some(a => a.type === 'holeinone');
-    const update = {};
-    if (hasEagle) update.hasEagle = true;
-    if (hasHoleinone) update.hasHoleinone = true;
-    if (Object.keys(update).length) {
-      try { await updateDoc(doc(db, 'users', user.uid), update); } catch(_) {}
+    const [userSnap, joinsSnap, noticesSnap] = await Promise.all([
+      getDoc(doc(db, 'users', user.uid)),
+      getDocs(collection(db, 'joins')),
+      getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'))),
+    ]);
+
+    if (userSnap.exists()) {
+      userData = userSnap.data();
+      document.getElementById('prof-nick').textContent = userData.nickname || '';
+      const sub = [userData.name, userData.handicap != null ? `핸디 ${userData.handicap}` : '', userData.region].filter(Boolean).join(' · ');
+      document.getElementById('prof-sub').textContent = sub;
+    }
+
+    allJoins = joinsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    notices = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    try {
+      const achSnap = await getDocs(query(collection(db, 'achievements'), where('uid', '==', user.uid)));
+      achievements = achSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const hasEagle = achievements.some(a => a.type === 'eagle');
+      const hasHoleinone = achievements.some(a => a.type === 'holeinone');
+      const update = {};
+      if (hasEagle) update.hasEagle = true;
+      if (hasHoleinone) update.hasHoleinone = true;
+      if (Object.keys(update).length) {
+        try { await updateDoc(doc(db, 'users', user.uid), update); } catch(_) {}
+      }
+    } catch (_) { achievements = []; }
+
+    const unread = notices.length;
+    if (unread > 0) document.getElementById('notice-count-label').textContent = `${unread}개의 공지`;
+
+    updateAchMenuDesc();
+
+    if (user.email === ADMIN_EMAIL) {
+      document.getElementById('admin-section').classList.remove('hidden');
     }
   } catch (e) {
-    achievements = [];
+    console.error('마이페이지 로딩 오류:', e.message);
+  } finally {
+    document.getElementById('loading-overlay').classList.add('hidden');
   }
-
-  const unread = notices.length;
-  if (unread > 0) document.getElementById('notice-count-label').textContent = `${unread}개의 공지`;
-
-  updateAchMenuDesc();
-
-  if (user.email === ADMIN_EMAIL) {
-    document.getElementById('admin-section').classList.remove('hidden');
-  }
-
-  document.getElementById('loading-overlay').classList.add('hidden');
 });
 
 // ── 뒤로가기 ──────────────────────────────────────────
