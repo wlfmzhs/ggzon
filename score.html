@@ -685,7 +685,7 @@ function buildTable(players, scores, myUids, from, to, parArray, side, canEditPa
 
   players.forEach(p => {
     const isMyRow    = currentUser && p.uid === currentUser.uid;
-    const canEditRow = myUids.has(p.uid);
+    const canEditRow = canEditPar && myUids.has(p.uid);
     const holes      = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const slice      = holes.slice(from, to);
     const hasAny     = slice.some(v => v !== null);
