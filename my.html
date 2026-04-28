@@ -567,7 +567,7 @@
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(62,160,102,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </div>
       <div class="profile-info">
-        <div class="profile-nick" id="prof-nick">로딩중</div>
+        <div class="profile-nick" id="prof-nick"></div>
         <div class="profile-sub" id="prof-sub"></div>
       </div>
     </div>
@@ -940,9 +940,11 @@ onAuthStateChanged(auth, async (user) => {
 
     if (userSnap.exists()) {
       userData = userSnap.data();
-      document.getElementById('prof-nick').textContent = userData.nickname || '';
+      document.getElementById('prof-nick').textContent = userData.nickname || user.displayName || user.email?.split('@')[0] || '';
       const sub = [userData.name, userData.handicap != null ? `핸디 ${userData.handicap}` : '', userData.region].filter(Boolean).join(' · ');
       document.getElementById('prof-sub').textContent = sub;
+    } else {
+      document.getElementById('prof-nick').textContent = user.displayName || user.email?.split('@')[0] || '';
     }
 
     allJoins = joinsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
