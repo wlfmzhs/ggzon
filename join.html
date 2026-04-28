@@ -799,6 +799,7 @@ window._selectSubCourse = function(side, name) {
 // ── Auth ──────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
+    if (window._inAppBrowser) return; // 인앱브라우저는 오버레이가 처리
     const p = new URLSearchParams(location.search);
     const jId = p.get('joinId');
     const returnUrl = jId ? `join.html?joinId=${jId}` : 'join.html';
@@ -1441,9 +1442,14 @@ function showToast(msg) {
   const isInApp = /KAKAOTALK|Instagram|NAVER|Line|FB_IAB|Twitter/i.test(ua);
   if (!isInApp) return;
 
+  window._inAppBrowser = true; // auth 리다이렉트 차단 플래그
+
   const currentUrl = location.href;
   const isIos = /iPhone|iPad|iPod/i.test(ua);
   const isKakao = /KAKAOTALK/i.test(ua);
+  const p = new URLSearchParams(location.search);
+  const jId = p.get('joinId') || p.get('id') || '';
+  const loginUrl = 'login.html?return=' + encodeURIComponent(jId ? `join.html?joinId=${jId}` : 'join.html');
 
   const overlay = document.createElement('div');
   overlay.style.cssText = `
@@ -1452,19 +1458,23 @@ function showToast(msg) {
     padding:32px 24px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#fff;
   `;
   overlay.innerHTML = `
-    <img src="image/GGZON_LOGO.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:24px;" />
-    <div style="font-size:20px;font-weight:900;margin-bottom:10px;">외부 브라우저에서 열기</div>
-    <div style="font-size:14px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.7;margin-bottom:32px;">
-      카카오톡 내부 브라우저에서는<br>로그인 상태가 유지되지 않아요.<br>
-      아래 버튼을 눌러 <strong style="color:#3ea066;">외부 브라우저</strong>에서 열어주세요.
+    <img src="/image/icon-512.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:24px;" />
+    <div style="font-size:20px;font-weight:900;margin-bottom:10px;">GGZON 조인 초대</div>
+    <div style="font-size:14px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.7;margin-bottom:28px;">
+      앱이 설치되어 있으면 아래 버튼으로<br>바로 입장할 수 있어요.
     </div>
     <button id="btn-open-external" style="
       width:100%;max-width:320px;padding:16px;border-radius:14px;
       background:#2d7a4f;color:#fff;font-size:16px;font-weight:900;
-      border:none;cursor:pointer;font-family:inherit;margin-bottom:12px;
-    ">외부 브라우저에서 열기</button>
+      border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;
+    ">앱으로 열기 (로그인 유지)</button>
+    <button id="btn-login-here" style="
+      width:100%;max-width:320px;padding:14px;border-radius:14px;
+      background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);font-size:14px;font-weight:700;
+      border:1px solid rgba(255,255,255,0.15);cursor:pointer;font-family:inherit;margin-bottom:20px;
+    ">여기서 로그인하고 참여</button>
     <div style="font-size:11px;color:rgba(255,255,255,0.25);text-align:center;line-height:1.8;">
-      버튼이 작동하지 않으면<br>주소창에서 <strong style="color:rgba(255,255,255,0.5);">www.ggzon.co.kr</strong>을 직접 입력해주세요.
+      앱이 없으면 아래 버튼으로 로그인 후 참여하세요
     </div>
   `;
   document.body.appendChild(overlay);
@@ -1478,6 +1488,10 @@ function showToast(msg) {
     } else {
       location.href = currentUrl;
     }
+  });
+
+  document.getElementById('btn-login-here').addEventListener('click', () => {
+    location.href = loginUrl;
   });
 })();
 </script>
