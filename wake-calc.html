@@ -405,11 +405,12 @@
         badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
         badge.style.color = 'var(--green-light)';
       } else {
-        badge.textContent = '경로 계산 실패 — 이동시간을 직접 입력해주세요';
+        const errMsg = data.error ? `${data.error.status}: ${data.error.message}` : JSON.stringify(data);
+        badge.textContent = `오류: ${errMsg}`;
         badge.style.color = '#f87171';
       }
     } catch(e) {
-      badge.textContent = '경로 계산 실패 — 이동시간을 직접 입력해주세요';
+      badge.textContent = `오류: ${e.message}`;
       badge.style.color = '#f87171';
     }
   }
