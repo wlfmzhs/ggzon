@@ -1,34 +1,45 @@
 (function () {
   const THRESHOLD = 70;
   let startY = 0, pulling = false, refreshing = false;
-  let ind = null, bar = null;
+  let ind = null;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes ptr-spin { to { transform: rotate(360deg); } }
+    #ptr-ind {
+      position:fixed;top:0;left:50%;
+      transform:translateX(-50%) translateY(-60px);
+      width:36px;height:36px;
+      background:#0f2e1a;border:1.5px solid rgba(62,160,102,0.4);
+      border-radius:50%;z-index:99999;
+      display:flex;align-items:center;justify-content:center;
+      transition:transform 0.15s;
+    }
+    #ptr-arc {
+      width:20px;height:20px;
+      border:2.5px solid rgba(62,160,102,0.25);
+      border-top-color:#3ea066;
+      border-radius:50%;
+    }
+    #ptr-arc.spin { animation:ptr-spin 0.7s linear infinite; }
+  `;
+  document.head.appendChild(style);
 
   function getScrollEl() {
     return document.querySelector('.scroll-area, .content') || document.scrollingElement;
   }
 
   function createUI() {
-    bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:3px;background:#3ea066;width:0;z-index:99999;';
-    document.body.appendChild(bar);
-
     ind = document.createElement('div');
-    ind.style.cssText = `
-      position:fixed;top:8px;left:50%;
-      transform:translateX(-50%) translateY(-80px);
-      background:#0f2e1a;border:1px solid rgba(62,160,102,0.35);
-      color:#3ea066;font-size:12px;font-weight:700;
-      padding:7px 18px;border-radius:20px;z-index:99999;
-      transition:transform 0.15s;white-space:nowrap;
-      font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
-    `;
-    ind.textContent = '당겨서 새로고침';
+    ind.id = 'ptr-ind';
+    const arc = document.createElement('div');
+    arc.id = 'ptr-arc';
+    ind.appendChild(arc);
     document.body.appendChild(ind);
   }
 
   function removeUI() {
-    if (bar)  { bar.remove();  bar = null; }
-    if (ind)  { ind.remove();  ind = null; }
+    if (ind) { ind.remove(); ind = null; }
   }
 
   function init() {
@@ -50,15 +61,16 @@
 
       if (!ind) createUI();
       const progress = Math.min(dy / THRESHOLD, 1);
-      bar.style.width = (progress * 100) + '%';
-
-      const translateY = Math.min(dy * 0.55 - 80, 8);
+      const translateY = Math.min(dy * 0.55 - 60, 14);
       ind.style.transform = `translateX(-50%) translateY(${translateY}px)`;
 
-      const ready = progress >= 1;
-      ind.textContent  = ready ? '놓으면 새로고침' : '당겨서 새로고침';
-      ind.style.color  = ready ? '#fff'     : '#3ea066';
-      ind.style.background = ready ? '#2d7a4f' : '#0f2e1a';
+      const arc = document.getElementById('ptr-arc');
+      if (arc) {
+        // 당기는 정도에 따라 회전 (progress * 300deg)
+        arc.style.transform = progress >= 1 ? '' : `rotate(${progress * 300}deg)`;
+        arc.classList.toggle('spin', progress >= 1);
+        arc.style.borderTopColor = progress >= 1 ? '#fff' : '#3ea066';
+      }
     }, { passive: true });
 
     el.addEventListener('touchend', e => {
@@ -68,10 +80,9 @@
 
       if (dy >= THRESHOLD && ind) {
         refreshing = true;
-        ind.textContent = '새로고침 중...';
-        ind.style.transform = 'translateX(-50%) translateY(8px)';
-        if (bar) bar.style.width = '100%';
-        setTimeout(() => location.reload(), 350);
+        const arc = document.getElementById('ptr-arc');
+        if (arc) { arc.classList.add('spin'); arc.style.transform = ''; }
+        setTimeout(() => location.reload(), 400);
       } else {
         removeUI();
       }
