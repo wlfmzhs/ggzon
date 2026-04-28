@@ -39,6 +39,7 @@
       background: #1a1a1a;
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
       color: #fff;
+      overscroll-behavior: none;
     }
     body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
 
@@ -67,10 +68,8 @@
       position: absolute; inset: 0; background: var(--green-dark);
       display: flex; align-items: center; justify-content: center;
       z-index: 999; border-radius: 40px;
-      opacity: 1; transition: opacity 0.25s;
-      pointer-events: all;
     }
-    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    #loading-overlay.hidden { display: none; }
     .spinner {
       width: 32px; height: 32px;
       border: 3px solid rgba(62,160,102,0.3);
@@ -84,6 +83,7 @@
     .appbar {
       flex-shrink: 0; padding: 32px 18px 10px;
       display: flex; align-items: center; justify-content: space-between; z-index: 10;
+      touch-action: none;
     }
     .appbar-left { display: flex; align-items: center; gap: 8px; }
     #btn-back {
