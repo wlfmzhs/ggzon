@@ -107,7 +107,7 @@
     .hidden { display: none !important; }
 
     /* 스크롤 */
-    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; }
+    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: none; -webkit-overflow-scrolling: auto; }
     .scroll-area::-webkit-scrollbar { display: none; }
 
     /* 탭바 */
@@ -1503,6 +1503,12 @@ function showToast(msg) {
     location.href = loginUrl;
   });
 })();
+
+// window 스크롤 완전 차단 (Safari viewport 점프 방지)
+window.addEventListener('scroll', () => window.scrollTo(0, 0), { passive: false });
+window.addEventListener('touchmove', e => {
+  if (!e.target.closest('.scroll-area, .admin-scroll')) e.preventDefault();
+}, { passive: false });
 </script>
 <script src="/ptr.js"></script>
 </body>
