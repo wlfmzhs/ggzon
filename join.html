@@ -875,6 +875,13 @@ function buildCard(j) {
     ? `<span class="screen-label">🖥️ 스크린</span>`
     : `<span class="field-label">⛳ 필드</span>`;
 
+  const createdDate = j.createdAt?.seconds ? new Date(j.createdAt.seconds * 1000) : null;
+  const createdStr = createdDate
+    ? `${createdDate.getFullYear()}.${String(createdDate.getMonth()+1).padStart(2,'0')}.${String(createdDate.getDate()).padStart(2,'0')}`
+    : '';
+  const daysPassed = createdDate ? Math.floor((Date.now() - createdDate.getTime()) / 86400000) : 0;
+  const daysLabel = createdDate ? `${createdStr} (${daysPassed === 0 ? '오늘' : daysPassed + '일지남'})` : '';
+
   const participants = j.participants || [];
   const currentCount = participants.length;
   const isFull = currentCount >= j.capacity;
@@ -898,6 +905,7 @@ function buildCard(j) {
     <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}" id="card-${j.id}">
       <div class="card-status-row">
         <span class="badge-open">모집중</span>
+        ${daysLabel ? `<span style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:600;">${daysLabel}</span>` : ''}
         ${joinTypeBadge}
         ${timeBadge}
       </div>
