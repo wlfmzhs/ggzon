@@ -483,8 +483,10 @@
         });
 
         await sendEmailVerification(cred.user);
-        showMsg('signup-msg', '가입 완료! 📧 ' + email + ' 로 인증 메일을 보냈어요. 메일함을 확인해 주세요.', 'success');
-        setLoading('signup-btn', false);
+        await auth.signOut();
+        showMsg('signup-msg', '가입 완료! ' + email + ' 로 인증 메일을 보냈어요. 인증 후 로그인해 주세요.', 'success');
+        document.getElementById('login-email').value = email;
+        setTimeout(() => switchTab('login'), 2000);
       } catch (e) {
         showMsg('signup-msg', getErrorMsg(e.code), 'error');
         setLoading('signup-btn', false);
