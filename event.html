@@ -827,6 +827,40 @@
     }
     .pairing-pdf-btn:active { opacity: 0.7; }
 
+    /* ── 조편성 드래그앤드롭 ── */
+    .pairing-dnd-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 6px;
+    }
+    .pairing-dnd-slot {
+      border: 1px dashed rgba(255,255,255,0.12); border-radius: 8px;
+      min-height: 54px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      padding: 5px 3px; transition: background 0.15s, border-color 0.15s, transform 0.15s;
+      user-select: none; -webkit-user-select: none;
+    }
+    .pairing-dnd-slot.has-person {
+      background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.3);
+      cursor: grab;
+    }
+    .pairing-dnd-slot.has-person:active { cursor: grabbing; }
+    .pairing-dnd-slot.dragging { opacity: 0.3; }
+    .pairing-dnd-slot.drag-over {
+      background: rgba(62,160,102,0.28); border: 1.5px solid var(--green-light);
+      transform: scale(1.05);
+    }
+    .pairing-dnd-seat-letter {
+      font-size: 9px; font-weight: 700; color: var(--gold); letter-spacing: 0.5px;
+    }
+    .pairing-dnd-name {
+      font-size: 11px; font-weight: 800; color: #fff;
+      text-align: center; word-break: keep-all; line-height: 1.2;
+    }
+    .pairing-dnd-empty { font-size: 9px; color: rgba(255,255,255,0.18); }
+    .pairing-dnd-hint {
+      font-size: 10px; color: rgba(255,255,255,0.3); text-align: center;
+      padding: 8px 0 4px; letter-spacing: 0.3px;
+    }
+
     /* ── Toast ── */
     .toast {
       position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -2237,34 +2271,19 @@ function renderPairingContent(t, registrations) {
   const seatLetters = ['A', 'B', 'C', 'D'];
   const courseNames = getCourseNamesFor(t);
 
-  // 좌석 맵 구성: {courseIdx}-{cartIdx}-{seatIdx} → reg
   const regMap = {};
   registrations.forEach(r => {
-    const key = `${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`;
-    regMap[key] = r;
+    regMap[`${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`] = r;
   });
 
-  // 코스 드롭다운 옵션
-  const courseOpts = courseNames.map((cn, ci) =>
-    `<option value="${ci}">${cn}</option>`).join('');
+  let html = `<div class="pairing-dnd-hint">카드를 길게 누르거나 드래그해서 자리를 바꾸세요</div>`;
 
-  // 조 드롭다운 옵션
-  const cartOpts = Array.from({length: cartsPerCourse}, (_, i) =>
-    `<option value="${i}">${i+1}조</option>`).join('');
-
-  // 자리 드롭다운 옵션
-  const seatOpts = seatLetters.map((l, i) =>
-    `<option value="${i}">${l}번</option>`).join('');
-
-  let html = '';
-
-  for (let courseIdx = 0; courseIdx < courseCount; courseIdx++) {
+  for (let ci = 0; ci < courseCount; ci++) {
     html += `<div class="pairing-course-section">
-      <div class="pairing-course-title">${courseNames[courseIdx]}</div>`;
+      <div class="pairing-course-title">${courseNames[ci]}</div>`;
 
     for (let cartIdx = 0; cartIdx < cartsPerCourse; cartIdx++) {
-      // 조별 티타임 계산
-      let cartTeeLabel = '';
+      let teeLabel = '';
       if (t.teeUpTime && t.teeInterval) {
         const [hh, mm] = t.teeUpTime.split(':').map(Number);
         const totalMin = hh * 60 + mm + cartIdx * t.teeInterval;
@@ -2272,89 +2291,150 @@ function renderPairingContent(t, registrations) {
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
         const th12 = th === 0 ? 12 : th > 12 ? th - 12 : th;
-        cartTeeLabel = ` <span style="color:var(--gold);font-weight:700;font-size:11px;">
-          ${ampm} ${th12}:${String(tm).padStart(2,'0')}</span>`;
+        teeLabel = ` <span style="color:var(--gold);font-weight:700;">${ampm} ${th12}:${String(tm).padStart(2,'0')}</span>`;
       }
       html += `<div class="pairing-cart-block">
-        <div class="pairing-cart-label">${cartIdx + 1}조${cartTeeLabel}</div>`;
+        <div class="pairing-cart-label">${cartIdx + 1}조${teeLabel}</div>
+        <div class="pairing-dnd-row">`;
 
-      for (let seatIdx = 0; seatIdx < 4; seatIdx++) {
-        const key = `${courseIdx}-${cartIdx}-${seatIdx}`;
-        const reg = regMap[key];
-
+      for (let si = 0; si < 4; si++) {
+        const reg = regMap[`${ci}-${cartIdx}-${si}`];
         if (reg) {
-          const regId = reg.id;
-          html += `<div class="pairing-row" id="pair-row-${regId}">
-            <div class="pairing-seat-badge">${seatLetters[seatIdx]}</div>
-            <div class="pairing-name">${reg.name || '?'}</div>
-            <div class="pairing-selects">
-              <select class="pairing-select" id="ps-course-${regId}">
-                ${courseNames.map((cn, ci) =>
-                  `<option value="${ci}" ${ci === courseIdx ? 'selected' : ''}>${cn}</option>`
-                ).join('')}
-              </select>
-              <select class="pairing-select" id="ps-cart-${regId}">
-                ${Array.from({length: cartsPerCourse}, (_, i) =>
-                  `<option value="${i}" ${i === cartIdx ? 'selected' : ''}>${i+1}조</option>`
-                ).join('')}
-              </select>
-              <select class="pairing-select" id="ps-seat-${regId}">
-                ${seatLetters.map((l, i) =>
-                  `<option value="${i}" ${i === seatIdx ? 'selected' : ''}>${l}번</option>`
-                ).join('')}
-              </select>
-            </div>
-            <button class="pairing-save-row-btn" onclick="saveSeatChange('${regId}')">저장</button>
+          html += `<div class="pairing-dnd-slot has-person"
+            data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
+            draggable="true">
+            <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
+            <div class="pairing-dnd-name">${reg.name || '?'}</div>
           </div>`;
         } else {
-          html += `<div class="pairing-empty-seat">
-            <div class="pairing-empty-badge">${seatLetters[seatIdx]}</div>
-            빈 자리
+          html += `<div class="pairing-dnd-slot"
+            data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}">
+            <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
+            <div class="pairing-dnd-empty">빈자리</div>
           </div>`;
         }
       }
-      html += `</div>`; // pairing-cart-block
+      html += `</div></div>`;
     }
-    html += `</div>`; // pairing-course-section
+    html += `</div>`;
   }
 
   el.innerHTML = html;
+  _initPairingDnD(t);
 }
 
-window.saveSeatChange = async function(regId) {
-  if (!isAdmin) return;
-  const t = currentTournament;
+// ── DnD 상태 ─────────────────────────────────────────
+let _pairDragSrc = null;
+let _pairGhost   = null;
 
-  const newCourseIdx = parseInt(document.getElementById(`ps-course-${regId}`).value);
-  const newCartIdx   = parseInt(document.getElementById(`ps-cart-${regId}`).value);
-  const newSeatIdx   = parseInt(document.getElementById(`ps-seat-${regId}`).value);
+function _initPairingDnD(t) {
+  const slots = document.querySelectorAll('#pairing-content .pairing-dnd-slot');
 
-  // 중복 자리 체크
-  const conflict = allRegistrations.find(r =>
-    r.id !== regId &&
-    r.courseIndex === newCourseIdx &&
-    r.cartIndex === newCartIdx &&
-    r.seatIndex === newSeatIdx
-  );
-  if (conflict) {
-    showToast(`이미 ${conflict.name}님이 있는 자리입니다`);
-    return;
-  }
+  slots.forEach(slot => {
+    // 데스크탑 드래그 소스
+    if (slot.dataset.regId) {
+      slot.addEventListener('dragstart', e => {
+        _pairDragSrc = slot;
+        slot.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      slot.addEventListener('dragend', () => {
+        slot.classList.remove('dragging');
+        document.querySelectorAll('.pairing-dnd-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+      });
+    }
 
-  try {
-    await updateDoc(doc(db, 'tournaments', t.id, 'registrations', regId), {
-      courseIndex: newCourseIdx,
-      cartIndex: newCartIdx,
-      seatIndex: newSeatIdx,
+    // 데스크탑 드롭 타겟
+    slot.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (_pairDragSrc && _pairDragSrc !== slot) slot.classList.add('drag-over');
     });
-    showToast('자리가 변경되었습니다');
-    // allRegistrations는 onSnapshot이 자동으로 업데이트하므로 잠시 후 재렌더링
+    slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault();
+      slot.classList.remove('drag-over');
+      if (_pairDragSrc && _pairDragSrc !== slot) _doSeatSwap(t, _pairDragSrc, slot);
+      _pairDragSrc = null;
+    });
+
+    // 모바일 터치
+    if (slot.dataset.regId) {
+      slot.addEventListener('touchstart', e => {
+        e.preventDefault();
+        _pairDragSrc = slot;
+        slot.classList.add('dragging');
+        _createPairGhost(slot, e.touches[0]);
+      }, { passive: false });
+
+      slot.addEventListener('touchmove', e => {
+        e.preventDefault();
+        _movePairGhost(e.touches[0]);
+        const target = _slotFromTouch(e.touches[0]);
+        document.querySelectorAll('.pairing-dnd-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+        if (target && target !== slot) target.classList.add('drag-over');
+      }, { passive: false });
+
+      slot.addEventListener('touchend', e => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        _removePairGhost();
+        slot.classList.remove('dragging');
+        document.querySelectorAll('.pairing-dnd-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+        const target = _slotFromTouch(touch);
+        if (target && target !== slot) _doSeatSwap(t, slot, target);
+        _pairDragSrc = null;
+      }, { passive: false });
+    }
+  });
+}
+
+function _createPairGhost(slot, touch) {
+  _pairGhost = slot.cloneNode(true);
+  Object.assign(_pairGhost.style, {
+    position: 'fixed', pointerEvents: 'none', zIndex: '9999',
+    opacity: '0.85', transform: 'scale(1.1)',
+    width: slot.offsetWidth + 'px', height: slot.offsetHeight + 'px',
+    left: (touch.clientX - slot.offsetWidth / 2) + 'px',
+    top: (touch.clientY - slot.offsetHeight / 2) + 'px',
+    borderRadius: '8px', transition: 'none',
+    background: 'rgba(62,160,102,0.35)', border: '1.5px solid var(--green-light)',
+  });
+  (document.querySelector('.phone') || document.body).appendChild(_pairGhost);
+}
+function _movePairGhost(touch) {
+  if (!_pairGhost) return;
+  _pairGhost.style.left = (touch.clientX - _pairGhost.offsetWidth / 2) + 'px';
+  _pairGhost.style.top  = (touch.clientY - _pairGhost.offsetHeight / 2) + 'px';
+}
+function _removePairGhost() {
+  if (_pairGhost) { _pairGhost.remove(); _pairGhost = null; }
+}
+function _slotFromTouch(touch) {
+  if (_pairGhost) _pairGhost.style.display = 'none';
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (_pairGhost) _pairGhost.style.display = '';
+  return el ? el.closest('.pairing-dnd-slot') : null;
+}
+
+async function _doSeatSwap(t, fromSlot, toSlot) {
+  const fromId = fromSlot.dataset.regId;
+  const toId   = toSlot.dataset.regId;
+  const toCi = parseInt(toSlot.dataset.course), toCa = parseInt(toSlot.dataset.cart), toSe = parseInt(toSlot.dataset.seat);
+  const frCi = parseInt(fromSlot.dataset.course), frCa = parseInt(fromSlot.dataset.cart), frSe = parseInt(fromSlot.dataset.seat);
+  try {
+    if (toId) {
+      await Promise.all([
+        updateDoc(doc(db, 'tournaments', t.id, 'registrations', fromId), { courseIndex: toCi, cartIndex: toCa, seatIndex: toSe }),
+        updateDoc(doc(db, 'tournaments', t.id, 'registrations', toId),   { courseIndex: frCi, cartIndex: frCa, seatIndex: frSe }),
+      ]);
+      showToast('자리가 교체되었습니다');
+    } else {
+      await updateDoc(doc(db, 'tournaments', t.id, 'registrations', fromId), { courseIndex: toCi, cartIndex: toCa, seatIndex: toSe });
+      showToast('자리가 변경되었습니다');
+    }
     setTimeout(() => renderPairingContent(t, allRegistrations), 300);
-  } catch (e) {
-    console.error(e);
-    showToast('저장 중 오류가 발생했습니다');
-  }
-};
+  } catch (e) { showToast('저장 오류: ' + e.message); }
+}
 
 // ═══════════════════════════════════════════════════════
 // PDF 저장 — 새 탭에 텍스트 기반 HTML 열고 인쇄 다이얼로그
