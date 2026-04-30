@@ -860,6 +860,13 @@
       font-size: 10px; color: rgba(255,255,255,0.3); text-align: center;
       padding: 8px 0 4px; letter-spacing: 0.3px;
     }
+    .pairing-dnd-slot.manual {
+      background: rgba(240,192,64,0.08); border: 1px solid rgba(240,192,64,0.3);
+      cursor: grab;
+    }
+    .pairing-dnd-slot.manual .pairing-dnd-name { color: var(--gold); }
+    .pairing-dnd-slot.empty-clickable { cursor: pointer; }
+    .pairing-dnd-slot.empty-clickable:active { background: rgba(62,160,102,0.1); }
 
     /* ── Toast ── */
     .toast {
@@ -1176,6 +1183,17 @@
     <div class="pairing-footer">
     </div>
 
+    <!-- 이름 입력 시트 -->
+    <div id="manual-name-sheet" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;">
+      <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 36px;">
+        <div style="font-size:15px;font-weight:900;margin-bottom:4px;">자리에 이름 추가</div>
+        <div id="manual-seat-label" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:18px;"></div>
+        <input id="manual-name-input" type="text" placeholder="이름 입력" maxlength="10"
+          style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.35);border-radius:12px;padding:14px 16px;color:#fff;font-size:16px;font-family:inherit;outline:none;margin-bottom:14px;" />
+        <button onclick="window._saveManualName()" style="width:100%;padding:14px;border-radius:12px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;">추가하기</button>
+        <button onclick="window._closeManualSheet()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════════════════════ CONFIRM MODAL ══════════════════════════ -->
@@ -2308,17 +2326,22 @@ function renderPairingContent(t, registrations) {
       for (let si = 0; si < 4; si++) {
         const reg = regMap[`${ci}-${cartIdx}-${si}`];
         if (reg) {
-          html += `<div class="pairing-dnd-slot has-person"
+          const isManual = reg.isManual ? 'manual' : '';
+          const delBtn = (isAdmin && reg.isManual)
+            ? `<div onclick="event.stopPropagation();window._deleteManual('${reg.id}')" style="position:absolute;top:2px;right:3px;font-size:12px;color:rgba(255,100,100,0.8);line-height:1;cursor:pointer;">×</div>` : '';
+          html += `<div class="pairing-dnd-slot has-person ${isManual}"
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
-            draggable="true">
+            draggable="true" style="position:relative;">
+            ${delBtn}
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
             <div class="pairing-dnd-name">${reg.name || '?'}</div>
           </div>`;
         } else {
-          html += `<div class="pairing-dnd-slot"
+          const addAttr = isAdmin ? `class="pairing-dnd-slot empty-clickable" onclick="window._openManualSheet(${ci},${cartIdx},${si})"` : `class="pairing-dnd-slot"`;
+          html += `<div ${addAttr}
             data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}">
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
-            <div class="pairing-dnd-empty">빈자리</div>
+            <div class="pairing-dnd-empty">${isAdmin ? '+ 추가' : '빈자리'}</div>
           </div>`;
         }
       }
@@ -2443,6 +2466,49 @@ async function _doSeatSwap(t, fromSlot, toSlot) {
     setTimeout(() => renderPairingContent(t, allRegistrations), 300);
   } catch (e) { showToast('저장 오류: ' + e.message); }
 }
+
+// ── 관리자 이름 직접 입력 ────────────────────────────────
+let _manualTarget = null;
+
+window._openManualSheet = function(ci, cartIdx, si) {
+  if (!isAdmin) return;
+  _manualTarget = { ci, cartIdx, si };
+  const seatLetters = ['A', 'B', 'C', 'D'];
+  const courseNames = getCourseNamesFor(currentTournament);
+  document.getElementById('manual-seat-label').textContent =
+    `${courseNames[ci]} ${cartIdx + 1}조 ${seatLetters[si]}번`;
+  document.getElementById('manual-name-input').value = '';
+  document.getElementById('manual-name-sheet').style.display = 'flex';
+  setTimeout(() => document.getElementById('manual-name-input').focus(), 100);
+};
+
+window._closeManualSheet = function() {
+  document.getElementById('manual-name-sheet').style.display = 'none';
+  _manualTarget = null;
+};
+
+window._saveManualName = async function() {
+  if (!isAdmin || !_manualTarget) return;
+  const name = document.getElementById('manual-name-input').value.trim();
+  if (!name) { showToast('이름을 입력해주세요'); return; }
+  const { ci, cartIdx, si } = _manualTarget;
+  try {
+    await addDoc(collection(db, 'tournaments', currentTournament.id, 'registrations'), {
+      name, courseIndex: ci, cartIndex: cartIdx, seatIndex: si,
+      isManual: true, createdAt: new Date().toISOString(),
+    });
+    showToast(`${name} 추가되었습니다`);
+    window._closeManualSheet();
+  } catch (e) { showToast('저장 오류: ' + e.message); }
+};
+
+window._deleteManual = async function(regId) {
+  if (!isAdmin) return;
+  try {
+    await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'registrations', regId));
+    showToast('삭제되었습니다');
+  } catch (e) { showToast('삭제 오류: ' + e.message); }
+};
 
 // ═══════════════════════════════════════════════════════
 // PDF 저장 — 새 탭에 텍스트 기반 HTML 열고 인쇄 다이얼로그
