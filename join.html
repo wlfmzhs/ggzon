@@ -825,6 +825,7 @@ async function loadJoins() {
   try {
     const snap = await getDocs(collection(db, 'joins'));
     joins = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    joins.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
   } catch (e) { joins = []; }
   renderActiveList();
   renderClosedList();
