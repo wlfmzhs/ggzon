@@ -904,8 +904,7 @@ function buildCard(j) {
   return `
     <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}" id="card-${j.id}">
       <div class="card-status-row">
-        <span class="badge-open">모집중</span>
-        ${daysLabel ? `<span style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:600;">${daysLabel}</span>` : ''}
+        <span class="badge-open">모집중${daysLabel ? ` · ${daysLabel}` : ''}</span>
         ${joinTypeBadge}
         ${timeBadge}
       </div>
