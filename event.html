@@ -1220,6 +1220,13 @@ function getCourseNamesFor(t) {
   return Array.from({length: count}, (_, i) => `${String.fromCharCode(65+i)}코스`);
 }
 
+// 코스별 카트 수 배분 (나머지는 앞 코스에 1개씩 추가)
+function getCourseCarts(totalCarts, courseCount) {
+  const base = Math.floor(totalCarts / courseCount);
+  const extra = totalCarts % courseCount;
+  return Array.from({length: courseCount}, (_, i) => i < extra ? base + 1 : base);
+}
+
 // ── State ──────────────────────────────────────────────
 let currentUser = null;
 let isAdmin = false;
@@ -1514,7 +1521,7 @@ function renderDetailHeader(t) {
   const feeStr = [t.greenFee, t.caddyFee].filter(Boolean).map(f => commaNum(f) + '원').join(' + ') || '추후 공지';
   const courseCount = t.courseCount || 2;
   const totalCarts = Math.ceil((t.totalParticipants || 0) / 4);
-  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+  const courseCarts = getCourseCarts(totalCarts, courseCount);
 
   const adminEdit = isAdmin ? `
     <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
@@ -1581,7 +1588,7 @@ function renderDetailHeader(t) {
       </div>
       <div class="info-cell">
         <div class="info-cell-label">코스 구성</div>
-        <div class="info-cell-value">${courseCount}코스 × ${cartsPerCourse}카트</div>
+        <div class="info-cell-value">${courseCount}코스 / 총 ${totalCarts}카트</div>
       </div>
     </div>
 
@@ -1648,7 +1655,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
 
   const courseCount = t.courseCount || 2;
   const totalCarts = Math.ceil((t.totalParticipants || 0) / 4);
-  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+  const courseCarts = getCourseCarts(totalCarts, courseCount);
   const seatLetters = ['A', 'B', 'C', 'D'];
   const courseNames = getCourseNamesFor(t);
 
@@ -1670,7 +1677,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
     </div>
     <div class="seat-grid">`;
 
-    for (let cartIdx = 0; cartIdx < cartsPerCourse; cartIdx++) {
+    for (let cartIdx = 0; cartIdx < courseCarts[ci]; cartIdx++) {
       let teeTimeHtml = '';
       if (t.teeUpTime && t.teeInterval) {
         const [hh, mm] = t.teeUpTime.split(':').map(Number);
@@ -2114,11 +2121,11 @@ window.recalcCarts = function() {
   const courses = parseInt(document.getElementById('admin-courses').value) || 2;
   if (total > 0) {
     const totalCarts = Math.ceil(total / 4);
-    const perCourse = Math.ceil(totalCarts / courses);
-    document.getElementById('admin-carts').value = `총 ${totalCarts}카트 (코스당 ${perCourse}카트)`;
+    const cc = getCourseCarts(totalCarts, courses);
+    document.getElementById('admin-carts').value = `총 ${totalCarts}카트`;
     const courseNames = getCourseNames();
     document.getElementById('admin-cart-hint').textContent =
-      `${courseNames.join(' + ')} 각 ${perCourse}카트 × 4인 = ${perCourse * 4}명/코스`;
+      courseNames.map((n, i) => `${n} ${cc[i]}카트`).join(' + ');
   } else {
     document.getElementById('admin-carts').value = '';
     document.getElementById('admin-cart-hint').textContent = '총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다';
@@ -2267,7 +2274,7 @@ function renderPairingContent(t, registrations) {
 
   const courseCount = t.courseCount || 2;
   const totalCarts = Math.ceil((t.totalParticipants || 0) / 4);
-  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+  const courseCarts = getCourseCarts(totalCarts, courseCount);
   const seatLetters = ['A', 'B', 'C', 'D'];
   const courseNames = getCourseNamesFor(t);
 
@@ -2282,7 +2289,7 @@ function renderPairingContent(t, registrations) {
     html += `<div class="pairing-course-section">
       <div class="pairing-course-title">${courseNames[ci]}</div>`;
 
-    for (let cartIdx = 0; cartIdx < cartsPerCourse; cartIdx++) {
+    for (let cartIdx = 0; cartIdx < courseCarts[ci]; cartIdx++) {
       let teeLabel = '';
       if (t.teeUpTime && t.teeInterval) {
         const [hh, mm] = t.teeUpTime.split(':').map(Number);
@@ -2446,7 +2453,7 @@ window.downloadDetailPDF = function() {
 
   const courseCount    = t.courseCount || 2;
   const totalCarts     = Math.ceil((t.totalParticipants || 0) / 4);
-  const cartsPerCourse = Math.ceil(totalCarts / courseCount);
+  const courseCarts    = getCourseCarts(totalCarts, courseCount);
   const seatLetters    = ['A', 'B', 'C', 'D'];
   const courseNames    = getCourseNamesFor(t);
 
@@ -2465,7 +2472,7 @@ window.downloadDetailPDF = function() {
   let tablesHtml = '';
   for (let ci = 0; ci < courseCount; ci++) {
     let rows = '';
-    for (let gi = 0; gi < cartsPerCourse; gi++) {
+    for (let gi = 0; gi < courseCarts[ci]; gi++) {
       // PDF용 조별 티타임
       let cartTeeStr = '';
       if (t.teeUpTime && t.teeInterval) {
