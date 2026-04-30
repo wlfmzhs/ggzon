@@ -507,6 +507,44 @@
       transform: scale(1.05);
     }
 
+    /* ── 흑백대전 팀 색상 ── */
+    .bw-team-header { display: flex; gap: 4px; margin-bottom: 4px; }
+    .bw-team-label {
+      flex: 1; text-align: center; font-size: 10px; font-weight: 900;
+      padding: 3px 0; border-radius: 6px; letter-spacing: 0.5px;
+    }
+    .bw-team-label.heuk { background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.15); }
+    .bw-team-label.baek { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.35); }
+    /* 좌석 흑 */
+    .seat.heuk.available { background: rgba(20,20,20,0.6); border-color: rgba(200,200,200,0.25); }
+    .seat.heuk.taken     { background: rgba(30,30,30,0.8); border-color: rgba(180,180,180,0.2); }
+    .seat.heuk.selected  { background: rgba(60,60,60,0.9); border-color: rgba(255,255,255,0.5); }
+    /* 좌석 백 */
+    .seat.baek.available { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.35); }
+    .seat.baek.taken     { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+    .seat.baek.selected  { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
+    /* 파이어링 흑 */
+    .pairing-dnd-slot.heuk { background: rgba(20,20,20,0.7) !important; border-color: rgba(200,200,200,0.3) !important; }
+    .pairing-dnd-slot.baek { background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.45) !important; }
+    .pairing-dnd-slot.heuk .pairing-dnd-name { color: rgba(255,255,255,0.85); }
+    .pairing-dnd-slot.baek .pairing-dnd-name { color: #fff; }
+    .pairing-bw-header { display: flex; gap: 5px; margin-bottom: 4px; }
+    .pairing-bw-label {
+      flex: 1; text-align: center; font-size: 9px; font-weight: 900;
+      padding: 3px 0; border-radius: 5px; letter-spacing: 0.5px;
+    }
+    .pairing-bw-label.heuk { background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.12); }
+    .pairing-bw-label.baek { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+    /* 대회 유형 토글 */
+    .tt-toggle-group { display: flex; gap: 6px; }
+    .tt-btn {
+      flex: 1; padding: 9px 4px; border-radius: 10px; cursor: pointer;
+      font-size: 11px; font-weight: 700; font-family: inherit; text-align: center;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.4); transition: all 0.2s;
+    }
+    .tt-btn.active { background: rgba(62,160,102,0.2); border-color: rgba(62,160,102,0.5); color: var(--green-light); }
+
     .selected-info-bar {
       background: rgba(240,192,64,0.12);
       border: 1px solid rgba(240,192,64,0.3);
@@ -1012,6 +1050,14 @@
 
       <div class="admin-section-title">대회 기본 정보</div>
       <div class="admin-form-group">
+        <label class="admin-label">대회 유형</label>
+        <div class="tt-toggle-group">
+          <button class="tt-btn active" id="tt-general" onclick="setTournamentType('general')">일반</button>
+          <button class="tt-btn" id="tt-bw" onclick="setTournamentType('black-white')">흑백대전</button>
+          <button class="tt-btn" id="tt-gpga" onclick="setTournamentType('gpga')">GPGA OPEN</button>
+        </div>
+      </div>
+      <div class="admin-form-group">
         <label class="admin-label">대회명 *</label>
         <input class="admin-input" id="admin-name" placeholder="예) 3차 흑백대전" />
       </div>
@@ -1249,6 +1295,14 @@ function getCourseCarts(totalCarts, courseCount) {
 // ── State ──────────────────────────────────────────────
 let currentUser = null;
 let isAdmin = false;
+let currentTournamentType = 'general';
+
+window.setTournamentType = function(type) {
+  currentTournamentType = type;
+  ['general','bw','gpga'].forEach(k => document.getElementById('tt-' + k)?.classList.remove('active'));
+  const map = { 'general': 'tt-general', 'black-white': 'tt-bw', 'gpga': 'tt-gpga' };
+  document.getElementById(map[type])?.classList.add('active');
+};
 let currentView = 'list'; // list | detail
 let activeTournaments = [];
 let seatMapListener = null;
@@ -1687,10 +1741,15 @@ function renderSeatGrid(t, registrations, _courseIdx) {
   let allHtml = '';
 
   for (let ci = 0; ci < courseCount; ci++) {
+    const isBW = t.tournamentType === 'black-white';
     allHtml += `<div class="course-section-label">${courseNames[ci]}</div>`;
+    if (isBW) allHtml += `<div class="bw-team-header">
+      <div class="bw-team-label heuk" style="flex:2">⬛ 흑팀</div>
+      <div class="bw-team-label baek" style="flex:2">⬜ 백팀</div>
+    </div>`;
     allHtml += `<div class="seat-grid-header">
-      <span class="seat-col-label">A</span>
-      <span class="seat-col-label">B</span>
+      <span class="seat-col-label"${isBW?' style="color:rgba(255,255,255,0.5)"':''}>A</span>
+      <span class="seat-col-label"${isBW?' style="color:rgba(255,255,255,0.5)"':''}>B</span>
       <span class="seat-col-label">C</span>
       <span class="seat-col-label">D</span>
     </div>
@@ -1740,7 +1799,8 @@ function renderSeatGrid(t, registrations, _courseIdx) {
 
         const clickable = !reg && !isMine && t.status === 'recruiting';
         const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
-        allHtml += `<div class="seat ${cls}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
+        const teamCls = isBW ? (seatIdx < 2 ? 'heuk' : 'baek') : '';
+        allHtml += `<div class="seat ${cls} ${teamCls}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
       }
       allHtml += `</div></div>`;
     }
@@ -1922,6 +1982,7 @@ window.openAdminModal = async function(tournamentId) {
   } else {
     document.getElementById('admin-modal-title').textContent = '대회 만들기';
     document.getElementById('admin-date').value = '2026-05-13';
+    window.setTournamentType('general');
     renderCourseNameInputs();
   }
 
@@ -2028,6 +2089,7 @@ function clearAdminForm() {
 }
 
 function fillAdminForm(t) {
+  window.setTournamentType(t.tournamentType || 'general');
   document.getElementById('admin-name').value = t.name || '';
   document.getElementById('admin-slogan').value = t.slogan || '';
   document.getElementById('admin-status').value = t.status || 'recruiting';
@@ -2168,6 +2230,7 @@ window.saveTournament = async function() {
 
   const data = {
     name,
+    tournamentType: currentTournamentType,
     slogan: document.getElementById('admin-slogan').value.trim(),
     status: document.getElementById('admin-status').value,
     golfCourseName: document.getElementById('admin-golf-course').value.trim(),
@@ -2302,11 +2365,16 @@ function renderPairingContent(t, registrations) {
     regMap[`${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`] = r;
   });
 
+  const isBW = t.tournamentType === 'black-white';
   let html = `<div class="pairing-dnd-hint">카드를 길게 누르거나 드래그해서 자리를 바꾸세요</div>`;
 
   for (let ci = 0; ci < courseCount; ci++) {
     html += `<div class="pairing-course-section">
       <div class="pairing-course-title">${courseNames[ci]}</div>`;
+    if (isBW) html += `<div class="pairing-bw-header">
+      <div class="pairing-bw-label heuk" style="flex:2">⬛ 흑팀 (A·B)</div>
+      <div class="pairing-bw-label baek" style="flex:2">⬜ 백팀 (C·D)</div>
+    </div>`;
 
     for (let cartIdx = 0; cartIdx < courseCarts[ci]; cartIdx++) {
       let teeLabel = '';
@@ -2325,11 +2393,12 @@ function renderPairingContent(t, registrations) {
 
       for (let si = 0; si < 4; si++) {
         const reg = regMap[`${ci}-${cartIdx}-${si}`];
+        const teamCls = isBW ? (si < 2 ? 'heuk' : 'baek') : '';
         if (reg) {
           const isManual = reg.isManual ? 'manual' : '';
           const delBtn = (isAdmin && reg.isManual)
             ? `<div onclick="event.stopPropagation();window._deleteManual('${reg.id}')" style="position:absolute;top:2px;right:3px;font-size:12px;color:rgba(255,100,100,0.8);line-height:1;cursor:pointer;">×</div>` : '';
-          html += `<div class="pairing-dnd-slot has-person ${isManual}"
+          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls}"
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
             draggable="true" style="position:relative;">
             ${delBtn}
@@ -2337,7 +2406,9 @@ function renderPairingContent(t, registrations) {
             <div class="pairing-dnd-name">${reg.name || '?'}</div>
           </div>`;
         } else {
-          const addAttr = isAdmin ? `class="pairing-dnd-slot empty-clickable" onclick="window._openManualSheet(${ci},${cartIdx},${si})"` : `class="pairing-dnd-slot"`;
+          const addAttr = isAdmin
+            ? `class="pairing-dnd-slot empty-clickable ${teamCls}" onclick="window._openManualSheet(${ci},${cartIdx},${si})"`
+            : `class="pairing-dnd-slot ${teamCls}"`;
           html += `<div ${addAttr}
             data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}">
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
