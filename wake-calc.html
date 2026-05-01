@@ -777,9 +777,9 @@
     function runDM() {
       const svc = new google.maps.DistanceMatrixService();
       svc.getDistanceMatrix({
-        origins:      [{ lat: originLocation.latitude, lng: originLocation.longitude }],
-        destinations: [{ lat: destLocation.latitude,   lng: destLocation.longitude   }],
-        travelMode:   'DRIVING',
+        origins:      [new google.maps.LatLng(originLocation.latitude, originLocation.longitude)],
+        destinations: [new google.maps.LatLng(destLocation.latitude,   destLocation.longitude)],
+        travelMode:   google.maps.TravelMode.DRIVING,
       }, (res, status) => {
         const elem = res?.rows?.[0]?.elements?.[0];
         if (status === 'OK' && elem?.status === 'OK') {
