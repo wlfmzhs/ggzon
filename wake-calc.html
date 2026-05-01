@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <script type="text/javascript">
@@ -8,7 +8,6 @@
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "wgn7dwi9ex");
 </script>
-<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -32,6 +31,7 @@
       --green-light: #3ea066;
       --green-dark: #0A2406;
       --border: rgba(62,160,102,0.18);
+      --gold: #f0c040;
     }
     html, body {
       width: 100%; height: 100%;
@@ -58,187 +58,349 @@
       .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
       .phone::before { display: none; }
     }
-    .appbar { flex-shrink: 0; padding: 32px 18px 10px; display: flex; align-items: center; gap: 8px; }
-    #btn-back { background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0; color: var(--green-light); font-size: 20px; line-height: 1; }
-    .appbar-title { font-size: 16px; font-weight: 900; }
-    .appbar-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-left: auto; }
-    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 16px 20px 40px; }
-    .scroll-area::-webkit-scrollbar { display: none; }
-    .field-group { margin-bottom: 16px; }
-    .field-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; margin-bottom: 8px; }
-    .field-input {
-      width: 100%; padding: 14px 16px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      border-radius: 12px; color: #fff;
-      font-size: 15px; font-family: inherit; outline: none;
-    }
-    .field-input:focus { border-color: var(--green-light); }
-    .field-input::placeholder { color: rgba(255,255,255,0.2); }
-    select.field-input option { background: #0f2d18; }
-    .row { display: flex; gap: 10px; }
-    .row .field-group { flex: 1; }
-    .divider { height: 1px; background: var(--border); margin: 4px 0 18px; }
-    .section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 0.08em; margin-bottom: 14px; }
 
-    .location-wrap { position: relative; }
-    .location-wrap .field-input { padding-right: 50px; }
-    .loc-btn {
-      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    /* ── Appbar ── */
+    .appbar {
+      flex-shrink: 0; padding: 32px 18px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 10;
+    }
+    #btn-back-step {
+      background: none; border: none; cursor: pointer;
+      color: var(--green-light); font-size: 22px; line-height: 1;
+      padding: 4px 8px 4px 0; width: 40px;
+    }
+    .step-counter {
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.3);
+    }
+    .step-counter span { color: var(--green-light); }
+    .appbar-spacer { width: 40px; }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      flex-shrink: 0; padding: 12px 20px 0;
+    }
+    .progress-track {
+      height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px;
+    }
+    .progress-fill {
+      height: 100%; background: var(--green-light); border-radius: 2px;
+      transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    /* ── Steps wrapper ── */
+    .steps-wrap {
+      flex: 1; position: relative; overflow: hidden;
+    }
+
+    /* ── Each step ── */
+    .step {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      padding: 28px 24px 32px;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.35s;
+      opacity: 0; pointer-events: none;
+    }
+    .step.active {
+      transform: translateX(0); opacity: 1; pointer-events: auto;
+    }
+    .step.leaving {
+      transform: translateX(-25%); opacity: 0; pointer-events: none;
+    }
+
+    /* ── Question ── */
+    .step-q {
+      font-size: 24px; font-weight: 900; line-height: 1.3;
+      letter-spacing: -0.5px; margin-bottom: 8px;
+    }
+    .step-hint {
+      font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.5; margin-bottom: 28px;
+    }
+
+    /* ── Input ── */
+    .input-wrap { position: relative; margin-bottom: 8px; }
+    .step-input {
+      width: 100%; padding: 16px 50px 16px 18px;
+      background: rgba(255,255,255,0.07);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px; color: #fff;
+      font-size: 16px; font-family: inherit; outline: none;
+      transition: border-color 0.2s;
+    }
+    .step-input:focus { border-color: var(--green-light); }
+    .step-input::placeholder { color: rgba(255,255,255,0.22); }
+    .gps-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
       background: rgba(62,160,102,0.2); border: none; border-radius: 8px;
-      padding: 6px 8px; cursor: pointer; color: var(--green-light); line-height: 0;
+      padding: 7px; cursor: pointer; color: var(--green-light); line-height: 0;
+    }
+    .home-tag {
+      display: none; font-size: 11px; color: var(--green-light);
+      background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 6px; padding: 3px 10px; margin-bottom: 12px;
+      width: fit-content;
     }
 
-    .travel-badge { display: block; font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 6px; padding-left: 2px; }
-    .travel-badge.show { color: var(--green-light); }
-
-    /* 자동완성 드롭다운 */
+    /* ── Autocomplete ── */
     .autocomplete-list {
       position: absolute; width: 100%; background: #0f2d18;
-      border: 1px solid var(--border); border-radius: 12px;
-      margin-top: 4px; z-index: 999; overflow: hidden;
+      border: 1px solid var(--border); border-radius: 14px;
+      top: calc(100% + 4px); z-index: 999; overflow: hidden;
     }
     .autocomplete-item {
-      padding: 12px 16px; font-size: 13px; cursor: pointer;
-      color: rgba(255,255,255,0.8); border-bottom: 1px solid var(--border);
+      padding: 13px 16px; font-size: 14px; cursor: pointer;
+      color: rgba(255,255,255,0.85); border-bottom: 1px solid var(--border);
     }
     .autocomplete-item:last-child { border-bottom: none; }
     .autocomplete-item:active { background: rgba(62,160,102,0.15); }
     .autocomplete-item strong { color: #fff; }
+    .autocomplete-item small { font-size: 11px; color: rgba(255,255,255,0.4); display: block; margin-top: 2px; }
 
-    .calc-btn {
-      width: 100%; padding: 16px; background: var(--green); color: #fff;
-      font-size: 16px; font-weight: 900; border-radius: 14px; border: none;
-      cursor: pointer; font-family: inherit; margin-top: 4px;
+    /* ── Travel result badge ── */
+    .travel-result {
+      font-size: 13px; font-weight: 700; padding: 12px 16px;
+      border-radius: 10px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
     }
-    .calc-btn:active { background: var(--green-light); }
-    .calc-btn:disabled { opacity: 0.5; }
+    .travel-result.loading { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); }
+    .travel-result.ok      { background: rgba(62,160,102,0.15); color: var(--green-light); border: 1px solid rgba(62,160,102,0.3); }
+    .travel-result.fail    { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+    .travel-edit-label { font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 8px; }
 
-    .result-box {
-      display: none; margin-top: 24px;
-      background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.3);
-      border-radius: 20px; padding: 28px 20px; text-align: center;
+    /* ── AM/PM toggle ── */
+    .ampm-wrap { display: flex; gap: 10px; margin-bottom: 24px; }
+    .ampm-chip {
+      flex: 1; padding: 14px 0; border-radius: 12px; cursor: pointer;
+      font-size: 15px; font-weight: 800; text-align: center; font-family: inherit;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);
+      border: 1.5px solid rgba(255,255,255,0.08); transition: all 0.15s;
     }
-    .result-box.show { display: block; }
-    .result-course { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
-    .result-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
-    .result-ampm { font-size: 18px; font-weight: 700; color: var(--green-light); }
-    .result-time { font-size: 52px; font-weight: 900; color: var(--green-light); letter-spacing: -2px; line-height: 1.1; margin-bottom: 16px; }
-    .result-breakdown { display: flex; justify-content: center; }
-    .breakdown-item { text-align: center; padding: 10px 12px; border-right: 1px solid var(--border); }
-    .breakdown-item:last-child { border-right: none; }
-    .breakdown-val { font-size: 15px; font-weight: 900; color: #fff; }
-    .breakdown-key { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .ampm-chip.active { background: rgba(62,160,102,0.2); color: var(--green-light); border-color: rgba(62,160,102,0.5); }
+
+    /* ── Time chip scroll ── */
+    .chip-label { font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 700; margin-bottom: 8px; }
+    .chip-scroll {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px;
+      scrollbar-width: none;
+    }
+    .chip-scroll::-webkit-scrollbar { display: none; }
+    .time-chip {
+      flex-shrink: 0; padding: 10px 18px; border-radius: 30px; cursor: pointer;
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+      border: 1.5px solid rgba(255,255,255,0.08); transition: all 0.15s;
+    }
+    .time-chip.active { background: rgba(62,160,102,0.2); color: var(--green-light); border-color: rgba(62,160,102,0.5); }
+
+    /* ── Preset chips ── */
+    .preset-wrap { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+    .preset-chip {
+      padding: 12px 20px; border-radius: 30px; cursor: pointer;
+      font-size: 14px; font-weight: 700; font-family: inherit;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+      border: 1.5px solid rgba(255,255,255,0.08); transition: all 0.15s;
+    }
+    .preset-chip.active { background: rgba(62,160,102,0.2); color: var(--green-light); border-color: rgba(62,160,102,0.5); }
+    .custom-input-wrap { margin-top: 4px; }
+    .custom-label { font-size: 11px; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
+    .custom-input {
+      width: 120px; padding: 11px 14px;
+      background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: #fff; font-size: 15px; font-family: inherit; outline: none;
+    }
+    .custom-input:focus { border-color: var(--green-light); }
+
+    /* ── Next button ── */
+    .step-footer { margin-top: auto; }
+    .next-btn {
+      width: 100%; padding: 18px;
+      background: var(--green); color: #fff;
+      font-size: 17px; font-weight: 900; letter-spacing: -0.3px;
+      border: none; border-radius: 16px; cursor: pointer; font-family: inherit;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .next-btn:active { background: var(--green-light); }
+    .next-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── Result screen ── */
+    #step-result { justify-content: center; align-items: center; text-align: center; }
+    .result-label { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+    .result-course-name { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.7); margin-bottom: 32px; }
+    .result-wake-label { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+    .result-ampm { font-size: 20px; font-weight: 700; color: var(--green-light); }
+    .result-time { font-size: 72px; font-weight: 900; color: var(--green-light); letter-spacing: -3px; line-height: 1; margin-bottom: 36px; }
+    .result-breakdown {
+      display: flex; width: 100%;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; margin-bottom: 28px;
+    }
+    .bd-item { flex: 1; padding: 16px 8px; text-align: center; border-right: 1px solid var(--border); }
+    .bd-item:last-child { border-right: none; }
+    .bd-val { font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+    .bd-key { font-size: 10px; color: rgba(255,255,255,0.35); }
+    .retry-btn {
+      width: 100%; padding: 16px;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7);
+      font-size: 15px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      cursor: pointer; font-family: inherit;
+    }
+    .retry-btn:active { background: rgba(255,255,255,0.1); }
+
+    /* ── Spinner ── */
+    .spinner-sm {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(62,160,102,0.3); border-top-color: var(--green-light);
+      border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 <div class="phone">
+
+  <!-- Appbar -->
   <div class="appbar">
-    <button id="btn-back">&#8249;</button>
-    <span class="appbar-title">기상시간 계산</span>
-    <span class="appbar-sub">티업 역산</span>
+    <button id="btn-back-step">‹</button>
+    <div class="step-counter"><span id="step-cur">1</span> / 6</div>
+    <div class="appbar-spacer"></div>
   </div>
 
-  <div class="scroll-area">
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:16.6%"></div></div>
+  </div>
 
-    <div class="field-group">
-      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>출발지 (집 주소)</span>
-        <button id="btn-save-home" onclick="saveHome()" style="display:none;background:none;border:1px solid var(--green-light);border-radius:6px;color:var(--green-light);font-size:10px;padding:2px 8px;cursor:pointer;font-family:inherit;">기본 주소 저장</button>
-      </div>
-      <div class="location-wrap" style="position:relative;">
-        <input class="field-input" id="calc-origin" type="text" placeholder="주소 입력 또는 현재 위치 사용" autocomplete="off" />
-        <button class="loc-btn" id="btn-gps" title="현재 위치">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-        </button>
-        <div class="autocomplete-list" id="list-origin" style="display:none;position:absolute;top:100%;left:0;right:0;"></div>
-      </div>
-      <div id="home-saved-tag" style="display:none;font-size:10px;color:rgba(255,255,255,0.3);margin-top:5px;padding-left:2px;">저장된 집 주소</div>
-    </div>
+  <!-- Steps -->
+  <div class="steps-wrap">
 
-    <div class="field-group">
-      <div class="field-label">골프장 (도착지)</div>
-      <div style="position:relative;">
-        <input class="field-input" id="calc-course" type="text" placeholder="예) 스카이72 오션코스" autocomplete="off" />
-        <div class="autocomplete-list" id="list-course" style="display:none;position:absolute;top:100%;left:0;right:0;"></div>
-      </div>
-        <div class="travel-badge" id="travel-badge">골프장 선택 시 자동 계산됩니다</div>
-    </div>
-
-    <div class="field-group">
-      <div class="field-label">티업 시간</div>
-      <div class="row">
-        <div class="field-group" style="max-width:90px;margin-bottom:0;">
-          <select class="field-input" id="calc-ampm">
-            <option value="AM">AM</option>
-            <option value="PM">PM</option>
-          </select>
+    <!-- Step 1: 출발지 -->
+    <div class="step active" id="step-1">
+      <div class="step-q">어디서 출발하세요?</div>
+      <div class="step-hint">집 주소 또는 현재 위치를 알려주세요</div>
+      <div class="step-body" style="flex:1;overflow-y:auto;scrollbar-width:none;">
+        <div id="home-tag" class="home-tag">저장된 집 주소</div>
+        <div class="input-wrap">
+          <input class="step-input" id="calc-origin" type="text" placeholder="주소를 입력하세요" autocomplete="off" />
+          <button class="gps-btn" id="btn-gps" title="현재 위치">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </button>
+          <div class="autocomplete-list" id="list-origin" style="display:none;"></div>
         </div>
-        <div class="field-group" style="margin-bottom:0;">
-          <select class="field-input" id="calc-hour">
-            <option value="1">01시</option><option value="2">02시</option><option value="3">03시</option>
-            <option value="4">04시</option><option value="5">05시</option><option value="6">06시</option>
-            <option value="7" selected>07시</option><option value="8">08시</option><option value="9">09시</option>
-            <option value="10">10시</option><option value="11">11시</option><option value="12">12시</option>
-          </select>
-        </div>
-        <div class="field-group" style="margin-bottom:0;">
-          <select class="field-input" id="calc-min">
-            <option value="0">00분</option><option value="1">01분</option><option value="2">02분</option>
-            <option value="3">03분</option><option value="4">04분</option><option value="5">05분</option>
-            <option value="6">06분</option><option value="7">07분</option><option value="8">08분</option>
-            <option value="9">09분</option><option value="10">10분</option><option value="11">11분</option>
-            <option value="12">12분</option><option value="13">13분</option><option value="14">14분</option>
-            <option value="15">15분</option><option value="16">16분</option><option value="17">17분</option>
-            <option value="18">18분</option><option value="19">19분</option><option value="20">20분</option>
-            <option value="21">21분</option><option value="22">22분</option><option value="23">23분</option>
-            <option value="24">24분</option><option value="25">25분</option><option value="26">26분</option>
-            <option value="27">27분</option><option value="28">28분</option><option value="29">29분</option>
-            <option value="30">30분</option><option value="31">31분</option><option value="32">32분</option>
-            <option value="33">33분</option><option value="34">34분</option><option value="35">35분</option>
-            <option value="36">36분</option><option value="37">37분</option><option value="38">38분</option>
-            <option value="39">39분</option><option value="40">40분</option><option value="41">41분</option>
-            <option value="42">42분</option><option value="43">43분</option><option value="44">44분</option>
-            <option value="45">45분</option><option value="46">46분</option><option value="47">47분</option>
-            <option value="48">48분</option><option value="49">49분</option><option value="50">50분</option>
-            <option value="51">51분</option><option value="52">52분</option><option value="53">53분</option>
-            <option value="54">54분</option><option value="55">55분</option><option value="56">56분</option>
-            <option value="57">57분</option><option value="58">58분</option><option value="59">59분</option>
-          </select>
+        <div style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:6px;">
+          목록에서 주소를 선택해야 이동시간이 자동 계산됩니다
         </div>
       </div>
-    </div>
-
-    <div class="divider"></div>
-    <div class="section-title">기본 설정 (분 단위)</div>
-
-    <div class="row">
-      <div class="field-group">
-        <div class="field-label">기상 후 준비시간</div>
-        <input class="field-input" id="calc-prep" type="number" value="60" min="0" />
-      </div>
-      <div class="field-group">
-        <div class="field-label">도착 후 여유시간</div>
-        <input class="field-input" id="calc-buffer" type="number" value="30" min="0" />
+      <div class="step-footer">
+        <button class="next-btn" id="btn-next-1" onclick="goStep(2)" disabled>다음</button>
       </div>
     </div>
-    <div class="field-group" style="margin-top:4px;">
-      <div class="field-label">이동 시간 (분) — 자동 계산 또는 직접 수정</div>
-      <input class="field-input" id="calc-travel" type="number" value="60" min="0" />
+
+    <!-- Step 2: 골프장 -->
+    <div class="step" id="step-2">
+      <div class="step-q">어느 골프장으로 가시나요?</div>
+      <div class="step-hint">골프장 이름으로 검색해서 선택하세요</div>
+      <div class="step-body" style="flex:1;overflow-y:auto;scrollbar-width:none;">
+        <div class="input-wrap">
+          <input class="step-input" id="calc-course" type="text" placeholder="골프장 이름 검색" autocomplete="off" />
+          <div class="autocomplete-list" id="list-course" style="display:none;"></div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:6px;">
+          목록에서 선택하면 이동시간이 자동으로 계산됩니다
+        </div>
+      </div>
+      <div class="step-footer">
+        <button class="next-btn" id="btn-next-2" onclick="goStep(3)" disabled>다음</button>
+      </div>
     </div>
 
-    <button class="calc-btn" id="calc-btn" onclick="calcWakeTime()">계산하기</button>
+    <!-- Step 3: 이동시간 확인 -->
+    <div class="step" id="step-3">
+      <div class="step-q">이동시간을 확인해주세요</div>
+      <div class="step-hint">자동으로 계산했어요. 다르면 수정하세요</div>
+      <div class="step-body" style="flex:1;">
+        <div class="travel-result loading" id="travel-result">
+          <div class="spinner-sm"></div>
+          <span>이동시간 계산 중...</span>
+        </div>
+        <div class="travel-edit-label">이동시간 (분) 직접 수정</div>
+        <div class="input-wrap">
+          <input class="step-input" id="calc-travel" type="number" value="60" min="0" style="padding-right:18px;" />
+        </div>
+      </div>
+      <div class="step-footer">
+        <button class="next-btn" onclick="goStep(4)">다음</button>
+      </div>
+    </div>
 
-    <div class="result-box" id="result-box">
-      <div class="result-course" id="result-course"></div>
-      <div class="result-label">기상 시간</div>
-      <div class="result-ampm" id="result-ampm"></div>
-      <div class="result-time" id="result-time"></div>
-      <div class="result-breakdown">
-        <div class="breakdown-item"><div class="breakdown-val" id="bd-travel"></div><div class="breakdown-key">이동</div></div>
-        <div class="breakdown-item"><div class="breakdown-val" id="bd-prep"></div><div class="breakdown-key">준비시간</div></div>
-        <div class="breakdown-item"><div class="breakdown-val" id="bd-buffer"></div><div class="breakdown-key">여유시간</div></div>
-        <div class="breakdown-item"><div class="breakdown-val" id="bd-total"></div><div class="breakdown-key">총 역산</div></div>
+    <!-- Step 4: 티업 시간 -->
+    <div class="step" id="step-4">
+      <div class="step-q">티업 시간이 언제예요?</div>
+      <div class="step-hint">라운드 시작 시간을 선택해주세요</div>
+      <div class="step-body" style="flex:1;overflow-y:auto;scrollbar-width:none;">
+        <div class="ampm-wrap">
+          <button class="ampm-chip" id="chip-am" onclick="setAmPm('AM')">오전 AM</button>
+          <button class="ampm-chip active" id="chip-pm" onclick="setAmPm('PM')">오후 PM</button>
+        </div>
+        <div class="chip-label">시</div>
+        <div class="chip-scroll" id="hour-scroll"></div>
+        <div class="chip-label">분</div>
+        <div class="chip-scroll" id="min-scroll"></div>
+      </div>
+      <div class="step-footer">
+        <button class="next-btn" onclick="goStep(5)">다음</button>
+      </div>
+    </div>
+
+    <!-- Step 5: 준비 시간 -->
+    <div class="step" id="step-5">
+      <div class="step-q">준비 시간이 얼마나 필요해요?</div>
+      <div class="step-hint">씻고, 먹고, 채비하는 시간이에요</div>
+      <div class="step-body" style="flex:1;">
+        <div class="preset-wrap" id="prep-presets"></div>
+        <div class="custom-input-wrap">
+          <div class="custom-label">직접 입력 (분)</div>
+          <input class="custom-input" id="calc-prep" type="number" min="0" placeholder="60" />
+        </div>
+      </div>
+      <div class="step-footer">
+        <button class="next-btn" onclick="goStep(6)">다음</button>
+      </div>
+    </div>
+
+    <!-- Step 6: 여유 시간 -->
+    <div class="step" id="step-6">
+      <div class="step-q">여유 시간은요?</div>
+      <div class="step-hint">도착 후 체크인, 연습, 식사 등 여유 시간이에요</div>
+      <div class="step-body" style="flex:1;">
+        <div class="preset-wrap" id="buffer-presets"></div>
+        <div class="custom-input-wrap">
+          <div class="custom-label">직접 입력 (분)</div>
+          <input class="custom-input" id="calc-buffer" type="number" min="0" placeholder="30" />
+        </div>
+      </div>
+      <div class="step-footer">
+        <button class="next-btn" onclick="calcAndShow()">기상시간 계산</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="step" id="step-result">
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+        <div class="result-label">기상 시간</div>
+        <div class="result-ampm" id="result-ampm"></div>
+        <div class="result-time" id="result-time"></div>
+        <div class="result-course-name" id="result-course"></div>
+        <div class="result-breakdown">
+          <div class="bd-item"><div class="bd-val" id="bd-travel"></div><div class="bd-key">이동</div></div>
+          <div class="bd-item"><div class="bd-val" id="bd-prep"></div><div class="bd-key">준비</div></div>
+          <div class="bd-item"><div class="bd-val" id="bd-buffer"></div><div class="bd-key">여유</div></div>
+          <div class="bd-item"><div class="bd-val" id="bd-total"></div><div class="bd-key">역산 합계</div></div>
+        </div>
+      </div>
+      <div class="step-footer">
+        <button class="retry-btn" onclick="restart()">다시 계산하기</button>
       </div>
     </div>
 
@@ -250,101 +412,252 @@
   let originLocation = null;
   let destLocation   = null;
   let sessionToken   = null;
+  let curStep = 1;
+  const TOTAL_STEPS = 6;
 
-  document.getElementById('btn-back').addEventListener('click', () => history.back());
+  // ── 상태 ──────────────────────────────────
+  let state = {
+    ampm: 'PM', hour: 7, min: 0,
+    prep: parseInt(localStorage.getItem('wakeCalcPrep')) || 60,
+    buffer: parseInt(localStorage.getItem('wakeCalcBuffer')) || 30,
+  };
 
-  // 준비/여유 시간 저장 및 불러오기
-  function loadTimeSettings() {
-    const prep   = localStorage.getItem('wakeCalcPrep');
-    const buffer = localStorage.getItem('wakeCalcBuffer');
-    if (prep)   document.getElementById('calc-prep').value   = prep;
-    if (buffer) document.getElementById('calc-buffer').value = buffer;
-  }
-  loadTimeSettings();
-
-  document.getElementById('calc-prep').addEventListener('change', e => {
-    localStorage.setItem('wakeCalcPrep', e.target.value);
-  });
-  document.getElementById('calc-buffer').addEventListener('change', e => {
-    localStorage.setItem('wakeCalcBuffer', e.target.value);
+  // ── 뒤로가기 ──────────────────────────────
+  document.getElementById('btn-back-step').addEventListener('click', () => {
+    if (curStep === 1) { history.back(); return; }
+    goStep(curStep - 1, true);
   });
 
-  // 집 주소 불러오기
-  function loadHome() {
-    const saved = localStorage.getItem('wakeCalcHome');
-    if (!saved) return;
-    const { text, lat, lng } = JSON.parse(saved);
-    document.getElementById('calc-origin').value = text;
-    originLocation = { latitude: lat, longitude: lng };
-    document.getElementById('home-saved-tag').style.display = 'block';
-  }
-  loadHome();
+  // ── 스텝 이동 ─────────────────────────────
+  function goStep(next, isBack = false) {
+    const cur = document.getElementById(`step-${curStep === 0 ? 'result' : curStep}`);
+    const nxt = document.getElementById(`step-${next === 0 ? 'result' : next}`);
+    cur.classList.remove('active');
+    cur.classList.add('leaving');
+    setTimeout(() => cur.classList.remove('leaving'), 400);
+    if (isBack) {
+      nxt.style.transition = 'none';
+      nxt.style.transform = 'translateX(-25%)';
+      nxt.style.opacity = '0';
+      requestAnimationFrame(() => {
+        nxt.style.transition = '';
+        nxt.style.transform = '';
+        nxt.style.opacity = '';
+        nxt.classList.add('active');
+      });
+    } else {
+      nxt.classList.add('active');
+    }
+    curStep = next;
+    updateProgress();
 
-  function saveHome() {
-    if (!originLocation || typeof originLocation !== 'object') return;
-    const text = document.getElementById('calc-origin').value.trim();
-    localStorage.setItem('wakeCalcHome', JSON.stringify({ text, lat: originLocation.latitude, lng: originLocation.longitude }));
-    const btn = document.getElementById('btn-save-home');
-    btn.textContent = '저장됨';
-    btn.style.borderColor = 'rgba(255,255,255,0.3)';
-    btn.style.color = 'rgba(255,255,255,0.3)';
-    document.getElementById('home-saved-tag').style.display = 'block';
+    if (next === 3) initStep3();
+    if (next === 4) initStep4();
+    if (next === 5) initStep5();
+    if (next === 6) initStep6();
   }
 
-  function showSaveBtn() {
-    document.getElementById('btn-save-home').style.display = 'inline-block';
-    document.getElementById('btn-save-home').textContent = '기본 주소 저장';
-    document.getElementById('btn-save-home').style.borderColor = 'var(--green-light)';
-    document.getElementById('btn-save-home').style.color = 'var(--green-light)';
-    document.getElementById('home-saved-tag').style.display = 'none';
+  function updateProgress() {
+    const pct = (curStep / TOTAL_STEPS) * 100;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('step-cur').textContent = curStep;
   }
 
-  function newToken() {
-    return Math.random().toString(36).slice(2);
+  function restart() {
+    const result = document.getElementById('step-result');
+    result.classList.remove('active');
+    result.classList.add('leaving');
+    setTimeout(() => result.classList.remove('leaving'), 400);
+    curStep = 1;
+    const s1 = document.getElementById('step-1');
+    s1.style.transition = 'none';
+    s1.style.transform = 'translateX(-25%)';
+    s1.style.opacity = '0';
+    requestAnimationFrame(() => {
+      s1.style.transition = '';
+      s1.style.transform = '';
+      s1.style.opacity = '';
+      s1.classList.add('active');
+    });
+    updateProgress();
   }
+
+  // ── Step 3: 이동시간 ─────────────────────
+  function initStep3() {
+    const el = document.getElementById('travel-result');
+    if (!originLocation || !destLocation) {
+      el.className = 'travel-result fail';
+      el.innerHTML = '출발지 또는 골프장이 선택되지 않았어요';
+      return;
+    }
+    if (el.classList.contains('ok')) return;
+    calcDistance();
+  }
+
+  // ── Step 4: 티업시간 ─────────────────────
+  function initStep4() {
+    // AM/PM
+    setAmPm(state.ampm, false);
+
+    // 시 (1~12)
+    const hourWrap = document.getElementById('hour-scroll');
+    if (!hourWrap.children.length) {
+      for (let h = 1; h <= 12; h++) {
+        const c = document.createElement('button');
+        c.className = 'time-chip' + (h === state.hour ? ' active' : '');
+        c.textContent = String(h).padStart(2, '0');
+        c.onclick = () => {
+          state.hour = h;
+          hourWrap.querySelectorAll('.time-chip').forEach(x => x.classList.remove('active'));
+          c.classList.add('active');
+          c.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        };
+        hourWrap.appendChild(c);
+      }
+    }
+    // 분 (0, 5, 10, ... 55)
+    const minWrap = document.getElementById('min-scroll');
+    if (!minWrap.children.length) {
+      for (let m = 0; m < 60; m += 5) {
+        const c = document.createElement('button');
+        c.className = 'time-chip' + (m === state.min ? ' active' : '');
+        c.textContent = String(m).padStart(2, '0');
+        c.onclick = () => {
+          state.min = m;
+          minWrap.querySelectorAll('.time-chip').forEach(x => x.classList.remove('active'));
+          c.classList.add('active');
+        };
+        minWrap.appendChild(c);
+      }
+    }
+    // 활성 칩으로 스크롤
+    setTimeout(() => {
+      const active = hourWrap.querySelector('.active');
+      if (active) active.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
+    }, 50);
+  }
+
+  function setAmPm(val, save = true) {
+    if (save) state.ampm = val;
+    document.getElementById('chip-am').classList.toggle('active', val === 'AM');
+    document.getElementById('chip-pm').classList.toggle('active', val === 'PM');
+  }
+
+  // ── Step 5: 준비시간 ─────────────────────
+  function initStep5() {
+    buildPresets('prep-presets', [30, 45, 60, 90, 120], 'prep');
+    document.getElementById('calc-prep').value = state.prep;
+  }
+
+  // ── Step 6: 여유시간 ─────────────────────
+  function initStep6() {
+    buildPresets('buffer-presets', [0, 15, 30, 45, 60], 'buffer');
+    document.getElementById('calc-buffer').value = state.buffer;
+  }
+
+  function buildPresets(wrapperId, values, key) {
+    const wrap = document.getElementById(wrapperId);
+    if (wrap.children.length) {
+      wrap.querySelectorAll('.preset-chip').forEach(c => {
+        c.classList.toggle('active', parseInt(c.dataset.val) === state[key]);
+      });
+      return;
+    }
+    values.forEach(v => {
+      const c = document.createElement('button');
+      c.className = 'preset-chip' + (v === state[key] ? ' active' : '');
+      c.textContent = v === 0 ? '없음' : `${v}분`;
+      c.dataset.val = v;
+      c.onclick = () => {
+        state[key] = v;
+        localStorage.setItem('wakeCalc' + (key === 'prep' ? 'Prep' : 'Buffer'), v);
+        wrap.querySelectorAll('.preset-chip').forEach(x => x.classList.remove('active'));
+        c.classList.add('active');
+        document.getElementById('calc-' + key).value = v;
+      };
+      wrap.appendChild(c);
+    });
+    document.getElementById('calc-' + key).addEventListener('input', e => {
+      state[key] = parseInt(e.target.value) || 0;
+      localStorage.setItem('wakeCalc' + (key === 'prep' ? 'Prep' : 'Buffer'), state[key]);
+      wrap.querySelectorAll('.preset-chip').forEach(c => {
+        c.classList.toggle('active', parseInt(c.dataset.val) === state[key]);
+      });
+    });
+  }
+
+  // ── 결과 계산 ─────────────────────────────
+  function calcAndShow() {
+    const travel = parseInt(document.getElementById('calc-travel').value) || 0;
+    const prep   = parseInt(document.getElementById('calc-prep').value)   || 0;
+    const buffer = parseInt(document.getElementById('calc-buffer').value) || 0;
+
+    let teeH24 = state.ampm === 'PM' && state.hour !== 12 ? state.hour + 12
+               : state.ampm === 'AM' && state.hour === 12 ? 0
+               : state.hour;
+    const teeMinutes = teeH24 * 60 + state.min;
+    const totalBack  = travel + prep + buffer;
+    let wakeMinutes  = teeMinutes - totalBack;
+    if (wakeMinutes < 0) wakeMinutes += 1440;
+
+    const wakeH24  = Math.floor(wakeMinutes / 60);
+    const wakeM    = wakeMinutes % 60;
+    const wakeAmpm = wakeH24 < 12 ? 'AM' : 'PM';
+    const wakeH12  = wakeH24 === 0 ? 12 : wakeH24 > 12 ? wakeH24 - 12 : wakeH24;
+    const teeStr   = `${state.ampm} ${String(state.hour).padStart(2,'0')}:${String(state.min).padStart(2,'0')}`;
+    const course   = document.getElementById('calc-course').value || '골프장';
+
+    document.getElementById('result-ampm').textContent  = wakeAmpm;
+    document.getElementById('result-time').textContent  = `${String(wakeH12).padStart(2,'0')}:${String(wakeM).padStart(2,'0')}`;
+    document.getElementById('result-course').textContent = `${course} · 티업 ${teeStr}`;
+    document.getElementById('bd-travel').textContent    = travel + '분';
+    document.getElementById('bd-prep').textContent      = prep + '분';
+    document.getElementById('bd-buffer').textContent    = buffer + '분';
+    document.getElementById('bd-total').textContent     = totalBack + '분';
+
+    // 결과 화면 전환
+    const cur = document.getElementById(`step-${curStep}`);
+    cur.classList.remove('active');
+    cur.classList.add('leaving');
+    setTimeout(() => cur.classList.remove('leaving'), 400);
+    document.getElementById('step-result').classList.add('active');
+    curStep = 0;
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('step-cur').textContent = TOTAL_STEPS;
+  }
+
+  // ── Places Autocomplete ──────────────────
+  function newToken() { return Math.random().toString(36).slice(2); }
   sessionToken = newToken();
 
-  // Places Autocomplete (New) via REST
   async function fetchSuggestions(input, listId, forGolf) {
     if (input.length < 2) { document.getElementById(listId).style.display = 'none'; return; }
-    const body = {
-      input,
-      sessionToken,
-      languageCode: 'ko',
-      regionCode: 'KR',
-    };
+    const body = { input, sessionToken, languageCode: 'ko', regionCode: 'KR' };
     if (forGolf) body.includedPrimaryTypes = ['golf_course', 'establishment'];
-
     try {
-      const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+      const res  = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': MAPS_KEY,
-        },
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': MAPS_KEY },
         body: JSON.stringify(body)
       });
       const data = await res.json();
       const list = document.getElementById(listId);
-      if (!data.suggestions || data.suggestions.length === 0) { list.style.display = 'none'; return; }
-
+      if (!data.suggestions?.length) { list.style.display = 'none'; return; }
       list.innerHTML = data.suggestions.slice(0, 5).map(s => {
-        const place = s.placePrediction;
-        const main = place.structuredFormat?.mainText?.text || place.text?.text || '';
-        const sub  = place.structuredFormat?.secondaryText?.text || '';
-        return `<div class="autocomplete-item" data-placeid="${place.placeId}" data-name="${main}">
-          <strong>${main}</strong>${sub ? '<br><span style="font-size:11px;color:rgba(255,255,255,0.4);">' + sub + '</span>' : ''}
+        const p = s.placePrediction;
+        const main = p.structuredFormat?.mainText?.text || p.text?.text || '';
+        const sub  = p.structuredFormat?.secondaryText?.text || '';
+        return `<div class="autocomplete-item" data-placeid="${p.placeId}" data-name="${main}">
+          <strong>${main}</strong>${sub ? `<small>${sub}</small>` : ''}
         </div>`;
       }).join('');
       list.style.display = 'block';
-
       list.querySelectorAll('.autocomplete-item').forEach(el => {
         el.addEventListener('click', () => {
           const placeId = el.dataset.placeid;
           const name    = el.dataset.name;
           if (listId === 'list-origin') {
-            document.getElementById('calc-origin').value = el.querySelector('strong').textContent + (el.querySelector('span') ? ' ' + el.querySelector('span').textContent : '');
-            showSaveBtn();
+            document.getElementById('calc-origin').value = el.querySelector('strong').textContent + (el.querySelector('small') ? ' ' + el.querySelector('small').textContent : '');
             getPlaceLatLng(placeId, 'origin');
           } else {
             document.getElementById('calc-course').value = name;
@@ -354,47 +667,43 @@
           sessionToken = newToken();
         });
       });
-    } catch(e) {
-      document.getElementById(listId).style.display = 'none';
-    }
+    } catch(_) { document.getElementById(listId).style.display = 'none'; }
   }
 
   async function getPlaceLatLng(placeId, type) {
-    const badge = document.getElementById('travel-badge');
     try {
-      const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+      const res  = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
         headers: { 'X-Goog-Api-Key': MAPS_KEY, 'X-Goog-FieldMask': 'location' }
       });
       const data = await res.json();
       if (data.location) {
         if (type === 'origin') {
           originLocation = data.location;
-          badge.textContent = '출발지 확인됨 — 골프장도 선택해주세요';
-          badge.style.color = 'rgba(255,255,255,0.4)';
+          document.getElementById('btn-next-1').disabled = false;
+          const ht = document.getElementById('home-tag');
+          if (ht.style.display === 'block') {
+            ht.style.display = 'none';
+          }
         } else {
           destLocation = data.location;
+          document.getElementById('btn-next-2').disabled = false;
         }
-        calcDistance();
+        if (originLocation && destLocation) {
+          const el = document.getElementById('travel-result');
+          el.className = 'travel-result loading';
+          el.innerHTML = '<div class="spinner-sm"></div><span>이동시간 계산 중...</span>';
+          calcDistance();
+        }
       }
-    } catch(e) {
-      badge.textContent = '위치 확인 실패';
-      badge.style.color = '#f87171';
-    }
+    } catch(_) {}
   }
 
-  function haversineKm(a, b) {
-    const R = 6371;
-    const dLat = (b.latitude - a.latitude) * Math.PI / 180;
-    const dLng = (b.longitude - a.longitude) * Math.PI / 180;
-    const s = Math.sin(dLat/2) ** 2 + Math.cos(a.latitude * Math.PI/180) * Math.cos(b.latitude * Math.PI/180) * Math.sin(dLng/2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
-  }
-
+  // ── 거리 계산 (Directions API) ───────────
   async function calcDistance() {
     if (!originLocation || !destLocation) return;
-    const badge = document.getElementById('travel-badge');
-    badge.textContent = '이동시간 계산 중...';
-    badge.style.color = 'rgba(255,255,255,0.4)';
+    const el   = document.getElementById('travel-result');
+    el.className = 'travel-result loading';
+    el.innerHTML = '<div class="spinner-sm"></div><span>이동시간 계산 중...</span>';
     try {
       const orig = `${originLocation.latitude},${originLocation.longitude}`;
       const dest = `${destLocation.latitude},${destLocation.longitude}`;
@@ -407,53 +716,50 @@
         const km   = (leg.distance.value / 1000).toFixed(1);
         const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
         document.getElementById('calc-travel').value = mins;
-        badge.textContent = `자동 계산 (실제 도로): 약 ${hStr} (${km}km)`;
-        badge.style.color = 'var(--green-light)';
+        el.className = 'travel-result ok';
+        el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 실제 도로 기준 약 ${hStr} (${km}km)`;
         return;
       }
     } catch(_) {}
-    badge.textContent = '이동시간 자동 계산 실패 — 직접 입력해 주세요';
-    badge.style.color = '#f87171';
+    el.className = 'travel-result fail';
+    el.innerHTML = '자동 계산 실패 — 아래에서 직접 입력해 주세요';
   }
 
-  // 현재 위치
+  // ── GPS ───────────────────────────────────
   document.getElementById('btn-gps').addEventListener('click', () => {
     if (!navigator.geolocation) return;
+    const input = document.getElementById('calc-origin');
+    input.placeholder = '위치 확인 중...';
     navigator.geolocation.getCurrentPosition(async pos => {
       const { latitude: lat, longitude: lng } = pos.coords;
       originLocation = { latitude: lat, longitude: lng };
-      const badge = document.getElementById('travel-badge');
       try {
-        const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ko&key=${MAPS_KEY}`);
+        const res  = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ko&key=${MAPS_KEY}`);
         const data = await res.json();
-        if (data.results && data.results[0]) {
-          document.getElementById('calc-origin').value = data.results[0].formatted_address;
-        }
-      } catch(e) {}
-      badge.textContent = '현재 위치 확인됨 — 골프장도 선택해주세요';
-      badge.style.color = 'rgba(255,255,255,0.4)';
-      showSaveBtn();
-      calcDistance();
-    });
+        if (data.results?.[0]) input.value = data.results[0].formatted_address;
+      } catch(_) { input.value = `현재 위치 (${lat.toFixed(4)}, ${lng.toFixed(4)})`; }
+      input.placeholder = '주소를 입력하세요';
+      document.getElementById('btn-next-1').disabled = false;
+      if (originLocation && destLocation) calcDistance();
+    }, () => { input.placeholder = '위치 확인 실패'; });
   });
 
-  // 입력 이벤트
+  // ── 입력 이벤트 ───────────────────────────
   let originTimer, courseTimer;
   document.getElementById('calc-origin').addEventListener('input', e => {
     clearTimeout(originTimer);
     originLocation = null;
+    document.getElementById('btn-next-1').disabled = true;
     originTimer = setTimeout(() => fetchSuggestions(e.target.value, 'list-origin', false), 300);
   });
   document.getElementById('calc-course').addEventListener('input', e => {
     clearTimeout(courseTimer);
     destLocation = null;
-    const badge = document.getElementById('travel-badge');
-    badge.textContent = '골프장 선택 시 자동 계산됩니다';
-    badge.style.color = 'rgba(255,255,255,0.25)';
+    document.getElementById('btn-next-2').disabled = true;
     courseTimer = setTimeout(() => fetchSuggestions(e.target.value, 'list-course', true), 300);
   });
 
-  // 바깥 클릭 시 드롭다운 닫기
+  // 바깥 클릭 드롭다운 닫기
   document.addEventListener('click', e => {
     if (!e.target.closest('#list-origin') && !e.target.closest('#calc-origin'))
       document.getElementById('list-origin').style.display = 'none';
@@ -461,45 +767,18 @@
       document.getElementById('list-course').style.display = 'none';
   });
 
-  function calcWakeTime() {
-    const originVal = document.getElementById('calc-origin').value.trim();
-    const courseVal = document.getElementById('calc-course').value.trim();
-    if (!originVal || !courseVal) {
-      const badge = document.getElementById('travel-badge');
-      badge.textContent = '출발지와 골프장(도착지)를 입력해 주세요';
-      badge.style.color = '#f87171';
-      return;
-    }
-    const ampm   = document.getElementById('calc-ampm').value;
-    const hour   = parseInt(document.getElementById('calc-hour').value);
-    const min    = parseInt(document.getElementById('calc-min').value);
-    const travel = parseInt(document.getElementById('calc-travel').value) || 0;
-    const prep   = parseInt(document.getElementById('calc-prep').value) || 0;
-    const buffer = parseInt(document.getElementById('calc-buffer').value) || 0;
-    const course = courseVal || '골프장';
-
-    let teeH24 = ampm === 'PM' && hour !== 12 ? hour + 12 : ampm === 'AM' && hour === 12 ? 0 : hour;
-    let teeMinutes = teeH24 * 60 + min;
-    const totalBack = travel + prep + buffer;
-    let wakeMinutes = teeMinutes - totalBack;
-    if (wakeMinutes < 0) wakeMinutes += 1440;
-
-    const wakeH24  = Math.floor(wakeMinutes / 60);
-    const wakeM    = wakeMinutes % 60;
-    const wakeAmpm = wakeH24 < 12 ? 'AM' : 'PM';
-    const wakeH12  = wakeH24 === 0 ? 12 : wakeH24 > 12 ? wakeH24 - 12 : wakeH24;
-    const teeStr   = `${ampm} ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
-
-    document.getElementById('result-course').textContent = `${course} · 티업 ${teeStr}`;
-    document.getElementById('result-ampm').textContent = wakeAmpm;
-    document.getElementById('result-time').textContent = `${String(wakeH12).padStart(2,'0')}:${String(wakeM).padStart(2,'0')}`;
-    document.getElementById('bd-travel').textContent = travel + '분';
-    document.getElementById('bd-prep').textContent = prep + '분';
-    document.getElementById('bd-buffer').textContent = buffer + '분';
-    document.getElementById('bd-total').textContent = totalBack + '분';
-    document.getElementById('result-box').classList.add('show');
-    document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
-  }
+  // ── 저장된 집 주소 불러오기 ───────────────
+  (function loadHome() {
+    const saved = localStorage.getItem('wakeCalcHome');
+    if (!saved) return;
+    const { text, lat, lng } = JSON.parse(saved);
+    document.getElementById('calc-origin').value = text;
+    originLocation = { latitude: lat, longitude: lng };
+    document.getElementById('btn-next-1').disabled = false;
+    const ht = document.getElementById('home-tag');
+    ht.style.display = 'block';
+    ht.onclick = () => {};
+  })();
 </script>
 </body>
 </html>
