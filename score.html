@@ -367,7 +367,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, orderBy, writeBatch, addDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -834,6 +834,23 @@ async function submitScore() {
       await updateDoc(doc(db, 'users', currentUser.uid), {
         handicap, bestScore, roundCount, handicapTrend, statsUpdatedAt: serverTimestamp()
       });
+    } catch(_) {}
+
+    // GG POINT 스코어 포인트 적립 (최초 제출 시만)
+    try {
+      const alreadySubmitted = (await getDoc(doc(db, 'users', currentUser.uid, 'scoreHistory', joinId))).exists();
+      if (!alreadySubmitted) {
+        const pts = myTotal < 0 ? 40 : myTotal <= 5 ? 30 : myTotal <= 9 ? 20 : myTotal <= 15 ? 15 : 10;
+        const label = myTotal < 0 ? '언더파' : myTotal <= 5 ? 'E~+5' : myTotal <= 9 ? '+6~+9' : myTotal <= 15 ? '+10~+15' : '+16이상';
+        await updateDoc(doc(db, 'users', currentUser.uid), { totalPoints: increment(pts) });
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: currentUser.uid,
+          name: (joinData.participants || []).find(p => p.uid === currentUser.uid)?.name || '골퍼',
+          type: '스코어', amount: pts,
+          ref: `${joinData.course || '라운드'} (${label})`,
+          date: new Date().toISOString()
+        });
+      }
     } catch(_) {}
 
     closeSubmitSheet();
