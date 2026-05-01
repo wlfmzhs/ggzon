@@ -249,6 +249,53 @@
     }
     .retry-btn:active { background: rgba(255,255,255,0.1); }
 
+    /* ── 저장된 출발지 칩 ── */
+    .saved-chips { display: flex; gap: 10px; margin-bottom: 16px; }
+    .saved-chip {
+      flex: 1; display: flex; align-items: center; gap: 10px;
+      padding: 13px 14px; border-radius: 14px; cursor: pointer;
+      background: rgba(62,160,102,0.1); border: 1.5px solid rgba(62,160,102,0.3);
+      font-family: inherit; text-align: left; transition: background 0.15s;
+    }
+    .saved-chip:active { background: rgba(62,160,102,0.25); }
+    .saved-chip-icon {
+      width: 32px; height: 32px; flex-shrink: 0;
+      background: rgba(62,160,102,0.2); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green-light);
+    }
+    .saved-chip-type { font-size: 13px; font-weight: 800; color: #fff; }
+    .saved-chip-addr { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+    .or-divider {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; color: rgba(255,255,255,0.2); margin-bottom: 14px;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
+    }
+
+    /* ── 저장 프롬프트 ── */
+    .save-prompt {
+      display: none; margin-top: 12px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 14px 16px;
+    }
+    .save-prompt.show { display: block; }
+    .save-prompt-q { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 12px; font-weight: 600; }
+    .save-prompt-btns { display: flex; gap: 8px; align-items: center; }
+    .save-type-btn {
+      flex: 1; padding: 11px 8px; border-radius: 10px; cursor: pointer;
+      font-size: 13px; font-weight: 800; font-family: inherit; text-align: center;
+      background: rgba(62,160,102,0.12); color: var(--green-light);
+      border: 1px solid rgba(62,160,102,0.3); transition: background 0.15s;
+    }
+    .save-type-btn:active { background: rgba(62,160,102,0.25); }
+    .save-skip-btn {
+      padding: 11px 10px; border-radius: 10px; cursor: pointer;
+      font-size: 12px; font-weight: 600; font-family: inherit;
+      background: none; color: rgba(255,255,255,0.3); border: none;
+    }
+
     /* ── Spinner ── */
     .spinner-sm {
       width: 14px; height: 14px;
@@ -279,18 +326,55 @@
     <!-- Step 1: 출발지 -->
     <div class="step active" id="step-1">
       <div class="step-q">어디서 출발하세요?</div>
-      <div class="step-hint">집 주소 또는 현재 위치를 알려주세요</div>
+      <div class="step-hint" id="step1-hint">저장된 주소를 선택하거나 직접 입력하세요</div>
       <div class="step-body" style="flex:1;overflow-y:auto;scrollbar-width:none;">
-        <div id="home-tag" class="home-tag">저장된 집 주소</div>
+
+        <!-- 저장된 출발지 칩 -->
+        <div class="saved-chips" id="saved-chips" style="display:none;">
+          <button class="saved-chip" id="chip-home" style="display:none;" onclick="selectSaved('home')">
+            <div class="saved-chip-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            </div>
+            <div>
+              <div class="saved-chip-type">집</div>
+              <div class="saved-chip-addr" id="chip-home-addr"></div>
+            </div>
+          </button>
+          <button class="saved-chip" id="chip-work" style="display:none;" onclick="selectSaved('work')">
+            <div class="saved-chip-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+            </div>
+            <div>
+              <div class="saved-chip-type">회사</div>
+              <div class="saved-chip-addr" id="chip-work-addr"></div>
+            </div>
+          </button>
+        </div>
+
+        <!-- 직접 입력 구분선 -->
+        <div class="or-divider" id="or-divider" style="display:none;">직접 입력</div>
+
+        <!-- 주소 입력 -->
         <div class="input-wrap">
-          <input class="step-input" id="calc-origin" type="text" placeholder="주소를 입력하세요" autocomplete="off" />
+          <input class="step-input" id="calc-origin" type="text" placeholder="주소를 검색하세요" autocomplete="off" />
           <button class="gps-btn" id="btn-gps" title="현재 위치">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
           </button>
           <div class="autocomplete-list" id="list-origin" style="display:none;"></div>
         </div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:6px;">
-          목록에서 주소를 선택해야 이동시간이 자동 계산됩니다
+
+        <!-- 저장 프롬프트 -->
+        <div class="save-prompt" id="save-prompt">
+          <div class="save-prompt-q">이 주소를 저장할까요?</div>
+          <div class="save-prompt-btns">
+            <button class="save-type-btn" onclick="saveOrigin('home')">집 주소</button>
+            <button class="save-type-btn" onclick="saveOrigin('work')">회사 주소</button>
+            <button class="save-skip-btn" onclick="hideSavePrompt()">저장 안 함</button>
+          </div>
+        </div>
+
+        <div style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:10px;">
+          목록에서 선택해야 이동시간이 자동 계산됩니다
         </div>
       </div>
       <div class="step-footer">
@@ -674,10 +758,8 @@
         if (type === 'origin') {
           originLocation = data.location;
           document.getElementById('btn-next-1').disabled = false;
-          const ht = document.getElementById('home-tag');
-          if (ht.style.display === 'block') {
-            ht.style.display = 'none';
-          }
+          const text = document.getElementById('calc-origin').value;
+          showSavePrompt(text, data.location);
         } else {
           destLocation = data.location;
           document.getElementById('btn-next-2').disabled = false;
@@ -752,6 +834,7 @@
       } catch(_) { input.value = `현재 위치 (${lat.toFixed(4)}, ${lng.toFixed(4)})`; }
       input.placeholder = '주소를 입력하세요';
       document.getElementById('btn-next-1').disabled = false;
+      showSavePrompt(input.value, originLocation);
       if (originLocation && destLocation) calcDistance();
     }, () => { input.placeholder = '위치 확인 실패'; });
   });
@@ -779,18 +862,73 @@
       document.getElementById('list-course').style.display = 'none';
   });
 
-  // ── 저장된 집 주소 불러오기 ───────────────
-  (function loadHome() {
-    const saved = localStorage.getItem('wakeCalcHome');
-    if (!saved) return;
-    const { text, lat, lng } = JSON.parse(saved);
-    document.getElementById('calc-origin').value = text;
-    originLocation = { latitude: lat, longitude: lng };
+  // ── 저장된 출발지 관리 ───────────────────
+  let _pendingSaveText = '';
+  let _pendingSaveLoc  = null;
+
+  function loadSavedOrigins() {
+    const home = localStorage.getItem('wakeCalcHome');
+    const work = localStorage.getItem('wakeCalcWork');
+    const chipsWrap  = document.getElementById('saved-chips');
+    const orDivider  = document.getElementById('or-divider');
+    const chipHome   = document.getElementById('chip-home');
+    const chipWork   = document.getElementById('chip-work');
+
+    if (home) {
+      const d = JSON.parse(home);
+      chipHome.style.display = 'flex';
+      document.getElementById('chip-home-addr').textContent = d.text.slice(0, 15) + (d.text.length > 15 ? '...' : '');
+    }
+    if (work) {
+      const d = JSON.parse(work);
+      chipWork.style.display = 'flex';
+      document.getElementById('chip-work-addr').textContent = d.text.slice(0, 15) + (d.text.length > 15 ? '...' : '');
+    }
+    if (home || work) {
+      chipsWrap.style.display = 'flex';
+      orDivider.style.display = 'flex';
+      document.getElementById('step1-hint').textContent = '저장된 주소를 선택하거나 직접 입력하세요';
+    } else {
+      document.getElementById('step1-hint').textContent = '집 주소 또는 현재 위치를 알려주세요';
+    }
+  }
+
+  function selectSaved(type) {
+    const key  = type === 'home' ? 'wakeCalcHome' : 'wakeCalcWork';
+    const data = JSON.parse(localStorage.getItem(key));
+    if (!data) return;
+    document.getElementById('calc-origin').value = data.text;
+    originLocation = { latitude: data.lat, longitude: data.lng };
     document.getElementById('btn-next-1').disabled = false;
-    const ht = document.getElementById('home-tag');
-    ht.style.display = 'block';
-    ht.onclick = () => {};
-  })();
+    hideSavePrompt();
+    if (originLocation && destLocation) calcDistance();
+  }
+
+  function showSavePrompt(text, loc) {
+    _pendingSaveText = text;
+    _pendingSaveLoc  = loc;
+    document.getElementById('save-prompt').classList.add('show');
+  }
+
+  function hideSavePrompt() {
+    document.getElementById('save-prompt').classList.remove('show');
+    _pendingSaveText = '';
+    _pendingSaveLoc  = null;
+  }
+
+  function saveOrigin(type) {
+    if (!_pendingSaveLoc) return;
+    const key = type === 'home' ? 'wakeCalcHome' : 'wakeCalcWork';
+    localStorage.setItem(key, JSON.stringify({
+      text: _pendingSaveText,
+      lat: _pendingSaveLoc.latitude,
+      lng: _pendingSaveLoc.longitude
+    }));
+    hideSavePrompt();
+    loadSavedOrigins();
+  }
+
+  loadSavedOrigins();
 </script>
 </body>
 </html>
