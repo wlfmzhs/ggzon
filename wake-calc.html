@@ -200,6 +200,22 @@
     }
     .time-chip.active { background: rgba(62,160,102,0.2); color: var(--green-light); border-color: rgba(62,160,102,0.5); }
 
+    /* ── 분 스테퍼 ── */
+    .min-stepper {
+      display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 20px;
+    }
+    .stepper-btn {
+      padding: 12px 14px; border-radius: 12px; cursor: pointer;
+      font-size: 13px; font-weight: 800; font-family: inherit;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6);
+      border: 1.5px solid rgba(255,255,255,0.1); transition: all 0.15s;
+    }
+    .stepper-btn:active { background: rgba(62,160,102,0.25); color: var(--green-light); }
+    .stepper-val {
+      flex: 1; text-align: center; font-size: 36px; font-weight: 900;
+      color: var(--green-light); letter-spacing: -1px;
+    }
+
     /* ── Preset chips ── */
     .preset-wrap { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
     .preset-chip {
@@ -428,16 +444,18 @@
     <!-- Step 4: 티업 시간 -->
     <div class="step" id="step-4">
       <div class="step-q">티업 시간이 언제예요?</div>
-      <div class="step-hint">라운드 시작 시간을 선택해주세요</div>
+      <div class="step-hint">24시간 기준으로 선택해주세요</div>
       <div class="step-body" style="flex:1;overflow-y:auto;scrollbar-width:none;">
-        <div class="ampm-wrap">
-          <button class="ampm-chip" id="chip-am" onclick="setAmPm('AM')">오전 AM</button>
-          <button class="ampm-chip active" id="chip-pm" onclick="setAmPm('PM')">오후 PM</button>
-        </div>
-        <div class="chip-label">시</div>
+        <div class="chip-label">시 (0 ~ 23)</div>
         <div class="chip-scroll" id="hour-scroll"></div>
-        <div class="chip-label">분</div>
-        <div class="chip-scroll" id="min-scroll"></div>
+        <div class="chip-label" style="margin-top:8px;">분 (1분 단위)</div>
+        <div class="min-stepper">
+          <button class="stepper-btn" onclick="adjustMin(-10)">-10</button>
+          <button class="stepper-btn" onclick="adjustMin(-1)">-1</button>
+          <span class="stepper-val" id="min-display">00</span>
+          <button class="stepper-btn" onclick="adjustMin(1)">+1</button>
+          <button class="stepper-btn" onclick="adjustMin(10)">+10</button>
+        </div>
       </div>
       <div class="step-footer">
         <button class="next-btn" onclick="goStep(5)">다음</button>
@@ -450,10 +468,6 @@
       <div class="step-hint">씻고, 먹고, 채비하는 시간이에요</div>
       <div class="step-body" style="flex:1;">
         <div class="preset-wrap" id="prep-presets"></div>
-        <div class="custom-input-wrap">
-          <div class="custom-label">직접 입력 (분)</div>
-          <input class="custom-input" id="calc-prep" type="number" min="0" placeholder="60" />
-        </div>
       </div>
       <div class="step-footer">
         <button class="next-btn" onclick="goStep(6)">다음</button>
@@ -508,7 +522,7 @@
 
   // ── 상태 ──────────────────────────────────
   let state = {
-    ampm: 'PM', hour: 7, min: 0,
+    hour: 7, min: 0,
     prep: parseInt(localStorage.getItem('wakeCalcPrep')) || 60,
     buffer: parseInt(localStorage.getItem('wakeCalcBuffer')) || 30,
   };
@@ -570,13 +584,10 @@
 
   // ── Step 4: 티업시간 ─────────────────────
   function initStep4() {
-    // AM/PM
-    setAmPm(state.ampm, false);
-
-    // 시 (1~12)
+    // 시 (0~23)
     const hourWrap = document.getElementById('hour-scroll');
     if (!hourWrap.children.length) {
-      for (let h = 1; h <= 12; h++) {
+      for (let h = 0; h <= 23; h++) {
         const c = document.createElement('button');
         c.className = 'time-chip' + (h === state.hour ? ' active' : '');
         c.textContent = String(h).padStart(2, '0');
@@ -588,39 +599,28 @@
         };
         hourWrap.appendChild(c);
       }
+    } else {
+      hourWrap.querySelectorAll('.time-chip').forEach((c, i) => {
+        c.classList.toggle('active', i === state.hour);
+      });
     }
-    // 분 (0, 5, 10, ... 55)
-    const minWrap = document.getElementById('min-scroll');
-    if (!minWrap.children.length) {
-      for (let m = 0; m < 60; m += 5) {
-        const c = document.createElement('button');
-        c.className = 'time-chip' + (m === state.min ? ' active' : '');
-        c.textContent = String(m).padStart(2, '0');
-        c.onclick = () => {
-          state.min = m;
-          minWrap.querySelectorAll('.time-chip').forEach(x => x.classList.remove('active'));
-          c.classList.add('active');
-        };
-        minWrap.appendChild(c);
-      }
-    }
-    // 활성 칩으로 스크롤
+    // 분 표시 업데이트
+    document.getElementById('min-display').textContent = String(state.min).padStart(2, '0');
+    // 활성 시간 칩으로 스크롤
     setTimeout(() => {
       const active = hourWrap.querySelector('.active');
       if (active) active.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
     }, 50);
   }
 
-  function setAmPm(val, save = true) {
-    if (save) state.ampm = val;
-    document.getElementById('chip-am').classList.toggle('active', val === 'AM');
-    document.getElementById('chip-pm').classList.toggle('active', val === 'PM');
+  function adjustMin(delta) {
+    state.min = (state.min + delta + 60) % 60;
+    document.getElementById('min-display').textContent = String(state.min).padStart(2, '0');
   }
 
   // ── Step 5: 준비시간 ─────────────────────
   function initStep5() {
-    buildPresets('prep-presets', [30, 45, 60, 90, 120], 'prep');
-    document.getElementById('calc-prep').value = state.prep;
+    buildPresets('prep-presets', [10, 20, 30, 40, 50, 60], 'prep');
   }
 
   // ── Step 6: 여유시간 ─────────────────────
@@ -663,13 +663,10 @@
   // ── 결과 계산 ─────────────────────────────
   function calcAndShow() {
     const travel = parseInt(document.getElementById('calc-travel').value) || 0;
-    const prep   = parseInt(document.getElementById('calc-prep').value)   || 0;
-    const buffer = parseInt(document.getElementById('calc-buffer').value) || 0;
+    const prep   = state.prep;
+    const buffer = state.buffer;
 
-    let teeH24 = state.ampm === 'PM' && state.hour !== 12 ? state.hour + 12
-               : state.ampm === 'AM' && state.hour === 12 ? 0
-               : state.hour;
-    const teeMinutes = teeH24 * 60 + state.min;
+    const teeMinutes = state.hour * 60 + state.min;
     const totalBack  = travel + prep + buffer;
     let wakeMinutes  = teeMinutes - totalBack;
     if (wakeMinutes < 0) wakeMinutes += 1440;
@@ -678,7 +675,7 @@
     const wakeM    = wakeMinutes % 60;
     const wakeAmpm = wakeH24 < 12 ? 'AM' : 'PM';
     const wakeH12  = wakeH24 === 0 ? 12 : wakeH24 > 12 ? wakeH24 - 12 : wakeH24;
-    const teeStr   = `${state.ampm} ${String(state.hour).padStart(2,'0')}:${String(state.min).padStart(2,'0')}`;
+    const teeStr   = `${String(state.hour).padStart(2,'0')}:${String(state.min).padStart(2,'0')}`;
     const course   = document.getElementById('calc-course').value || '골프장';
 
     document.getElementById('result-ampm').textContent  = wakeAmpm;
