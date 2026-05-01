@@ -634,14 +634,13 @@
     values.forEach(v => {
       const c = document.createElement('button');
       c.className = 'preset-chip' + (v === state[key] ? ' active' : '');
-      c.textContent = v === 0 ? '없음' : `${v}분`;
+      c.textContent = `${v}분`;
       c.dataset.val = v;
       c.onclick = () => {
         state[key] = v;
         localStorage.setItem('wakeCalc' + (key === 'prep' ? 'Prep' : 'Buffer'), v);
         wrap.querySelectorAll('.preset-chip').forEach(x => x.classList.remove('active'));
         c.classList.add('active');
-        document.getElementById('calc-' + key).value = v;
       };
       wrap.appendChild(c);
     });
