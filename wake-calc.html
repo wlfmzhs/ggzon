@@ -91,23 +91,29 @@
 
     /* ── Steps wrapper ── */
     .steps-wrap {
-      flex: 1; position: relative; overflow: hidden;
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
     }
 
     /* ── Each step ── */
     .step {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      padding: 28px 24px 32px;
-      transform: translateX(100%);
-      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.35s;
-      opacity: 0; pointer-events: none;
+      display: none; flex-direction: column;
+      flex: 1; padding: 28px 24px 32px;
+      width: 100%;
     }
     .step.active {
-      transform: translateX(0); opacity: 1; pointer-events: auto;
+      display: flex;
+      animation: stepIn 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
     }
-    .step.leaving {
-      transform: translateX(-25%); opacity: 0; pointer-events: none;
+    .step.active.from-back {
+      animation: stepInBack 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    @keyframes stepIn {
+      from { transform: translateX(40px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    @keyframes stepInBack {
+      from { transform: translateX(-40px); opacity: 0; }
+      to   { transform: translateX(0);     opacity: 1; }
     }
 
     /* ── Question ── */
@@ -514,29 +520,19 @@
   });
 
   // ── 스텝 이동 ─────────────────────────────
-  function animateIn(el, fromLeft) {
-    // 1) 클래스 완전 초기화
-    el.classList.remove('active', 'leaving');
-    el.style.cssText = `transform:translateX(${fromLeft ? '-30%' : '100%'});opacity:0;transition:none;`;
-    // 2) reflow → 초기 위치 확정
-    void el.offsetWidth;
-    // 3) 인라인 스타일 제거 → CSS transition 발동
-    el.style.cssText = '';
+  function showStep(el, fromBack) {
+    el.classList.remove('from-back');
     el.classList.add('active');
+    if (fromBack) el.classList.add('from-back');
   }
 
-  function animateOut(el, toLeft) {
-    el.classList.remove('active');
-    el.style.cssText = `transform:translateX(${toLeft ? '-25%' : '100%'});opacity:0;`;
-    setTimeout(() => { el.style.cssText = ''; }, 400);
+  function hideStep(el) {
+    el.classList.remove('active', 'from-back');
   }
 
   function goStep(next, isBack = false) {
-    const curEl = document.getElementById(curStep === 0 ? 'step-result' : `step-${curStep}`);
-    const nxtEl = document.getElementById(next === 0 ? 'step-result' : `step-${next}`);
-
-    animateOut(curEl, !isBack);
-    animateIn(nxtEl, isBack);
+    hideStep(document.getElementById(curStep === 0 ? 'step-result' : `step-${curStep}`));
+    showStep(document.getElementById(next === 0 ? 'step-result' : `step-${next}`), isBack);
 
     curStep = next;
     updateProgress();
@@ -554,9 +550,9 @@
   }
 
   function restart() {
-    animateOut(document.getElementById('step-result'), false);
+    hideStep(document.getElementById('step-result'));
     curStep = 1;
-    animateIn(document.getElementById('step-1'), true);
+    showStep(document.getElementById('step-1'), true);
     updateProgress();
   }
 
