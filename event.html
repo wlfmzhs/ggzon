@@ -909,6 +909,11 @@
     .pairing-dnd-slot.manual .pairing-dnd-name { color: var(--gold); }
     .pairing-dnd-slot.empty-clickable { cursor: pointer; }
     .pairing-dnd-slot.empty-clickable:active { background: rgba(62,160,102,0.1); }
+    .pairing-dnd-slot.long-press-hold {
+      border-color: rgba(62,160,102,0.6) !important;
+      transform: scale(0.96);
+      transition: transform 0.3s, border-color 0.3s;
+    }
 
     /* ── Toast ── */
     .toast {
@@ -2370,7 +2375,7 @@ function renderPairingContent(t, registrations) {
   });
 
   const isBW = t.tournamentType === 'black-white';
-  let html = `<div class="pairing-dnd-hint">카드를 길게 누르거나 드래그해서 자리를 바꾸세요</div>`;
+  let html = `<div class="pairing-dnd-hint">카드를 0.5초 길게 눌러서 드래그하면 자리가 바뀝니다</div>`;
 
   for (let ci = 0; ci < courseCount; ci++) {
     html += `<div class="pairing-course-section">
@@ -2432,6 +2437,12 @@ function renderPairingContent(t, registrations) {
 // ── DnD 상태 ─────────────────────────────────────────
 let _pairDragSrc = null;
 let _pairGhost   = null;
+let _longPressTimer = null;
+let _longPressDragActive = false;
+let _longPressStartX = 0;
+let _longPressStartY = 0;
+const LONG_PRESS_DELAY = 500;
+const DRAG_THRESHOLD = 8;
 
 function _initPairingDnD(t) {
   const slots = document.querySelectorAll('#pairing-content .pairing-dnd-slot');
@@ -2463,24 +2474,49 @@ function _initPairingDnD(t) {
       _pairDragSrc = null;
     });
 
-    // 모바일 터치
+    // 모바일 터치 (롱프레스 후 드래그)
     if (slot.dataset.regId) {
       slot.addEventListener('touchstart', e => {
-        e.preventDefault();
-        _pairDragSrc = slot;
-        slot.classList.add('dragging');
-        _createPairGhost(slot, e.touches[0]);
-      }, { passive: false });
+        const touch = e.touches[0];
+        _longPressStartX = touch.clientX;
+        _longPressStartY = touch.clientY;
+        _longPressDragActive = false;
+        slot.classList.add('long-press-hold');
+
+        _longPressTimer = setTimeout(() => {
+          _longPressDragActive = true;
+          _pairDragSrc = slot;
+          slot.classList.remove('long-press-hold');
+          slot.classList.add('dragging');
+          _createPairGhost(slot, touch);
+          if (navigator.vibrate) navigator.vibrate(30);
+        }, LONG_PRESS_DELAY);
+      }, { passive: true });
 
       slot.addEventListener('touchmove', e => {
+        const touch = e.touches[0];
+        if (!_longPressDragActive) {
+          const dx = Math.abs(touch.clientX - _longPressStartX);
+          const dy = Math.abs(touch.clientY - _longPressStartY);
+          if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+            clearTimeout(_longPressTimer);
+            _longPressTimer = null;
+            slot.classList.remove('long-press-hold');
+          }
+          return;
+        }
         e.preventDefault();
-        _movePairGhost(e.touches[0]);
-        const target = _slotFromTouch(e.touches[0]);
+        _movePairGhost(touch);
+        const target = _slotFromTouch(touch);
         document.querySelectorAll('.pairing-dnd-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
         if (target && target !== slot) target.classList.add('drag-over');
       }, { passive: false });
 
       slot.addEventListener('touchend', e => {
+        clearTimeout(_longPressTimer);
+        _longPressTimer = null;
+        slot.classList.remove('long-press-hold');
+        if (!_longPressDragActive) return;
         e.preventDefault();
         const touch = e.changedTouches[0];
         _removePairGhost();
@@ -2489,7 +2525,21 @@ function _initPairingDnD(t) {
         const target = _slotFromTouch(touch);
         if (target && target !== slot) _doSeatSwap(t, slot, target);
         _pairDragSrc = null;
+        _longPressDragActive = false;
       }, { passive: false });
+
+      slot.addEventListener('touchcancel', () => {
+        clearTimeout(_longPressTimer);
+        _longPressTimer = null;
+        slot.classList.remove('long-press-hold');
+        if (_longPressDragActive) {
+          _removePairGhost();
+          slot.classList.remove('dragging');
+          document.querySelectorAll('.pairing-dnd-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+        }
+        _longPressDragActive = false;
+        _pairDragSrc = null;
+      });
     }
   });
 }
