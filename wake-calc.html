@@ -680,11 +680,8 @@
     document.getElementById('bd-total').textContent     = totalBack + '분';
 
     // 결과 화면 전환
-    const cur = document.getElementById(`step-${curStep}`);
-    cur.classList.remove('active');
-    cur.classList.add('leaving');
-    setTimeout(() => cur.classList.remove('leaving'), 400);
-    document.getElementById('step-result').classList.add('active');
+    hideStep(document.getElementById(`step-${curStep}`));
+    showStep(document.getElementById('step-result'), false);
     curStep = 0;
     document.getElementById('progress-fill').style.width = '100%';
     document.getElementById('step-cur').textContent = TOTAL_STEPS;
