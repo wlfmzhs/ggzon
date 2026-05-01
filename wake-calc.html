@@ -396,12 +396,15 @@
     badge.textContent = '이동시간 계산 중...';
     badge.style.color = 'rgba(255,255,255,0.4)';
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${originLocation.longitude},${originLocation.latitude};${destLocation.longitude},${destLocation.latitude}?overview=false`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      const orig = `${originLocation.latitude},${originLocation.longitude}`;
+      const dest = `${destLocation.latitude},${destLocation.longitude}`;
+      const url  = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${orig}&destinations=${dest}&mode=driving&language=ko&key=${MAPS_KEY}`;
+      const res  = await fetch(url, { signal: AbortSignal.timeout(6000) });
       const data = await res.json();
-      if (data.code === 'Ok' && data.routes && data.routes[0]) {
-        const mins = Math.ceil(data.routes[0].duration / 60);
-        const km   = (data.routes[0].distance / 1000).toFixed(1);
+      const elem = data.rows?.[0]?.elements?.[0];
+      if (elem && elem.status === 'OK') {
+        const mins = Math.ceil(elem.duration.value / 60);
+        const km   = (elem.distance.value / 1000).toFixed(1);
         const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
         document.getElementById('calc-travel').value = mins;
         badge.textContent = `자동 계산: 약 ${hStr} (${km}km)`;
@@ -409,12 +412,12 @@
         return;
       }
     } catch(_) {}
-    // OSRM 실패 시 Haversine 추정
+    // API 실패 시 Haversine 추정
     const roadKm = haversineKm(originLocation, destLocation) * 1.4;
     const mins   = Math.ceil(roadKm / 80 * 60);
     const hStr   = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
     document.getElementById('calc-travel').value = mins;
-    badge.textContent = `예상 이동시간: 약 ${hStr} (도로거리 약 ${roadKm.toFixed(1)}km)`;
+    badge.textContent = `예상 이동시간: 약 ${hStr} (추정 도로거리 약 ${roadKm.toFixed(1)}km)`;
     badge.style.color = 'rgba(255,200,60,0.85)';
   }
 
