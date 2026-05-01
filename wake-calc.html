@@ -261,14 +261,23 @@
     .bd-item:last-child { border-right: none; }
     .bd-val { font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 4px; }
     .bd-key { font-size: 10px; color: rgba(255,255,255,0.35); }
+    .result-btns { display: flex; gap: 10px; }
     .retry-btn {
-      width: 100%; padding: 16px;
+      flex: 1; padding: 16px;
       background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7);
       font-size: 15px; font-weight: 700;
       border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
       cursor: pointer; font-family: inherit;
     }
     .retry-btn:active { background: rgba(255,255,255,0.1); }
+    .home-btn {
+      flex: 1; padding: 16px;
+      background: rgba(62,160,102,0.15); color: var(--green-light);
+      font-size: 15px; font-weight: 700;
+      border: 1px solid rgba(62,160,102,0.3); border-radius: 14px;
+      cursor: pointer; font-family: inherit;
+    }
+    .home-btn:active { background: rgba(62,160,102,0.25); }
 
     /* ── 저장된 출발지 칩 ── */
     .saved-chips { display: flex; gap: 10px; margin-bottom: 16px; }
@@ -500,7 +509,10 @@
         </div>
       </div>
       <div class="step-footer">
-        <button class="retry-btn" onclick="restart()">다시 계산하기</button>
+        <div class="result-btns">
+          <button class="retry-btn" onclick="restart()">다시 계산하기</button>
+          <button class="home-btn" onclick="location.href='dashboard.html'">홈으로</button>
+        </div>
       </div>
     </div>
 
