@@ -67,21 +67,21 @@
     .appbar-left .arrow { font-size: 13px; color: var(--green-light); }
     .appbar-right { display: flex; gap: 14px; }
     .appbar-right button { background: none; border: none; cursor: pointer; padding: 4px; color: rgba(255,255,255,0.6); line-height: 0; }
-    .top-tabs {
+    /* ── 하단 탭바 ── */
+    .bottom-nav {
       flex-shrink: 0; display: flex; align-items: center;
-      padding: 0 4px; border-bottom: 1px solid var(--border);
-      overflow-x: auto; scrollbar-width: none;
+      background: rgba(6,22,4,0.97);
+      border-top: 1px solid rgba(62,160,102,0.18);
+      padding-bottom: env(safe-area-inset-bottom, 0);
     }
-    .top-tabs::-webkit-scrollbar { display: none; }
-    .top-tab {
-      flex-shrink: 0; padding: 10px 14px;
-      font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4);
+    .bnav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; padding: 10px 0 12px;
       border: none; background: none; cursor: pointer; font-family: inherit;
-      border-bottom: 2px solid transparent; white-space: nowrap;
+      color: rgba(255,255,255,0.3); transition: color 0.15s;
     }
-    .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
-    .ggcup-tab { color: #f0c040 !important; }
-    .ggcup-tab.active { border-bottom-color: #f0c040; }
+    .bnav-item.active { color: var(--green-light); }
+    .bnav-item span { font-size: 10px; font-weight: 700; letter-spacing: -0.2px; }
     @keyframes goldGlow {
       0%, 100% { box-shadow: 0 0 6px rgba(240,192,64,0.5), 0 0 12px rgba(240,192,64,0.2); }
       50% { box-shadow: 0 0 14px rgba(240,192,64,0.9), 0 0 28px rgba(240,192,64,0.4); }
@@ -432,15 +432,6 @@
     </div>
   </div>
 
-  <div class="top-tabs">
-    <button class="top-tab active">홈</button>
-    <button class="top-tab" onclick="checkPaidAndGo('event.html')">단체라운드 대회</button>
-    <button class="top-tab" onclick="checkPaidAndGo('join.html')">조인</button>
-    <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
-    <button class="top-tab" onclick="showToast('준비 중입니다')">구독자라운드</button>
-    <button class="top-tab" onclick="location.href='round-map.html'">라운드지도</button>
-    <button class="top-tab" onclick="showToast('준비 중입니다')">쇼핑</button>
-  </div>
 
   <div class="content">
     <div class="content-inner-pad">
@@ -611,7 +602,27 @@
     </div><!-- /content-inner-pad -->
   </div>
 
-  <div id="toast" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.95);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:300;"></div>
+  <div id="toast" style="position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.95);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:300;"></div>
+
+  <!-- 하단 탭바 -->
+  <div class="bottom-nav">
+    <button class="bnav-item active">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="bnav-item" onclick="checkPaidAndGo('event.html')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/></svg>
+      <span>대회</span>
+    </button>
+    <button class="bnav-item" onclick="checkPaidAndGo('join.html')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      <span>조인</span>
+    </button>
+    <button class="bnav-item" onclick="location.href='my.html'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span>내 정보</span>
+    </button>
+  </div>
 
 </div>
 <script>
@@ -817,12 +828,6 @@
     window.location.href = 'index.html';
   });
 
-  document.querySelectorAll('.top-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.top-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
 
   /* 배너 드래그 스크롤 */
   (function () {
