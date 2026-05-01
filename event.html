@@ -1276,7 +1276,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
   onSnapshot, query, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -1955,6 +1955,18 @@ window.submitRegistration = async function() {
 
     document.getElementById('sheet-register').classList.remove('open');
     showToast('신청이 완료되었습니다!');
+
+    // GG POINT 대회 참여 30pts 적립
+    try {
+      const now = new Date().toISOString();
+      await updateDoc(doc(db, 'users', currentUser.uid), { totalPoints: increment(30) });
+      await addDoc(collection(db, 'pointHistory'), {
+        uid: currentUser.uid, name,
+        type: '대회참여', amount: 30,
+        ref: currentTournament.name || '대회',
+        date: now
+      });
+    } catch(_) {}
   } catch (e) {
     console.error(e);
     showToast('오류가 발생했습니다. 다시 시도해주세요');
