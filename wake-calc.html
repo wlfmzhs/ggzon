@@ -396,40 +396,24 @@
     badge.textContent = '이동시간 계산 중...';
     badge.style.color = 'rgba(255,255,255,0.4)';
     try {
-      const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': MAPS_KEY,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
-        },
-        body: JSON.stringify({
-          origin:      { location: { latLng: { latitude: originLocation.latitude, longitude: originLocation.longitude } } },
-          destination: { location: { latLng: { latitude: destLocation.latitude,   longitude: destLocation.longitude   } } },
-          travelMode: 'DRIVE'
-        }),
-        signal: AbortSignal.timeout(6000)
-      });
+      const orig = `${originLocation.latitude},${originLocation.longitude}`;
+      const dest = `${destLocation.latitude},${destLocation.longitude}`;
+      const url  = `https://maps.googleapis.com/maps/api/directions/json?origin=${orig}&destination=${dest}&mode=driving&language=ko&key=${MAPS_KEY}`;
+      const res  = await fetch(url, { signal: AbortSignal.timeout(8000) });
       const data = await res.json();
-      const route = data.routes?.[0];
-      if (route) {
-        const mins = Math.ceil(parseInt(route.duration) / 60);
-        const km   = (route.distanceMeters / 1000).toFixed(1);
+      const leg  = data.routes?.[0]?.legs?.[0];
+      if (leg) {
+        const mins = Math.ceil(leg.duration.value / 60);
+        const km   = (leg.distance.value / 1000).toFixed(1);
         const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
         document.getElementById('calc-travel').value = mins;
-        badge.textContent = `자동 계산 (자동차): 약 ${hStr} (${km}km)`;
+        badge.textContent = `자동 계산 (실제 도로): 약 ${hStr} (${km}km)`;
         badge.style.color = 'var(--green-light)';
         return;
       }
     } catch(_) {}
-    // API 실패 시 직선거리 기반 추정
-    const straightKm = haversineKm(originLocation, destLocation);
-    const roadKm     = straightKm * 1.4;
-    const mins       = Math.ceil(roadKm / 80 * 60);
-    const hStr       = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
-    document.getElementById('calc-travel').value = mins;
-    badge.textContent = `추정 이동시간 (자동차 기준): 약 ${hStr} — 직선 ${straightKm.toFixed(1)}km 기준 추정치`;
-    badge.style.color = 'rgba(255,200,60,0.85)';
+    badge.textContent = '이동시간 자동 계산 실패 — 직접 입력해 주세요';
+    badge.style.color = '#f87171';
   }
 
   // 현재 위치
