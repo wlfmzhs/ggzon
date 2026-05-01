@@ -9,6 +9,7 @@
     })(window, document, "clarity", "script", "wgn7dwi9ex");
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAXV5rH2xNgeYAki_6HkFqTb3pMftHCtpU&callback=initMapsLib&libraries=routes&loading=async"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -429,25 +430,30 @@
   });
 
   // ── 스텝 이동 ─────────────────────────────
+  function animateIn(el, fromLeft) {
+    // 1) 클래스 완전 초기화
+    el.classList.remove('active', 'leaving');
+    el.style.cssText = `transform:translateX(${fromLeft ? '-30%' : '100%'});opacity:0;transition:none;`;
+    // 2) reflow → 초기 위치 확정
+    void el.offsetWidth;
+    // 3) 인라인 스타일 제거 → CSS transition 발동
+    el.style.cssText = '';
+    el.classList.add('active');
+  }
+
+  function animateOut(el, toLeft) {
+    el.classList.remove('active');
+    el.style.cssText = `transform:translateX(${toLeft ? '-25%' : '100%'});opacity:0;`;
+    setTimeout(() => { el.style.cssText = ''; }, 400);
+  }
+
   function goStep(next, isBack = false) {
-    const cur = document.getElementById(`step-${curStep === 0 ? 'result' : curStep}`);
-    const nxt = document.getElementById(`step-${next === 0 ? 'result' : next}`);
-    cur.classList.remove('active');
-    cur.classList.add('leaving');
-    setTimeout(() => cur.classList.remove('leaving'), 400);
-    if (isBack) {
-      nxt.style.transition = 'none';
-      nxt.style.transform = 'translateX(-25%)';
-      nxt.style.opacity = '0';
-      requestAnimationFrame(() => {
-        nxt.style.transition = '';
-        nxt.style.transform = '';
-        nxt.style.opacity = '';
-        nxt.classList.add('active');
-      });
-    } else {
-      nxt.classList.add('active');
-    }
+    const curEl = document.getElementById(curStep === 0 ? 'step-result' : `step-${curStep}`);
+    const nxtEl = document.getElementById(next === 0 ? 'step-result' : `step-${next}`);
+
+    animateOut(curEl, !isBack);
+    animateIn(nxtEl, isBack);
+
     curStep = next;
     updateProgress();
 
@@ -464,21 +470,9 @@
   }
 
   function restart() {
-    const result = document.getElementById('step-result');
-    result.classList.remove('active');
-    result.classList.add('leaving');
-    setTimeout(() => result.classList.remove('leaving'), 400);
+    animateOut(document.getElementById('step-result'), false);
     curStep = 1;
-    const s1 = document.getElementById('step-1');
-    s1.style.transition = 'none';
-    s1.style.transform = 'translateX(-25%)';
-    s1.style.opacity = '0';
-    requestAnimationFrame(() => {
-      s1.style.transition = '';
-      s1.style.transform = '';
-      s1.style.opacity = '';
-      s1.classList.add('active');
-    });
+    animateIn(document.getElementById('step-1'), true);
     updateProgress();
   }
 
@@ -698,32 +692,50 @@
     } catch(_) {}
   }
 
-  // ── 거리 계산 (Directions API) ───────────
-  async function calcDistance() {
+  // ── 거리 계산 (Maps JS DistanceMatrixService) ─
+  function calcDistance() {
     if (!originLocation || !destLocation) return;
-    const el   = document.getElementById('travel-result');
+    const el = document.getElementById('travel-result');
     el.className = 'travel-result loading';
     el.innerHTML = '<div class="spinner-sm"></div><span>이동시간 계산 중...</span>';
-    try {
-      const orig = `${originLocation.latitude},${originLocation.longitude}`;
-      const dest = `${destLocation.latitude},${destLocation.longitude}`;
-      const url  = `https://maps.googleapis.com/maps/api/directions/json?origin=${orig}&destination=${dest}&mode=driving&language=ko&key=${MAPS_KEY}`;
-      const res  = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      const data = await res.json();
-      const leg  = data.routes?.[0]?.legs?.[0];
-      if (leg) {
-        const mins = Math.ceil(leg.duration.value / 60);
-        const km   = (leg.distance.value / 1000).toFixed(1);
-        const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
-        document.getElementById('calc-travel').value = mins;
-        el.className = 'travel-result ok';
-        el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 실제 도로 기준 약 ${hStr} (${km}km)`;
-        return;
-      }
-    } catch(_) {}
-    el.className = 'travel-result fail';
-    el.innerHTML = '자동 계산 실패 — 아래에서 직접 입력해 주세요';
+
+    function run() {
+      const svc = new google.maps.DistanceMatrixService();
+      svc.getDistanceMatrix({
+        origins:      [{ lat: originLocation.latitude, lng: originLocation.longitude }],
+        destinations: [{ lat: destLocation.latitude,   lng: destLocation.longitude   }],
+        travelMode:   google.maps.TravelMode.DRIVING,
+        unitSystem:   google.maps.UnitSystem.METRIC,
+      }, (res, status) => {
+        const elem = res?.rows?.[0]?.elements?.[0];
+        if (status === 'OK' && elem?.status === 'OK') {
+          const mins = Math.ceil(elem.duration.value / 60);
+          const km   = (elem.distance.value / 1000).toFixed(1);
+          const hStr = mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`;
+          document.getElementById('calc-travel').value = mins;
+          el.className = 'travel-result ok';
+          el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 실제 도로 기준 약 ${hStr} (${km}km)`;
+        } else {
+          el.className = 'travel-result fail';
+          el.innerHTML = '자동 계산 실패 — 아래에서 직접 입력해 주세요';
+        }
+      });
+    }
+
+    if (window.google?.maps?.DistanceMatrixService) {
+      run();
+    } else {
+      window._calcDistancePending = true;
+      el.innerHTML = '<div class="spinner-sm"></div><span>지도 로딩 중...</span>';
+    }
   }
+
+  window.initMapsLib = function() {
+    if (window._calcDistancePending) {
+      window._calcDistancePending = false;
+      calcDistance();
+    }
+  };
 
   // ── GPS ───────────────────────────────────
   document.getElementById('btn-gps').addEventListener('click', () => {
