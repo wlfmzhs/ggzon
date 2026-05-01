@@ -9,7 +9,7 @@
     })(window, document, "clarity", "script", "wgn7dwi9ex");
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
-<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAXV5rH2xNgeYAki_6HkFqTb3pMftHCtpU&callback=initMapsLib&libraries=routes&loading=async"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAXV5rH2xNgeYAki_6HkFqTb3pMftHCtpU&callback=initMapsLib"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -774,14 +774,14 @@
     } catch(_) {}
   }
 
-  // ── 거리 계산 (Maps JS DistanceMatrixService) ─
+  // ── 거리 계산 ─────────────────────────────
   function calcDistance() {
     if (!originLocation || !destLocation) return;
     const el = document.getElementById('travel-result');
     el.className = 'travel-result loading';
     el.innerHTML = '<div class="spinner-sm"></div><span>이동시간 계산 중...</span>';
 
-    function run() {
+    function runDM() {
       const svc = new google.maps.DistanceMatrixService();
       svc.getDistanceMatrix({
         origins:      [{ lat: originLocation.latitude, lng: originLocation.longitude }],
@@ -799,16 +799,16 @@
           el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 실제 도로 기준 약 ${hStr} (${km}km)`;
         } else {
           el.className = 'travel-result fail';
-          el.innerHTML = '자동 계산 실패 — 아래에서 직접 입력해 주세요';
+          el.innerHTML = `계산 실패 [${status}/${elem?.status||'?'}] — 직접 입력해 주세요`;
         }
       });
     }
 
     if (window.google?.maps?.DistanceMatrixService) {
-      run();
+      runDM();
     } else {
       window._calcDistancePending = true;
-      el.innerHTML = '<div class="spinner-sm"></div><span>지도 로딩 중...</span>';
+      el.innerHTML = '<div class="spinner-sm"></div><span>지도 라이브러리 로딩 중...</span>';
     }
   }
 
