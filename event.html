@@ -513,16 +513,20 @@
       flex: 1; text-align: center; font-size: 10px; font-weight: 900;
       padding: 3px 0; border-radius: 6px; letter-spacing: 0.5px;
     }
-    .bw-team-label.heuk { background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.15); }
-    .bw-team-label.baek { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.35); }
+    .bw-team-label.heuk { background: #000; color: #fff; border: none; }
+    .bw-team-label.baek { background: #fff; color: #000; border: none; }
     /* 좌석 흑 */
-    .seat.heuk.available { background: rgba(20,20,20,0.6); border-color: rgba(200,200,200,0.25); }
-    .seat.heuk.taken     { background: rgba(30,30,30,0.8); border-color: rgba(180,180,180,0.2); }
-    .seat.heuk.selected  { background: rgba(60,60,60,0.9); border-color: rgba(255,255,255,0.5); }
+    .seat.heuk.available { background: #111; border-color: rgba(255,255,255,0.18); }
+    .seat.heuk.taken     { background: #111; border-color: rgba(255,255,255,0.12); }
+    .seat.heuk.selected  { background: #333; border-color: rgba(255,255,255,0.6); }
+    .seat.heuk.mine      { background: #111; }
     /* 좌석 백 */
-    .seat.baek.available { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.35); }
-    .seat.baek.taken     { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
-    .seat.baek.selected  { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); }
+    .seat.baek.available { background: #fff; border-color: rgba(0,0,0,0.15); }
+    .seat.baek.taken     { background: #f0f0f0; border-color: rgba(0,0,0,0.12); }
+    .seat.baek.selected  { background: #e0e0e0; border-color: rgba(0,0,0,0.4); }
+    .seat.baek.mine      { background: #fff; }
+    .seat.baek .seat-name { color: #111; }
+    .seat.baek.taken svg { stroke: rgba(0,0,0,0.35); }
     /* 파이어링 흑 */
     .pairing-dnd-slot.heuk { background: rgba(20,20,20,0.7) !important; border-color: rgba(200,200,200,0.3) !important; }
     .pairing-dnd-slot.baek { background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.45) !important; }
@@ -1753,8 +1757,8 @@ function renderSeatGrid(t, registrations, _courseIdx) {
     const isBW = t.tournamentType === 'black-white';
     allHtml += `<div class="course-section-label">${courseNames[ci]}</div>`;
     if (isBW) allHtml += `<div class="bw-team-header">
-      <div class="bw-team-label heuk" style="flex:2">⬛ 흑팀</div>
-      <div class="bw-team-label baek" style="flex:2">⬜ 백팀</div>
+      <div class="bw-team-label heuk" style="flex:2">흑팀</div>
+      <div class="bw-team-label baek" style="flex:2">백팀</div>
     </div>`;
     allHtml += `<div class="seat-grid-header">
       <span class="seat-col-label"${isBW?' style="color:rgba(255,255,255,0.5)"':''}>A</span>
