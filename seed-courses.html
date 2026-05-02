@@ -2,44 +2,34 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#2d7a4f" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="GGZON" />
-  <link rel="apple-touch-icon" href="/image/icon-512.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>골프장 DB 임포트</title>
   <style>
-    body { font-family: sans-serif; background: #111; color: #fff; padding: 30px; max-width: 480px; margin: 0 auto; }
-    h2 { color: #3ea066; margin-bottom: 20px; }
-    .course-block { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; margin-bottom: 12px; font-size: 13px; }
-    .course-name { font-weight: 700; color: #f0c040; margin-bottom: 6px; }
-    .par-list { color: rgba(255,255,255,0.6); }
-    button {
-      width: 100%; padding: 14px; border-radius: 12px;
-      background: #3ea066; color: #fff; border: none;
-      font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 20px;
-    }
+    body { font-family: sans-serif; background: #111; color: #fff; padding: 20px; max-width: 520px; margin: 0 auto; }
+    h2 { color: #3ea066; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 20px; }
+    .count-badge { display: inline-block; background: rgba(62,160,102,0.2); color: #3ea066; border: 1px solid rgba(62,160,102,0.4); border-radius: 20px; font-size: 12px; font-weight: 700; padding: 3px 12px; margin-bottom: 16px; }
+    .course-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .course-chip { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 4px 10px; font-size: 12px; color: rgba(255,255,255,0.7); }
+    .course-chip.has-nine { border-color: rgba(62,160,102,0.4); color: #3ea066; }
+    button { width: 100%; padding: 14px; border-radius: 12px; background: #3ea066; color: #fff; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
     button:disabled { background: #555; cursor: default; }
     #log { margin-top: 20px; font-size: 13px; line-height: 1.8; color: #aaa; }
     .ok  { color: #3ea066; }
     .err { color: #e74c3c; }
+    .progress { margin-top: 10px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+    .progress-bar { height: 100%; background: #3ea066; border-radius: 3px; transition: width 0.3s; width: 0%; }
   </style>
 </head>
 <body>
   <h2>골프장 DB 임포트</h2>
+  <div class="sub">라운드 지도의 모든 골프장을 Firestore courses 컬렉션에 등록합니다.<br>이미 등록된 골프장은 덮어쓰지 않습니다 (merge).</div>
 
-  <div class="course-block">
-    <div class="course-name">용원CC</div>
-    <div class="par-list">
-      백로: 4-4-3-5-3-5-4-4-4<br>
-      백구: 4-4-3-5-4-3-5-4-4<br>
-      무학: 4-5-4-3-4-5-3-4-4
-    </div>
-  </div>
+  <div class="count-badge" id="count-badge">총 0개 골프장</div>
+  <div class="course-list" id="course-list"></div>
 
   <button id="btn-import" onclick="runImport()">Firestore에 임포트</button>
+  <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
   <div id="log"></div>
 
 <script type="module">
@@ -58,17 +48,114 @@ const app = initializeApp({
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-const COURSES_DATA = [
-  {
-    id: "용원CC",
-    name: "용원CC",
-    nineHoles: {
-      "백로": [4,4,3,5,3,5,4,4,4],
-      "백구": [4,4,3,5,4,3,5,4,4],
-      "무학": [4,5,4,3,4,5,3,4,4],
-    }
+// 9홀 파 데이터가 있는 골프장 (추후 추가 가능)
+const NINE_HOLES = {
+  "용원CC": {
+    "백로": [4,4,3,5,3,5,4,4,4],
+    "백구": [4,4,3,5,4,3,5,4,4],
+    "무학": [4,5,4,3,4,5,3,4,4],
   }
+};
+
+// 라운드 지도 전체 골프장 목록
+const ALL_COURSES = [
+  // 부산
+  { name: '부산CC',             region: '부산', city: '금정구' },
+  { name: '동래베네스트CC',      region: '부산', city: '금정구' },
+  { name: '아시아드CC',          region: '부산', city: '기장군' },
+  { name: '스톤게이트CC',        region: '부산', city: '기장군' },
+  { name: '해운대CC',            region: '부산', city: '해운대구' },
+  { name: '해운대비치GC',        region: '부산', city: '해운대구' },
+  { name: '베이사이드CC',        region: '부산', city: '기장군' },
+  // 경남 - 양산
+  { name: '양산동원로얄CC',      region: '경남', city: '양산' },
+  { name: '양산CC',              region: '경남', city: '양산' },
+  { name: '다이아몬드CC',        region: '경남', city: '양산' },
+  { name: '통영동원로얄CC',      region: '경남', city: '통영' },
+  { name: '드비치CC',            region: '경남', city: '거제' },
+  { name: '에이원CC',            region: '경남', city: '양산' },
+  { name: '동부산CC',            region: '경남', city: '양산' },
+  { name: '통도파인이스트CC',    region: '경남', city: '양산' },
+  // 경남 - 창원/진해
+  { name: '용원CC',              region: '경남', city: '창원' },
+  { name: '진주CC',              region: '경남', city: '진주' },
+  { name: '창원CC',              region: '경남', city: '창원' },
+  { name: '진해신항CC',          region: '경남', city: '창원' },
+  // 경남 - 김해
+  { name: '가야CC',              region: '경남', city: '김해' },
+  { name: '김해상록GC',          region: '경남', city: '김해' },
+  { name: '포웰CC',              region: '경남', city: '김해' },
+  { name: '가야퍼블릭GC',        region: '경남', city: '김해' },
+  // 경남 - 기타
+  { name: '골프존카운티 경남',   region: '경남', city: '함안' },
+  { name: '골프존카운티 사천',   region: '경남', city: '사천' },
+  { name: '타니CC',              region: '경남', city: '사천' },
+  { name: '해라CC',              region: '경남', city: '고성' },
+  { name: '고성CC',              region: '경남', city: '고성' },
+  { name: '고성노벨CC',          region: '경남', city: '고성' },
+  { name: '리더스CC',            region: '경남', city: '밀양' },
+  { name: '밀양노벨CC',          region: '경남', city: '밀양' },
+  { name: '사우스케이프CC',      region: '경남', city: '남해' },
+  { name: '아난티 남해CC',       region: '경남', city: '남해' },
+  { name: '힐마루CC',            region: '경남', city: '창녕' },
+  { name: '부곡CC',              region: '경남', city: '창녕' },
+  { name: '거창CC',              region: '경남', city: '거창' },
+  { name: '정산CC',              region: '경남', city: '경남' },
+  { name: '골드그린CC',          region: '경남', city: '경남' },
+  { name: '리온CC',              region: '경남', city: '의령' },
+  { name: '아델스코트CC',        region: '경남', city: '경남' },
+  // 울산
+  { name: '울산CC',              region: '울산', city: '울주군' },
+  { name: '보라CC',              region: '울산', city: '울주군' },
+  { name: '더골프클럽',          region: '울산', city: '울주군' },
+  { name: '오르비스GC',          region: '울산', city: '울주군' },
+  { name: '베이스타즈CC',        region: '울산', city: '북구' },
+  // 경북
+  { name: '보문CC',              region: '경북', city: '경주' },
+  { name: '경주CC',              region: '경북', city: '경주' },
+  { name: '강동다이너스CC',      region: '경북', city: '경주' },
+  { name: '힐스카이CC',          region: '경북', city: '경주' },
+  { name: '감포CC',              region: '경북', city: '경주' },
+  { name: '서라벌CC',            region: '경북', city: '경주' },
+  { name: '청도오션힐스CC',      region: '경북', city: '청도' },
+  { name: '블루원상주CC',        region: '경북', city: '상주' },
+  { name: '이지스카이CC',        region: '대구', city: '군위' },
+  { name: '고령오펠GC',          region: '경북', city: '고령' },
+  { name: '포도CC',              region: '경북', city: '김천' },
+  { name: '선산CC',              region: '경북', city: '구미' },
+  // 충북
+  { name: '속리산CC',            region: '충북', city: '보은' },
+  // 전북
+  { name: '군산CC',              region: '전북', city: '군산' },
+  // 제주
+  { name: '테디밸리CC',          region: '제주', city: '제주' },
+  // 전남
+  { name: '골프존카운티 순천',   region: '전남', city: '순천' },
+  { name: '파인비치CC',          region: '전남', city: '전남' },
+  { name: '솔라시도CC',          region: '전남', city: '해남' },
+  { name: '파인힐스CC',          region: '전남', city: '전남' },
+  { name: '포라이즌CC',          region: '전남', city: '전남' },
+  { name: 'JNJ CC',              region: '전남', city: '전남' },
+  // 해외 - 일본
+  { name: '후쿠오카 클래식GC',   region: '일본', city: '후쿠오카' },
+  { name: '더 레이크스GC',       region: '일본', city: '후쿠오카' },
+  { name: '벳부CC',              region: '일본', city: '오이타' },
+  // 해외 - 베트남
+  { name: 'BRG Da Nang GC',      region: '베트남', city: '다낭' },
+  { name: 'Ba Na Hills GC',      region: '베트남', city: '다낭' },
+  { name: '몽고메리 링크스',     region: '베트남', city: '다낭' },
 ];
+
+// 미리보기 렌더링
+document.getElementById('count-badge').textContent = `총 ${ALL_COURSES.length}개 골프장`;
+const listEl = document.getElementById('course-list');
+ALL_COURSES.forEach(c => {
+  const chip = document.createElement('span');
+  chip.className = 'course-chip' + (NINE_HOLES[c.name] ? ' has-nine' : '');
+  chip.textContent = c.name;
+  chip.title = `${c.region} ${c.city}`;
+  listEl.appendChild(chip);
+});
 
 function log(msg, cls) {
   const el = document.getElementById('log');
@@ -86,23 +173,31 @@ onAuthStateChanged(auth, user => {
 
 window.runImport = async function() {
   const btn = document.getElementById('btn-import');
+  const bar = document.getElementById('progress-bar');
   btn.disabled = true;
   btn.textContent = '임포트 중...';
 
-  for (const course of COURSES_DATA) {
+  let done = 0;
+  for (const course of ALL_COURSES) {
     try {
-      await setDoc(doc(db, 'courses', course.id), {
+      const data = {
         name: course.name,
-        nineHoles: course.nineHoles
-      }, { merge: true });
-      const courseNames = Object.keys(course.nineHoles).join(', ');
-      log(`완료: ${course.name} (${courseNames})`, 'ok');
+        region: course.region,
+        city: course.city,
+      };
+      if (NINE_HOLES[course.name]) {
+        data.nineHoles = NINE_HOLES[course.name];
+      }
+      await setDoc(doc(db, 'courses', course.name), data, { merge: true });
+      done++;
+      bar.style.width = `${Math.round(done / ALL_COURSES.length * 100)}%`;
+      log(`${done}. ${course.name} (${course.region} ${course.city})`, 'ok');
     } catch(e) {
       log(`실패: ${course.name} — ${e.message}`, 'err');
     }
   }
 
-  btn.textContent = '임포트 완료';
+  btn.textContent = `임포트 완료 (${done}/${ALL_COURSES.length}개)`;
   log('--- 완료 ---', 'ok');
 };
 </script>

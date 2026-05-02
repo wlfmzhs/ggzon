@@ -755,9 +755,13 @@ function setupCourseAC() {
     if (!q) { list.style.display = 'none'; return; }
     const hits = allCoursesDocs.filter(c => (c.name || c.id).includes(q)).slice(0, 7);
     if (!hits.length) { list.style.display = 'none'; return; }
-    list.innerHTML = hits.map(c =>
-      `<div class="ac-item" onmousedown="window._selectCourse('${c.id}')">${c.name || c.id}</div>`
-    ).join('');
+    list.innerHTML = hits.map(c => {
+      const sub = [c.region, c.city].filter(Boolean).join(' ');
+      return `<div class="ac-item" onmousedown="window._selectCourse('${c.id}')">
+        <span style="font-weight:800;">${c.name || c.id}</span>
+        ${sub ? `<span style="font-size:11px;color:rgba(255,255,255,0.35);margin-left:6px;">${sub}</span>` : ''}
+      </div>`;
+    }).join('');
     list.style.display = 'block';
   });
   inp.addEventListener('blur', () => setTimeout(() => list.style.display = 'none', 200));
