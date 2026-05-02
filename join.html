@@ -666,34 +666,34 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- 개인정보 동의 모달 -->
-  <div id="consent-modal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;" class="bottom-modal">
-    <div id="consent-sheet" style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;transition:transform 0.25s ease;">
-      <div style="font-size:16px;font-weight:900;margin-bottom:16px;">개인정보 제공 동의</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:20px;background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;">
-        라운드 진행을 위해 <b style="color:rgba(255,255,255,0.85);">연락처(전화번호)</b>가 주최자 및 관리자에게 공유될 수 있습니다.
-      </div>
-      <div style="margin-bottom:20px;">
-        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:8px;">연락처 *</div>
-        <input id="consent-phone" type="tel" placeholder="010-0000-0000"
-          style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
-      </div>
-      <button onclick="window.confirmConsent()" style="width:100%;padding:14px;border-radius:12px;background:#3ea066;color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;">동의하고 참여하기</button>
-      <button onclick="window.cancelConsent()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
-    </div>
-  </div>
+</div>
 
-  <!-- 참여자 정보 모달 (어드민/주최자용) -->
-  <div id="participant-info-modal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;" class="bottom-modal">
-    <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 40px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <div style="font-size:16px;font-weight:900;">참여자 정보</div>
-        <button onclick="window.closeParticipantModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:22px;cursor:pointer;line-height:1;">×</button>
-      </div>
-      <div id="participant-info-content"></div>
+<!-- 개인정보 동의 모달 - .phone 밖 position:fixed (키보드 대응) -->
+<div id="consent-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:flex-end;" class="bottom-modal">
+  <div id="consent-sheet" style="width:100%;max-width:390px;margin:0 auto;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;transition:transform 0.2s ease;">
+    <div style="font-size:16px;font-weight:900;margin-bottom:16px;">개인정보 제공 동의</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:20px;background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;">
+      라운드 진행을 위해 <b style="color:rgba(255,255,255,0.85);">연락처(전화번호)</b>가 주최자 및 관리자에게 공유될 수 있습니다.
     </div>
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:8px;">연락처 *</div>
+      <input id="consent-phone" type="tel" placeholder="010-0000-0000"
+        style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
+    </div>
+    <button onclick="window.confirmConsent()" style="width:100%;padding:14px;border-radius:12px;background:#3ea066;color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;">동의하고 참여하기</button>
+    <button onclick="window.cancelConsent()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
   </div>
+</div>
 
+<!-- 참여자 정보 모달 (어드민/주최자용) -->
+<div id="participant-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:flex-end;" class="bottom-modal">
+  <div style="width:100%;max-width:390px;margin:0 auto;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-size:16px;font-weight:900;">참여자 정보</div>
+      <button onclick="window.closeParticipantModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:22px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div id="participant-info-content"></div>
+  </div>
 </div>
 
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
@@ -1489,25 +1489,34 @@ function showToast(msg) {
 })();
 
 // 전화번호 입력 시 키보드가 입력창 가리는 문제 방지
+// consent-modal이 position:fixed(phone 밖)이라 visualViewport 기준으로 정확히 계산됨
 (function() {
   const sheet = document.getElementById('consent-sheet');
   const phoneInput = document.getElementById('consent-phone');
-  if (!sheet || !phoneInput || !window.visualViewport) return;
+  if (!sheet || !phoneInput) return;
 
   function onVPResize() {
-    const kb = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+    const kb = window.visualViewport
+      ? Math.max(0, window.innerHeight - window.visualViewport.height)
+      : 0;
     sheet.style.transform = kb > 0 ? `translateY(-${kb}px)` : '';
   }
 
   phoneInput.addEventListener('focus', () => {
-    window.visualViewport.addEventListener('resize', onVPResize);
-    window.visualViewport.addEventListener('scroll', onVPResize);
-    setTimeout(onVPResize, 50);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onVPResize);
+    } else {
+      window.addEventListener('resize', onVPResize);
+    }
+    setTimeout(onVPResize, 100);
   });
 
   phoneInput.addEventListener('blur', () => {
-    window.visualViewport.removeEventListener('resize', onVPResize);
-    window.visualViewport.removeEventListener('scroll', onVPResize);
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', onVPResize);
+    } else {
+      window.removeEventListener('resize', onVPResize);
+    }
     sheet.style.transform = '';
   });
 })();
