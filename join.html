@@ -738,12 +738,97 @@ const icons = {
 };
 
 // ── 골프장 자동완성 ────────────────────────────────────
-let allCoursesDocs = [];
+// 라운드 지도 전체 골프장 (Firestore 없이도 동작하는 로컬 기본값)
+const LOCAL_COURSES = [
+  { id:'부산CC',             name:'부산CC',             region:'부산',   city:'금정구'  },
+  { id:'동래베네스트CC',      name:'동래베네스트CC',      region:'부산',   city:'금정구'  },
+  { id:'아시아드CC',          name:'아시아드CC',          region:'부산',   city:'기장군'  },
+  { id:'스톤게이트CC',        name:'스톤게이트CC',        region:'부산',   city:'기장군'  },
+  { id:'해운대CC',            name:'해운대CC',            region:'부산',   city:'해운대구'},
+  { id:'해운대비치GC',        name:'해운대비치GC',        region:'부산',   city:'해운대구'},
+  { id:'베이사이드CC',        name:'베이사이드CC',        region:'부산',   city:'기장군'  },
+  { id:'양산동원로얄CC',      name:'양산동원로얄CC',      region:'경남',   city:'양산'    },
+  { id:'양산CC',              name:'양산CC',              region:'경남',   city:'양산'    },
+  { id:'다이아몬드CC',        name:'다이아몬드CC',        region:'경남',   city:'양산'    },
+  { id:'통영동원로얄CC',      name:'통영동원로얄CC',      region:'경남',   city:'통영'    },
+  { id:'드비치CC',            name:'드비치CC',            region:'경남',   city:'거제'    },
+  { id:'에이원CC',            name:'에이원CC',            region:'경남',   city:'양산'    },
+  { id:'동부산CC',            name:'동부산CC',            region:'경남',   city:'양산'    },
+  { id:'통도파인이스트CC',    name:'통도파인이스트CC',    region:'경남',   city:'양산'    },
+  { id:'용원CC',              name:'용원CC',              region:'경남',   city:'창원'    },
+  { id:'진주CC',              name:'진주CC',              region:'경남',   city:'진주'    },
+  { id:'창원CC',              name:'창원CC',              region:'경남',   city:'창원'    },
+  { id:'진해신항CC',          name:'진해신항CC',          region:'경남',   city:'창원'    },
+  { id:'가야CC',              name:'가야CC',              region:'경남',   city:'김해'    },
+  { id:'김해상록GC',          name:'김해상록GC',          region:'경남',   city:'김해'    },
+  { id:'포웰CC',              name:'포웰CC',              region:'경남',   city:'김해'    },
+  { id:'가야퍼블릭GC',        name:'가야퍼블릭GC',        region:'경남',   city:'김해'    },
+  { id:'골프존카운티 경남',   name:'골프존카운티 경남',   region:'경남',   city:'함안'    },
+  { id:'골프존카운티 사천',   name:'골프존카운티 사천',   region:'경남',   city:'사천'    },
+  { id:'타니CC',              name:'타니CC',              region:'경남',   city:'사천'    },
+  { id:'해라CC',              name:'해라CC',              region:'경남',   city:'고성'    },
+  { id:'고성CC',              name:'고성CC',              region:'경남',   city:'고성'    },
+  { id:'고성노벨CC',          name:'고성노벨CC',          region:'경남',   city:'고성'    },
+  { id:'리더스CC',            name:'리더스CC',            region:'경남',   city:'밀양'    },
+  { id:'밀양노벨CC',          name:'밀양노벨CC',          region:'경남',   city:'밀양'    },
+  { id:'사우스케이프CC',      name:'사우스케이프CC',      region:'경남',   city:'남해'    },
+  { id:'아난티 남해CC',       name:'아난티 남해CC',       region:'경남',   city:'남해'    },
+  { id:'힐마루CC',            name:'힐마루CC',            region:'경남',   city:'창녕'    },
+  { id:'부곡CC',              name:'부곡CC',              region:'경남',   city:'창녕'    },
+  { id:'거창CC',              name:'거창CC',              region:'경남',   city:'거창'    },
+  { id:'정산CC',              name:'정산CC',              region:'경남',   city:'경남'    },
+  { id:'골드그린CC',          name:'골드그린CC',          region:'경남',   city:'경남'    },
+  { id:'리온CC',              name:'리온CC',              region:'경남',   city:'의령'    },
+  { id:'아델스코트CC',        name:'아델스코트CC',        region:'경남',   city:'경남'    },
+  { id:'울산CC',              name:'울산CC',              region:'울산',   city:'울주군'  },
+  { id:'보라CC',              name:'보라CC',              region:'울산',   city:'울주군'  },
+  { id:'더골프클럽',          name:'더골프클럽',          region:'울산',   city:'울주군'  },
+  { id:'오르비스GC',          name:'오르비스GC',          region:'울산',   city:'울주군'  },
+  { id:'베이스타즈CC',        name:'베이스타즈CC',        region:'울산',   city:'북구'    },
+  { id:'보문CC',              name:'보문CC',              region:'경북',   city:'경주'    },
+  { id:'경주CC',              name:'경주CC',              region:'경북',   city:'경주'    },
+  { id:'강동다이너스CC',      name:'강동다이너스CC',      region:'경북',   city:'경주'    },
+  { id:'힐스카이CC',          name:'힐스카이CC',          region:'경북',   city:'경주'    },
+  { id:'감포CC',              name:'감포CC',              region:'경북',   city:'경주'    },
+  { id:'서라벌CC',            name:'서라벌CC',            region:'경북',   city:'경주'    },
+  { id:'청도오션힐스CC',      name:'청도오션힐스CC',      region:'경북',   city:'청도'    },
+  { id:'블루원상주CC',        name:'블루원상주CC',        region:'경북',   city:'상주'    },
+  { id:'이지스카이CC',        name:'이지스카이CC',        region:'대구',   city:'군위'    },
+  { id:'고령오펠GC',          name:'고령오펠GC',          region:'경북',   city:'고령'    },
+  { id:'포도CC',              name:'포도CC',              region:'경북',   city:'김천'    },
+  { id:'선산CC',              name:'선산CC',              region:'경북',   city:'구미'    },
+  { id:'속리산CC',            name:'속리산CC',            region:'충북',   city:'보은'    },
+  { id:'군산CC',              name:'군산CC',              region:'전북',   city:'군산'    },
+  { id:'테디밸리CC',          name:'테디밸리CC',          region:'제주',   city:'제주'    },
+  { id:'골프존카운티 순천',   name:'골프존카운티 순천',   region:'전남',   city:'순천'    },
+  { id:'파인비치CC',          name:'파인비치CC',          region:'전남',   city:'전남'    },
+  { id:'솔라시도CC',          name:'솔라시도CC',          region:'전남',   city:'해남'    },
+  { id:'파인힐스CC',          name:'파인힐스CC',          region:'전남',   city:'전남'    },
+  { id:'포라이즌CC',          name:'포라이즌CC',          region:'전남',   city:'전남'    },
+  { id:'JNJ CC',              name:'JNJ CC',              region:'전남',   city:'전남'    },
+  { id:'후쿠오카 클래식GC',   name:'후쿠오카 클래식GC',   region:'일본',   city:'후쿠오카'},
+  { id:'더 레이크스GC',       name:'더 레이크스GC',       region:'일본',   city:'후쿠오카'},
+  { id:'벳부CC',              name:'벳부CC',              region:'일본',   city:'오이타'  },
+  { id:'BRG Da Nang GC',      name:'BRG Da Nang GC',      region:'베트남', city:'다낭'    },
+  { id:'Ba Na Hills GC',      name:'Ba Na Hills GC',      region:'베트남', city:'다낭'    },
+  { id:'몽고메리 링크스',     name:'몽고메리 링크스',     region:'베트남', city:'다낭'    },
+];
+
+let allCoursesDocs = [...LOCAL_COURSES];
 
 async function loadCourseDocs() {
+  // 로컬 목록 기본값으로 시작 후 Firestore에서 nineHoles 등 추가 데이터 병합
   try {
     const snap = await getDocs(collection(db, 'courses'));
-    allCoursesDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    snap.docs.forEach(d => {
+      const remote = { id: d.id, ...d.data() };
+      const idx = allCoursesDocs.findIndex(c => c.id === d.id);
+      if (idx >= 0) {
+        allCoursesDocs[idx] = { ...allCoursesDocs[idx], ...remote };
+      } else {
+        allCoursesDocs.push(remote);
+      }
+    });
   } catch(_) {}
 }
 
