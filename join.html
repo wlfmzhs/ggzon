@@ -668,7 +668,7 @@
 
   <!-- 개인정보 동의 모달 -->
   <div id="consent-modal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;" class="bottom-modal">
-    <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;">
+    <div id="consent-sheet" style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;transition:transform 0.25s ease;">
       <div style="font-size:16px;font-weight:900;margin-bottom:16px;">개인정보 제공 동의</div>
       <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:20px;background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;">
         라운드 진행을 위해 <b style="color:rgba(255,255,255,0.85);">연락처(전화번호)</b>가 주최자 및 관리자에게 공유될 수 있습니다.
@@ -1485,6 +1485,30 @@ function showToast(msg) {
 
   document.getElementById('btn-login-here').addEventListener('click', () => {
     location.href = loginUrl;
+  });
+})();
+
+// 전화번호 입력 시 키보드가 입력창 가리는 문제 방지
+(function() {
+  const sheet = document.getElementById('consent-sheet');
+  const phoneInput = document.getElementById('consent-phone');
+  if (!sheet || !phoneInput || !window.visualViewport) return;
+
+  function onVPResize() {
+    const kb = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+    sheet.style.transform = kb > 0 ? `translateY(-${kb}px)` : '';
+  }
+
+  phoneInput.addEventListener('focus', () => {
+    window.visualViewport.addEventListener('resize', onVPResize);
+    window.visualViewport.addEventListener('scroll', onVPResize);
+    setTimeout(onVPResize, 50);
+  });
+
+  phoneInput.addEventListener('blur', () => {
+    window.visualViewport.removeEventListener('resize', onVPResize);
+    window.visualViewport.removeEventListener('scroll', onVPResize);
+    sheet.style.transform = '';
   });
 })();
 
