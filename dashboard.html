@@ -454,15 +454,15 @@
     <div class="banner-section">
       <div class="banner-scroll">
 
-        <!-- 카드 1: 골갑 라운드 지도 -->
-        <div class="banner-card" onclick="location.href='round-map.html'">
-          <img class="banner-card-img" src="image/골갑라운드지도.webp" alt="골갑 라운드 지도" />
+        <!-- 카드 1: 조인 -->
+        <div class="banner-card" onclick="checkPaidAndGo('join.html')">
+          <img class="banner-card-img" src="image/조인.jpg" alt="조인" style="object-position: 60% center;" />
           <div class="banner-card-overlay"></div>
           <div class="banner-card-body">
-            <div class="banner-card-title">골갑<br>라운드 지도</div>
-            <div class="banner-card-sub">골갑이 촬영한<br>전국 골프장 한눈에</div>
+            <div class="banner-card-title">조인<br>JOIN</div>
+            <div class="banner-card-sub">골갑 멤버들과<br>함께하는 라운드</div>
           </div>
-          <button class="banner-card-cta" onclick="event.stopPropagation(); location.href='round-map.html'">바로가기 ›</button>
+          <button class="banner-card-cta" onclick="event.stopPropagation(); checkPaidAndGo('join.html')">참여하기 ›</button>
         </div>
 
         <!-- 카드 2: 골슐랭스타 (빨간 빛 테두리) -->
@@ -478,18 +478,7 @@
           </div>
         </div>
 
-        <!-- 카드 3: 조인 -->
-        <div class="banner-card" onclick="checkPaidAndGo('join.html')">
-          <img class="banner-card-img" src="image/조인.jpg" alt="조인" style="object-position: 60% center;" />
-          <div class="banner-card-overlay"></div>
-          <div class="banner-card-body">
-            <div class="banner-card-title">조인<br>JOIN</div>
-            <div class="banner-card-sub">골갑 멤버들과<br>함께하는 라운드</div>
-          </div>
-          <button class="banner-card-cta" onclick="event.stopPropagation(); checkPaidAndGo('join.html')">참여하기 ›</button>
-        </div>
-
-        <!-- 카드 4: 단체라운드 대회 -->
+        <!-- 카드 3: 단체라운드 대회 -->
         <div class="banner-card" onclick="checkPaidAndGo('event.html')">
           <img class="banner-card-img" src="image/대회.webp" alt="단체라운드 대회" />
           <div class="banner-card-overlay"></div>
@@ -498,6 +487,17 @@
             <div class="banner-card-sub">GPGA OPEN<br>흑백대전 · 멤버십 대회</div>
           </div>
           <button class="banner-card-cta" onclick="event.stopPropagation(); checkPaidAndGo('event.html')">참가하기 ›</button>
+        </div>
+
+        <!-- 카드 4: 골갑 라운드 지도 -->
+        <div class="banner-card" onclick="location.href='round-map.html'">
+          <img class="banner-card-img" src="image/골갑라운드지도.webp" alt="골갑 라운드 지도" />
+          <div class="banner-card-overlay"></div>
+          <div class="banner-card-body">
+            <div class="banner-card-title">골갑<br>라운드 지도</div>
+            <div class="banner-card-sub">골갑이 촬영한<br>전국 골프장 한눈에</div>
+          </div>
+          <button class="banner-card-cta" onclick="event.stopPropagation(); location.href='round-map.html'">바로가기 ›</button>
         </div>
 
       </div>
