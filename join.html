@@ -701,7 +701,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -1309,8 +1309,8 @@ window.confirmConsent = async function() {
     }
     const existingNames = joinSnap.exists() ? (joinSnap.data().participants || []).map(p => p.name) : [];
     const uniqueName = getUniqueName(realName, existingNames);
-    // 프로필에 전화번호 저장
-    await updateDoc(doc(db, 'users', currentUser.uid), { phone });
+    // 프로필에 전화번호 저장 (문서 없어도 생성)
+    await setDoc(doc(db, 'users', currentUser.uid), { phone }, { merge: true });
     const entry = { uid: currentUser.uid, name: uniqueName, phone, joinedAt: new Date().toISOString(), consentGiven: true };
     await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
     showToast('참여 신청이 완료되었습니다!');
@@ -1585,10 +1585,13 @@ function showToast(msg) {
   if (!sheet || !phoneInput) return;
 
   function onVPResize() {
-    const kb = window.visualViewport
-      ? Math.max(0, window.innerHeight - window.visualViewport.height)
-      : 0;
-    sheet.style.transform = kb > 0 ? `translateY(-${kb}px)` : '';
+    if (window.visualViewport) {
+      const vp = window.visualViewport;
+      const kb = Math.max(0, window.innerHeight - (vp.offsetTop + vp.height));
+      sheet.style.transform = kb > 10 ? `translateY(-${kb}px)` : '';
+    } else {
+      sheet.style.transform = '';
+    }
   }
 
   phoneInput.addEventListener('focus', () => {
@@ -1598,6 +1601,8 @@ function showToast(msg) {
       window.addEventListener('resize', onVPResize);
     }
     setTimeout(onVPResize, 100);
+    setTimeout(onVPResize, 300);
+    setTimeout(onVPResize, 600);
   });
 
   phoneInput.addEventListener('blur', () => {
