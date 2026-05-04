@@ -472,7 +472,7 @@
     .seats { display: flex; gap: 5px; flex: 1; }
 
     .seat {
-      flex: 1; height: 46px; border-radius: 9px;
+      flex: 1; min-height: 46px; border-radius: 9px;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       cursor: pointer; transition: all 0.15s;
@@ -871,6 +871,34 @@
       border-radius: 12px; cursor: pointer; font-family: inherit;
     }
     .pairing-pdf-btn:active { opacity: 0.7; }
+    .lottery-badge {
+      font-size: 9px; font-weight: 900;
+      color: var(--gold);
+      background: rgba(240,192,64,0.2);
+      border: 1px solid rgba(240,192,64,0.4);
+      border-radius: 4px; padding: 0 4px;
+      line-height: 1.5; white-space: nowrap;
+    }
+    .lottery-admin-row {
+      display: none; width: 100%; gap: 8px;
+    }
+    .lottery-admin-row.visible { display: flex; }
+    .lottery-btn {
+      flex: 1; padding: 11px;
+      border-radius: 12px; cursor: pointer; font-family: inherit;
+      font-size: 12px; font-weight: 700;
+    }
+    .lottery-assign-btn {
+      background: rgba(240,192,64,0.15);
+      border: 1px solid rgba(240,192,64,0.35);
+      color: var(--gold);
+    }
+    .lottery-reset-btn {
+      background: rgba(255,100,100,0.1);
+      border: 1px solid rgba(255,100,100,0.3);
+      color: rgba(255,130,130,0.9);
+    }
+    .lottery-btn:active { opacity: 0.7; }
 
     /* ── 조편성 드래그앤드롭 ── */
     .pairing-dnd-row {
@@ -1240,6 +1268,10 @@
     </div>
     <div class="pairing-scroll" id="pairing-content"></div>
     <div class="pairing-footer">
+      <div id="lottery-admin-row" class="lottery-admin-row">
+        <button class="lottery-btn lottery-assign-btn" onclick="assignLotteryNumbers()">랜덤 번호 부여하기</button>
+        <button class="lottery-btn lottery-reset-btn" onclick="resetLotteryNumbers()">번호 리셋</button>
+      </div>
     </div>
 
     <!-- 이름 입력 시트 -->
@@ -1277,7 +1309,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
-  onSnapshot, query, serverTimestamp
+  onSnapshot, query, serverTimestamp, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -1632,6 +1664,20 @@ function renderDetailHeader(t) {
         cursor:pointer; font-family:inherit;">
         PDF 저장
       </button>
+      <button onclick="assignLotteryNumbers()" style="
+        background:rgba(240,192,64,0.18); color:var(--gold);
+        border:1px solid rgba(240,192,64,0.4); border-radius:8px;
+        padding:6px 14px; font-size:11px; font-weight:700;
+        cursor:pointer; font-family:inherit;">
+        추첨 번호 부여
+      </button>
+      <button onclick="resetLotteryNumbers()" style="
+        background:rgba(255,100,100,0.1); color:rgba(255,130,130,0.9);
+        border:1px solid rgba(255,100,100,0.3); border-radius:8px;
+        padding:6px 14px; font-size:11px; font-weight:700;
+        cursor:pointer; font-family:inherit;">
+        번호 리셋
+      </button>
     </div>` : '';
 
   const scroll = document.getElementById('detail-scroll');
@@ -1797,11 +1843,13 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         if (isMine) {
           cls = 'mine';
           content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            <span class="seat-name" style="color:#f0c040; font-weight:800;">나</span>`;
+            <span class="seat-name" style="color:#f0c040; font-weight:800;">나</span>
+            ${(t.lotteryAssigned && reg.lotteryNum) ? `<span class="lottery-badge">${reg.lotteryNum}</span>` : ''}`;
         } else if (reg) {
           cls = 'taken';
           content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            <span class="seat-name">${reg.name || '?'}</span>`;
+            <span class="seat-name">${reg.name || '?'}</span>
+            ${(t.lotteryAssigned && reg.lotteryNum) ? `<span class="lottery-badge">${reg.lotteryNum}</span>` : ''}`;
         } else if (isSelected) {
           cls = 'selected';
           content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -2369,6 +2417,7 @@ window.openPairingModal = function() {
   document.getElementById('pairing-appbar-sub').textContent = t.name;
   renderPairingContent(t, allRegistrations);
   document.getElementById('pairing-overlay').classList.add('open');
+  document.getElementById('lottery-admin-row').classList.add('visible');
 };
 
 window.closePairingModal = function() {
@@ -2429,6 +2478,7 @@ function renderPairingContent(t, registrations) {
             ${delBtn}
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
             <div class="pairing-dnd-name">${reg.name || '?'}</div>
+            ${(t.lotteryAssigned && reg.lotteryNum) ? `<div class="lottery-badge">${reg.lotteryNum}</div>` : ''}
           </div>`;
         } else {
           const addAttr = isAdmin
@@ -2649,6 +2699,50 @@ window._deleteManual = async function(regId) {
     await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'registrations', regId));
     showToast('삭제되었습니다');
   } catch (e) { showToast('삭제 오류: ' + e.message); }
+};
+
+// ═══════════════════════════════════════════════════════
+// 추첨 번호 부여 / 리셋 (Admin only)
+// ═══════════════════════════════════════════════════════
+
+window.assignLotteryNumbers = async function() {
+  if (!isAdmin || !currentTournament) return;
+  const regs = allRegistrations;
+  if (regs.length === 0) { showToast('참가자가 없습니다'); return; }
+
+  // 1~N 배열을 Fisher-Yates로 셔플
+  const nums = Array.from({ length: regs.length }, (_, i) => i + 1);
+  for (let i = nums.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [nums[i], nums[j]] = [nums[j], nums[i]];
+  }
+
+  try {
+    const batch = writeBatch(db);
+    regs.forEach((r, idx) => {
+      batch.update(doc(db, 'tournaments', currentTournament.id, 'registrations', r.id), { lotteryNum: nums[idx] });
+    });
+    batch.update(doc(db, 'tournaments', currentTournament.id), { lotteryAssigned: true });
+    await batch.commit();
+    currentTournament.lotteryAssigned = true;
+    showToast(`${regs.length}명에게 번호가 부여되었습니다`);
+  } catch (e) { showToast('오류: ' + e.message); }
+};
+
+window.resetLotteryNumbers = async function() {
+  if (!isAdmin || !currentTournament) return;
+  openConfirm('번호 리셋', '부여된 추첨 번호를 모두 삭제하시겠습니까?', async () => {
+    try {
+      const batch = writeBatch(db);
+      allRegistrations.forEach(r => {
+        batch.update(doc(db, 'tournaments', currentTournament.id, 'registrations', r.id), { lotteryNum: deleteField() });
+      });
+      batch.update(doc(db, 'tournaments', currentTournament.id), { lotteryAssigned: false });
+      await batch.commit();
+      currentTournament.lotteryAssigned = false;
+      showToast('추첨 번호가 초기화되었습니다');
+    } catch (e) { showToast('오류: ' + e.message); }
+  });
 };
 
 // ═══════════════════════════════════════════════════════
