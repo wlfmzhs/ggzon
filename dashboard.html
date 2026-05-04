@@ -678,19 +678,23 @@
     loadLiveList();
     loadTournamentList();
     loadGGPlayerList();
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    const fallbackName = user.displayName || user.email?.split('@')[0] || '멤버';
-    if (snap.exists()) {
-      const d = snap.data();
-      document.getElementById('user-nick').textContent = d.nickname || fallbackName;
-      const parts = [d.name, d.birthYear2 ? d.birthYear2 + '년생' : '', d.region].filter(Boolean);
-      document.getElementById('header-name').textContent = parts.length ? parts.join(' / ') : (d.nickname || fallbackName);
-      window._isPaidUser = true;
-    } else {
+    const fallbackName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '멤버';
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        const d = snap.data();
+        document.getElementById('user-nick').textContent = d.nickname || fallbackName;
+        const parts = [d.name, d.birthYear2 ? d.birthYear2 + '년생' : '', d.region].filter(Boolean);
+        document.getElementById('header-name').textContent = parts.length ? parts.join(' / ') : (d.nickname || fallbackName);
+      } else {
+        document.getElementById('user-nick').textContent = fallbackName;
+        document.getElementById('header-name').textContent = fallbackName;
+      }
+    } catch (e) {
       document.getElementById('user-nick').textContent = fallbackName;
       document.getElementById('header-name').textContent = fallbackName;
-      window._isPaidUser = true;
     }
+    window._isPaidUser = true;
   });
 
   window.checkPaidAndGo = function(url) {
