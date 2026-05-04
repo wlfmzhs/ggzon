@@ -683,13 +683,14 @@
       const snap = await getDoc(doc(db, 'users', user.uid));
       if (snap.exists()) {
         const d = snap.data();
-        document.getElementById('user-nick').textContent = d.nickname || fallbackName;
-        const parts = [d.name, d.birthYear2 ? d.birthYear2 + '년생' : '', d.region].filter(Boolean);
-        document.getElementById('header-name').textContent = parts.length ? parts.join(' / ') : (d.nickname || fallbackName);
+        const nick = d.nickname || fallbackName;
+        document.getElementById('user-nick').textContent = nick;
+        document.getElementById('header-name').textContent = nick;
       } else {
         document.getElementById('user-nick').textContent = fallbackName;
         document.getElementById('header-name').textContent = fallbackName;
       }
+
     } catch (e) {
       document.getElementById('user-nick').textContent = fallbackName;
       document.getElementById('header-name').textContent = fallbackName;
