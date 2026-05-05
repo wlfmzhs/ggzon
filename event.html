@@ -862,7 +862,7 @@
     .pairing-footer {
       flex-shrink: 0; padding: 12px 16px 24px;
       border-top: 1px solid var(--border);
-      display: flex; gap: 8px;
+      display: flex; flex-direction: column; gap: 8px;
     }
     .pairing-pdf-btn {
       flex: 1; padding: 12px;
@@ -1272,6 +1272,7 @@
     </div>
     <div class="pairing-scroll" id="pairing-content"></div>
     <div class="pairing-footer">
+      <button class="pairing-pdf-btn" onclick="downloadScreenPDF()">화면 그대로 PDF 저장</button>
       <div id="lottery-admin-row" class="lottery-admin-row">
         <button class="lottery-btn lottery-assign-btn" onclick="assignLotteryNumbers()">랜덤 번호 부여하기</button>
         <button class="lottery-btn lottery-reset-btn" onclick="resetLotteryNumbers()">번호 리셋</button>
@@ -2909,6 +2910,76 @@ window.downloadDetailPDF = function() {
   }
 };
 
+// ── 화면 그대로 PDF (html2canvas 캡처) ────────────────
+window.downloadScreenPDF = async function() {
+  const t = currentTournament;
+  if (!t) return;
+
+  const overlay  = document.getElementById('pairing-overlay');
+  const scroll   = document.getElementById('pairing-content');
+  const footer   = overlay.querySelector('.pairing-footer');
+  const closeBtn = overlay.querySelector('.pairing-close-btn');
+  const phone    = overlay.closest('.phone');
+
+  const pdfBtn = footer ? footer.querySelector('.pairing-pdf-btn') : null;
+  if (pdfBtn) { pdfBtn.textContent = '캡처 중...'; pdfBtn.disabled = true; }
+
+  const s = {
+    phoneOv: phone.style.overflow,    phoneH: phone.style.height,
+    ovPos:   overlay.style.position,  ovOv: overlay.style.overflow,
+    ovH:     overlay.style.height,    ovBR: overlay.style.borderRadius,
+    scOv:    scroll.style.overflow,   scH: scroll.style.height,
+    scMH:    scroll.style.maxHeight,  scFl: scroll.style.flex,
+  };
+
+  phone.style.overflow       = 'visible';
+  phone.style.height         = 'auto';
+  overlay.style.position     = 'relative';
+  overlay.style.overflow     = 'visible';
+  overlay.style.height       = 'auto';
+  overlay.style.borderRadius = '20px';
+  scroll.style.overflow      = 'visible';
+  scroll.style.height        = 'auto';
+  scroll.style.maxHeight     = 'none';
+  scroll.style.flex          = 'none';
+  if (footer)   footer.style.display   = 'none';
+  if (closeBtn) closeBtn.style.display = 'none';
+
+  await new Promise(r => setTimeout(r, 120));
+
+  try {
+    const canvas = await html2canvas(overlay, {
+      backgroundColor: '#0A2406', scale: 2, useCORS: true, logging: false,
+    });
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const win = window.open('', '_blank');
+    if (!win) { showToast('팝업 차단을 해제해 주세요'); return; }
+    win.document.write(`<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><title>${t.name} 조편성</title>
+<style>*{margin:0;padding:0;}body{background:#000;}img{width:100%;display:block;}
+@media print{@page{margin:0;size:auto;}body{background:#000;print-color-adjust:exact;-webkit-print-color-adjust:exact;}}</style>
+</head><body><img src="${imgData}">
+<script>window.onload=function(){window.print();}<\/script></body></html>`);
+    win.document.close();
+  } catch(e) {
+    showToast('캡처에 실패했습니다');
+  } finally {
+    phone.style.overflow       = s.phoneOv;
+    phone.style.height         = s.phoneH;
+    overlay.style.position     = s.ovPos;
+    overlay.style.overflow     = s.ovOv;
+    overlay.style.height       = s.ovH;
+    overlay.style.borderRadius = s.ovBR;
+    scroll.style.overflow      = s.scOv;
+    scroll.style.height        = s.scH;
+    scroll.style.maxHeight     = s.scMH;
+    scroll.style.flex          = s.scFl;
+    if (footer)   footer.style.display   = '';
+    if (closeBtn) closeBtn.style.display = '';
+    if (pdfBtn) { pdfBtn.textContent = '화면 그대로 PDF 저장'; pdfBtn.disabled = false; }
+  }
+};
+
 // ── Confirm modal ──────────────────────────────────────
 let confirmCallback = null;
 function openConfirm(title, msg, onOk) {
@@ -2960,6 +3031,7 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="/ptr.js"></script>
 </body>
 </html>
