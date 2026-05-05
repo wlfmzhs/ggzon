@@ -873,11 +873,15 @@
     .pairing-pdf-btn:active { opacity: 0.7; }
     .lottery-badge {
       font-size: 9px; font-weight: 900;
-      color: var(--gold);
-      background: rgba(240,192,64,0.2);
-      border: 1px solid rgba(240,192,64,0.4);
-      border-radius: 4px; padding: 0 4px;
+      color: #fff;
+      background: rgba(255,255,255,0.12);
+      border-radius: 4px; padding: 1px 5px;
       line-height: 1.5; white-space: nowrap;
+    }
+    .pairing-dnd-slot.manual .lottery-badge,
+    .seat.mine .lottery-badge {
+      color: var(--gold);
+      background: rgba(240,192,64,0.15);
     }
     .lottery-admin-row {
       display: none; width: 100%; gap: 8px;
@@ -906,9 +910,9 @@
     }
     .pairing-dnd-slot {
       border: 1px dashed rgba(255,255,255,0.12); border-radius: 8px;
-      min-height: 54px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 3px;
-      padding: 5px 3px; transition: background 0.15s, border-color 0.15s, transform 0.15s;
+      min-height: 68px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 5px;
+      padding: 7px 3px; transition: background 0.15s, border-color 0.15s, transform 0.15s;
       user-select: none; -webkit-user-select: none;
     }
     .pairing-dnd-slot.has-person {
