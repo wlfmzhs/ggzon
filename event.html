@@ -1823,7 +1823,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
       let teeTimeHtml = '';
       if (t.teeUpTime && t.teeInterval) {
         const [hh, mm] = t.teeUpTime.split(':').map(Number);
-        const totalMin = hh * 60 + mm + cartIdx * t.teeInterval;
+        const totalMin = hh * 60 + mm + (t.courseOffsets?.[ci] || 0) + cartIdx * t.teeInterval;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
@@ -2459,7 +2459,7 @@ function renderPairingContent(t, registrations) {
       let teeLabel = '';
       if (t.teeUpTime && t.teeInterval) {
         const [hh, mm] = t.teeUpTime.split(':').map(Number);
-        const totalMin = hh * 60 + mm + cartIdx * t.teeInterval;
+        const totalMin = hh * 60 + mm + (t.courseOffsets?.[ci] || 0) + cartIdx * t.teeInterval;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
@@ -2784,7 +2784,7 @@ window.downloadDetailPDF = function() {
       let cartTeeStr = '';
       if (t.teeUpTime && t.teeInterval) {
         const [hh, mm] = t.teeUpTime.split(':').map(Number);
-        const totalMin = hh * 60 + mm + gi * t.teeInterval;
+        const totalMin = hh * 60 + mm + (t.courseOffsets?.[ci] || 0) + gi * t.teeInterval;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
