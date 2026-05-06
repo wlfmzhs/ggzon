@@ -1,6 +1,6 @@
 (function () {
   const THRESHOLD = 70;
-  let startY = 0, pulling = false, refreshing = false;
+  let startX = 0, startY = 0, pulling = false, refreshing = false, dirLocked = false;
   let ind = null;
 
   const style = document.createElement('style');
@@ -48,15 +48,20 @@
 
     el.addEventListener('touchstart', e => {
       if (refreshing) return;
-      if (el.scrollTop <= 0) {
-        startY = e.touches[0].clientY;
-        pulling = true;
-      }
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      dirLocked = false;
+      if (el.scrollTop <= 0) pulling = true;
     }, { passive: true });
 
     el.addEventListener('touchmove', e => {
       if (!pulling || refreshing) return;
+      const dx = Math.abs(e.touches[0].clientX - startX);
       const dy = e.touches[0].clientY - startY;
+      if (!dirLocked) {
+        dirLocked = true;
+        if (dx > Math.abs(dy)) { pulling = false; removeUI(); return; }
+      }
       if (dy <= 0 || el.scrollTop > 0) { pulling = false; removeUI(); return; }
 
       if (!ind) createUI();
