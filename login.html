@@ -87,7 +87,8 @@
     .form-input:focus { border-color: var(--green-light); }
     .form-input::placeholder { color: rgba(255,255,255,0.2); }
     select.form-input option { background: #0f2d18; color: #fff; }
-    input[type="date"].form-input { height: 51px; box-sizing: border-box; padding: 14px 16px; line-height: normal; }
+    .birth-selects { display: flex; gap: 8px; }
+    .birth-sel { flex: 1; padding: 14px 4px !important; font-size: 14px; text-align: center; text-align-last: center; }
 
     .submit-btn {
       width: 100%; padding: 16px; margin-top: 6px;
@@ -175,16 +176,25 @@
         <input class="form-input" id="signup-nick" type="text" placeholder="골갑킹" maxlength="12" />
         <div class="form-hint">나중에 변경 가능 · 최대 12자</div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">이름</label>
-          <input class="form-input" id="signup-name" type="text" placeholder="홍길동" />
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input class="form-input" id="signup-name" type="text" placeholder="홍길동" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">생년월일</label>
+        <div class="birth-selects">
+          <select class="form-input birth-sel" id="signup-birth-y" onchange="syncBirth('signup')">
+            <option value="">년도</option>
+          </select>
+          <select class="form-input birth-sel" id="signup-birth-m" onchange="syncBirth('signup')">
+            <option value="">월</option>
+          </select>
+          <select class="form-input birth-sel" id="signup-birth-d" onchange="syncBirth('signup')">
+            <option value="">일</option>
+          </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">생년월일</label>
-          <input class="form-input" id="signup-birth" type="date" />
-          <div class="form-hint">연도 뒤 2자리만 공개</div>
-        </div>
+        <input type="hidden" id="signup-birth" />
+        <div class="form-hint">연도 뒤 2자리만 공개</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -308,7 +318,18 @@
         </div>
         <div>
           <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:6px;">생년월일</div>
-          <input id="gp-birth" type="date" style="width:100%;padding:14px 16px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:15px;font-family:inherit;outline:none;box-sizing:border-box;" />
+          <div class="birth-selects">
+            <select class="form-input birth-sel" id="gp-birth-y" onchange="syncBirth('gp')">
+              <option value="">년도</option>
+            </select>
+            <select class="form-input birth-sel" id="gp-birth-m" onchange="syncBirth('gp')">
+              <option value="">월</option>
+            </select>
+            <select class="form-input birth-sel" id="gp-birth-d" onchange="syncBirth('gp')">
+              <option value="">일</option>
+            </select>
+          </div>
+          <input type="hidden" id="gp-birth" />
         </div>
         <div style="display:flex;gap:10px;">
           <div style="flex:1;">
@@ -360,6 +381,41 @@
       <button onclick="agreeAndClose()" style="width:100%;padding:14px;border-radius:12px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;margin-top:16px;">동의하기</button>
     </div>
   </div>
+
+  <script>
+    (function() {
+      const CUR_YEAR = new Date().getFullYear();
+      function initBirthSelects(prefix) {
+        const yEl = document.getElementById(prefix + '-birth-y');
+        if (!yEl) return;
+        for (let y = CUR_YEAR - 10; y >= 1940; y--) {
+          yEl.appendChild(new Option(y + '년', y));
+        }
+        const mEl = document.getElementById(prefix + '-birth-m');
+        for (let m = 1; m <= 12; m++) {
+          mEl.appendChild(new Option(m + '월', m));
+        }
+        const dEl = document.getElementById(prefix + '-birth-d');
+        for (let d = 1; d <= 31; d++) {
+          dEl.appendChild(new Option(d + '일', d));
+        }
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        initBirthSelects('signup');
+        initBirthSelects('gp');
+      });
+    })();
+
+    window.syncBirth = function(prefix) {
+      const y = document.getElementById(prefix + '-birth-y').value;
+      const m = document.getElementById(prefix + '-birth-m').value;
+      const d = document.getElementById(prefix + '-birth-d').value;
+      const hidden = document.getElementById(prefix + '-birth');
+      hidden.value = (y && m && d)
+        ? y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0')
+        : '';
+    };
+  </script>
 
   <!-- Firebase SDK -->
   <script type="module">
