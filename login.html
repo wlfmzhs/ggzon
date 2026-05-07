@@ -157,7 +157,7 @@
     .back-link span { color: var(--green-light); }
 
     /* reCAPTCHA 숨김 */
-    #recaptcha-container { position: absolute; bottom: 0; left: 0; visibility: hidden; }
+    #recaptcha-container { position: fixed; bottom: 0; left: 0; visibility: hidden; z-index: -1; }
 
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); padding: 0; }
@@ -268,10 +268,11 @@
     <button class="submit-btn" id="prof-btn" onclick="saveProfile()">가입 완료 →</button>
   </div>
 
-  <!-- invisible reCAPTCHA 컨테이너 -->
-  <div id="recaptcha-container"></div>
 
 </div>
+
+<!-- invisible reCAPTCHA 컨테이너 (phone-frame 밖에 위치해야 함) -->
+<div id="recaptcha-container"></div>
 
 <!-- PWA 설치 모달 -->
 <div id="pwa-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;">
@@ -413,8 +414,8 @@ window.sendOTP = async function() {
     startResendTimer();
     document.getElementById('otp-input').focus();
   } catch (e) {
-    console.error(e);
-    showMsg('phone-msg', getPhoneError(e.code), 'error');
+    console.error('sendOTP error:', e.code, e.message);
+    showMsg('phone-msg', getPhoneError(e.code) + ' (' + (e.code || '') + ')', 'error');
     if (appVerifier) { appVerifier.clear(); appVerifier = null; }
   } finally {
     btn.disabled = false; btn.textContent = '인증번호 받기 →';
