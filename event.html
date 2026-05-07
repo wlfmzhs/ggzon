@@ -1128,6 +1128,10 @@
         <textarea class="admin-input" id="admin-notice" rows="4" placeholder="참가자에게 전달할 공지를 입력하세요 (집결 장소, 준비물 등)" style="resize:vertical; line-height:1.6; min-height:90px;"></textarea>
       </div>
       <div class="admin-form-group">
+        <label class="admin-label">대회 룰</label>
+        <textarea class="admin-input" id="admin-rule" rows="5" placeholder="대회 규정을 입력하세요 (스코어 방식, 페널티, 드레스코드 등)" style="resize:vertical; line-height:1.6; min-height:110px;"></textarea>
+      </div>
+      <div class="admin-form-group">
         <label class="admin-label">상태</label>
         <select class="admin-select" id="admin-status">
           <option value="recruiting">모집중</option>
@@ -1724,6 +1728,7 @@ function renderDetailHeader(t) {
         ${isBWTournament ? `<img src="image/bw-cup.png" alt="B&W CUP" style="width:72px;height:72px;object-fit:contain;flex-shrink:0;margin-top:2px;" />` : ''}
       </div>
       ${t.notice ? `<div class="detail-notice-box"><div class="detail-notice-label">NOTICE</div><div class="detail-notice-text">${escHtml(t.notice).replace(/\n/g,'<br>')}</div></div>` : ''}
+      ${t.rule ? `<div class="detail-notice-box" style="margin-top:10px;"><div class="detail-notice-label">RULE</div><div class="detail-notice-text">${escHtml(t.rule).replace(/\n/g,'<br>')}</div></div>` : ''}
       ${adminEdit}
     </div>
 
@@ -2177,7 +2182,7 @@ window.togglePrizes = function(id) {
 };
 
 function clearAdminForm() {
-  ['admin-name','admin-slogan','admin-notice','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
+  ['admin-name','admin-slogan','admin-notice','admin-rule','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
    'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-date','admin-tee-interval'].forEach(id => {
     document.getElementById(id).value = '';
   });
@@ -2203,6 +2208,7 @@ function fillAdminForm(t) {
   document.getElementById('admin-name').value = t.name || '';
   document.getElementById('admin-slogan').value = t.slogan || '';
   document.getElementById('admin-notice').value = t.notice || '';
+  document.getElementById('admin-rule').value = t.rule || '';
   document.getElementById('admin-status').value = t.status || 'recruiting';
   document.getElementById('admin-golf-course').value = t.golfCourseName || '';
   document.getElementById('admin-date').value = t.date || '';
@@ -2367,6 +2373,7 @@ window.saveTournament = async function() {
     tournamentType: currentTournamentType,
     slogan: document.getElementById('admin-slogan').value.trim(),
     notice: document.getElementById('admin-notice').value.trim(),
+    rule: document.getElementById('admin-rule').value.trim(),
     status: document.getElementById('admin-status').value,
     golfCourseName: document.getElementById('admin-golf-course').value.trim(),
     teeUpTime,
