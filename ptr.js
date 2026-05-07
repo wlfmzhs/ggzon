@@ -25,10 +25,6 @@
   `;
   document.head.appendChild(style);
 
-  function getScrollEl() {
-    return document.querySelector('.scroll-area, .content') || document.scrollingElement;
-  }
-
   function createUI() {
     ind = document.createElement('div');
     ind.id = 'ptr-ind';
@@ -42,10 +38,7 @@
     if (ind) { ind.remove(); ind = null; }
   }
 
-  function init() {
-    const el = getScrollEl();
-    if (!el) return;
-
+  function attachTo(el) {
     el.addEventListener('touchstart', e => {
       if (refreshing) return;
       startX = e.touches[0].clientX;
@@ -71,7 +64,6 @@
 
       const arc = document.getElementById('ptr-arc');
       if (arc) {
-        // 당기는 정도에 따라 회전 (progress * 300deg)
         arc.style.transform = progress >= 1 ? '' : `rotate(${progress * 300}deg)`;
         arc.classList.toggle('spin', progress >= 1);
         arc.style.borderTopColor = progress >= 1 ? '#fff' : '#3ea066';
@@ -92,6 +84,16 @@
         removeUI();
       }
     }, { passive: true });
+  }
+
+  function init() {
+    const els = document.querySelectorAll('.scroll-area, .content');
+    if (els.length > 0) {
+      els.forEach(attachTo);
+    } else {
+      const fallback = document.scrollingElement;
+      if (fallback) attachTo(fallback);
+    }
   }
 
   if (document.readyState === 'loading') {
