@@ -162,7 +162,7 @@
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); padding: 0; }
       body { align-items: flex-start; justify-content: flex-start; }
-      .phone-frame { width: 100%; min-height: 100vh; border-radius: 0; box-shadow: none; justify-content: flex-start; padding-top: 80px; }
+      .phone-frame { width: 100%; min-height: 100vh; border-radius: 0; box-shadow: none; justify-content: flex-start; padding-top: 80px; overflow-y: auto; }
       .phone-frame::before { display: none; }
     }
   </style>
@@ -540,8 +540,12 @@ window.doGoogleLogin = async function() {
 // ── 관리자 이메일 로그인 ────────────────────────────────
 window.toggleAdminLogin = function() {
   const box = document.getElementById('admin-login-box');
-  box.style.display = box.style.display === 'none' ? 'flex' : 'none';
-  if (box.style.display === 'flex') box.style.flexDirection = 'column';
+  const isHidden = box.style.display === 'none' || box.style.display === '';
+  box.style.display = isHidden ? 'flex' : 'none';
+  if (isHidden) {
+    box.style.flexDirection = 'column';
+    setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+  }
 };
 
 window.doAdminLogin = async function() {
