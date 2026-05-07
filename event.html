@@ -1711,14 +1711,18 @@ function renderDetailHeader(t) {
       </button>
     </div>` : '';
 
+  const isBWTournament = t.tournamentType === 'black-white';
   const scroll = document.getElementById('detail-scroll');
   scroll.innerHTML = `
-    <div class="detail-hero">
-      <div class="detail-series">${t.status === 'recruiting' ? '● 모집중' : '예정'}</div>
-      <div class="detail-name">${t.name}</div>
-      ${t.slogan ? `<div class="detail-slogan">"${t.slogan}"</div>` : ''}
-      ${t.notice ? `<div class="detail-notice-box"><div class="detail-notice-label">NOTICE</div><div class="detail-notice-text">${escHtml(t.notice).replace(/\n/g,'<br>')}</div></div>` : ''}
-      ${adminEdit}
+    <div class="detail-hero" style="${isBWTournament ? 'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;' : ''}">
+      <div style="flex:1;min-width:0;">
+        <div class="detail-series">${t.status === 'recruiting' ? '● 모집중' : '예정'}</div>
+        <div class="detail-name">${t.name}</div>
+        ${t.slogan ? `<div class="detail-slogan">"${t.slogan}"</div>` : ''}
+        ${t.notice ? `<div class="detail-notice-box"><div class="detail-notice-label">NOTICE</div><div class="detail-notice-text">${escHtml(t.notice).replace(/\n/g,'<br>')}</div></div>` : ''}
+        ${adminEdit}
+      </div>
+      ${isBWTournament ? `<img src="image/B%26W%20CUP.png" alt="B&W CUP" style="width:80px;height:80px;object-fit:contain;flex-shrink:0;margin-top:4px;" />` : ''}
     </div>
 
     <div class="info-grid">
