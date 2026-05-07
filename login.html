@@ -156,8 +156,9 @@
     .back-link { display: block; text-align: center; margin-top: 24px; font-size: 13px; color: rgba(255,255,255,0.3); text-decoration: none; }
     .back-link span { color: var(--green-light); }
 
-    /* reCAPTCHA 숨김 */
-    #recaptcha-container { position: fixed; bottom: 0; left: 0; visibility: hidden; z-index: -1; }
+    /* reCAPTCHA */
+    #recaptcha-container { margin-top: 4px; min-height: 0; }
+    #recaptcha-container iframe { border-radius: 8px; }
 
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); padding: 0; overflow-y: auto; min-height: 100vh; }
@@ -183,6 +184,7 @@
       <input class="form-input" id="phone-input" type="tel" placeholder="010-0000-0000"
         onkeydown="if(event.key==='Enter') sendOTP()" />
     </div>
+    <div id="recaptcha-container"></div>
     <div id="phone-msg" class="msg"></div>
     <button class="submit-btn" id="send-btn" onclick="sendOTP()">인증번호 받기 →</button>
 
@@ -288,9 +290,6 @@
 
 </div>
 
-<!-- invisible reCAPTCHA 컨테이너 (phone-frame 밖에 위치해야 함) -->
-<div id="recaptcha-container"></div>
-
 <!-- PWA 설치 모달 -->
 <div id="pwa-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;">
   <div style="width:100%;max-width:430px;background:#0f2e1a;border-radius:24px 24px 0 0;padding:28px 20px 40px;">
@@ -358,9 +357,16 @@ onAuthStateChanged(auth, async (user) => {
 // ── reCAPTCHA ──────────────────────────────────────────
 let appVerifier = null;
 function initRecaptcha() {
-  if (appVerifier) { appVerifier.clear(); appVerifier = null; }
-  appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+  if (appVerifier) { try { appVerifier.clear(); } catch(_) {} appVerifier = null; }
+  appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    size: 'normal',
+    callback: () => {},
+    'expired-callback': () => { initRecaptcha(); }
+  });
+  appVerifier.render();
 }
+// 페이지 로드 시 바로 렌더링
+window.addEventListener('DOMContentLoaded', () => initRecaptcha());
 
 // ── 전화번호 포맷 ───────────────────────────────────────
 function formatPhone(raw) {
@@ -423,7 +429,6 @@ window.sendOTP = async function() {
   clearMsg('phone-msg');
   try {
     await setPersistence(auth, browserLocalPersistence);
-    initRecaptcha();
     confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
     currentPhone = raw;
     document.getElementById('otp-sent-info').innerHTML =
@@ -434,7 +439,7 @@ window.sendOTP = async function() {
   } catch (e) {
     console.error('sendOTP error:', e.code, e.message);
     showMsg('phone-msg', getPhoneError(e.code) + ' (' + (e.code || '') + ')', 'error');
-    if (appVerifier) { appVerifier.clear(); appVerifier = null; }
+    initRecaptcha();
   } finally {
     btn.disabled = false; btn.textContent = '인증번호 받기 →';
   }
@@ -447,13 +452,13 @@ window.resendOTP = async function() {
   btn.disabled = true; btn.textContent = '발송 중...';
   clearMsg('otp-msg');
   try {
-    initRecaptcha();
     confirmationResult = await signInWithPhoneNumber(auth, formatPhone(currentPhone), appVerifier);
     startResendTimer();
     showMsg('otp-msg', '재발송했습니다', 'success');
+    initRecaptcha();
   } catch (e) {
     showMsg('otp-msg', getPhoneError(e.code), 'error');
-    if (appVerifier) { appVerifier.clear(); appVerifier = null; }
+    initRecaptcha();
     btn.disabled = false; btn.textContent = '재발송';
   }
 };
