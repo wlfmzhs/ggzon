@@ -1402,7 +1402,7 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('btn-new-tournament').style.display = 'block';
   }
   document.getElementById('loading-overlay').classList.add('hidden');
-  loadActiveTournaments();
+  await loadActiveTournaments();
   renderPastList();
 });
 
@@ -1431,6 +1431,7 @@ async function loadActiveTournaments() {
     return;
   }
   renderActiveList();
+  renderPastList();
   loadRegistrationCounts();
 }
 
