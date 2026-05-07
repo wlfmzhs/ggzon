@@ -1853,9 +1853,9 @@ function renderSeatGrid(t, registrations, _courseIdx) {
 
     for (let cartIdx = 0; cartIdx < courseCarts[ci]; cartIdx++) {
       let teeTimeHtml = '';
-      if (t.teeUpTime && t.teeInterval) {
-        const [hh, mm] = t.teeUpTime.split(':').map(Number);
-        const totalMin = hh * 60 + mm + (t.courseOffsets?.[ci] || 0) + cartIdx * t.teeInterval;
+      const baseMin0 = getCourseBaseMin(t, ci);
+      if (baseMin0 !== null && t.teeInterval) {
+        const totalMin = baseMin0 + cartIdx * t.teeInterval;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
@@ -2211,7 +2211,7 @@ function fillAdminForm(t) {
   document.getElementById('admin-caddy-fee').value = fmtMoneyInput(t.caddyFee);
   renderPrizesEditor(t.prizesData || []);
   // 코스명 복원
-  renderCourseNameInputs(t.courseNames || []);
+  renderCourseNameInputs(t.courseNames || [], t.courseTimes || []);
   // 타임피커 복원
   if (t.teeUpTime) setTimePicker('tee', t.teeUpTime);
   if (t.gatherTime) setTimePicker('gather', t.gatherTime);
@@ -2222,20 +2222,24 @@ function fillAdminForm(t) {
 }
 
 // ── Course name inputs ────────────────────────────────
-window.renderCourseNameInputs = function(existingNames) {
+window.renderCourseNameInputs = function(existingNames, existingTimes) {
   const count = parseInt(document.getElementById('admin-courses').value) || 2;
   const defaults = ['아웃코스', '인코스', '레이크코스'];
   const el = document.getElementById('course-name-inputs');
   el.innerHTML = `<div class="admin-form-group" style="margin-bottom:4px;">
-    <label class="admin-label">코스명 *</label>
+    <label class="admin-label">코스명 / 시작 시간</label>
     ${Array.from({length: count}, (_, i) => `
-      <div class="course-name-row">
+      <div class="course-name-row" style="gap:6px;">
         <div class="course-name-badge">${String.fromCharCode(65+i)}</div>
         <input class="admin-input" id="admin-course-name-${i}"
           placeholder="예) ${defaults[i] || i+1+'코스'}"
           value="${existingNames ? (existingNames[i] || '') : ''}"
-          style="margin-bottom:0;" />
+          style="margin-bottom:0;flex:1;" />
+        <input type="time" id="admin-course-time-${i}"
+          value="${existingTimes ? (existingTimes[i] || '') : ''}"
+          style="margin-bottom:0;width:110px;flex-shrink:0;padding:10px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
       </div>`).join('')}
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">시작 시간을 코스별로 다르게 설정할 수 있습니다</div>
   </div>`;
 };
 
@@ -2245,6 +2249,25 @@ function getCourseNames() {
     const el = document.getElementById(`admin-course-name-${i}`);
     return el ? el.value.trim() || `${String.fromCharCode(65+i)}코스` : `${String.fromCharCode(65+i)}코스`;
   });
+}
+
+function getCourseTimes() {
+  const count = parseInt(document.getElementById('admin-courses').value) || 2;
+  return Array.from({length: count}, (_, i) => {
+    const el = document.getElementById(`admin-course-time-${i}`);
+    return el ? el.value || '' : '';
+  });
+}
+
+// 코스별 시작 분(0시 기준) 반환 — courseTimes 우선, 없으면 teeUpTime+offset 폴백
+function getCourseBaseMin(t, ci) {
+  if (t.courseTimes && t.courseTimes[ci]) {
+    const [hh, mm] = t.courseTimes[ci].split(':').map(Number);
+    return hh * 60 + mm;
+  }
+  if (!t.teeUpTime) return null;
+  const [hh, mm] = t.teeUpTime.split(':').map(Number);
+  return hh * 60 + mm + (t.courseOffsets?.[ci] || 0);
 }
 
 // ── Time picker helpers ────────────────────────────────
@@ -2353,6 +2376,7 @@ window.saveTournament = async function() {
     totalParticipants: total,
     courseCount: parseInt(document.getElementById('admin-courses').value) || 2,
     courseNames: getCourseNames(),
+    courseTimes: getCourseTimes(),
     greenFee: document.getElementById('admin-green-fee').value.trim(),
     caddyFee: document.getElementById('admin-caddy-fee').value.trim(),
     prizesData: getPrizesData(),
@@ -2490,9 +2514,9 @@ function renderPairingContent(t, registrations) {
 
     for (let cartIdx = 0; cartIdx < courseCarts[ci]; cartIdx++) {
       let teeLabel = '';
-      if (t.teeUpTime && t.teeInterval) {
-        const [hh, mm] = t.teeUpTime.split(':').map(Number);
-        const totalMin = hh * 60 + mm + (t.courseOffsets?.[ci] || 0) + cartIdx * t.teeInterval;
+      const baseMin1 = getCourseBaseMin(t, ci);
+      if (baseMin1 !== null && t.teeInterval) {
+        const totalMin = baseMin1 + cartIdx * t.teeInterval;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
@@ -2865,9 +2889,9 @@ window.downloadDetailPDF = function() {
     for (let gi = 0; gi < courseCarts[ci]; gi++) {
       // PDF용 조별 티타임
       let cartTeeStr = '';
-      if (t.teeUpTime && t.teeInterval) {
-        const [hh, mm] = t.teeUpTime.split(':').map(Number);
-        const totalMin = hh * 60 + mm + (t.courseOffsets?.[ci] || 0) + gi * t.teeInterval;
+      const baseMin2 = getCourseBaseMin(t, ci);
+      if (baseMin2 !== null && t.teeInterval) {
+        const totalMin = baseMin2 + gi * t.teeInterval;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
