@@ -135,68 +135,22 @@
       box-shadow: 0 2px 12px rgba(45,122,79,0.35);
     }
     /* 대회 상세 탭 */
-    .detail-tab-bar {
-      flex-shrink: 0; display: flex; gap: 8px;
-      padding: 12px 16px;
-      background: var(--green-dark);
-      border-bottom: 1px solid var(--border);
+    /* 대회 공지 박스 */
+    .detail-notice-box {
+      margin-top: 18px;
+      background: rgba(240,192,64,0.08);
+      border: 1px solid rgba(240,192,64,0.35);
+      border-left: 3px solid #f0c040;
+      border-radius: 14px;
+      padding: 14px 16px;
     }
-    .detail-tab {
-      flex: 1; padding: 11px 0; font-size: 13px; font-weight: 800;
-      color: rgba(255,255,255,0.4);
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px; cursor: pointer; font-family: inherit;
-      position: relative; transition: all 0.2s;
+    .detail-notice-label {
+      font-size: 10px; color: #f0c040; font-weight: 800;
+      letter-spacing: 1px; margin-bottom: 8px;
     }
-    .detail-tab.active {
-      color: #fff;
-      background: var(--green);
-      border-color: transparent;
-      box-shadow: 0 2px 12px rgba(45,122,79,0.35);
-    }
-    .notice-tab-dot {
-      position: absolute; top: 7px; right: 10px;
-      width: 6px; height: 6px;
-      background: #f0c040; border-radius: 50%;
-    }
-    /* 공지사항 패널 */
-    .notice-item {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-left: 3px solid var(--green-light);
-      border-radius: 14px; padding: 16px;
-      margin-bottom: 10px; position: relative;
-    }
-    .notice-item-date {
-      font-size: 11px; color: rgba(255,255,255,0.3); margin-bottom: 6px;
-    }
-    .notice-item-title {
-      font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px;
-    }
-    .notice-item-body {
-      font-size: 13px; color: rgba(255,255,255,0.65);
-      line-height: 1.75; white-space: pre-line;
-    }
-    .notice-item-del {
-      position: absolute; top: 12px; right: 12px;
-      background: none; border: none; cursor: pointer;
-      font-size: 18px; color: rgba(255,100,100,0.5); line-height: 1;
-      padding: 2px 6px;
-    }
-    .notice-item-del:active { color: rgba(255,80,80,0.9); }
-    .notice-add-btn {
-      width: 100%; padding: 14px;
-      background: rgba(62,160,102,0.1);
-      border: 1px dashed rgba(62,160,102,0.4);
-      border-radius: 14px; color: var(--green-light);
-      font-size: 13px; font-weight: 700;
-      cursor: pointer; font-family: inherit; margin-top: 4px;
-    }
-    .notice-add-btn:active { opacity: 0.7; }
-    .notice-empty-msg {
-      text-align: center; padding: 60px 0 40px;
-      font-size: 13px; color: rgba(255,255,255,0.3);
+    .detail-notice-text {
+      font-size: 14px; color: rgba(255,255,255,0.9);
+      line-height: 1.75; white-space: pre-line; font-weight: 500;
     }
 
     .list-content { padding: 16px 16px 80px; }
@@ -1096,15 +1050,8 @@
 
   <!-- ══════════════════════════ VIEW: DETAIL ══════════════════════════ -->
   <div id="view-detail" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
-    <div class="detail-tab-bar">
-      <button class="detail-tab active" id="dtab-info" onclick="switchDetailTab('info')">대회 정보</button>
-      <button class="detail-tab" id="dtab-notice" onclick="switchDetailTab('notice')">공지사항<span id="detail-notice-dot" class="notice-tab-dot" style="display:none;"></span></button>
-    </div>
     <div class="scroll-area" id="detail-panel-info">
       <div class="detail-scroll" id="detail-scroll"></div>
-    </div>
-    <div class="scroll-area" id="detail-panel-notice" style="display:none;">
-      <div id="detail-notice-content" style="padding:20px 16px 60px;"></div>
     </div>
   </div>
 
@@ -1176,6 +1123,10 @@
       <div class="admin-form-group">
         <label class="admin-label">슬로건</label>
         <input class="admin-input" id="admin-slogan" placeholder="예) 흑과 백의 세 번째 대결" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">공지사항</label>
+        <textarea class="admin-input" id="admin-notice" rows="4" placeholder="참가자에게 전달할 공지를 입력하세요 (집결 장소, 준비물 등)" style="resize:vertical; line-height:1.6; min-height:90px;"></textarea>
       </div>
       <div class="admin-form-group">
         <label class="admin-label">상태</label>
@@ -1374,27 +1325,6 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <!-- ══════════════════════════ NOTICE WRITE SHEET ══════════════════════════ -->
-  <div class="sheet-overlay" id="notice-write-sheet" onclick="closeNoticeSheet(event)" style="display:none;">
-    <div class="sheet" style="padding-bottom:32px;">
-      <div class="sheet-handle"></div>
-      <div class="sheet-title">공지 작성</div>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div>
-          <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:6px;">제목</div>
-          <input id="notice-write-title" type="text" placeholder="공지 제목을 입력하세요"
-            style="width:100%;padding:13px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;" />
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:6px;">내용</div>
-          <textarea id="notice-write-body" placeholder="공지 내용을 입력하세요" rows="5"
-            style="width:100%;padding:13px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;resize:vertical;line-height:1.6;"></textarea>
-        </div>
-        <button onclick="submitNotice()"
-          style="width:100%;padding:15px;background:var(--green);color:#fff;font-size:15px;font-weight:900;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">공지 등록</button>
-      </div>
-    </div>
-  </div>
 
 </div><!-- /phone -->
 
@@ -1403,7 +1333,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
-  onSnapshot, query, orderBy, serverTimestamp, writeBatch, deleteField
+  onSnapshot, serverTimestamp, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -1781,6 +1711,7 @@ function renderDetailHeader(t) {
       <div class="detail-series">${t.status === 'recruiting' ? '● 모집중' : '예정'}</div>
       <div class="detail-name">${t.name}</div>
       ${t.slogan ? `<div class="detail-slogan">"${t.slogan}"</div>` : ''}
+      ${t.notice ? `<div class="detail-notice-box"><div class="detail-notice-label">NOTICE</div><div class="detail-notice-text">${escHtml(t.notice).replace(/\n/g,'<br>')}</div></div>` : ''}
       ${adminEdit}
     </div>
 
@@ -1870,96 +1801,8 @@ function renderDetailHeader(t) {
     </button>
   `;
 
-  switchDetailTab('info');
 }
 
-window.switchDetailTab = function(tab) {
-  document.getElementById('dtab-info').classList.toggle('active', tab === 'info');
-  document.getElementById('dtab-notice').classList.toggle('active', tab === 'notice');
-  document.getElementById('detail-panel-info').style.display = tab === 'info' ? '' : 'none';
-  document.getElementById('detail-panel-notice').style.display = tab === 'notice' ? '' : 'none';
-  if (tab === 'notice' && currentTournament) loadTournamentNotices(currentTournament.id);
-};
-
-// ── 대회 공지사항 ────────────────────────────────────────
-async function loadTournamentNotices(tournamentId) {
-  const el = document.getElementById('detail-notice-content');
-  el.innerHTML = '<div class="notice-empty-msg">불러오는 중...</div>';
-  try {
-    const snap = await getDocs(
-      query(collection(db, 'tournaments', tournamentId, 'notices'), orderBy('createdAt', 'desc'))
-    );
-    const notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // 탭 dot 업데이트
-    document.getElementById('detail-notice-dot').style.display = notices.length ? '' : 'none';
-    renderTournamentNotices(notices, tournamentId);
-  } catch(e) {
-    el.innerHTML = '<div class="notice-empty-msg">불러오기 실패</div>';
-  }
-}
-
-function renderTournamentNotices(notices, tournamentId) {
-  const el = document.getElementById('detail-notice-content');
-  const addBtn = isAdmin ? `<button class="notice-add-btn" onclick="openNoticeSheet()">+ 공지 작성</button>` : '';
-  if (!notices.length) {
-    el.innerHTML = `<div class="notice-empty-msg">등록된 공지사항이 없습니다</div>${addBtn}`;
-    return;
-  }
-  const items = notices.map(n => {
-    const date = n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
-    const delBtn = isAdmin ? `<button class="notice-item-del" onclick="deleteNotice('${n.id}')">×</button>` : '';
-    return `<div class="notice-item">
-      ${delBtn}
-      <div class="notice-item-date">${date}</div>
-      <div class="notice-item-title">${escHtml(n.title || '')}</div>
-      <div class="notice-item-body">${escHtml(n.body || '').replace(/\n/g, '<br>')}</div>
-    </div>`;
-  }).join('');
-  el.innerHTML = items + addBtn;
-}
-
-window.openNoticeSheet = function() {
-  document.getElementById('notice-write-title').value = '';
-  document.getElementById('notice-write-body').value = '';
-  const sheet = document.getElementById('notice-write-sheet');
-  sheet.style.display = 'flex';
-  sheet.style.alignItems = 'flex-end';
-};
-
-window.closeNoticeSheet = function(e) {
-  if (!e || e.target === document.getElementById('notice-write-sheet')) {
-    document.getElementById('notice-write-sheet').style.display = 'none';
-  }
-};
-
-window.submitNotice = async function() {
-  const title = document.getElementById('notice-write-title').value.trim();
-  const body  = document.getElementById('notice-write-body').value.trim();
-  if (!title) { showToast('제목을 입력해 주세요'); return; }
-  if (!body)  { showToast('내용을 입력해 주세요'); return; }
-  try {
-    await addDoc(collection(db, 'tournaments', currentTournament.id, 'notices'), {
-      title, body, createdAt: serverTimestamp()
-    });
-    closeNoticeSheet();
-    showToast('공지가 등록되었습니다');
-    loadTournamentNotices(currentTournament.id);
-  } catch(e) {
-    showToast('등록 실패: ' + e.message);
-  }
-};
-
-window.deleteNotice = function(noticeId) {
-  openConfirm('공지를 삭제할까요?', '', async () => {
-    try {
-      await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'notices', noticeId));
-      showToast('공지가 삭제되었습니다');
-      loadTournamentNotices(currentTournament.id);
-    } catch(e) {
-      showToast('삭제 실패');
-    }
-  });
-};
 
 function renderSeatMap(t, registrations) {
   renderSeatGrid(t, registrations, 0);
@@ -2322,7 +2165,7 @@ window.togglePrizes = function(id) {
 };
 
 function clearAdminForm() {
-  ['admin-name','admin-slogan','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
+  ['admin-name','admin-slogan','admin-notice','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
    'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-date','admin-tee-interval'].forEach(id => {
     document.getElementById(id).value = '';
   });
@@ -2347,6 +2190,7 @@ function fillAdminForm(t) {
   window.setTournamentType(t.tournamentType || 'general');
   document.getElementById('admin-name').value = t.name || '';
   document.getElementById('admin-slogan').value = t.slogan || '';
+  document.getElementById('admin-notice').value = t.notice || '';
   document.getElementById('admin-status').value = t.status || 'recruiting';
   document.getElementById('admin-golf-course').value = t.golfCourseName || '';
   document.getElementById('admin-date').value = t.date || '';
@@ -2487,6 +2331,7 @@ window.saveTournament = async function() {
     name,
     tournamentType: currentTournamentType,
     slogan: document.getElementById('admin-slogan').value.trim(),
+    notice: document.getElementById('admin-notice').value.trim(),
     status: document.getElementById('admin-status').value,
     golfCourseName: document.getElementById('admin-golf-course').value.trim(),
     teeUpTime,
