@@ -834,6 +834,10 @@
         <input class="field-input" id="edit-handicap" type="number" placeholder="핸디캡" min="0" max="54" />
       </div>
       <div class="field-group">
+        <div class="field-label">출생연도</div>
+        <input class="field-input" id="edit-birthyear" type="number" placeholder="예) 1990" min="1940" max="2015" />
+      </div>
+      <div class="field-group">
         <div class="field-label">거주지</div>
         <input class="field-input" id="edit-region" type="text" placeholder="거주지" />
       </div>
@@ -1038,6 +1042,10 @@ window.closeModal = (id) => document.getElementById(id).classList.remove('show')
 window.openEditModal = () => {
   document.getElementById('edit-nick').value = userData.nickname || '';
   document.getElementById('edit-handicap').value = userData.handicap ?? '';
+  // birthYear (4자리) 우선, 없으면 birthYear2(2자리)로 복원
+  const by = userData.birthYear
+    || (userData.birthYear2 ? (parseInt(userData.birthYear2) <= 24 ? '20' : '19') + userData.birthYear2 : '');
+  document.getElementById('edit-birthyear').value = by;
   document.getElementById('edit-region').value = userData.region || '';
   document.getElementById('edit-phone').value = userData.phone || '';
   document.getElementById('modal-edit').classList.add('show');
@@ -1046,12 +1054,20 @@ window.openEditModal = () => {
 window.saveEdit = async () => {
   const nick = document.getElementById('edit-nick').value.trim();
   const handicap = document.getElementById('edit-handicap').value;
+  const birthYearRaw = document.getElementById('edit-birthyear').value.trim();
   const region = document.getElementById('edit-region').value.trim();
   const phone = document.getElementById('edit-phone').value.trim();
   if (!nick) { showToast('닉네임을 입력해주세요'); return; }
+  if (birthYearRaw && (!/^\d{4}$/.test(birthYearRaw) || Number(birthYearRaw) < 1940 || Number(birthYearRaw) > 2015)) {
+    showToast('출생연도를 4자리로 입력해주세요 (예: 1990)'); return;
+  }
   try {
     const updates = { nickname: nick, region, phone };
     if (handicap !== '') updates.handicap = Number(handicap);
+    if (birthYearRaw) {
+      updates.birthYear = birthYearRaw;
+      updates.birthYear2 = birthYearRaw.slice(2, 4);
+    }
     await updateDoc(doc(db, 'users', currentUser.uid), updates);
     userData = { ...userData, ...updates };
     document.getElementById('prof-nick').textContent = nick;
