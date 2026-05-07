@@ -161,19 +161,39 @@
       background: #f0c040; border-radius: 50%;
     }
     /* 공지사항 패널 */
-    .notice-card {
-      background: rgba(240,192,64,0.05);
-      border: 1px solid rgba(240,192,64,0.2);
-      border-radius: 14px; padding: 18px 16px; margin-bottom: 12px;
+    .notice-item {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-left: 3px solid var(--green-light);
+      border-radius: 14px; padding: 16px;
+      margin-bottom: 10px; position: relative;
     }
-    .notice-card-label {
-      font-size: 10px; font-weight: 800; color: #f0c040;
-      letter-spacing: 0.8px; margin-bottom: 10px;
+    .notice-item-date {
+      font-size: 11px; color: rgba(255,255,255,0.3); margin-bottom: 6px;
     }
-    .notice-card-body {
-      font-size: 14px; color: rgba(255,255,255,0.85);
-      line-height: 1.8; white-space: pre-line;
+    .notice-item-title {
+      font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px;
     }
+    .notice-item-body {
+      font-size: 13px; color: rgba(255,255,255,0.65);
+      line-height: 1.75; white-space: pre-line;
+    }
+    .notice-item-del {
+      position: absolute; top: 12px; right: 12px;
+      background: none; border: none; cursor: pointer;
+      font-size: 18px; color: rgba(255,100,100,0.5); line-height: 1;
+      padding: 2px 6px;
+    }
+    .notice-item-del:active { color: rgba(255,80,80,0.9); }
+    .notice-add-btn {
+      width: 100%; padding: 14px;
+      background: rgba(62,160,102,0.1);
+      border: 1px dashed rgba(62,160,102,0.4);
+      border-radius: 14px; color: var(--green-light);
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit; margin-top: 4px;
+    }
+    .notice-add-btn:active { opacity: 0.7; }
     .notice-empty-msg {
       text-align: center; padding: 60px 0 40px;
       font-size: 13px; color: rgba(255,255,255,0.3);
@@ -1304,15 +1324,6 @@
         <div class="admin-hint">대회 중 언제든지 수정 가능합니다</div>
       </div>
 
-      <div class="admin-section-title">공지사항</div>
-      <div class="admin-form-group">
-        <label class="admin-label">대회 공지 내용 (선택)</label>
-        <textarea class="admin-input" id="admin-notice"
-          placeholder="집결 장소, 복장 규정, 주의사항 등 공지할 내용을 입력하세요"
-          rows="5"
-          style="resize:vertical; min-height:100px; font-family:inherit; line-height:1.6;"></textarea>
-      </div>
-
       <button class="admin-save-btn" onclick="saveTournament()">저장하기</button>
     </div>
   </div>
@@ -1363,14 +1374,36 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-</div>
+  <!-- ══════════════════════════ NOTICE WRITE SHEET ══════════════════════════ -->
+  <div class="sheet-overlay" id="notice-write-sheet" onclick="closeNoticeSheet(event)" style="display:none;">
+    <div class="sheet" style="padding-bottom:32px;">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">공지 작성</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:6px;">제목</div>
+          <input id="notice-write-title" type="text" placeholder="공지 제목을 입력하세요"
+            style="width:100%;padding:13px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;" />
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:6px;">내용</div>
+          <textarea id="notice-write-body" placeholder="공지 내용을 입력하세요" rows="5"
+            style="width:100%;padding:13px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;resize:vertical;line-height:1.6;"></textarea>
+        </div>
+        <button onclick="submitNotice()"
+          style="width:100%;padding:15px;background:var(--green);color:#fff;font-size:15px;font-weight:900;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">공지 등록</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
-  onSnapshot, query, serverTimestamp, writeBatch, deleteField
+  onSnapshot, query, orderBy, serverTimestamp, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -1836,19 +1869,6 @@ function renderDetailHeader(t) {
     </button>
   `;
 
-  // 공지 패널 업데이트
-  const noticeDot = document.getElementById('detail-notice-dot');
-  const noticeContent = document.getElementById('detail-notice-content');
-  if (t.notice) {
-    noticeDot.style.display = '';
-    noticeContent.innerHTML = `<div class="notice-card">
-      <div class="notice-card-label">NOTICE</div>
-      <div class="notice-card-body">${escHtml(t.notice).replace(/\n/g, '<br>')}</div>
-    </div>`;
-  } else {
-    noticeDot.style.display = 'none';
-    noticeContent.innerHTML = '<div class="notice-empty-msg">등록된 공지사항이 없습니다</div>';
-  }
   switchDetailTab('info');
 }
 
@@ -1857,6 +1877,87 @@ window.switchDetailTab = function(tab) {
   document.getElementById('dtab-notice').classList.toggle('active', tab === 'notice');
   document.getElementById('detail-panel-info').style.display = tab === 'info' ? '' : 'none';
   document.getElementById('detail-panel-notice').style.display = tab === 'notice' ? '' : 'none';
+  if (tab === 'notice' && currentTournament) loadTournamentNotices(currentTournament.id);
+};
+
+// ── 대회 공지사항 ────────────────────────────────────────
+async function loadTournamentNotices(tournamentId) {
+  const el = document.getElementById('detail-notice-content');
+  el.innerHTML = '<div class="notice-empty-msg">불러오는 중...</div>';
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'tournaments', tournamentId, 'notices'), orderBy('createdAt', 'desc'))
+    );
+    const notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 탭 dot 업데이트
+    document.getElementById('detail-notice-dot').style.display = notices.length ? '' : 'none';
+    renderTournamentNotices(notices, tournamentId);
+  } catch(e) {
+    el.innerHTML = '<div class="notice-empty-msg">불러오기 실패</div>';
+  }
+}
+
+function renderTournamentNotices(notices, tournamentId) {
+  const el = document.getElementById('detail-notice-content');
+  const addBtn = isAdmin ? `<button class="notice-add-btn" onclick="openNoticeSheet()">+ 공지 작성</button>` : '';
+  if (!notices.length) {
+    el.innerHTML = `<div class="notice-empty-msg">등록된 공지사항이 없습니다</div>${addBtn}`;
+    return;
+  }
+  const items = notices.map(n => {
+    const date = n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
+    const delBtn = isAdmin ? `<button class="notice-item-del" onclick="deleteNotice('${n.id}')">×</button>` : '';
+    return `<div class="notice-item">
+      ${delBtn}
+      <div class="notice-item-date">${date}</div>
+      <div class="notice-item-title">${escHtml(n.title || '')}</div>
+      <div class="notice-item-body">${escHtml(n.body || '').replace(/\n/g, '<br>')}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML = items + addBtn;
+}
+
+window.openNoticeSheet = function() {
+  document.getElementById('notice-write-title').value = '';
+  document.getElementById('notice-write-body').value = '';
+  const sheet = document.getElementById('notice-write-sheet');
+  sheet.style.display = 'flex';
+  sheet.style.alignItems = 'flex-end';
+};
+
+window.closeNoticeSheet = function(e) {
+  if (!e || e.target === document.getElementById('notice-write-sheet')) {
+    document.getElementById('notice-write-sheet').style.display = 'none';
+  }
+};
+
+window.submitNotice = async function() {
+  const title = document.getElementById('notice-write-title').value.trim();
+  const body  = document.getElementById('notice-write-body').value.trim();
+  if (!title) { showToast('제목을 입력해 주세요'); return; }
+  if (!body)  { showToast('내용을 입력해 주세요'); return; }
+  try {
+    await addDoc(collection(db, 'tournaments', currentTournament.id, 'notices'), {
+      title, body, createdAt: serverTimestamp()
+    });
+    closeNoticeSheet();
+    showToast('공지가 등록되었습니다');
+    loadTournamentNotices(currentTournament.id);
+  } catch(e) {
+    showToast('등록 실패: ' + e.message);
+  }
+};
+
+window.deleteNotice = function(noticeId) {
+  openConfirm('공지를 삭제할까요?', '', async () => {
+    try {
+      await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'notices', noticeId));
+      showToast('공지가 삭제되었습니다');
+      loadTournamentNotices(currentTournament.id);
+    } catch(e) {
+      showToast('삭제 실패');
+    }
+  });
 };
 
 function renderSeatMap(t, registrations) {
@@ -2221,8 +2322,7 @@ window.togglePrizes = function(id) {
 
 function clearAdminForm() {
   ['admin-name','admin-slogan','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
-   'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-date','admin-tee-interval',
-   'admin-notice'].forEach(id => {
+   'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-date','admin-tee-interval'].forEach(id => {
     document.getElementById(id).value = '';
   });
   renderPrizesEditor([]);
@@ -2262,7 +2362,6 @@ function fillAdminForm(t) {
   if (t.gatherTime) setTimePicker('gather', t.gatherTime);
   // 조 간격 복원
   document.getElementById('admin-tee-interval').value = t.teeInterval || '7';
-  document.getElementById('admin-notice').value = t.notice || '';
   recalcCarts();
   updateIntervalPreview();
 }
@@ -2402,7 +2501,6 @@ window.saveTournament = async function() {
     caddyFee: document.getElementById('admin-caddy-fee').value.trim(),
     prizesData: getPrizesData(),
     teeInterval: parseInt(document.getElementById('admin-tee-interval').value) || 7,
-    notice: document.getElementById('admin-notice').value.trim(),
   };
 
   const editingId = document.getElementById('admin-editing-id').value;
