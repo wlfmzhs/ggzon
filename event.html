@@ -871,18 +871,6 @@
       border-radius: 12px; cursor: pointer; font-family: inherit;
     }
     .pairing-pdf-btn:active { opacity: 0.7; }
-    .lottery-badge {
-      font-size: 9px; font-weight: 900;
-      color: #fff;
-      background: rgba(255,255,255,0.12);
-      border-radius: 4px; padding: 1px 5px;
-      line-height: 1.5; white-space: nowrap;
-    }
-    .pairing-dnd-slot.manual .lottery-badge,
-    .seat.mine .lottery-badge {
-      color: var(--gold);
-      background: rgba(240,192,64,0.15);
-    }
     .lottery-admin-row {
       display: none; width: 100%; gap: 8px;
     }
@@ -1848,13 +1836,11 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         if (isMine) {
           cls = 'mine';
           content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            <span class="seat-name" style="color:#f0c040; font-weight:800;">나</span>
-            ${(t.lotteryAssigned && reg.lotteryNum) ? `<span class="lottery-badge">${reg.lotteryNum}</span>` : ''}`;
+            <span class="seat-name" style="color:#f0c040; font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? '나ㆍ' + reg.lotteryNum : '나'}</span>`;
         } else if (reg) {
           cls = 'taken';
           content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            <span class="seat-name">${reg.name || '?'}</span>
-            ${(t.lotteryAssigned && reg.lotteryNum) ? `<span class="lottery-badge">${reg.lotteryNum}</span>` : ''}`;
+            <span class="seat-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</span>`;
         } else if (isSelected) {
           cls = 'selected';
           content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -2482,8 +2468,7 @@ function renderPairingContent(t, registrations) {
             draggable="true" style="position:relative;">
             ${delBtn}
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
-            <div class="pairing-dnd-name">${reg.name || '?'}</div>
-            ${(t.lotteryAssigned && reg.lotteryNum) ? `<div class="lottery-badge">${reg.lotteryNum}</div>` : ''}
+            <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</div>
           </div>`;
         } else {
           const addAttr = isAdmin
