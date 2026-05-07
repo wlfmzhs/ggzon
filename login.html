@@ -160,9 +160,9 @@
     #recaptcha-container { position: fixed; bottom: 0; left: 0; visibility: hidden; z-index: -1; }
 
     @media (max-width: 480px) {
-      html, body { background: var(--green-dark); padding: 0; }
+      html, body { background: var(--green-dark); padding: 0; overflow-y: auto; min-height: 100vh; }
       body { align-items: flex-start; justify-content: flex-start; }
-      .phone-frame { width: 100%; min-height: 100vh; border-radius: 0; box-shadow: none; justify-content: flex-start; padding-top: 80px; overflow-y: auto; }
+      .phone-frame { width: 100%; min-height: 100vh; height: auto; border-radius: 0; box-shadow: none; justify-content: flex-start; padding-top: 80px; padding-bottom: 60px; overflow-y: visible; }
       .phone-frame::before { display: none; }
     }
   </style>
