@@ -2787,14 +2787,25 @@ window.downloadDetailImage = async function() {
   const panel  = document.getElementById('detail-panel-info');
   if (!scroll) return;
 
+  // 캡처 시 숨길 요소 (관리자 버튼, 신청 버튼, 선택 바)
+  const toHide = [
+    scroll.querySelector('button[onclick*="openAdminModal"]')?.closest('div'),
+    document.getElementById('detail-register-btn'),
+    document.getElementById('selected-info-bar'),
+  ].filter(Boolean);
+  const origDisplay = toHide.map(el => el.style.display);
+  toHide.forEach(el => el.style.display = 'none');
+
   const s = {
     panelOv: panel.style.overflow, panelH: panel.style.height,
     scrollOv: scroll.style.overflow, scrollH: scroll.style.height,
+    scrollPad: scroll.style.padding,
   };
   panel.style.overflow  = 'visible';
   panel.style.height    = 'auto';
   scroll.style.overflow = 'visible';
   scroll.style.height   = 'auto';
+  scroll.style.padding  = '48px 16px';
 
   showToast('이미지 생성 중...');
   await new Promise(r => setTimeout(r, 150));
@@ -2810,10 +2821,12 @@ window.downloadDetailImage = async function() {
   } catch(e) {
     showToast('이미지 생성에 실패했습니다');
   } finally {
+    toHide.forEach((el, i) => el.style.display = origDisplay[i]);
     panel.style.overflow  = s.panelOv;
     panel.style.height    = s.panelH;
     scroll.style.overflow = s.scrollOv;
     scroll.style.height   = s.scrollH;
+    scroll.style.padding  = s.scrollPad;
   }
 };
 
