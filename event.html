@@ -1721,7 +1721,7 @@ function renderDetailHeader(t) {
           <div class="detail-name">${t.name}</div>
           ${t.slogan ? `<div class="detail-slogan">"${t.slogan}"</div>` : ''}
         </div>
-        ${isBWTournament ? `<img src="image/B%26W%20CUP.png" alt="B&W CUP" style="width:72px;height:72px;object-fit:contain;flex-shrink:0;margin-top:2px;" />` : ''}
+        ${isBWTournament ? `<img src="image/bw-cup.png" alt="B&W CUP" style="width:72px;height:72px;object-fit:contain;flex-shrink:0;margin-top:2px;" />` : ''}
       </div>
       ${t.notice ? `<div class="detail-notice-box"><div class="detail-notice-label">NOTICE</div><div class="detail-notice-text">${escHtml(t.notice).replace(/\n/g,'<br>')}</div></div>` : ''}
       ${adminEdit}
