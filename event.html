@@ -1688,6 +1688,13 @@ function renderDetailHeader(t) {
         cursor:pointer; font-family:inherit;">
         PDF 저장
       </button>
+      <button onclick="downloadDetailImage()" style="
+        background:rgba(240,192,64,0.1); color:var(--gold);
+        border:1px solid rgba(240,192,64,0.25); border-radius:8px;
+        padding:6px 14px; font-size:11px; font-weight:700;
+        cursor:pointer; font-family:inherit;">
+        이미지 저장
+      </button>
       <button onclick="assignLotteryNumbers()" style="
         background:rgba(240,192,64,0.18); color:var(--gold);
         border:1px solid rgba(240,192,64,0.4); border-radius:8px;
@@ -2772,6 +2779,44 @@ window.resetLotteryNumbers = async function() {
 };
 
 // ═══════════════════════════════════════════════════════
+// ── 대회 정보 이미지 저장 (JPEG) ──────────────────────
+window.downloadDetailImage = async function() {
+  const t = currentTournament;
+  if (!t) return;
+  const scroll = document.getElementById('detail-scroll');
+  const panel  = document.getElementById('detail-panel-info');
+  if (!scroll) return;
+
+  const s = {
+    panelOv: panel.style.overflow, panelH: panel.style.height,
+    scrollOv: scroll.style.overflow, scrollH: scroll.style.height,
+  };
+  panel.style.overflow  = 'visible';
+  panel.style.height    = 'auto';
+  scroll.style.overflow = 'visible';
+  scroll.style.height   = 'auto';
+
+  showToast('이미지 생성 중...');
+  await new Promise(r => setTimeout(r, 150));
+
+  try {
+    const canvas = await html2canvas(scroll, {
+      backgroundColor: '#0A2406', scale: 2, useCORS: true, logging: false,
+    });
+    const link = document.createElement('a');
+    link.download = `${t.name}_대회정보.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+  } catch(e) {
+    showToast('이미지 생성에 실패했습니다');
+  } finally {
+    panel.style.overflow  = s.panelOv;
+    panel.style.height    = s.panelH;
+    scroll.style.overflow = s.scrollOv;
+    scroll.style.height   = s.scrollH;
+  }
+};
+
 // PDF 저장 — 새 탭에 텍스트 기반 HTML 열고 인쇄 다이얼로그
 // ═══════════════════════════════════════════════════════
 
