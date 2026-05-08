@@ -762,15 +762,17 @@
 
     /* ── Sponsor strip ── */
     .sponsor-strip {
-      display: flex; gap: 8px; align-items: flex-start;
-      justify-content: space-between; margin-bottom: 8px;
+      display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px;
     }
     .sponsor-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    }
+    .sponsor-logo-box {
+      flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 4px 0;
     }
     .sponsor-logo {
-      width: 100%; max-height: 38px; object-fit: contain;
-      filter: brightness(0) invert(1); opacity: 0.85;
+      width: 80%; max-height: 29px; object-fit: contain;
+      filter: brightness(0) invert(1); opacity: 1;
     }
     .sponsor-input {
       width: 100%;
@@ -1324,19 +1326,19 @@
       <div class="admin-section-title">스폰서</div>
       <div class="sponsor-strip">
         <div class="sponsor-item">
-          <img src="Logo &amp; Banner image/Ayserleather.png" class="sponsor-logo" alt="Ayser Leather" />
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/Ayserleather.png" class="sponsor-logo" alt="Ayser Leather" /></div>
           <input class="sponsor-input" id="sponsor-text-0" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
         <div class="sponsor-item">
-          <img src="Logo &amp; Banner image/Drun.png" class="sponsor-logo" alt="Drun" />
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/Drun.png" class="sponsor-logo" alt="Drun" /></div>
           <input class="sponsor-input" id="sponsor-text-1" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
         <div class="sponsor-item">
-          <img src="Logo &amp; Banner image/swingpod.png" class="sponsor-logo" alt="Swingpod" />
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/swingpod.png" class="sponsor-logo" alt="Swingpod" /></div>
           <input class="sponsor-input" id="sponsor-text-2" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
         <div class="sponsor-item">
-          <img src="Logo &amp; Banner image/ytour.png" class="sponsor-logo" alt="ytour" />
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/ytour.png" class="sponsor-logo" alt="ytour" /></div>
           <input class="sponsor-input" id="sponsor-text-3" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
       </div>
