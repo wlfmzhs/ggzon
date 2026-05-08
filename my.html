@@ -904,7 +904,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
+  getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
   query, serverTimestamp, orderBy, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -1069,7 +1069,7 @@ window.saveEdit = async () => {
     if (birthYearRaw) {
       updates.birthYear2 = birthYearRaw.padStart(2, '0');
     }
-    await updateDoc(doc(db, 'users', currentUser.uid), updates);
+    await setDoc(doc(db, 'users', currentUser.uid), updates, { merge: true });
     userData = { ...userData, ...updates };
     document.getElementById('prof-nick').textContent = nick;
     const sub = [userData.name, updates.handicap != null ? `핸디 ${updates.handicap}` : '', region].filter(Boolean).join(' · ');
