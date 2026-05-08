@@ -378,12 +378,18 @@
     .detail-slogan { font-size: 13px; color: rgba(255,255,255,0.5); }
 
     /* ── Detail sponsor strip ── */
+    .detail-sponsor-wrap {
+      border-top: 1px solid rgba(62,160,102,0.12);
+      margin: 20px 14px 24px;
+      padding-top: 20px;
+    }
+    .detail-sponsor-headline {
+      text-align: center; font-size: 12px; color: rgba(255,255,255,0.4);
+      margin-bottom: 16px; line-height: 1.5; letter-spacing: -0.2px;
+    }
     .detail-sponsor-strip {
       display: flex; gap: 8px; align-items: flex-start;
       justify-content: space-between;
-      padding: 16px 14px 4px;
-      border-top: 1px solid rgba(62,160,102,0.12);
-      margin-bottom: 8px;
     }
     .detail-sponsor-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
     .detail-sponsor-logo { width: 100%; max-height: 36px; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.75; }
@@ -1853,11 +1859,14 @@ function renderDetailHeader(t) {
     ${(() => {
       const names = ['Ayserleather','Drun','swingpod','ytour'];
       const texts = t.sponsorTexts || [];
-      return `<div class="detail-sponsor-strip">
-        ${names.map((n,i) => `<div class="detail-sponsor-item">
-          <img src="Logo &amp; Banner image/${n}.png" class="detail-sponsor-logo" alt="${n}" />
-          ${texts[i] ? `<div class="detail-sponsor-text">${escHtml(texts[i])}</div>` : ''}
-        </div>`).join('')}
+      return `<div class="detail-sponsor-wrap">
+        <div class="detail-sponsor-headline">${escHtml(t.name)}은 아래 스폰서와 함께 합니다.</div>
+        <div class="detail-sponsor-strip">
+          ${names.map((n,i) => `<div class="detail-sponsor-item">
+            <img src="Logo &amp; Banner image/${n}.png" class="detail-sponsor-logo" alt="${n}" />
+            ${texts[i] ? `<div class="detail-sponsor-text">${escHtml(texts[i])}</div>` : ''}
+          </div>`).join('')}
+        </div>
       </div>`;
     })()}
 
