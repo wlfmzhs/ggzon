@@ -738,6 +738,27 @@
     .admin-row { display: flex; gap: 10px; }
     .admin-row .admin-form-group { flex: 1; }
 
+    /* ── Sponsor strip ── */
+    .sponsor-strip {
+      display: flex; gap: 8px; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 8px;
+    }
+    .sponsor-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .sponsor-logo {
+      width: 100%; max-height: 38px; object-fit: contain;
+      filter: brightness(0) invert(1); opacity: 0.85;
+    }
+    .sponsor-input {
+      width: 100%;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(62,160,102,0.2);
+      border-radius: 8px; padding: 6px 6px; color: #fff;
+      font-size: 11px; font-family: inherit; outline: none; text-align: center;
+    }
+    .sponsor-input::placeholder { color: rgba(255,255,255,0.2); }
+    .sponsor-input:focus { border-color: var(--green-light); }
+
     .admin-save-btn {
       width: 100%; padding: 14px;
       background: linear-gradient(90deg, var(--green), var(--green-light));
@@ -1276,6 +1297,26 @@
           <button type="button" class="prizes-add-btn" onclick="addPrizesRow()">+ 항목 추가</button>
         </div>
         <div class="admin-hint">대회 중 언제든지 수정 가능합니다</div>
+      </div>
+
+      <div class="admin-section-title">스폰서</div>
+      <div class="sponsor-strip">
+        <div class="sponsor-item">
+          <img src="Logo &amp; Banner image/Ayserleather.png" class="sponsor-logo" alt="Ayser Leather" />
+          <input class="sponsor-input" id="sponsor-text-0" type="text" placeholder="짧은 문구" maxlength="20" />
+        </div>
+        <div class="sponsor-item">
+          <img src="Logo &amp; Banner image/Drun.png" class="sponsor-logo" alt="Drun" />
+          <input class="sponsor-input" id="sponsor-text-1" type="text" placeholder="짧은 문구" maxlength="20" />
+        </div>
+        <div class="sponsor-item">
+          <img src="Logo &amp; Banner image/swingpod.png" class="sponsor-logo" alt="Swingpod" />
+          <input class="sponsor-input" id="sponsor-text-2" type="text" placeholder="짧은 문구" maxlength="20" />
+        </div>
+        <div class="sponsor-item">
+          <img src="Logo &amp; Banner image/ytour.png" class="sponsor-logo" alt="ytour" />
+          <input class="sponsor-input" id="sponsor-text-3" type="text" placeholder="짧은 문구" maxlength="20" />
+        </div>
       </div>
 
       <button class="admin-save-btn" onclick="saveTournament()">저장하기</button>
@@ -2201,6 +2242,7 @@ function clearAdminForm() {
   document.getElementById('admin-tee-interval').value = '7';
   document.getElementById('admin-cart-hint').textContent = '총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다';
   document.getElementById('tee-interval-preview').textContent = '';
+  [0,1,2,3].forEach(i => { const el = document.getElementById(`sponsor-text-${i}`); if (el) el.value = ''; });
   renderCourseNameInputs();
 }
 
@@ -2226,6 +2268,10 @@ function fillAdminForm(t) {
   if (t.gatherTime) setTimePicker('gather', t.gatherTime);
   // 조 간격 복원
   document.getElementById('admin-tee-interval').value = t.teeInterval || '7';
+  (t.sponsorTexts || []).forEach((text, i) => {
+    const el = document.getElementById(`sponsor-text-${i}`);
+    if (el) el.value = text || '';
+  });
   recalcCarts();
   updateIntervalPreview();
 }
@@ -2391,6 +2437,7 @@ window.saveTournament = async function() {
     caddyFee: document.getElementById('admin-caddy-fee').value.trim(),
     prizesData: getPrizesData(),
     teeInterval: parseInt(document.getElementById('admin-tee-interval').value) || 7,
+    sponsorTexts: [0,1,2,3].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
   };
 
   const editingId = document.getElementById('admin-editing-id').value;
