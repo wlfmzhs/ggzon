@@ -145,6 +145,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
@@ -156,12 +157,17 @@ const app = initializeApp({
   messagingSenderId: "774722580869",
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
+const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// 로그인 확인
+// 로그인 확인 (카카오 OR 관리자)
 const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
-if (!ggzonUser) { window.location.href = 'login.html'; }
+if (!ggzonUser) {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) window.location.href = 'login.html';
+  });
+}
 
 function formatDate(ts) {
   if (!ts) return '';
@@ -267,13 +273,14 @@ window.doUpload = async function() {
   btn.disabled = true; btn.textContent = '올리는 중...';
   try {
     const blob = await compressImage(_selectedFile);
-    const uid = ggzonUser.uid;
+    const uid = ggzonUser?.uid || auth.currentUser?.uid || 'unknown';
+    const nickname = ggzonUser?.nickname || auth.currentUser?.displayName || '관리자';
     const storageRef = ref(storage, `posts/${uid}/${Date.now()}.jpg`);
     await uploadBytes(storageRef, blob);
     const photoURL = await getDownloadURL(storageRef);
     await addDoc(collection(db, 'posts'), {
       uid,
-      nickname: ggzonUser.nickname || '멤버',
+      nickname,
       photoURL,
       caption: document.getElementById('upload-caption').value.trim(),
       createdAt: serverTimestamp()
