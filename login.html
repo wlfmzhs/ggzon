@@ -318,63 +318,85 @@ function clearMsg(id) {
 }
 
 // ── 카카오 로그인 ────────────────────────────────────────
+const KAKAO_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg>`;
+
 window.doKakaoLogin = function() {
   const btn = document.getElementById('kakao-btn');
   btn.disabled = true;
   btn.textContent = '로그인 중...';
   clearMsg('login-msg');
 
-  Kakao.Auth.login({
-    success: function() {
-      Kakao.API.request({
-        url: '/v2/user/me',
-        success: async function(res) {
-          const kakaoId = String(res.id);
-          const profile = res.kakao_account?.profile || {};
-          const kakaoNick = profile.nickname || '';
+  const restoreBtn = () => {
+    btn.disabled = false;
+    btn.innerHTML = KAKAO_SVG + ' 카카오로 시작하기';
+  };
 
-          try {
-            const uid = 'kakao_' + kakaoId;
-            const snap = await getDoc(doc(db, 'users', uid));
+  // 팝업 차단 등으로 콜백이 안 올 경우 30초 후 자동 복원
+  const timeout = setTimeout(() => {
+    restoreBtn();
+    showMsg('login-msg', '팝업이 차단됐거나 시간이 초과됐습니다. 팝업을 허용하고 다시 시도해주세요.', 'error');
+  }, 30000);
 
-            if (snap.exists()) {
-              // 기존 회원
-              const data = snap.data();
-              localStorage.setItem('ggzon_user', JSON.stringify({
-                uid,
-                nickname: data.nickname || kakaoNick,
-                loginType: 'kakao'
-              }));
-              showPwaPrompt(getReturnUrl());
-            } else {
-              // 신규 회원 → 프로필 설정
-              pendingKakaoUser = { uid, kakaoNick, kakaoId };
-              document.getElementById('prof-nick').value = kakaoNick;
-              showStep('step-profile');
-              document.getElementById('prof-nick').focus();
-            }
-          } catch (e) {
-            showMsg('login-msg', '오류가 발생했습니다. 다시 시도해주세요.', 'error');
-            btn.disabled = false;
-            btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg> 카카오로 시작하기`;
-          }
-        },
-        fail: function(err) {
-          console.error('user/me error:', err);
-          showMsg('login-msg', '사용자 정보를 가져오지 못했습니다.', 'error');
-          btn.disabled = false;
-          btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg> 카카오로 시작하기`;
-        }
-      });
-    },
-    fail: function(err) {
-      if (err.error !== 'access_denied') {
-        showMsg('login-msg', '카카오 로그인에 실패했습니다.', 'error');
-      }
-      btn.disabled = false;
-      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg> 카카오로 시작하기`;
+  try {
+    if (typeof Kakao === 'undefined' || !Kakao.isInitialized()) {
+      clearTimeout(timeout);
+      restoreBtn();
+      showMsg('login-msg', '카카오 SDK 초기화 실패. 페이지를 새로고침해주세요.', 'error');
+      return;
     }
-  });
+
+    Kakao.Auth.login({
+      success: function() {
+        Kakao.API.request({
+          url: '/v2/user/me',
+          success: async function(res) {
+            clearTimeout(timeout);
+            const kakaoId = String(res.id);
+            const profile = res.kakao_account?.profile || {};
+            const kakaoNick = profile.nickname || '';
+            try {
+              const uid = 'kakao_' + kakaoId;
+              const snap = await getDoc(doc(db, 'users', uid));
+              if (snap.exists()) {
+                const data = snap.data();
+                localStorage.setItem('ggzon_user', JSON.stringify({
+                  uid,
+                  nickname: data.nickname || kakaoNick,
+                  loginType: 'kakao'
+                }));
+                showPwaPrompt(getReturnUrl());
+              } else {
+                pendingKakaoUser = { uid, kakaoNick, kakaoId };
+                document.getElementById('prof-nick').value = kakaoNick;
+                showStep('step-profile');
+                document.getElementById('prof-nick').focus();
+              }
+            } catch (e) {
+              restoreBtn();
+              showMsg('login-msg', '오류가 발생했습니다. 다시 시도해주세요. (' + e.message + ')', 'error');
+            }
+          },
+          fail: function(err) {
+            clearTimeout(timeout);
+            restoreBtn();
+            showMsg('login-msg', '사용자 정보를 가져오지 못했습니다. (' + (err?.msg || '') + ')', 'error');
+          }
+        });
+      },
+      fail: function(err) {
+        clearTimeout(timeout);
+        restoreBtn();
+        const code = err?.error || '';
+        if (code !== 'access_denied') {
+          showMsg('login-msg', '카카오 로그인 실패: ' + (err?.error_description || code || '알 수 없는 오류'), 'error');
+        }
+      }
+    });
+  } catch(e) {
+    clearTimeout(timeout);
+    restoreBtn();
+    showMsg('login-msg', 'SDK 오류: ' + e.message, 'error');
+  }
 };
 
 // ── 프로필 저장 (신규) ──────────────────────────────────
