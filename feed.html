@@ -72,14 +72,6 @@
     .feed-caption { padding: 10px 14px 14px; font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.5; }
     .feed-empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 14px; }
 
-    /* 사진 확대 오버레이 */
-    #photo-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.95); z-index: 9999;
-      align-items: center; justify-content: center;
-    }
-    #photo-overlay img { max-width: 100%; max-height: 100%; object-fit: contain; }
-
     #loading-overlay {
       position: absolute; inset: 0; background: var(--green-dark);
       display: flex; align-items: center; justify-content: center; z-index: 50; border-radius: 40px;
@@ -121,11 +113,6 @@
   </div>
 </div>
 
-<!-- 사진 확대 -->
-<div id="photo-overlay" onclick="this.style.display='none'">
-  <img id="photo-full" src="" />
-</div>
-
 <!-- 사진 업로드 모달 -->
 <div id="upload-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:flex-end;justify-content:center;">
   <div style="width:100%;max-width:430px;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 40px;">
@@ -147,7 +134,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -163,9 +151,18 @@ const storage = getStorage(app);
 
 // 로그인 확인 (카카오 OR 관리자)
 const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+let currentUid = ggzonUser?.uid || null;
+let isAdmin = false;
+
 if (!ggzonUser) {
   onAuthStateChanged(auth, (user) => {
-    if (!user) window.location.href = 'login.html';
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUid = user.uid;
+    isAdmin = user.email === 'wlfmzhs@naver.com';
+  });
+} else {
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.email === 'wlfmzhs@naver.com') isAdmin = true;
   });
 }
 
@@ -192,15 +189,20 @@ async function loadFeed() {
     el.innerHTML = snap.docs.map(d => {
       const p = d.data();
       const initial = (p.nickname || '?')[0].toUpperCase();
-      return `<div class="feed-card">
+      const canDelete = (currentUid && currentUid === p.uid) || isAdmin;
+      const delBtn = canDelete
+        ? `<button onclick="deletePost('${d.id}','${p.photoURL}')" style="background:none;border:none;color:rgba(255,80,80,0.7);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;padding:0;">삭제</button>`
+        : '';
+      return `<div class="feed-card" id="post-${d.id}">
         <div class="feed-header">
           <div class="feed-avatar">${initial}</div>
-          <div>
+          <div style="flex:1;">
             <div class="feed-nick">${p.nickname || '멤버'}</div>
             <div class="feed-date">${formatDate(p.createdAt)}</div>
           </div>
+          ${delBtn}
         </div>
-        <img class="feed-photo" src="${p.photoURL}" loading="lazy" onclick="openPhoto('${p.photoURL}')" />
+        <img class="feed-photo" src="${p.photoURL}" loading="lazy" />
         ${p.caption ? `<div class="feed-caption">${p.caption}</div>` : ''}
       </div>`;
     }).join('');
@@ -212,9 +214,20 @@ async function loadFeed() {
 
 loadFeed();
 
-window.openPhoto = function(url) {
-  document.getElementById('photo-full').src = url;
-  document.getElementById('photo-overlay').style.display = 'flex';
+window.deletePost = async function(postId, photoURL) {
+  if (!confirm('이 사진을 삭제하시겠어요?')) return;
+  try {
+    await deleteDoc(doc(db, 'posts', postId));
+    const match = photoURL.match(/\/o\/(.+?)\?/);
+    if (match) {
+      const path = decodeURIComponent(match[1]);
+      await deleteObject(ref(storage, path)).catch(() => {});
+    }
+    const card = document.getElementById('post-' + postId);
+    if (card) card.remove();
+  } catch(e) {
+    alert('삭제 실패: ' + e.message);
+  }
 };
 
 // ── 업로드 ───────────────────────────────────────────
