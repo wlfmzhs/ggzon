@@ -660,32 +660,67 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  onAuthStateChanged(auth, async (user) => {
+  function setNick(nick) {
+    document.getElementById('user-nick').textContent = nick;
+    document.getElementById('header-name').textContent = nick;
+  }
+
+  function onLoginReady() {
     document.getElementById('loading-overlay').classList.add('hidden');
-    if (!user) { window.location.href = 'login.html'; return; }
     loadNotices();
     loadLiveList();
     loadTournamentList();
     loadGGPlayerList();
-    const fallbackName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '멤버';
-    try {
-      const snap = await getDoc(doc(db, 'users', user.uid));
-      if (snap.exists()) {
-        const d = snap.data();
-        const nick = d.nickname || fallbackName;
-        document.getElementById('user-nick').textContent = nick;
-        document.getElementById('header-name').textContent = nick;
-      } else {
-        document.getElementById('user-nick').textContent = fallbackName;
-        document.getElementById('header-name').textContent = fallbackName;
-      }
-
-    } catch (e) {
-      document.getElementById('user-nick').textContent = fallbackName;
-      document.getElementById('header-name').textContent = fallbackName;
-    }
     window._isPaidUser = true;
-  });
+  }
+
+  // 카카오 세션 먼저 확인
+  const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+  if (ggzonUser && ggzonUser.loginType === 'kakao') {
+    setNick(ggzonUser.nickname || '멤버');
+    onLoginReady();
+    // Firestore에서 최신 닉네임 동기화
+    getDoc(doc(db, 'users', ggzonUser.uid)).then(snap => {
+      if (snap.exists()) {
+        const nick = snap.data().nickname || ggzonUser.nickname;
+        setNick(nick);
+        localStorage.setItem('ggzon_user', JSON.stringify({ ...ggzonUser, nickname: nick }));
+      }
+    }).catch(() => {});
+  } else {
+    // 관리자(이메일) 로그인 확인
+    onAuthStateChanged(auth, async (user) => {
+      document.getElementById('loading-overlay').classList.add('hidden');
+      if (!user) { window.location.href = 'login.html'; return; }
+      onLoginReady();
+      const fallbackName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '멤버';
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) {
+          setNick(snap.data().nickname || fallbackName);
+        } else {
+          setNick(fallbackName);
+        }
+      } catch (e) {
+        setNick(fallbackName);
+      }
+    });
+  }
+
+  // 로그아웃
+  window._doLogout = async function() {
+    const gu = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+    if (gu && gu.loginType === 'kakao') {
+      localStorage.removeItem('ggzon_user');
+      if (typeof Kakao !== 'undefined' && Kakao.Auth) {
+        try { Kakao.Auth.logout(); } catch (_) {}
+      }
+      window.location.href = 'index.html';
+    } else {
+      await signOut(auth);
+      window.location.href = 'index.html';
+    }
+  };
 
   window.checkPaidAndGo = function(url) {
     if (!window._isPaidUser) { showToast('유료 회원 전용 기능입니다. 관리자에게 문의해 주세요.'); return; }
@@ -808,10 +843,7 @@
   }
 
   const logoutBtn = document.getElementById('tab-logout');
-  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
-    await signOut(auth);
-    window.location.href = 'index.html';
-  });
+  if (logoutBtn) logoutBtn.addEventListener('click', () => window._doLogout());
 
   document.querySelectorAll('.top-tab').forEach(btn => {
     btn.addEventListener('click', () => {
