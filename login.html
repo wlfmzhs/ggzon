@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <script type="text/javascript">
@@ -53,25 +53,11 @@
     .logo { margin-bottom: 32px; text-align: center; }
     .logo img { height: 64px; width: auto; object-fit: contain; }
 
-    /* Steps */
     .step { display: none; width: 100%; flex-direction: column; gap: 14px; }
     .step.active { display: flex; }
     .step-title { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 2px; }
     .step-desc { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
-    .step-back {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 13px; color: var(--green-light); cursor: pointer;
-      margin-bottom: 4px; background: none; border: none; font-family: inherit; padding: 0;
-    }
-    .otp-sent-info {
-      font-size: 13px; color: rgba(255,255,255,0.6);
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 12px 14px; line-height: 1.5;
-    }
-    .otp-sent-info strong { color: #fff; }
 
-    /* Form */
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); padding-left: 2px; }
     .form-input {
@@ -89,13 +75,6 @@
     .form-row { display: flex; gap: 10px; }
     .form-row .form-group { flex: 1; }
 
-    /* OTP input */
-    #otp-input {
-      letter-spacing: 8px; font-size: 22px; font-weight: 900;
-      text-align: center;
-    }
-
-    /* Buttons */
     .submit-btn {
       width: 100%; padding: 16px; margin-top: 4px;
       background: var(--green); color: #fff;
@@ -106,17 +85,7 @@
     }
     .submit-btn:active { background: var(--green-light); }
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .resend-btn {
-      width: 100%; padding: 13px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px; color: rgba(255,255,255,0.5);
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      font-family: inherit; transition: all 0.2s;
-    }
-    .resend-btn:not(:disabled):active { background: rgba(255,255,255,0.1); }
-    .resend-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Messages */
     .msg {
       width: 100%; padding: 12px 14px; border-radius: 10px;
       font-size: 13px; font-weight: 600; text-align: center; display: none;
@@ -124,27 +93,21 @@
     .msg.error { background: rgba(220,50,50,0.15); color: #ff6b6b; border: 1px solid rgba(220,50,50,0.3); display: block; }
     .msg.success { background: rgba(46,160,80,0.15); color: #3ea066; border: 1px solid rgba(46,160,80,0.3); display: block; }
 
-    /* Divider */
-    .divider { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
-    .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
-    .divider-text { font-size: 11px; color: rgba(255,255,255,0.3); }
-
-    /* Google */
-    .google-btn {
-      width: 100%; padding: 13px; border-radius: 12px;
-      background: #fff; color: #333; font-size: 14px; font-weight: 700;
+    .kakao-btn {
+      width: 100%; padding: 15px; border-radius: 14px;
+      background: #FEE500; color: #000; font-size: 15px; font-weight: 900;
       border: none; cursor: pointer; font-family: inherit;
       display: flex; align-items: center; justify-content: center; gap: 10px;
+      -webkit-tap-highlight-color: transparent; transition: background 0.15s;
     }
+    .kakao-btn:active { background: #e6cf00; }
 
-    /* Agree */
     .agree-box { display: flex; flex-direction: column; gap: 10px; }
     .agree-item { display: flex; align-items: flex-start; gap: 10px; }
     .agree-item input[type="checkbox"] { width: 18px; height: 18px; min-width: 18px; accent-color: var(--green-light); margin-top: 2px; cursor: pointer; }
     .agree-item label { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; cursor: pointer; }
     .agree-item label span { color: var(--green-light); text-decoration: underline; cursor: pointer; }
 
-    /* Term overlay */
     .term-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500; align-items: flex-end; justify-content: center; }
     .term-overlay.show { display: flex; }
     .term-box { width: 100%; max-width: 390px; background: #0f2e1a; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; max-height: 70vh; overflow-y: auto; }
@@ -155,10 +118,6 @@
 
     .back-link { display: block; text-align: center; margin-top: 24px; font-size: 13px; color: rgba(255,255,255,0.3); text-decoration: none; }
     .back-link span { color: var(--green-light); }
-
-    /* reCAPTCHA */
-    #recaptcha-container { margin-top: 4px; min-height: 0; }
-    #recaptcha-container iframe { border-radius: 8px; }
 
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); padding: 0; overflow-y: auto; min-height: 100vh; }
@@ -175,23 +134,16 @@
     <img src="Logo &amp; Banner image/GGZON_LOGO.png" alt="GOLGAB ZONE" />
   </div>
 
-  <!-- Step 1: 전화번호 입력 -->
-  <div class="step active" id="step-phone">
-    <div class="step-title">휴대폰으로 시작하기</div>
-    <div class="step-desc">번호 인증 한 번으로 로그인·가입이 됩니다</div>
-    <div class="form-group">
-      <label class="form-label">휴대폰 번호</label>
-      <input class="form-input" id="phone-input" type="tel" placeholder="010-0000-0000"
-        onkeydown="if(event.key==='Enter') sendOTP()" />
-    </div>
-    <div id="recaptcha-container"></div>
-    <div id="phone-msg" class="msg"></div>
-    <button class="submit-btn" id="send-btn" onclick="sendOTP()">인증번호 받기 →</button>
-
-    <div class="divider"><div class="divider-line"></div><div class="divider-text">또는</div><div class="divider-line"></div></div>
-    <button class="google-btn" onclick="doGoogleLogin()">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Google로 계속하기
+  <!-- Step 1: 카카오 로그인 -->
+  <div class="step active" id="step-login">
+    <div class="step-title">GGZON 시작하기</div>
+    <div class="step-desc">카카오 계정으로 간편하게 시작하세요</div>
+    <div id="login-msg" class="msg"></div>
+    <button class="kakao-btn" id="kakao-btn" onclick="doKakaoLogin()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#000000">
+        <path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/>
+      </svg>
+      카카오로 시작하기
     </button>
     <a href="index.html" class="back-link">← <span>골갑존 소개</span>로 돌아가기</a>
 
@@ -199,7 +151,7 @@
     <div style="text-align:center;margin-top:32px;">
       <button onclick="toggleAdminLogin()" style="background:none;border:none;color:rgba(255,255,255,0.12);font-size:11px;cursor:pointer;font-family:inherit;">관리자</button>
     </div>
-    <div id="admin-login-box" style="display:none;margin-top:12px;display:none;flex-direction:column;gap:10px;">
+    <div id="admin-login-box" style="display:none;flex-direction:column;gap:10px;">
       <div class="form-group">
         <label class="form-label">이메일</label>
         <input class="form-input" id="admin-email" type="email" placeholder="관리자 이메일" onkeydown="if(event.key==='Enter') doAdminLogin()" />
@@ -213,23 +165,7 @@
     </div>
   </div>
 
-  <!-- Step 2: 인증번호 입력 -->
-  <div class="step" id="step-otp">
-    <button class="step-back" onclick="goToPhone()">← 번호 변경</button>
-    <div class="step-title">인증번호 입력</div>
-    <div class="otp-sent-info" id="otp-sent-info">문자를 발송했습니다</div>
-    <div class="form-group">
-      <label class="form-label">인증번호 6자리</label>
-      <input class="form-input" id="otp-input" type="number" placeholder="000000"
-        maxlength="6" oninput="if(this.value.length>6)this.value=this.value.slice(0,6)"
-        onkeydown="if(event.key==='Enter') verifyOTP()" />
-    </div>
-    <div id="otp-msg" class="msg"></div>
-    <button class="submit-btn" id="verify-btn" onclick="verifyOTP()">확인 →</button>
-    <button class="resend-btn" id="resend-btn" onclick="resendOTP()" disabled>재발송 (60s)</button>
-  </div>
-
-  <!-- Step 3: 프로필 설정 (신규 가입) -->
+  <!-- Step 2: 프로필 설정 (신규 가입) -->
   <div class="step" id="step-profile">
     <div class="step-title">프로필 설정</div>
     <div class="step-desc">처음 오셨군요! 간단히 정보를 입력해주세요</div>
@@ -287,7 +223,6 @@
     <button class="submit-btn" id="prof-btn" onclick="saveProfile()">가입 완료 →</button>
   </div>
 
-
 </div>
 
 <!-- PWA 설치 모달 -->
@@ -313,18 +248,22 @@
   </div>
 </div>
 
+<!-- Kakao SDK -->
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth, onAuthStateChanged,
-  signInWithPhoneNumber, RecaptchaVerifier,
-  GoogleAuthProvider, signInWithPopup,
   signInWithEmailAndPassword,
   setPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ★ 카카오 JavaScript 앱 키를 여기에 입력하세요 ★
+const KAKAO_JS_KEY = '여기에_카카오_JavaScript_키_입력';
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -338,75 +277,34 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
+// Kakao SDK 초기화
+if (!Kakao.isInitialized()) {
+  Kakao.init(KAKAO_JS_KEY);
+}
+
 function getReturnUrl() {
   return new URLSearchParams(window.location.search).get('return') || 'dashboard.html';
 }
 
-// 이미 로그인된 경우 바로 이동
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-  if (handlingNewUser) return;
-  const isVerified = user.emailVerified || user.email === ADMIN_EMAIL || !!user.phoneNumber;
-  if (!isVerified) return;
-  try {
-    const bannedSnap = await getDoc(doc(db, 'banned', user.uid));
-    if (bannedSnap.exists()) { await auth.signOut(); return; }
-  } catch (_) {}
+// 이미 카카오 로그인된 경우
+const savedUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+if (savedUser && savedUser.loginType === 'kakao') {
   window.location.href = getReturnUrl();
+}
+
+// 관리자(이메일) 로그인 상태 확인
+onAuthStateChanged(auth, (user) => {
+  if (user && user.email === ADMIN_EMAIL) {
+    window.location.href = getReturnUrl();
+  }
 });
 
-// ── reCAPTCHA ──────────────────────────────────────────
-let appVerifier = null;
-function initRecaptcha() {
-  if (appVerifier) { try { appVerifier.clear(); } catch(_) {} appVerifier = null; }
-  appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-    size: 'normal',
-    callback: () => {},
-    'expired-callback': () => { initRecaptcha(); }
-  });
-  appVerifier.render();
-}
-// 페이지 로드 시 바로 렌더링
-window.addEventListener('DOMContentLoaded', () => initRecaptcha());
+let pendingKakaoUser = null;
 
-// ── 전화번호 포맷 ───────────────────────────────────────
-function formatPhone(raw) {
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return null;
-  return digits.startsWith('0') ? '+82' + digits.slice(1) : '+82' + digits;
-}
-
-// ── Step 전환 ───────────────────────────────────────────
 function showStep(id) {
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
-window.goToPhone = function() { showStep('step-phone'); };
-
-// ── 재발송 타이머 ───────────────────────────────────────
-let resendTimer = null;
-function startResendTimer() {
-  let sec = 60;
-  const btn = document.getElementById('resend-btn');
-  btn.disabled = true;
-  btn.textContent = `재발송 (${sec}s)`;
-  clearInterval(resendTimer);
-  resendTimer = setInterval(() => {
-    sec--;
-    btn.textContent = `재발송 (${sec}s)`;
-    if (sec <= 0) {
-      clearInterval(resendTimer);
-      btn.disabled = false;
-      btn.textContent = '재발송';
-    }
-  }, 1000);
-}
-
-// ── confirmationResult 보관 ────────────────────────────
-let confirmationResult = null;
-let currentPhone = null;
-let handlingNewUser = false;
 
 function showMsg(id, text, type) {
   const el = document.getElementById(id);
@@ -419,130 +317,100 @@ function clearMsg(id) {
   if (el) { el.textContent = ''; el.className = 'msg'; }
 }
 
-// ── 인증번호 발송 ───────────────────────────────────────
-window.sendOTP = async function() {
-  const raw = document.getElementById('phone-input').value.trim();
-  const phone = formatPhone(raw);
-  if (!phone || phone.length < 11) {
-    showMsg('phone-msg', '올바른 휴대폰 번호를 입력해주세요', 'error'); return;
-  }
-  const btn = document.getElementById('send-btn');
-  btn.disabled = true; btn.textContent = '발송 중...';
-  clearMsg('phone-msg');
-  try {
-    await setPersistence(auth, browserLocalPersistence);
-    confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
-    currentPhone = raw;
-    document.getElementById('otp-sent-info').innerHTML =
-      `<strong>${raw}</strong> 으로 6자리 인증번호를 보냈어요.<br>문자가 오지 않으면 재발송을 눌러주세요.`;
-    showStep('step-otp');
-    startResendTimer();
-    document.getElementById('otp-input').focus();
-  } catch (e) {
-    console.error('sendOTP error:', e.code, e.message);
-    showMsg('phone-msg', getPhoneError(e.code) + ' (' + (e.code || '') + ')', 'error');
-    initRecaptcha();
-  } finally {
-    btn.disabled = false; btn.textContent = '인증번호 받기 →';
-  }
-};
+// ── 카카오 로그인 ────────────────────────────────────────
+window.doKakaoLogin = function() {
+  const btn = document.getElementById('kakao-btn');
+  btn.disabled = true;
+  btn.textContent = '로그인 중...';
+  clearMsg('login-msg');
 
-// ── 재발송 ─────────────────────────────────────────────
-window.resendOTP = async function() {
-  if (!currentPhone) return;
-  const btn = document.getElementById('resend-btn');
-  btn.disabled = true; btn.textContent = '발송 중...';
-  clearMsg('otp-msg');
-  try {
-    confirmationResult = await signInWithPhoneNumber(auth, formatPhone(currentPhone), appVerifier);
-    startResendTimer();
-    showMsg('otp-msg', '재발송했습니다', 'success');
-    initRecaptcha();
-  } catch (e) {
-    showMsg('otp-msg', getPhoneError(e.code), 'error');
-    initRecaptcha();
-    btn.disabled = false; btn.textContent = '재발송';
-  }
-};
+  Kakao.Auth.login({
+    success: function() {
+      Kakao.API.request({
+        url: '/v2/user/me',
+        success: async function(res) {
+          const kakaoId = String(res.id);
+          const profile = res.kakao_account?.profile || {};
+          const kakaoNick = profile.nickname || '';
 
-// ── OTP 검증 ────────────────────────────────────────────
-window.verifyOTP = async function() {
-  const code = document.getElementById('otp-input').value.trim();
-  if (code.length !== 6) { showMsg('otp-msg', '인증번호 6자리를 입력해주세요', 'error'); return; }
-  const btn = document.getElementById('verify-btn');
-  btn.disabled = true; btn.textContent = '확인 중...';
-  clearMsg('otp-msg');
-  try {
-    const result = await confirmationResult.confirm(code);
-    const user = result.user;
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    if (snap.exists()) {
-      // 기존 회원 → 바로 이동
-      showPwaPrompt(getReturnUrl());
-    } else {
-      // 신규 → 프로필 설정 (onAuthStateChanged 리다이렉트 차단)
-      handlingNewUser = true;
-      showStep('step-profile');
-      document.getElementById('prof-nick').focus();
+          try {
+            const uid = 'kakao_' + kakaoId;
+            const snap = await getDoc(doc(db, 'users', uid));
+
+            if (snap.exists()) {
+              // 기존 회원
+              const data = snap.data();
+              localStorage.setItem('ggzon_user', JSON.stringify({
+                uid,
+                nickname: data.nickname || kakaoNick,
+                loginType: 'kakao'
+              }));
+              showPwaPrompt(getReturnUrl());
+            } else {
+              // 신규 회원 → 프로필 설정
+              pendingKakaoUser = { uid, kakaoNick, kakaoId };
+              document.getElementById('prof-nick').value = kakaoNick;
+              showStep('step-profile');
+              document.getElementById('prof-nick').focus();
+            }
+          } catch (e) {
+            showMsg('login-msg', '오류가 발생했습니다. 다시 시도해주세요.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg> 카카오로 시작하기`;
+          }
+        },
+        fail: function(err) {
+          console.error('user/me error:', err);
+          showMsg('login-msg', '사용자 정보를 가져오지 못했습니다.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg> 카카오로 시작하기`;
+        }
+      });
+    },
+    fail: function(err) {
+      if (err.error !== 'access_denied') {
+        showMsg('login-msg', '카카오 로그인에 실패했습니다.', 'error');
+      }
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg> 카카오로 시작하기`;
     }
-  } catch (e) {
-    showMsg('otp-msg', e.code === 'auth/invalid-verification-code'
-      ? '인증번호가 올바르지 않아요'
-      : e.code === 'auth/code-expired'
-      ? '인증번호가 만료됐어요. 재발송해주세요'
-      : '오류가 발생했어요. 다시 시도해주세요', 'error');
-    btn.disabled = false; btn.textContent = '확인 →';
-  }
+  });
 };
 
 // ── 프로필 저장 (신규) ──────────────────────────────────
 window.saveProfile = async function() {
+  if (!pendingKakaoUser) return;
   const nick = document.getElementById('prof-nick').value.trim();
   if (!nick) { showMsg('prof-msg', '닉네임을 입력해주세요', 'error'); return; }
   if (!document.getElementById('prof-terms').checked) { showMsg('prof-msg', '이용약관에 동의해 주세요', 'error'); return; }
   if (!document.getElementById('prof-privacy').checked) { showMsg('prof-msg', '개인정보처리방침에 동의해 주세요', 'error'); return; }
+
   const btn = document.getElementById('prof-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
-  const user = auth.currentUser;
   const birthRaw = document.getElementById('prof-birth').value.trim();
+
   try {
-    await setDoc(doc(db, 'users', user.uid), {
+    await setDoc(doc(db, 'users', pendingKakaoUser.uid), {
       nickname: nick,
       name: document.getElementById('prof-name').value.trim(),
       birthYear2: birthRaw ? String(birthRaw).padStart(2, '0') : '',
       handicap: document.getElementById('prof-handi').value,
       region: document.getElementById('prof-region').value,
-      phone: currentPhone || user.phoneNumber || '',
+      loginType: 'kakao',
+      kakaoId: pendingKakaoUser.kakaoId,
       createdAt: new Date().toISOString(),
       isPaid: false
     });
-    handlingNewUser = false;
+    localStorage.setItem('ggzon_user', JSON.stringify({
+      uid: pendingKakaoUser.uid,
+      nickname: nick,
+      loginType: 'kakao'
+    }));
+    pendingKakaoUser = null;
     showPwaPrompt(getReturnUrl());
   } catch (e) {
     showMsg('prof-msg', '저장 실패: ' + e.message, 'error');
     btn.disabled = false; btn.textContent = '가입 완료 →';
-  }
-};
-
-// ── Google 로그인 ───────────────────────────────────────
-window.doGoogleLogin = async function() {
-  try {
-    await setPersistence(auth, browserLocalPersistence);
-    const cred = await signInWithPopup(auth, new GoogleAuthProvider());
-    const user = cred.user;
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    if (snap.exists()) {
-      showPwaPrompt(getReturnUrl());
-    } else {
-      // Google 신규: 프로필 설정으로
-      currentPhone = '';
-      showStep('step-profile');
-      document.getElementById('prof-nick').focus();
-    }
-  } catch (e) {
-    if (e.code !== 'auth/popup-closed-by-user') {
-      showMsg('phone-msg', '구글 로그인 실패: ' + e.message, 'error');
-    }
   }
 };
 
@@ -573,15 +441,6 @@ window.doAdminLogin = async function() {
     showMsg('admin-msg', map[e.code] || '로그인 실패: ' + e.code, 'error');
   }
 };
-
-function getPhoneError(code) {
-  const map = {
-    'auth/invalid-phone-number': '올바른 휴대폰 번호를 입력해주세요',
-    'auth/too-many-requests': '요청이 너무 많아요. 잠시 후 다시 시도해주세요',
-    'auth/captcha-check-failed': 'reCAPTCHA 확인 실패. 다시 시도해주세요',
-  };
-  return map[code] || '오류가 발생했어요. 다시 시도해주세요';
-}
 </script>
 
 <script>
@@ -646,7 +505,7 @@ function getPhoneError(code) {
       body: `
         <p>GOLGAB ZONE은 개인정보보호법 제30조에 따라 이용자의 개인정보를 보호합니다.</p>
         <p><strong>제1조 (수집하는 개인정보 항목)</strong></p>
-        <ul><li>필수: 휴대폰 번호, 닉네임</li><li>선택: 이름, 출생연도, 핸디캡, 거주지역</li><li>자동 수집: 서비스 이용 기록, 접속 로그</li></ul>
+        <ul><li>필수: 카카오 계정 정보(ID, 닉네임)</li><li>선택: 이름, 출생연도, 핸디캡, 거주지역</li><li>자동 수집: 서비스 이용 기록, 접속 로그</li></ul>
         <p><strong>제2조 (수집 및 이용 목적)</strong></p>
         <ul><li>회원 식별 및 서비스 제공</li><li>이벤트·대회 참가 신청 및 결과 안내</li><li>서비스 개선 및 신규 서비스 개발</li></ul>
         <p><strong>제3조 (보유 및 이용 기간)</strong></p>
