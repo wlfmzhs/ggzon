@@ -429,6 +429,7 @@
     <div class="appbar-right">
       <button class="ggpoint-appbar-btn" onclick="checkPaidAndGo('ggcup.html')">GG POINT</button>
       <button onclick="location.href='wake-calc.html'" title="기상시간계산"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+      <button onclick="openCamera()" title="사진 올리기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
     </div>
   </div>
 
@@ -439,6 +440,7 @@
     <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
     <button class="top-tab" onclick="showToast('준비 중입니다')">구독자라운드</button>
     <button class="top-tab" onclick="location.href='round-map.html'">라운드지도</button>
+    <button class="top-tab" onclick="location.href='feed.html'">피드</button>
     <button class="top-tab" onclick="showToast('준비 중입니다')">쇼핑</button>
   </div>
 
@@ -603,6 +605,23 @@
   <div id="toast" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.95);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:300;"></div>
 
 </div>
+
+<!-- 사진 업로드 모달 -->
+<div id="upload-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <span style="font-size:16px;font-weight:900;color:#fff;">사진 올리기</span>
+      <button onclick="closeUpload()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:24px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div id="upload-preview" style="width:100%;aspect-ratio:1;background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;margin-bottom:14px;display:flex;align-items:center;justify-content:center;">
+      <img id="preview-img" src="" style="width:100%;height:100%;object-fit:cover;display:none;" />
+      <span id="preview-placeholder" style="color:rgba(255,255,255,0.3);font-size:13px;">사진을 선택해주세요</span>
+    </div>
+    <textarea id="upload-caption" placeholder="간단한 멘트 (선택사항)" maxlength="100" style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;padding:12px 14px;resize:none;outline:none;height:72px;margin-bottom:14px;"></textarea>
+    <button id="upload-btn" onclick="doUpload()" style="width:100%;padding:15px;border-radius:14px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:900;border:none;cursor:pointer;font-family:inherit;">올리기</button>
+  </div>
+</div>
+<input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" />
 <script>
   // 광고 배너 롤링 + 드래그/스와이프
   (function() {
@@ -647,7 +666,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const app = initializeApp({
     apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -659,6 +679,7 @@
   });
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   function setNick(nick) {
     document.getElementById('user-nick').textContent = nick;
@@ -870,6 +891,92 @@
       scroll.scrollLeft = scrollLeft - (e.pageX - scroll.offsetLeft - startX);
     });
   })();
+
+  // ── 사진 업로드 ──────────────────────────────────────
+  let _selectedFile = null;
+
+  function getNickname() {
+    const gu = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+    return gu?.nickname || document.getElementById('user-nick').textContent || '멤버';
+  }
+  function getUid() {
+    const gu = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+    return gu?.uid || auth.currentUser?.uid || 'unknown';
+  }
+
+  function compressImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 1080;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/jpeg', 0.82);
+      };
+      img.src = url;
+    });
+  }
+
+  window.openCamera = function() {
+    document.getElementById('camera-input').click();
+  };
+
+  document.getElementById('camera-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    _selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById('preview-img').src = ev.target.result;
+      document.getElementById('preview-img').style.display = 'block';
+      document.getElementById('preview-placeholder').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+    document.getElementById('upload-overlay').style.display = 'flex';
+    e.target.value = '';
+  });
+
+  window.closeUpload = function() {
+    document.getElementById('upload-overlay').style.display = 'none';
+    document.getElementById('preview-img').style.display = 'none';
+    document.getElementById('preview-placeholder').style.display = '';
+    document.getElementById('upload-caption').value = '';
+    _selectedFile = null;
+  };
+
+  window.doUpload = async function() {
+    if (!_selectedFile) return;
+    const btn = document.getElementById('upload-btn');
+    btn.disabled = true; btn.textContent = '올리는 중...';
+    try {
+      const blob = await compressImage(_selectedFile);
+      const uid = getUid();
+      const filename = `posts/${uid}/${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
+      await uploadBytes(storageRef, blob);
+      const photoURL = await getDownloadURL(storageRef);
+      await addDoc(collection(db, 'posts'), {
+        uid,
+        nickname: getNickname(),
+        photoURL,
+        caption: document.getElementById('upload-caption').value.trim(),
+        createdAt: serverTimestamp()
+      });
+      closeUpload();
+      showToast('올렸습니다!');
+    } catch(e) {
+      showToast('업로드 실패: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '올리기';
+    }
+  };
 
 </script>
 <script src="data-gpga-2025.js"></script>
