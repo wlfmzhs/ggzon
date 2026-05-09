@@ -831,7 +831,16 @@
       </div>
       <div class="field-group">
         <div class="field-label">핸디캡</div>
-        <input class="field-input" id="edit-handicap" type="number" placeholder="핸디캡" min="0" max="54" />
+        <select class="field-input" id="edit-handicap" style="-webkit-appearance:none;appearance:none;color:#fff;">
+          <option value="" disabled>선택</option>
+          <option value="scratch">스크래치 이하</option>
+          <option value="1-9">1~9</option>
+          <option value="10-18">10~18</option>
+          <option value="19-27">19~27</option>
+          <option value="28-36">28~36</option>
+          <option value="37+">37 이상</option>
+          <option value="beginner">입문자</option>
+        </select>
       </div>
       <div class="field-group">
         <div class="field-label">출생연도 (뒤 2자리)</div>
@@ -839,7 +848,15 @@
       </div>
       <div class="field-group">
         <div class="field-label">거주지</div>
-        <input class="field-input" id="edit-region" type="text" placeholder="거주지" />
+        <select class="field-input" id="edit-region" style="-webkit-appearance:none;appearance:none;color:#fff;">
+          <option value="" disabled>선택</option>
+          <option>서울</option><option>경기</option><option>인천</option>
+          <option>부산</option><option>대구</option><option>광주</option>
+          <option>대전</option><option>울산</option><option>세종</option>
+          <option>강원</option><option>충북</option><option>충남</option>
+          <option>전북</option><option>전남</option><option>경북</option>
+          <option>경남</option><option>제주</option><option>해외</option>
+        </select>
       </div>
       <div class="field-group">
         <div class="field-label">연락처</div>
@@ -1046,7 +1063,7 @@ window.closeModal = (id) => document.getElementById(id).classList.remove('show')
 
 window.openEditModal = () => {
   document.getElementById('edit-nick').value = userData.nickname || '';
-  document.getElementById('edit-handicap').value = userData.handicap ?? '';
+  document.getElementById('edit-handicap').value = userData.handicap || '';
   document.getElementById('edit-birthyear').value = userData.birthYear2 || '';
   document.getElementById('edit-region').value = userData.region || '';
   document.getElementById('edit-phone').value = userData.phone || '';
@@ -1065,14 +1082,14 @@ window.saveEdit = async () => {
   }
   try {
     const updates = { nickname: nick, region, phone };
-    if (handicap !== '') updates.handicap = Number(handicap);
+    if (handicap !== '') updates.handicap = handicap;
     if (birthYearRaw) {
       updates.birthYear2 = birthYearRaw.padStart(2, '0');
     }
     await setDoc(doc(db, 'users', currentUser.uid), updates, { merge: true });
     userData = { ...userData, ...updates };
     document.getElementById('prof-nick').textContent = nick;
-    const sub = [userData.name, updates.handicap != null ? `핸디 ${updates.handicap}` : '', region].filter(Boolean).join(' · ');
+    const sub = [userData.name, updates.handicap ? `핸디 ${updates.handicap}` : '', region].filter(Boolean).join(' · ');
     document.getElementById('prof-sub').textContent = sub;
     closeModal('modal-edit');
     showToast('저장되었습니다');
