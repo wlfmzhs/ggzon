@@ -277,13 +277,17 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
+const KAKAO_REST_API_KEY = '86f3640335dd65316507c504ffa5e9d4';
+const KAKAO_REDIRECT_URI = 'https://www.ggzon.co.kr/login.html';
+const KAKAO_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg>`;
+
 // Kakao SDK 초기화
 if (!Kakao.isInitialized()) {
   Kakao.init(KAKAO_JS_KEY);
 }
 
 function getReturnUrl() {
-  return new URLSearchParams(window.location.search).get('return') || 'dashboard.html';
+  return localStorage.getItem('ggzon_return') || 'dashboard.html';
 }
 
 // 이미 카카오 로그인된 경우
@@ -305,7 +309,6 @@ function showStep(id) {
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
 function showMsg(id, text, type) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -317,87 +320,75 @@ function clearMsg(id) {
   if (el) { el.textContent = ''; el.className = 'msg'; }
 }
 
-// ── 카카오 로그인 ────────────────────────────────────────
-const KAKAO_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#000000"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/></svg>`;
-
+// ── 카카오 로그인 버튼 클릭 → 카카오로 리다이렉트 ──────
 window.doKakaoLogin = function() {
+  const returnParam = new URLSearchParams(window.location.search).get('return');
+  if (returnParam) localStorage.setItem('ggzon_return', returnParam);
+  Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT_URI });
+};
+
+// ── 카카오 리다이렉트 후 code 처리 ──────────────────────
+async function handleKakaoReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const error = params.get('error');
+
+  // URL 정리
+  if (code || error) history.replaceState({}, '', window.location.pathname);
+  if (!code) return;
+
   const btn = document.getElementById('kakao-btn');
   btn.disabled = true;
-  btn.textContent = '로그인 중...';
-  clearMsg('login-msg');
+  btn.textContent = '로그인 처리 중...';
 
   const restoreBtn = () => {
     btn.disabled = false;
     btn.innerHTML = KAKAO_SVG + ' 카카오로 시작하기';
   };
 
-  // 팝업 차단 등으로 콜백이 안 올 경우 30초 후 자동 복원
-  const timeout = setTimeout(() => {
-    restoreBtn();
-    showMsg('login-msg', '팝업이 차단됐거나 시간이 초과됐습니다. 팝업을 허용하고 다시 시도해주세요.', 'error');
-  }, 30000);
-
   try {
-    if (typeof Kakao === 'undefined' || !Kakao.isInitialized()) {
-      clearTimeout(timeout);
-      restoreBtn();
-      showMsg('login-msg', '카카오 SDK 초기화 실패. 페이지를 새로고침해주세요.', 'error');
-      return;
-    }
-
-    Kakao.Auth.login({
-      success: function() {
-        Kakao.API.request({
-          url: '/v2/user/me',
-          success: async function(res) {
-            clearTimeout(timeout);
-            const kakaoId = String(res.id);
-            const profile = res.kakao_account?.profile || {};
-            const kakaoNick = profile.nickname || '';
-            try {
-              const uid = 'kakao_' + kakaoId;
-              const snap = await getDoc(doc(db, 'users', uid));
-              if (snap.exists()) {
-                const data = snap.data();
-                localStorage.setItem('ggzon_user', JSON.stringify({
-                  uid,
-                  nickname: data.nickname || kakaoNick,
-                  loginType: 'kakao'
-                }));
-                showPwaPrompt(getReturnUrl());
-              } else {
-                pendingKakaoUser = { uid, kakaoNick, kakaoId };
-                document.getElementById('prof-nick').value = kakaoNick;
-                showStep('step-profile');
-                document.getElementById('prof-nick').focus();
-              }
-            } catch (e) {
-              restoreBtn();
-              showMsg('login-msg', '오류가 발생했습니다. 다시 시도해주세요. (' + e.message + ')', 'error');
-            }
-          },
-          fail: function(err) {
-            clearTimeout(timeout);
-            restoreBtn();
-            showMsg('login-msg', '사용자 정보를 가져오지 못했습니다. (' + (err?.msg || '') + ')', 'error');
-          }
-        });
-      },
-      fail: function(err) {
-        clearTimeout(timeout);
-        restoreBtn();
-        const code = err?.error || '';
-        if (code !== 'access_denied') {
-          showMsg('login-msg', '카카오 로그인 실패: ' + (err?.error_description || code || '알 수 없는 오류'), 'error');
-        }
-      }
+    // 1. code → access_token 교환
+    const tokenRes = await fetch('https://kauth.kakao.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+      body: `grant_type=authorization_code&client_id=${KAKAO_REST_API_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&code=${code}`
     });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) throw new Error(tokenData.error_description || 'token 발급 실패');
+
+    // 2. 사용자 정보 조회
+    const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {
+      headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
+    });
+    const userData = await userRes.json();
+
+    const kakaoId  = String(userData.id);
+    const kakaoNick = userData.kakao_account?.profile?.nickname || '';
+    const uid = 'kakao_' + kakaoId;
+
+    // 3. Firestore에서 기존 회원 확인
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (snap.exists()) {
+      const data = snap.data();
+      localStorage.setItem('ggzon_user', JSON.stringify({
+        uid,
+        nickname: data.nickname || kakaoNick,
+        loginType: 'kakao'
+      }));
+      showPwaPrompt(getReturnUrl());
+    } else {
+      pendingKakaoUser = { uid, kakaoNick, kakaoId };
+      document.getElementById('prof-nick').value = kakaoNick;
+      showStep('step-profile');
+      document.getElementById('prof-nick').focus();
+    }
   } catch(e) {
-    clearTimeout(timeout);
     restoreBtn();
-    showMsg('login-msg', 'SDK 오류: ' + e.message, 'error');
+    showMsg('login-msg', '로그인 처리 실패: ' + e.message, 'error');
   }
-};
+}
+
+handleKakaoReturn();
 
 // ── 프로필 저장 (신규) ──────────────────────────────────
 window.saveProfile = async function() {
