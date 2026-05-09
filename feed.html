@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d7a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GOLGAB ZONE — 피드</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root { --green: #2d7a4f; --green-light: #3ea066; --green-dark: #0A2406; --border: rgba(62,160,102,0.15); }
+    html, body { width: 100%; height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #fff; }
+    body { display: flex; align-items: center; justify-content: center; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .appbar-title { font-size: 17px; font-weight: 900; color: #fff; }
+    .appbar-back {
+      background: none; border: none; color: var(--green-light);
+      font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; padding: 4px;
+    }
+    .appbar-cam {
+      background: none; border: none; color: rgba(255,255,255,0.6);
+      cursor: pointer; padding: 4px; line-height: 0;
+    }
+    .content { flex: 1; overflow-y: auto; scrollbar-width: none; }
+    .content::-webkit-scrollbar { display: none; }
+
+    .feed-card { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .feed-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px 8px; }
+    .feed-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(62,160,102,0.25);
+      border: 1px solid rgba(62,160,102,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900; color: var(--green-light); flex-shrink: 0;
+    }
+    .feed-nick { font-size: 13px; font-weight: 800; color: #f0ebe0; }
+    .feed-date { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+    .feed-photo { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; cursor: pointer; }
+    .feed-caption { padding: 10px 14px 14px; font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.5; }
+    .feed-empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 14px; }
+
+    /* 사진 확대 오버레이 */
+    #photo-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.95); z-index: 9999;
+      align-items: center; justify-content: center;
+    }
+    #photo-overlay img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center; z-index: 50; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div id="loading-overlay">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style="animation:spin 1s linear infinite">
+      <circle cx="20" cy="20" r="16" stroke="rgba(62,160,102,0.2)" stroke-width="4"/>
+      <path d="M20 4a16 16 0 0 1 16 16" stroke="#3ea066" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="appbar">
+    <button class="appbar-back" onclick="history.back()">← 뒤로</button>
+    <span class="appbar-title">피드</span>
+    <button class="appbar-cam" onclick="openCameraFromFeed()" title="사진 올리기">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="content" id="feed-list">
+    <div class="feed-empty">불러오는 중...</div>
+  </div>
+</div>
+
+<!-- 사진 확대 -->
+<div id="photo-overlay" onclick="this.style.display='none'">
+  <img id="photo-full" src="" />
+</div>
+
+<!-- 사진 업로드 모달 -->
+<div id="upload-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:flex-end;justify-content:center;">
+  <div style="width:100%;max-width:430px;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <span style="font-size:16px;font-weight:900;color:#fff;">사진 올리기</span>
+      <button onclick="closeUpload()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:24px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div style="width:100%;aspect-ratio:1;background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;margin-bottom:14px;display:flex;align-items:center;justify-content:center;">
+      <img id="preview-img" src="" style="width:100%;height:100%;object-fit:cover;display:none;" />
+      <span id="preview-placeholder" style="color:rgba(255,255,255,0.3);font-size:13px;">사진을 선택해주세요</span>
+    </div>
+    <textarea id="upload-caption" placeholder="간단한 멘트 (선택사항)" maxlength="100" style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;padding:12px 14px;resize:none;outline:none;height:72px;margin-bottom:14px;"></textarea>
+    <button id="upload-btn" onclick="doUpload()" style="width:100%;padding:15px;border-radius:14px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:900;border:none;cursor:pointer;font-family:inherit;">올리기</button>
+  </div>
+</div>
+<input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" />
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// 로그인 확인
+const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+if (!ggzonUser) { window.location.href = 'login.html'; }
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return '방금';
+  if (diff < 3600) return Math.floor(diff / 60) + '분 전';
+  if (diff < 86400) return Math.floor(diff / 3600) + '시간 전';
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+async function loadFeed() {
+  const el = document.getElementById('feed-list');
+  try {
+    const snap = await getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(50)));
+    document.getElementById('loading-overlay').classList.add('hidden');
+    if (snap.empty) {
+      el.innerHTML = '<div class="feed-empty">아직 올라온 사진이 없습니다.<br>첫 번째 사진을 올려보세요!</div>';
+      return;
+    }
+    el.innerHTML = snap.docs.map(d => {
+      const p = d.data();
+      const initial = (p.nickname || '?')[0].toUpperCase();
+      return `<div class="feed-card">
+        <div class="feed-header">
+          <div class="feed-avatar">${initial}</div>
+          <div>
+            <div class="feed-nick">${p.nickname || '멤버'}</div>
+            <div class="feed-date">${formatDate(p.createdAt)}</div>
+          </div>
+        </div>
+        <img class="feed-photo" src="${p.photoURL}" loading="lazy" onclick="openPhoto('${p.photoURL}')" />
+        ${p.caption ? `<div class="feed-caption">${p.caption}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('loading-overlay').classList.add('hidden');
+    el.innerHTML = '<div class="feed-empty">불러오기 실패: ' + e.message + '</div>';
+  }
+}
+
+loadFeed();
+
+window.openPhoto = function(url) {
+  document.getElementById('photo-full').src = url;
+  document.getElementById('photo-overlay').style.display = 'flex';
+};
+
+// ── 업로드 ───────────────────────────────────────────
+let _selectedFile = null;
+
+window.openCameraFromFeed = function() {
+  document.getElementById('camera-input').click();
+};
+
+document.getElementById('camera-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  _selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('preview-img').src = ev.target.result;
+    document.getElementById('preview-img').style.display = 'block';
+    document.getElementById('preview-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('upload-overlay').style.display = 'flex';
+  e.target.value = '';
+});
+
+window.closeUpload = function() {
+  document.getElementById('upload-overlay').style.display = 'none';
+  document.getElementById('preview-img').style.display = 'none';
+  document.getElementById('preview-placeholder').style.display = '';
+  document.getElementById('upload-caption').value = '';
+  _selectedFile = null;
+};
+
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 1080;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/jpeg', 0.82);
+    };
+    img.src = url;
+  });
+}
+
+window.doUpload = async function() {
+  if (!_selectedFile) return;
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true; btn.textContent = '올리는 중...';
+  try {
+    const blob = await compressImage(_selectedFile);
+    const uid = ggzonUser.uid;
+    const storageRef = ref(storage, `posts/${uid}/${Date.now()}.jpg`);
+    await uploadBytes(storageRef, blob);
+    const photoURL = await getDownloadURL(storageRef);
+    await addDoc(collection(db, 'posts'), {
+      uid,
+      nickname: ggzonUser.nickname || '멤버',
+      photoURL,
+      caption: document.getElementById('upload-caption').value.trim(),
+      createdAt: serverTimestamp()
+    });
+    closeUpload();
+    await loadFeed();
+  } catch(e) {
+    alert('업로드 실패: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '올리기';
+  }
+};
+</script>
+</body>
+</html>
