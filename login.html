@@ -290,6 +290,13 @@ function getReturnUrl() {
   return localStorage.getItem('ggzon_return') || 'dashboard.html';
 }
 
+// ?logout=1 파라미터로 강제 로그아웃
+if (new URLSearchParams(window.location.search).get('logout') === '1') {
+  localStorage.removeItem('ggzon_user');
+  localStorage.removeItem('ggzon_return');
+  history.replaceState({}, '', window.location.pathname);
+}
+
 // 이미 카카오 로그인된 경우
 const savedUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
 if (savedUser && savedUser.loginType === 'kakao') {
