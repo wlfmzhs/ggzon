@@ -350,8 +350,14 @@ async function handleKakaoReturn() {
     // 1. code → access_token 교환
     const tokenRes = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
-      body: `grant_type=authorization_code&client_id=${KAKAO_REST_API_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&code=${code}`
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: KAKAO_REST_API_KEY,
+        redirect_uri: KAKAO_REDIRECT_URI,
+        code: code,
+        client_secret: 'urkOdswm5pxmM1GT3QrTA32hQpzbXcJg'
+      })
     });
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) throw new Error(tokenData.error_description || 'token 발급 실패');
