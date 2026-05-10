@@ -230,8 +230,9 @@ async function loadFeed() {
       </div>`;
     }).join('');
   } catch(e) {
+    console.error('[GGLOG 로드 에러]', e);
     document.getElementById('loading-overlay').classList.add('hidden');
-    el.innerHTML = '<div class="feed-empty">불러오기 실패: ' + e.message + '</div>';
+    el.innerHTML = `<div class="feed-empty" style="font-size:12px;word-break:break-all;">불러오기 실패<br><span style="color:rgba(255,100,100,0.8);font-size:11px;">${e.code || ''} ${e.message}</span></div>`;
   }
 }
 
