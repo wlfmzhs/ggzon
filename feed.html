@@ -209,7 +209,7 @@ async function loadFeed() {
       el.innerHTML = '<div class="feed-empty">아직 올라온 사진이 없습니다.<br>첫 번째 사진을 올려보세요!</div>';
       return;
     }
-    el.innerHTML = snap.docs.map(d => {
+    el.innerHTML = snap.docs.map((d, i) => {
       const p = d.data();
       const canDelete = (currentUid && currentUid === p.uid) || isAdmin;
       const delBtn = canDelete
