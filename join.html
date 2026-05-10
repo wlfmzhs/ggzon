@@ -890,8 +890,14 @@ window._selectSubCourse = function(side, name) {
 };
 
 // ── Auth ──────────────────────────────────────────────
+const _ggzonKakao = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
+  ? { uid: _ggzonKakao.uid, displayName: _ggzonKakao.nickname, email: '' }
+  : null;
+
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
+  const effectiveUser = user || _kakaoFbUser;
+  if (!effectiveUser) {
     if (window._inAppBrowser) return; // 인앱브라우저는 오버레이가 처리
     const p = new URLSearchParams(location.search);
     const jId = p.get('joinId');
@@ -899,8 +905,8 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = `login.html?return=${encodeURIComponent(returnUrl)}`;
     return;
   }
-  currentUser = user;
-  isAdmin = user.email === 'wlfmzhs@naver.com';
+  currentUser = effectiveUser;
+  isAdmin = effectiveUser.email === 'wlfmzhs@naver.com';
   isPaidUser = true;
   document.getElementById('btn-new-join').style.display = 'block';
   document.getElementById('loading-overlay').classList.add('hidden');

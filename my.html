@@ -948,11 +948,17 @@ let editingAchId = null;
 const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
 // ── Auth ──────────────────────────────────────────────
+const _ggzonKakao = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
+  ? { uid: _ggzonKakao.uid, displayName: _ggzonKakao.nickname, email: '' }
+  : null;
+
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { window.location.href = 'login.html'; return; }
-  currentUser = user;
-  // 전화번호 인증 유저는 비밀번호 변경 메뉴 숨김
-  if (user.phoneNumber && !user.email) {
+  const effectiveUser = user || _kakaoFbUser;
+  if (!effectiveUser) { window.location.href = 'login.html'; return; }
+  currentUser = effectiveUser;
+  // 카카오/전화번호 유저는 비밀번호 변경 메뉴 숨김
+  if (_kakaoFbUser || (effectiveUser.phoneNumber && !effectiveUser.email)) {
     const pwMenu = document.getElementById('menu-pw');
     if (pwMenu) pwMenu.style.display = 'none';
   }
@@ -1022,6 +1028,7 @@ document.getElementById('sc2-picker-overlay').addEventListener('click', e => {
 
 // ── 로그아웃 ──────────────────────────────────────────
 document.getElementById('btn-logout').addEventListener('click', async () => {
+  localStorage.removeItem('ggzon_user');
   await signOut(auth);
   window.location.href = 'index.html';
 });
@@ -1038,15 +1045,25 @@ document.getElementById('btn-withdraw-confirm').addEventListener('click', async 
   btn.textContent = '처리 중...';
   const uid = currentUser.uid;
   try {
-    // Auth 먼저 삭제 — 실패(재로그인 필요) 시 Firestore 데이터 건드리지 않음
-    await deleteUser(currentUser);
-    // Auth 삭제 성공 후 Firestore 데이터 정리
-    try {
-      const histSnap = await getDocs(collection(db, 'users', uid, 'scoreHistory'));
-      await Promise.all(histSnap.docs.map(d => deleteDoc(d.ref)));
-      await deleteDoc(doc(db, 'users', uid));
-    } catch(_) {}
-    window.location.href = 'index.html';
+    if (_kakaoFbUser) {
+      // 카카오 유저: Firestore 데이터 삭제 후 localStorage 정리
+      try {
+        const histSnap = await getDocs(collection(db, 'users', uid, 'scoreHistory'));
+        await Promise.all(histSnap.docs.map(d => deleteDoc(d.ref)));
+        await deleteDoc(doc(db, 'users', uid));
+      } catch(_) {}
+      localStorage.removeItem('ggzon_user');
+      window.location.href = 'index.html';
+    } else {
+      // Firebase 유저: Auth 먼저 삭제 — 실패(재로그인 필요) 시 Firestore 데이터 건드리지 않음
+      await deleteUser(currentUser);
+      try {
+        const histSnap = await getDocs(collection(db, 'users', uid, 'scoreHistory'));
+        await Promise.all(histSnap.docs.map(d => deleteDoc(d.ref)));
+        await deleteDoc(doc(db, 'users', uid));
+      } catch(_) {}
+      window.location.href = 'index.html';
+    }
   } catch (e) {
     if (e.code === 'auth/requires-recent-login') {
       showToast('보안을 위해 로그아웃 후 다시 로그인하고 탈퇴해 주세요.');

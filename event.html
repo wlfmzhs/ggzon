@@ -1456,13 +1456,19 @@ const PAST_TOURNAMENTS = [
 ];
 
 // ── Auth ───────────────────────────────────────────────
+const _ggzonKakao = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
+  ? { uid: _ggzonKakao.uid, displayName: _ggzonKakao.nickname, email: '' }
+  : null;
+
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
+  const effectiveUser = user || _kakaoFbUser;
+  if (!effectiveUser) {
     window.location.href = 'login.html?return=event.html';
     return;
   }
-  currentUser = user;
-  isAdmin = user.email === 'wlfmzhs@naver.com';
+  currentUser = effectiveUser;
+  isAdmin = effectiveUser.email === 'wlfmzhs@naver.com';
   if (isAdmin) {
     document.getElementById('btn-new-tournament').style.display = 'block';
   }
