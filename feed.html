@@ -69,6 +69,7 @@
       overflow: hidden;
       box-shadow: 0 6px 24px rgba(0,0,0,0.4);
       background: var(--green-dark);
+      border: 3px solid var(--green-dark);
       animation: fadeUp 0.4s ease both;
       transition: transform 0.18s ease, box-shadow 0.18s ease;
       transform: translateZ(0);
@@ -88,7 +89,15 @@
     .feed-nick { font-size: 13px; font-weight: 900; color: #fff; letter-spacing: -0.2px; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
     .feed-date { font-size: 11px; color: rgba(255,255,255,0.72); margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
 
-    .feed-caption { padding: 13px 16px 16px; font-size: 13px; color: #222; line-height: 1.6; background: #fff; }
+    .feed-caption {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 14px 16px 18px;
+      font-size: 13px; color: #fff; line-height: 1.6; font-weight: 600;
+      background: rgba(0, 168, 107, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
     .feed-empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 14px; }
 
     #loading-overlay {
@@ -227,8 +236,8 @@ async function loadFeed() {
             </div>
             ${delBtn}
           </div>
+          ${p.caption ? `<div class="feed-caption">${p.caption}</div>` : ''}
         </div>
-        ${p.caption ? `<div class="feed-caption">${p.caption}</div>` : ''}
       </div>`;
     }).join('');
   } catch(e) {
