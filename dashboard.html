@@ -900,19 +900,28 @@
         return;
       }
       const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // 사진 수에 따라 그리드 레이아웃 조정
-      if (posts.length === 1) {
-        el.style.gridTemplateColumns = '1fr';
-        el.style.gridTemplateRows = '1fr';
-      } else if (posts.length === 2) {
-        el.style.gridTemplateColumns = '2fr 1fr';
-        el.style.gridTemplateRows = '1fr';
+      const n = posts.length;
+
+      if (n === 1) {
+        el.style.cssText = 'grid-template-columns:1fr;grid-template-rows:1fr;';
+        el.innerHTML = `<div class="gglog-cell" style="grid-column:1;grid-row:1;" onclick="location.href='feed.html?post=${posts[0].id}'">
+          <img src="${posts[0].photoURL}" loading="eager"/>
+          <div class="gglog-cell-nick">${posts[0].nickname || '멤버'}</div>
+        </div>`;
+      } else {
+        el.style.cssText = '';
+        // 각 셀 위치를 명시적으로 지정 (auto-placement 미사용)
+        const positions = [
+          'grid-column:1;grid-row:1/3;',   // 좌측 큰 사진
+          'grid-column:2;grid-row:1;',      // 우측 상단
+          'grid-column:2;grid-row:2;',      // 우측 하단
+        ];
+        el.innerHTML = posts.slice(0, 3).map((p, i) => `
+          <div class="gglog-cell" style="${positions[i]}" onclick="location.href='feed.html?post=${p.id}'">
+            <img src="${p.photoURL}" loading="eager"/>
+            ${i === 0 ? `<div class="gglog-cell-nick">${p.nickname || '멤버'}</div>` : ''}
+          </div>`).join('');
       }
-      el.innerHTML = posts.map((p, i) => `
-        <div class="gglog-cell" onclick="location.href='feed.html?post=${p.id}'" ${posts.length >= 3 && i === 0 ? 'style="grid-row:1/3"' : ''}>
-          <img src="${p.photoURL}" loading="eager" />
-          ${i === 0 ? `<div class="gglog-cell-nick">${p.nickname || '멤버'}</div>` : ''}
-        </div>`).join('');
     } catch(e) {
       el.innerHTML = '<div class="gglog-empty" style="grid-column:1/3;display:flex;align-items:center;justify-content:center;">불러오기 실패</div>';
     }
