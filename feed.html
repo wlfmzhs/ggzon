@@ -267,22 +267,48 @@ window.deletePost = async function(postId, photoURL) {
 
 // ── 업로드 ───────────────────────────────────────────
 let _selectedFile = null;
+let _compressedBlob = null;
+let _previewDataURL = null;
 
 window.openCameraFromFeed = function() {
   document.getElementById('camera-input').click();
 };
 
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 640;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/jpeg', 0.68);
+    };
+    img.src = url;
+  });
+}
+
 document.getElementById('camera-input').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   _selectedFile = file;
+  _compressedBlob = null;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    document.getElementById('preview-img').src = ev.target.result;
+    _previewDataURL = ev.target.result;
+    document.getElementById('preview-img').src = _previewDataURL;
     document.getElementById('preview-img').style.display = 'block';
     document.getElementById('preview-placeholder').style.display = 'none';
   };
   reader.readAsDataURL(file);
+  // 압축 미리 시작
+  compressImage(file).then(blob => { _compressedBlob = blob; });
   document.getElementById('upload-overlay').style.display = 'flex';
   e.target.value = '';
 });
@@ -293,27 +319,9 @@ window.closeUpload = function() {
   document.getElementById('preview-placeholder').style.display = '';
   document.getElementById('upload-caption').value = '';
   _selectedFile = null;
+  _compressedBlob = null;
+  _previewDataURL = null;
 };
-
-function compressImage(file) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 720;
-      let w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else { w = Math.round(w * MAX / h); h = MAX; }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/jpeg', 0.72);
-    };
-    img.src = url;
-  });
-}
 
 // ── Pull to Refresh ──────────────────────────────────
 (function() {
@@ -361,28 +369,47 @@ function compressImage(file) {
 
 window.doUpload = async function() {
   if (!_selectedFile) return;
-  const btn = document.getElementById('upload-btn');
-  btn.disabled = true; btn.textContent = '올리는 중...';
+  const caption = document.getElementById('upload-caption').value.trim();
+  const previewSrc = _previewDataURL;
+  const uid = ggzonUser?.uid || auth.currentUser?.uid || 'unknown';
+  const nickname = ggzonUser?.nickname || auth.currentUser?.displayName || '관리자';
+
+  // 모달 즉시 닫고 임시 카드 삽입
+  closeUpload();
+  const tempId = 'temp-' + Date.now();
+  const tempCard = document.createElement('div');
+  tempCard.className = 'feed-card';
+  tempCard.id = tempId;
+  tempCard.innerHTML = `<div class="feed-img-wrap">
+    <img class="feed-photo" src="${previewSrc}" />
+    <div class="feed-overlay">
+      <div style="flex:1;">
+        <div class="feed-nick">${nickname}</div>
+        <div class="feed-date">방금</div>
+      </div>
+    </div>
+    ${caption ? `<div class="feed-caption">${caption}</div>` : ''}
+    <div style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.5);border-radius:12px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,0.7);">업로드 중...</div>
+  </div>`;
+  const list = document.getElementById('feed-list');
+  list.prepend(tempCard);
+
   try {
-    const blob = await compressImage(_selectedFile);
-    const uid = ggzonUser?.uid || auth.currentUser?.uid || 'unknown';
-    const nickname = ggzonUser?.nickname || auth.currentUser?.displayName || '관리자';
-    const storageRef = ref(storage, `posts/${uid}/${Date.now()}.jpg`);
+    const blob = _compressedBlob || await compressImage(_selectedFile);
+    const filename = `${Date.now()}.jpg`;
+    const path = `posts/${uid}/${filename}`;
+    const storageRef = ref(storage, path);
     await uploadBytes(storageRef, blob);
-    const photoURL = await getDownloadURL(storageRef);
-    await addDoc(collection(db, 'posts'), {
-      uid,
-      nickname,
-      photoURL,
-      caption: document.getElementById('upload-caption').value.trim(),
-      createdAt: serverTimestamp()
-    });
-    closeUpload();
-    await loadFeed();
+    const photoURL = `https://firebasestorage.googleapis.com/v0/b/ggzon-b33cb.firebasestorage.app/o/${encodeURIComponent(path)}?alt=media`;
+    await addDoc(collection(db, 'posts'), { uid, nickname, photoURL, caption, createdAt: serverTimestamp() });
+    // 임시 카드를 실제 URL로 교체
+    const img = tempCard.querySelector('.feed-photo');
+    if (img) img.src = photoURL;
+    const badge = tempCard.querySelector('[style*="업로드 중"]');
+    if (badge) badge.remove();
   } catch(e) {
+    tempCard.remove();
     alert('업로드 실패: ' + e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = '올리기';
   }
 };
 </script>
