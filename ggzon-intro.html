@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>GGZON 소개 이미지</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #0d0d0d; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 16px; padding: 28px 20px 52px;
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    canvas { width: 100%; max-width: 360px; height: auto; border-radius: 16px; display: block; box-shadow: 0 24px 80px rgba(0,0,0,0.85); }
+    .dl-btn {
+      width: 100%; max-width: 360px; padding: 15px;
+      background: #2d7a4f; color: #fff; border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 800; font-family: inherit; cursor: pointer; letter-spacing: -0.2px;
+    }
+    .dl-btn:active { opacity: 0.8; }
+    .note { font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; }
+  </style>
+</head>
+<body>
+  <canvas id="card"></canvas>
+  <button class="dl-btn" onclick="download()">이미지 저장 (PNG 1080x1920)</button>
+  <p class="note">저장 후 SNS · 카카오톡에 바로 공유하세요</p>
+
+  <script>
+    const W = 1080, H = 1920;
+    const GRN = '#3ea066', GOLD = '#f0c040', BLUE = '#5bc8f5', ORG = '#ffb450';
+
+    function hexA(hex, a) {
+      const [r, g, b] = hex.replace('#', '').match(/.{2}/g).map(v => parseInt(v, 16));
+      return `rgba(${r},${g},${b},${a})`;
+    }
+
+    function rr(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y,     x + w, y + r,     r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x,     y + h, x,     y + h - r, r);
+      ctx.lineTo(x,     y + r);
+      ctx.arcTo(x,     y,     x + r, y,         r);
+      ctx.closePath();
+    }
+
+    function divLine(ctx, y) {
+      const g = ctx.createLinearGradient(120, y, W - 120, y);
+      g.addColorStop(0, 'transparent');
+      g.addColorStop(0.25, 'rgba(62,160,102,.55)');
+      g.addColorStop(0.75, 'rgba(62,160,102,.55)');
+      g.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.moveTo(120, y); ctx.lineTo(W - 120, y);
+      ctx.strokeStyle = g; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    function draw() {
+      const canvas = document.getElementById('card');
+      const ctx = canvas.getContext('2d');
+      canvas.width = W; canvas.height = H;
+
+      // 배경 그라데이션
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0,   '#132815');
+      bg.addColorStop(0.55,'#0a1b0b');
+      bg.addColorStop(1,   '#040905');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+      // 장식 원
+      [[W + 100, -100, 500, .09], [W + 100, -100, 320, .06], [-100, H + 100, 480, .06]].forEach(([cx, cy, r, a]) => {
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(46,120,76,${a})`; ctx.fill();
+      });
+
+      const F = "'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif";
+
+      // 상단 뱃지
+      const bW = 580, bH = 64, bX = (W - bW) / 2, bY = 195;
+      rr(ctx, bX, bY, bW, bH, 32);
+      ctx.fillStyle = 'rgba(62,160,102,.13)'; ctx.fill();
+      rr(ctx, bX, bY, bW, bH, 32);
+      ctx.strokeStyle = 'rgba(62,160,102,.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = GRN; ctx.font = `700 24px ${F}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('GOLF MEMBERSHIP COMMUNITY', W / 2, bY + bH / 2);
+
+      // 메인 타이틀
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#fff';
+      ctx.font = `900 215px ${F}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('GG ZON', W / 2, 558);
+
+      ctx.fillStyle = GRN;
+      ctx.font = `700 50px ${F}`;
+      ctx.fillText('GOLGAB ZONE', W / 2, 648);
+
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      ctx.font = `400 36px ${F}`;
+      ctx.fillText('골프를 즐기는 모든 사람들의 공간', W / 2, 733);
+
+      divLine(ctx, 812);
+
+      // 피처 카드
+      const features = [
+        { acc: GRN,  icon: 'G',  title: 'GGLOG',       desc: '라운드 사진 피드' },
+        { acc: BLUE, icon: '조', title: '조인 모집',    desc: '스크린 · 필드 함께' },
+        { acc: GOLD, icon: '대', title: '단체라운드',   desc: 'GG CUP · GPGA 대회' },
+        { acc: ORG,  icon: '★', title: '골슐랭스타',   desc: '골프장 별점 리뷰' },
+        { acc: BLUE, icon: '카', title: '스코어카드',   desc: '타수 기록 · 핸디 관리' },
+        { acc: GRN,  icon: 'P',  title: 'GG PLAYER',   desc: '핸디캡 랭킹 · 멤버' },
+      ];
+
+      const cW = 480, cH = 205, gX = 20, gY = 18, sX = 40, sY = 854;
+
+      features.forEach((f, i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const cx = sX + col * (cW + gX);
+        const cy = sY + row * (cH + gY);
+
+        rr(ctx, cx, cy, cW, cH, 24);
+        ctx.fillStyle = hexA(f.acc, .11); ctx.fill();
+        rr(ctx, cx, cy, cW, cH, 24);
+        ctx.strokeStyle = hexA(f.acc, .28); ctx.lineWidth = 1.5; ctx.stroke();
+
+        // 아이콘 원
+        const icX = cx + 62, icY = cy + cH / 2;
+        ctx.beginPath(); ctx.arc(icX, icY, 36, 0, Math.PI * 2);
+        ctx.fillStyle = hexA(f.acc, .2); ctx.fill();
+        ctx.fillStyle = f.acc;
+        ctx.font = `800 30px ${F}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(f.icon, icX, icY);
+
+        // 타이틀 + 설명
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#fff';
+        ctx.font = `800 34px ${F}`;
+        ctx.fillText(f.title, cx + 114, cy + cH / 2 - 5);
+        ctx.fillStyle = 'rgba(255,255,255,.48)';
+        ctx.font = `400 25px ${F}`;
+        ctx.fillText(f.desc, cx + 114, cy + cH / 2 + 32);
+      });
+
+      // 하단 구분선
+      const botY = sY + 3 * cH + 2 * gY + 55;
+      divLine(ctx, botY);
+
+      // URL
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(255,255,255,.28)';
+      ctx.font = `400 30px ${F}`;
+      ctx.fillText('www.ggzon.co.kr', W / 2, botY + 78);
+
+      // CTA 버튼
+      const ctaW = 620, ctaH = 86, ctaX = (W - ctaW) / 2, ctaY = botY + 130;
+      rr(ctx, ctaX, ctaY, ctaW, ctaH, 43);
+      const ctaG = ctx.createLinearGradient(ctaX, 0, ctaX + ctaW, 0);
+      ctaG.addColorStop(0, '#2d7a4f'); ctaG.addColorStop(1, '#3ea066');
+      ctx.fillStyle = ctaG; ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = `800 34px ${F}`;
+      ctx.fillText('지금 바로 가입하세요  →', W / 2, ctaY + ctaH / 2);
+
+      // 하단 점 장식
+      [0, 1, 2].forEach(i => {
+        ctx.beginPath();
+        ctx.arc(W / 2 + (i - 1) * 28, botY + 274, i === 1 ? 7 : 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = i === 1 ? GRN : hexA(GRN, .3); ctx.fill();
+      });
+    }
+
+    draw();
+
+    function download() {
+      const canvas = document.getElementById('card');
+      const a = document.createElement('a');
+      a.download = 'ggzon_intro.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+  </script>
+</body>
+</html>
