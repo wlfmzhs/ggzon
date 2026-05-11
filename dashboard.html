@@ -403,40 +403,6 @@
     }
     .gglog-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
 
-    /* 라이트박스 */
-    .lb-overlay {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.93);
-      z-index: 450;
-      display: flex; flex-direction: column;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.22s;
-    }
-    .lb-overlay.open { opacity: 1; pointer-events: all; }
-    .lb-top {
-      flex-shrink: 0; padding: 20px 18px 10px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .lb-counter { font-size: 13px; color: rgba(255,255,255,0.45); font-weight: 700; }
-    .lb-close-btn {
-      width: 34px; height: 34px; border-radius: 50%;
-      background: rgba(255,255,255,0.12); border: none;
-      color: #fff; font-size: 18px; line-height: 1;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .lb-img-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0 4px; }
-    .lb-img-wrap img { width: 100%; height: 100%; object-fit: contain; }
-    @keyframes lbLeft  { from { opacity:0; transform:translateX(30px);  } to { opacity:1; transform:translateX(0); } }
-    @keyframes lbRight { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
-    .lb-img-wrap.anim-left  img { animation: lbLeft  0.22s ease; }
-    .lb-img-wrap.anim-right img { animation: lbRight 0.22s ease; }
-    .lb-info { flex-shrink: 0; padding: 14px 18px 24px; }
-    .lb-nick { font-size: 14px; font-weight: 900; color: #fff; margin-bottom: 2px; }
-    .lb-date { font-size: 11px; color: rgba(255,255,255,0.4); }
-    .lb-caption { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 8px; line-height: 1.5; }
-    .lb-dots { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
-    .lb-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); transition: background 0.2s; }
-    .lb-dot.on { background: #fff; }
     .my-btn {
       font-size: 12px; font-weight: 700; color: var(--green-light);
       background: none; border: none; cursor: pointer; font-family: inherit;
@@ -699,24 +665,7 @@
     </div><!-- /content-inner-pad -->
   </div>
 
-  <!-- GGLOG 라이트박스 -->
-  <div class="lb-overlay" id="lb-overlay">
-    <div class="lb-top">
-      <span class="lb-counter" id="lb-counter"></span>
-      <button class="lb-close-btn" onclick="closeLb()">&#x2715;</button>
-    </div>
-    <div class="lb-img-wrap" id="lb-img-wrap">
-      <img id="lb-img" src="" alt="" />
-    </div>
-    <div class="lb-info">
-      <div class="lb-nick" id="lb-nick"></div>
-      <div class="lb-date" id="lb-date"></div>
-      <div class="lb-caption" id="lb-caption"></div>
-      <div class="lb-dots" id="lb-dots"></div>
-    </div>
-  </div>
-
-  <div id="toast" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.95);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:300;"></div>
+<div id="toast" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.95);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:300;"></div>
 
 </div>
 
@@ -941,8 +890,7 @@
     } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
   }
 
-  // GGLOG 그리드 + 라이트박스
-  let _lbPosts = [], _lbIdx = 0;
+  // GGLOG 그리드
 
   async function loadGGLogGrid() {
     const el = document.getElementById('gglog-grid');
@@ -952,66 +900,18 @@
         el.innerHTML = '<div class="gglog-empty" style="grid-column:1/3;display:flex;align-items:center;justify-content:center;">아직 올라온 사진이 없습니다</div>';
         return;
       }
-      _lbPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      el.innerHTML = _lbPosts.map((p, i) => `
-        <div class="gglog-cell" onclick="openLb(${i})">
+      const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      el.innerHTML = posts.map((p, i) => `
+        <div class="gglog-cell" onclick="location.href='feed.html?post=${p.id}'">
           <img src="${p.photoURL}" loading="eager" />
           ${i === 0 ? `<div class="gglog-cell-nick">${p.nickname || '멤버'}</div>` : ''}
         </div>`).join('');
-      // 도트 생성
-      document.getElementById('lb-dots').innerHTML = _lbPosts.map((_, i) =>
-        `<div class="lb-dot${i === 0 ? ' on' : ''}" id="lbd-${i}"></div>`).join('');
     } catch(e) {
       el.innerHTML = '<div class="gglog-empty" style="grid-column:1/3;display:flex;align-items:center;justify-content:center;">불러오기 실패</div>';
     }
   }
 
-  function lbUpdate(dir) {
-    const p = _lbPosts[_lbIdx];
-    if (!p) return;
-    const wrap = document.getElementById('lb-img-wrap');
-    wrap.classList.remove('anim-left', 'anim-right');
-    void wrap.offsetWidth; // reflow
-    if (dir) wrap.classList.add(dir === 1 ? 'anim-left' : 'anim-right');
-    document.getElementById('lb-img').src = p.photoURL;
-    document.getElementById('lb-nick').textContent = p.nickname || '멤버';
-    document.getElementById('lb-date').textContent = (() => {
-      if (!p.createdAt) return '';
-      const d = p.createdAt.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
-      const diff = Math.floor((Date.now() - d) / 1000);
-      if (diff < 60) return '방금'; if (diff < 3600) return Math.floor(diff/60)+'분 전';
-      if (diff < 86400) return Math.floor(diff/3600)+'시간 전';
-      return `${d.getMonth()+1}/${d.getDate()}`;
-    })();
-    document.getElementById('lb-caption').textContent = p.caption || '';
-    document.getElementById('lb-counter').textContent = `${_lbIdx + 1} / ${_lbPosts.length}`;
-    document.querySelectorAll('.lb-dot').forEach((d, i) => d.classList.toggle('on', i === _lbIdx));
-  }
-
-  window.openLb = function(i) {
-    _lbIdx = i; lbUpdate(0);
-    document.getElementById('lb-overlay').classList.add('open');
-  };
-  window.closeLb = function() {
-    document.getElementById('lb-overlay').classList.remove('open');
-  };
-
-  // 스와이프
-  (function() {
-    let sx = 0;
-    const ov = document.getElementById('lb-overlay');
-    ov.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
-    ov.addEventListener('touchend', e => {
-      const dx = sx - e.changedTouches[0].clientX;
-      if (Math.abs(dx) < 40) return;
-      if (dx > 0 && _lbIdx < _lbPosts.length - 1) { _lbIdx++; lbUpdate(1); }
-      else if (dx < 0 && _lbIdx > 0) { _lbIdx--; lbUpdate(-1); }
-    }, { passive: true });
-    // 배경 탭으로 닫기
-    ov.addEventListener('click', e => { if (e.target === ov) closeLb(); });
-  })();
-
-  // GG PLAYER 미니 랭킹 로드
+// GG PLAYER 미니 랭킹 로드
   async function loadGGPlayerList() {
     const el = document.getElementById('ggplayer-list');
     try {

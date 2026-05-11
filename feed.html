@@ -266,6 +266,12 @@ async function loadFeed() {
         };
       }
     });
+    // 대시보드 그리드에서 특정 포스트로 진입 시 스크롤
+    const targetId = new URLSearchParams(location.search).get('post');
+    if (targetId) {
+      const target = document.getElementById('post-' + targetId);
+      if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
   } catch(e) {
     console.error('[GGLOG 로드 에러]', e);
     showFeedNow();
