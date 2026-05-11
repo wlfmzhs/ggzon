@@ -170,7 +170,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+const CLOUDINARY_CLOUD = 'da9tzfmg0';
+const CLOUDINARY_PRESET = 'GG ZON';
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -184,7 +185,6 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
 });
-const storage = getStorage(app);
 
 // 로그인 확인 (카카오 OR 관리자)
 const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
@@ -231,7 +231,7 @@ async function loadFeed() {
       const p = d.data();
       const canDelete = (currentUid && currentUid === p.uid) || isAdmin;
       const delBtn = canDelete
-        ? `<button onclick="deletePost('${d.id}','${p.photoURL}')" style="background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;padding:0 12px;height:24px;line-height:24px;border-radius:20px;letter-spacing:0.2px;">삭제</button>`
+        ? `<button onclick="deletePost('${d.id}')" style="background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;padding:0 12px;height:24px;line-height:24px;border-radius:20px;letter-spacing:0.2px;">삭제</button>`
         : '';
       return `<div class="feed-card" id="post-${d.id}">
         <div class="feed-img-wrap">
@@ -275,15 +275,10 @@ async function loadFeed() {
 
 loadFeed();
 
-window.deletePost = async function(postId, photoURL) {
+window.deletePost = async function(postId) {
   if (!confirm('이 사진을 삭제하시겠어요?')) return;
   try {
     await deleteDoc(doc(db, 'posts', postId));
-    const match = photoURL.match(/\/o\/(.+?)\?/);
-    if (match) {
-      const path = decodeURIComponent(match[1]);
-      await deleteObject(ref(storage, path)).catch(() => {});
-    }
     const card = document.getElementById('post-' + postId);
     if (card) card.remove();
   } catch(e) {
@@ -422,11 +417,14 @@ window.doUpload = async function() {
 
   try {
     const blob = _compressedBlob || await compressImage(_selectedFile);
-    const filename = `${Date.now()}.jpg`;
-    const path = `posts/${uid}/${filename}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, blob);
-    const photoURL = `https://firebasestorage.googleapis.com/v0/b/ggzon-b33cb.firebasestorage.app/o/${encodeURIComponent(path)}?alt=media`;
+    // Cloudinary 업로드
+    const fd = new FormData();
+    fd.append('file', blob, 'photo.jpg');
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error('Cloudinary 업로드 실패');
+    const data = await res.json();
+    const photoURL = data.secure_url;
     await addDoc(collection(db, 'posts'), { uid, nickname, photoURL, caption, createdAt: serverTimestamp() });
     // 임시 카드를 실제 URL로 교체
     const img = tempCard.querySelector('.feed-photo');
