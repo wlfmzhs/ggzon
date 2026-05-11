@@ -541,7 +541,7 @@
       <!-- 공지사항 -->
       <div class="section-header">
         <span class="section-title">공지사항</span>
-        <span class="section-more" onclick="location.href='my.html'">더보기 ›</span>
+        <span class="section-more" onclick="location.href='notice.html'">더보기 ›</span>
       </div>
       <div id="notice-list">
         <div class="notice-empty">불러오는 중...</div>
@@ -757,7 +757,7 @@
       el.innerHTML = snap.docs.map(d => {
         const n = d.data();
         const date = n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('ko-KR', {month:'2-digit', day:'2-digit'}) : '';
-        return `<div class="notice-item" onclick="location.href='my.html'">
+        return `<div class="notice-item" onclick="location.href='notice.html'">
           <div class="notice-dot"></div>
           <div class="notice-text">
             <div class="notice-title">${n.title || '(제목 없음)'}</div>

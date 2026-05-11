@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d7a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>공지사항 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --border: rgba(62,160,102,0.15);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 768px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+      #loading-overlay { border-radius: 0; }
+    }
+    #loading-overlay {
+      position: absolute; inset: 0; background: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; border-radius: 40px;
+    }
+    #loading-overlay.hidden { display: none; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(62,160,102,0.3);
+      border-top-color: var(--green-light);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 앱바 */
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 10px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .appbar-back {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.7); padding: 4px; line-height: 0;
+    }
+    .appbar-title {
+      font-size: 17px; font-weight: 900; color: #fff; letter-spacing: -0.3px;
+    }
+
+    /* 구분선 */
+    .divider {
+      flex-shrink: 0; height: 1px; background: var(--border); margin: 0;
+    }
+
+    /* 스크롤 영역 */
+    .content {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+      padding: 8px 0 32px;
+    }
+    .content::-webkit-scrollbar { display: none; }
+
+    /* 공지 아이템 */
+    .notice-item {
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .notice-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 18px;
+    }
+    .notice-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green-light); flex-shrink: 0;
+    }
+    .notice-text { flex: 1; min-width: 0; }
+    .notice-title {
+      font-size: 14px; font-weight: 700; color: #f0ebe0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      letter-spacing: -0.2px;
+    }
+    .notice-date {
+      font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 3px;
+    }
+    .notice-chevron {
+      font-size: 16px; color: rgba(255,255,255,0.3);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .notice-item.open .notice-chevron { transform: rotate(90deg); }
+    .notice-item.open .notice-dot { background: #fff; }
+
+    /* 본문 펼치기 */
+    .notice-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.2s;
+      padding: 0 18px;
+    }
+    .notice-item.open .notice-body {
+      max-height: 600px;
+      padding: 0 18px 18px;
+    }
+    .notice-body-inner {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px; line-height: 1.7;
+      color: rgba(255,255,255,0.75);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* 빈 상태 */
+    .empty {
+      padding: 60px 0; text-align: center;
+      font-size: 13px; color: rgba(255,255,255,0.3);
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="appbar">
+    <button class="appbar-back" onclick="history.back()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <span class="appbar-title">공지사항</span>
+  </div>
+  <div class="divider"></div>
+
+  <div class="content">
+    <div id="notice-list">
+      <div class="empty">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const app = initializeApp({
+    apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+    authDomain: "ggzon-b33cb.firebaseapp.com",
+    projectId: "ggzon-b33cb",
+    storageBucket: "ggzon-b33cb.firebasestorage.app",
+    messagingSenderId: "774722580869",
+    appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+  });
+  const db = getFirestore(app);
+
+  async function load() {
+    const el = document.getElementById('notice-list');
+    try {
+      const snap = await getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc')));
+      document.getElementById('loading-overlay').classList.add('hidden');
+      if (snap.empty) {
+        el.innerHTML = '<div class="empty">등록된 공지사항이 없습니다</div>';
+        return;
+      }
+      el.innerHTML = snap.docs.map((d, i) => {
+        const n = d.data();
+        const date = n.createdAt?.toDate
+          ? n.createdAt.toDate().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+          : '';
+        const content = n.content || n.body || '';
+        return `<div class="notice-item" id="ni-${i}" onclick="toggle(${i})">
+          <div class="notice-header">
+            <div class="notice-dot"></div>
+            <div class="notice-text">
+              <div class="notice-title">${n.title || '(제목 없음)'}</div>
+              <div class="notice-date">${date}</div>
+            </div>
+            <div class="notice-chevron">›</div>
+          </div>
+          <div class="notice-body">
+            <div class="notice-body-inner">${content || '내용이 없습니다.'}</div>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      document.getElementById('loading-overlay').classList.add('hidden');
+      el.innerHTML = '<div class="empty">불러오기 실패</div>';
+    }
+  }
+
+  window.toggle = function(i) {
+    const item = document.getElementById('ni-' + i);
+    item.classList.toggle('open');
+  };
+
+  load();
+</script>
+</body>
+</html>
