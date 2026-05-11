@@ -422,17 +422,13 @@ window.doUpload = async function() {
     const blob = savedBlob || await compressImage(savedFile);
     // Cloudinary 업로드
     if (!blob) throw new Error('이미지 압축 실패');
-    // base64로 변환 후 업로드 (모바일 호환성 최대화)
-    const b64 = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = () => res(reader.result);
-      reader.onerror = rej;
-      reader.readAsDataURL(blob);
-    });
+    const fd = new FormData();
+    fd.append('file', blob, 'photo.jpg');
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    fd.append('public_id', 'post_' + Date.now());
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file: b64, upload_preset: CLOUDINARY_PRESET, public_id: 'post_' + Date.now() })
+      body: fd
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error?.message || `HTTP ${res.status}`);
