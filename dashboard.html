@@ -82,6 +82,31 @@
     .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
     .ggcup-tab { color: #f0c040 !important; }
     .ggcup-tab.active { border-bottom-color: #f0c040; }
+    /* GGLOG 탭 애니메이션 */
+    .gglog-tab { color: #fff !important; position: relative; }
+    .gglog-wrap {
+      position: relative; display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 52px; height: 16px;
+    }
+    .gglog-cam, .gglog-txt {
+      position: absolute;
+      display: flex; align-items: center; justify-content: center;
+      white-space: nowrap; line-height: 1;
+    }
+    .gglog-cam svg { display: block; }
+    @keyframes gglog-cam-anim {
+      0%, 40% { opacity: 1; transform: scale(1) translateY(0); }
+      47%, 93% { opacity: 0; transform: scale(0.5) translateY(-5px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes gglog-txt-anim {
+      0%, 40% { opacity: 0; transform: scale(0.5) translateY(5px); }
+      47%, 93% { opacity: 1; transform: scale(1) translateY(0); }
+      100% { opacity: 0; transform: scale(0.5) translateY(5px); }
+    }
+    .gglog-cam { animation: gglog-cam-anim 3.4s ease-in-out infinite; }
+    .gglog-txt { animation: gglog-txt-anim 3.4s ease-in-out infinite; }
     @keyframes goldGlow {
       0%, 100% { box-shadow: 0 0 6px rgba(240,192,64,0.5), 0 0 12px rgba(240,192,64,0.2); }
       50% { box-shadow: 0 0 14px rgba(240,192,64,0.9), 0 0 28px rgba(240,192,64,0.4); }
@@ -435,7 +460,12 @@
 
   <div class="top-tabs">
     <button class="top-tab active">홈</button>
-    <button class="top-tab" onclick="location.href='feed.html'">GGLOG</button>
+    <button class="top-tab gglog-tab" onclick="location.href='feed.html'">
+      <span class="gglog-wrap">
+        <span class="gglog-cam"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+        <span class="gglog-txt">GGLOG</span>
+      </span>
+    </button>
     <button class="top-tab" onclick="checkPaidAndGo('event.html')">단체라운드 대회</button>
     <button class="top-tab" onclick="checkPaidAndGo('join.html')">조인</button>
     <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
