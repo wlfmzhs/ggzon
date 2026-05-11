@@ -392,7 +392,6 @@
       cursor: pointer;
     }
     .gglog-cell { position: relative; overflow: hidden; background: rgba(255,255,255,0.04); }
-    .gglog-cell:first-child { grid-row: 1 / 3; }
     .gglog-cell img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; display: block; }
     .gglog-cell:active img { transform: scale(1.06); }
     .gglog-cell-nick {
@@ -901,8 +900,16 @@
         return;
       }
       const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 사진 수에 따라 그리드 레이아웃 조정
+      if (posts.length === 1) {
+        el.style.gridTemplateColumns = '1fr';
+        el.style.gridTemplateRows = '1fr';
+      } else if (posts.length === 2) {
+        el.style.gridTemplateColumns = '2fr 1fr';
+        el.style.gridTemplateRows = '1fr';
+      }
       el.innerHTML = posts.map((p, i) => `
-        <div class="gglog-cell" onclick="location.href='feed.html?post=${p.id}'">
+        <div class="gglog-cell" onclick="location.href='feed.html?post=${p.id}'" ${posts.length >= 3 && i === 0 ? 'style="grid-row:1/3"' : ''}>
           <img src="${p.photoURL}" loading="eager" />
           ${i === 0 ? `<div class="gglog-cell-nick">${p.nickname || '멤버'}</div>` : ''}
         </div>`).join('');
