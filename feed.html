@@ -438,7 +438,7 @@ window.doUpload = async function() {
     if (badge) badge.remove();
   } catch(e) {
     tempCard.remove();
-    alert('업로드 실패: ' + e.message);
+    alert('에러타입: ' + e.constructor.name + '\n내용: ' + e.message);
   }
 };
 </script>
