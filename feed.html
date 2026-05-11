@@ -226,9 +226,9 @@ async function loadFeed() {
       const delBtn = canDelete
         ? `<button onclick="deletePost('${d.id}','${p.photoURL}')" style="background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:none;color:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;padding:5px 10px;border-radius:20px;letter-spacing:0.2px;">삭제</button>`
         : '';
-      return `<div class="feed-card" id="post-${d.id}" style="animation-delay:${i * 0.06}s;">
+      return `<div class="feed-card" id="post-${d.id}">
         <div class="feed-img-wrap">
-          <img class="feed-photo" src="${p.photoURL}" loading="lazy" />
+          <img class="feed-photo" src="${p.photoURL}" loading="eager" />
           <div class="feed-overlay">
             <div style="flex:1;">
               <div class="feed-nick">${p.nickname || '멤버'}</div>
