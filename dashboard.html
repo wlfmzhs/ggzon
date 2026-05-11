@@ -1043,22 +1043,23 @@
     try {
       const blob = await compressImage(_selectedFile);
       const uid = getUid();
-      const filename = `posts/${uid}/${Date.now()}.jpg`;
-      const storageRef = ref(storage, filename);
-      await uploadBytes(storageRef, blob);
-      const photoURL = await getDownloadURL(storageRef);
-      await addDoc(collection(db, 'posts'), {
-        uid,
-        nickname: getNickname(),
-        photoURL,
-        caption: document.getElementById('upload-caption').value.trim(),
-        createdAt: serverTimestamp()
+      const caption = document.getElementById('upload-caption').value.trim();
+      // Cloudinary 업로드
+      const fd = new FormData();
+      fd.append('file', blob, 'photo.jpg');
+      fd.append('upload_preset', 'GG ZON');
+      fd.append('public_id', 'post_' + Date.now());
+      const res = await fetch('https://api.cloudinary.com/v1_1/da9tzfmg0/image/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error?.message || 'Cloudinary 실패');
+      const photoURL = data.secure_url;
+      const docRef = await addDoc(collection(db, 'posts'), {
+        uid, nickname: getNickname(), photoURL, caption, createdAt: serverTimestamp()
       });
       closeUpload();
-      showToast('올렸습니다!');
+      location.href = 'feed.html?post=' + docRef.id;
     } catch(e) {
       showToast('업로드 실패: ' + e.message);
-    } finally {
       btn.disabled = false; btn.textContent = '올리기';
     }
   };
