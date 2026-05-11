@@ -413,7 +413,7 @@ window.doUpload = async function() {
       </div>
     </div>
     ${caption ? `<div class="feed-caption">${caption}</div>` : ''}
-    <div style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.5);border-radius:12px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,0.7);">업로드 중...</div>
+    <div class="upload-badge" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.5);border-radius:12px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,0.7);">업로드 중...</div>
   </div>`;
   const list = document.getElementById('feed-list');
   list.prepend(tempCard);
@@ -438,7 +438,7 @@ window.doUpload = async function() {
     // 임시 카드를 실제 URL로 교체
     const img = tempCard.querySelector('.feed-photo');
     if (img) img.src = photoURL;
-    const badge = tempCard.querySelector('[style*="업로드 중"]');
+    const badge = tempCard.querySelector('.upload-badge');
     if (badge) badge.remove();
   } catch(e) {
     tempCard.remove();
