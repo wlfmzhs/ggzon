@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d7a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GGZON 가이드</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --border: rgba(62,160,102,0.15);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 768px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+
+    /* 앱바 */
+    .appbar {
+      flex-shrink: 0; padding: 32px 18px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .appbar-back {
+      background: none; border: none; cursor: pointer;
+      color: var(--green-light); font-size: 20px; line-height: 1; padding: 4px 8px 4px 0;
+    }
+    .appbar-title { font-size: 16px; font-weight: 900; }
+
+    /* 스크롤 */
+    .scroll { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 0 40px; }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    /* 상단 배너 */
+    .hero {
+      margin: 0 16px 20px;
+      background: linear-gradient(135deg, rgba(62,160,102,0.25) 0%, rgba(10,36,6,0.6) 100%);
+      border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 18px;
+      padding: 22px 20px;
+    }
+    .hero-label {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.12em;
+      color: var(--green-light); margin-bottom: 6px;
+    }
+    .hero-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .hero-desc { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+    /* 섹션 라벨 */
+    .section-label {
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35);
+      letter-spacing: 0.08em; padding: 0 16px; margin-bottom: 6px; margin-top: 20px;
+    }
+
+    /* 기능 카드 */
+    .feature-card {
+      margin: 0 16px 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .feature-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 16px 16px;
+    }
+    .feature-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .feature-info { flex: 1; min-width: 0; }
+    .feature-name { font-size: 14px; font-weight: 800; color: #f0ebe0; letter-spacing: -0.2px; }
+    .feature-short { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .feature-chevron {
+      font-size: 16px; color: rgba(255,255,255,0.25);
+      transition: transform 0.22s; flex-shrink: 0;
+    }
+    .feature-card.open .feature-chevron { transform: rotate(90deg); }
+
+    /* 펼쳐지는 상세 */
+    .feature-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .feature-card.open .feature-body { max-height: 500px; }
+    .feature-body-inner {
+      border-top: 1px solid var(--border);
+      padding: 14px 16px 16px;
+    }
+    .feature-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .feature-tag {
+      font-size: 11px; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px;
+      background: rgba(62,160,102,0.15); color: var(--green-light);
+    }
+    .feature-steps { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .feature-steps li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5;
+    }
+    .step-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(62,160,102,0.2); color: var(--green-light);
+      font-size: 10px; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .feature-link {
+      display: inline-block; margin-top: 12px;
+      font-size: 12px; font-weight: 700; color: var(--green-light);
+      background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.25);
+      border-radius: 20px; padding: 5px 14px; cursor: pointer;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="appbar">
+    <button class="appbar-back" onclick="history.back()">&#8249;</button>
+    <span class="appbar-title">GGZON 가이드</span>
+  </div>
+
+  <div class="scroll">
+
+    <div class="hero">
+      <div class="hero-label">GOLGAB ZONE GUIDE</div>
+      <div class="hero-title">GGZON 이용 안내</div>
+      <div class="hero-desc">골갑존의 모든 기능을 한눈에 확인하세요.<br>항목을 탭하면 자세한 사용법을 볼 수 있어요.</div>
+    </div>
+
+    <!-- 커뮤니티 -->
+    <div class="section-label">커뮤니티</div>
+
+    <div class="feature-card" id="fc-0" onclick="toggle(0)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(62,160,102,0.18);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ea066" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">GGLOG</div>
+          <div class="feature-short">라운드 사진 피드</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">사진 업로드</span>
+          <span class="feature-tag">피드</span>
+          <span class="feature-tag">삭제</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>대시보드 상단 GGLOG 탭을 누릅니다.</li>
+          <li><div class="step-num">2</div>우측 상단 카메라 버튼을 눌러 라운드 사진을 촬영하거나 갤러리에서 선택합니다.</li>
+          <li><div class="step-num">3</div>간단한 멘트를 입력하고 올리기를 누르면 피드에 등록됩니다.</li>
+          <li><div class="step-num">4</div>내가 올린 게시물은 삭제할 수 있습니다.</li>
+        </ul>
+        <a class="feature-link" href="feed.html">바로가기 →</a>
+      </div></div>
+    </div>
+
+    <div class="feature-card" id="fc-1" onclick="toggle(1)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(91,200,245,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5bc8f5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">조인 모집</div>
+          <div class="feature-short">스크린 / 필드 함께 칠 멤버 구하기</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">스크린</span>
+          <span class="feature-tag">필드</span>
+          <span class="feature-tag">참가 신청</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>대시보드 홈 또는 조인 탭에서 현재 모집 중인 조인을 확인합니다.</li>
+          <li><div class="step-num">2</div>원하는 조인 카드를 탭해 일정, 장소, 인원을 확인합니다.</li>
+          <li><div class="step-num">3</div>참가 신청 버튼으로 합류하거나, + 버튼으로 새 조인을 직접 등록합니다.</li>
+        </ul>
+        <a class="feature-link" href="join.html">바로가기 →</a>
+      </div></div>
+    </div>
+
+    <!-- 대회 -->
+    <div class="section-label">대회</div>
+
+    <div class="feature-card" id="fc-2" onclick="toggle(2)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(240,192,64,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">단체라운드 대회</div>
+          <div class="feature-short">GG CUP · GPGA 대회 참가</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">대회 등록</span>
+          <span class="feature-tag">참가 신청</span>
+          <span class="feature-tag">결과 확인</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>대시보드 단체라운드 대회 탭에서 예정된 대회를 확인합니다.</li>
+          <li><div class="step-num">2</div>대회 카드를 탭해 일정, 골프장, 참가비 등 상세 정보를 확인합니다.</li>
+          <li><div class="step-num">3</div>참가 신청 후 대회 당일 스코어를 기록합니다.</li>
+          <li><div class="step-num">4</div>대회 결과는 홈 화면 타수 분포 차트에서 확인할 수 있습니다.</li>
+        </ul>
+        <a class="feature-link" href="event.html">바로가기 →</a>
+      </div></div>
+    </div>
+
+    <div class="feature-card" id="fc-3" onclick="toggle(3)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(240,192,64,0.12);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v10a6 6 0 0 1-12 0V2z"/><path d="M6 7H2a4 4 0 0 0 4 4"/><path d="M18 7h4a4 4 0 0 1-4 4"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">명예 기록</div>
+          <div class="feature-short">개인 최고 기록 영구 보관</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">베스트 스코어</span>
+          <span class="feature-tag">이글</span>
+          <span class="feature-tag">홀인원</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>마이페이지 → 명예 기록에서 확인합니다.</li>
+          <li><div class="step-num">2</div>베스트 스코어, 이글, 홀인원 등 특별한 순간이 기록됩니다.</li>
+          <li><div class="step-num">3</div>스코어카드를 저장하면 자동으로 집계됩니다.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 골프장 -->
+    <div class="section-label">골프장 정보</div>
+
+    <div class="feature-card" id="fc-4" onclick="toggle(4)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(255,180,80,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffb450" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">골슐랭스타</div>
+          <div class="feature-short">골프장 별점 리뷰</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">별점</span>
+          <span class="feature-tag">코스 평가</span>
+          <span class="feature-tag">추천</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>대시보드 골슐랭스타 탭을 탭합니다.</li>
+          <li><div class="step-num">2</div>라운드한 골프장을 검색하고 별점과 한줄 평을 남깁니다.</li>
+          <li><div class="step-num">3</div>다른 멤버들의 평가를 참고해 다음 라운드 장소를 정해보세요.</li>
+        </ul>
+        <a class="feature-link" href="golchelin-star.html">바로가기 →</a>
+      </div></div>
+    </div>
+
+    <!-- 스코어 & 도구 -->
+    <div class="section-label">스코어 & 도구</div>
+
+    <div class="feature-card" id="fc-5" onclick="toggle(5)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(91,200,245,0.12);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5bc8f5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">스코어카드</div>
+          <div class="feature-short">홀별 타수 기록 및 저장</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">홀별 기록</span>
+          <span class="feature-tag">파 대비</span>
+          <span class="feature-tag">저장</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>마이페이지 → 내 스코어카드에서 라운드 기록을 확인합니다.</li>
+          <li><div class="step-num">2</div>라운드 중 홀별 타수를 입력하면 파 대비 점수가 자동 계산됩니다.</li>
+          <li><div class="step-num">3</div>저장된 스코어카드는 명예 기록에 자동 반영됩니다.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <div class="feature-card" id="fc-6" onclick="toggle(6)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(62,160,102,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ea066" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">기상 계산기</div>
+          <div class="feature-short">티오프 시간 기준 출발 시간 계산</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">티오프 시간</span>
+          <span class="feature-tag">이동 시간</span>
+          <span class="feature-tag">기상 알람</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>마이페이지 → 기상 계산기를 탭합니다.</li>
+          <li><div class="step-num">2</div>티오프 시간과 골프장까지 이동 시간을 입력합니다.</li>
+          <li><div class="step-num">3</div>준비 시간을 포함한 최적 기상 시간을 알려줍니다.</li>
+        </ul>
+        <a class="feature-link" href="wake-calc.html">바로가기 →</a>
+      </div></div>
+    </div>
+
+    <!-- 멤버 -->
+    <div class="section-label">멤버</div>
+
+    <div class="feature-card" id="fc-7" onclick="toggle(7)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(62,160,102,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ea066" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">GG PLAYER</div>
+          <div class="feature-short">핸디캡 기준 멤버 랭킹</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">핸디캡 순위</span>
+          <span class="feature-tag">멤버 목록</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>대시보드 홈 하단 GG PLAYER 섹션 또는 전체보기를 탭합니다.</li>
+          <li><div class="step-num">2</div>핸디캡 순으로 정렬된 멤버 목록을 확인할 수 있습니다.</li>
+          <li><div class="step-num">3</div>내 핸디캡은 마이페이지 → 가입 정보 수정에서 변경할 수 있습니다.</li>
+        </ul>
+        <a class="feature-link" href="members.html">바로가기 →</a>
+      </div></div>
+    </div>
+
+    <!-- 공지 & 안내 -->
+    <div class="section-label">공지 & 안내</div>
+
+    <div class="feature-card" id="fc-8" onclick="toggle(8)">
+      <div class="feature-header">
+        <div class="feature-icon" style="background:rgba(62,160,102,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ea066" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="feature-info">
+          <div class="feature-name">공지사항</div>
+          <div class="feature-short">운영진 공지 및 업데이트 안내</div>
+        </div>
+        <div class="feature-chevron">›</div>
+      </div>
+      <div class="feature-body"><div class="feature-body-inner">
+        <div class="feature-tag-row">
+          <span class="feature-tag">운영 공지</span>
+          <span class="feature-tag">업데이트</span>
+        </div>
+        <ul class="feature-steps">
+          <li><div class="step-num">1</div>대시보드 홈 공지사항 섹션 또는 마이페이지 → 공지사항을 탭합니다.</li>
+          <li><div class="step-num">2</div>공지를 탭하면 상세 내용을 펼쳐볼 수 있습니다.</li>
+          <li><div class="step-num">3</div>새 공지는 운영진이 정기적으로 등록합니다.</li>
+        </ul>
+        <a class="feature-link" href="notice.html">바로가기 →</a>
+      </div></div>
+    </div>
+
+  </div><!-- /scroll -->
+</div>
+
+<script>
+  function toggle(i) {
+    const card = document.getElementById('fc-' + i);
+    const isOpen = card.classList.contains('open');
+    document.querySelectorAll('.feature-card.open').forEach(c => c.classList.remove('open'));
+    if (!isOpen) card.classList.add('open');
+  }
+</script>
+</body>
+</html>
