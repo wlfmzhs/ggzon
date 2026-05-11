@@ -23,6 +23,10 @@
   <meta name="apple-mobile-web-app-title" content="GGZON" />
   <link rel="apple-touch-icon" href="/image/icon-512.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="preconnect" href="https://firestore.googleapis.com" />
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+  <link rel="preconnect" href="https://www.gstatic.com" />
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
   <title>GOLGAB ZONE — GGLOG</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -94,8 +98,6 @@
       display: flex; align-items: center;
       font-size: 13px; color: #fff; line-height: 1.6; font-weight: 600;
       background: rgba(0, 168, 107, 0.60);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
       text-shadow: 0 1px 3px rgba(0,0,0,0.25);
     }
     .feed-empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 14px; }
@@ -167,9 +169,8 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-import { doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -180,7 +181,9 @@ const app = initializeApp({
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+});
 const storage = getStorage(app);
 
 // 로그인 확인 (카카오 OR 관리자)
