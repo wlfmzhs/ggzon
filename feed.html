@@ -432,7 +432,7 @@ window.doUpload = async function() {
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file: b64, upload_preset: CLOUDINARY_PRESET })
+      body: JSON.stringify({ file: b64, upload_preset: CLOUDINARY_PRESET, public_id: 'post_' + Date.now() })
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error?.message || `HTTP ${res.status}`);
