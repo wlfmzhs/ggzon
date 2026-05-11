@@ -421,13 +421,15 @@ window.doUpload = async function() {
   try {
     const blob = savedBlob || await compressImage(savedFile);
     // Cloudinary 업로드
+    if (!blob) throw new Error('이미지 압축 실패 (blob null)');
     const fd = new FormData();
     fd.append('file', blob, 'photo.jpg');
     fd.append('upload_preset', CLOUDINARY_PRESET);
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: fd });
-    if (!res.ok) throw new Error('Cloudinary 업로드 실패');
     const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error?.message || `HTTP ${res.status}`);
     const photoURL = data.secure_url;
+    if (!photoURL) throw new Error('URL 없음 - 프리셋 이름 확인 필요');
     await addDoc(collection(db, 'posts'), { uid, nickname, photoURL, caption, createdAt: serverTimestamp() });
     // 임시 카드를 실제 URL로 교체
     const img = tempCard.querySelector('.feed-photo');
