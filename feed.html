@@ -70,7 +70,6 @@
       box-shadow: 0 6px 24px rgba(0,0,0,0.4);
       background: var(--green-dark);
       border: 3px solid var(--green-dark);
-      animation: fadeUp 0.4s ease both;
       transition: transform 0.18s ease, box-shadow 0.18s ease;
       transform: translateZ(0);
       -webkit-transform: translateZ(0);
@@ -212,16 +211,20 @@ function formatDate(ts) {
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
 
+function showFeedNow() {
+  document.getElementById('loading-overlay').classList.add('hidden');
+}
+
 async function loadFeed() {
   const el = document.getElementById('feed-list');
   try {
     const snap = await getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20)));
-    document.getElementById('loading-overlay').classList.add('hidden');
     if (snap.empty) {
+      showFeedNow();
       el.innerHTML = '<div class="feed-empty">아직 올라온 사진이 없습니다.<br>첫 번째 사진을 올려보세요!</div>';
       return;
     }
-    el.innerHTML = snap.docs.map((d, i) => {
+    el.innerHTML = snap.docs.map((d) => {
       const p = d.data();
       const canDelete = (currentUid && currentUid === p.uid) || isAdmin;
       const delBtn = canDelete
@@ -241,9 +244,28 @@ async function loadFeed() {
         </div>
       </div>`;
     }).join('');
+
+    // 모든 이미지가 로드될 때까지 오버레이 유지 후 한번에 표시
+    const imgs = Array.from(el.querySelectorAll('.feed-photo'));
+    let loaded = 0;
+    let shown = false;
+    const reveal = () => { if (!shown) { shown = true; showFeedNow(); } };
+    // 최대 3초 타임아웃 (네트워크 느린 경우 대비)
+    const timeout = setTimeout(reveal, 3000);
+    imgs.forEach(img => {
+      if (img.complete && img.naturalWidth > 0) {
+        loaded++;
+        if (loaded === imgs.length) { clearTimeout(timeout); reveal(); }
+      } else {
+        img.onload = img.onerror = () => {
+          loaded++;
+          if (loaded === imgs.length) { clearTimeout(timeout); reveal(); }
+        };
+      }
+    });
   } catch(e) {
     console.error('[GGLOG 로드 에러]', e);
-    document.getElementById('loading-overlay').classList.add('hidden');
+    showFeedNow();
     el.innerHTML = `<div class="feed-empty" style="font-size:12px;word-break:break-all;">불러오기 실패<br><span style="color:rgba(255,100,100,0.8);font-size:11px;">${e.code || ''} ${e.message}</span></div>`;
   }
 }
