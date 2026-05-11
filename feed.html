@@ -394,6 +394,9 @@ window.doUpload = async function() {
   const previewSrc = _previewDataURL;
   const uid = ggzonUser?.uid || auth.currentUser?.uid || 'unknown';
   const nickname = ggzonUser?.nickname || auth.currentUser?.displayName || '관리자';
+  // closeUpload() 호출 전에 미리 저장
+  const savedBlob = _compressedBlob;
+  const savedFile = _selectedFile;
 
   // 모달 즉시 닫고 임시 카드 삽입
   closeUpload();
@@ -416,7 +419,7 @@ window.doUpload = async function() {
   list.prepend(tempCard);
 
   try {
-    const blob = _compressedBlob || await compressImage(_selectedFile);
+    const blob = savedBlob || await compressImage(savedFile);
     // Cloudinary 업로드
     const fd = new FormData();
     fd.append('file', blob, 'photo.jpg');
