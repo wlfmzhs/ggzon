@@ -170,6 +170,11 @@
     <div class="step-title">프로필 설정</div>
     <div class="step-desc">처음 오셨군요! 간단히 정보를 입력해주세요</div>
     <div class="form-group">
+      <label class="form-label">초대 코드 <span style="color:var(--green-light)">*</span></label>
+      <input class="form-input" id="prof-invite" type="text" placeholder="초대 코드 입력" maxlength="20" style="text-transform:uppercase;letter-spacing:2px;" />
+      <div class="form-hint">초대 코드가 없으면 가입이 불가합니다</div>
+    </div>
+    <div class="form-group">
       <label class="form-label">닉네임 <span style="color:var(--green-light)">*</span></label>
       <input class="form-input" id="prof-nick" type="text" placeholder="골갑킹" maxlength="12" />
       <div class="form-hint">최대 12자 · 나중에 변경 가능</div>
@@ -406,6 +411,14 @@ handleKakaoReturn();
 // ── 프로필 저장 (신규) ──────────────────────────────────
 window.saveProfile = async function() {
   if (!pendingKakaoUser) return;
+
+  const inviteCode = document.getElementById('prof-invite').value.trim().toUpperCase();
+  const VALID_CODE = 'GGZON0513';
+  const EXPIRY = new Date('2026-05-14T00:00:00+09:00');
+  if (!inviteCode) { showMsg('prof-msg', '초대 코드를 입력해주세요', 'error'); return; }
+  if (inviteCode !== VALID_CODE) { showMsg('prof-msg', '유효하지 않은 초대 코드입니다', 'error'); return; }
+  if (new Date() > EXPIRY) { showMsg('prof-msg', '만료된 초대 코드입니다', 'error'); return; }
+
   const nick = document.getElementById('prof-nick').value.trim();
   if (!nick) { showMsg('prof-msg', '닉네임을 입력해주세요', 'error'); return; }
   if (!document.getElementById('prof-terms').checked) { showMsg('prof-msg', '이용약관에 동의해 주세요', 'error'); return; }
