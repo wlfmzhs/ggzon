@@ -261,7 +261,7 @@ async function loadFeed() {
           ${p.caption ? `<div class="feed-caption">${p.caption}</div>` : ''}
         </div>
         <div class="card-bottom">
-          <button class="comment-btn" onclick="window.toggleComments('${d.id}')">
+          <button class="comment-btn" data-postid="${d.id}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span id="ccount-${d.id}">댓글</span>
           </button>
@@ -269,8 +269,8 @@ async function loadFeed() {
         <div class="comment-section" id="comments-${d.id}">
           <div class="comment-list" id="clist-${d.id}"></div>
           <div class="comment-input-row">
-            <input class="comment-input" id="cinput-${d.id}" type="text" placeholder="댓글을 입력하세요" maxlength="80" onkeydown="if(event.key==='Enter')window.submitComment('${d.id}')" />
-            <button class="comment-submit" onclick="window.submitComment('${d.id}')">등록</button>
+            <input class="comment-input" id="cinput-${d.id}" type="text" placeholder="댓글을 입력하세요" maxlength="80" data-postid="${d.id}" />
+            <button class="comment-submit" data-postid="${d.id}">등록</button>
           </div>
         </div>
       </div>`;
@@ -309,10 +309,27 @@ async function loadFeed() {
 
 loadFeed();
 
-// ── 댓글 ─────────────────────────────────────────────
+// ── 댓글 이벤트 위임 ─────────────────────────────────
 const _commentLoaded = new Set();
 
-window.toggleComments = function(postId) {
+document.getElementById('feed-list').addEventListener('click', (e) => {
+  const toggleBtn = e.target.closest('.comment-btn');
+  if (toggleBtn) { toggleComments(toggleBtn.dataset.postid); return; }
+
+  const submitBtn = e.target.closest('.comment-submit');
+  if (submitBtn) { submitComment(submitBtn.dataset.postid); return; }
+
+  const delBtn = e.target.closest('.comment-del');
+  if (delBtn) { deleteComment(delBtn.dataset.postid, delBtn.dataset.commentid); return; }
+});
+
+document.getElementById('feed-list').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const input = e.target.closest('.comment-input');
+  if (input) submitComment(input.dataset.postid);
+});
+
+function toggleComments(postId) {
   const section = document.getElementById('comments-' + postId);
   if (!section) return;
   const isOpen = section.style.display === 'block';
@@ -350,7 +367,7 @@ async function loadComments(postId) {
         <span class="comment-text">${d.text}</span>
         <div class="comment-meta">
           <span class="comment-time">${formatDate(d.createdAt)}</span>
-          ${canDel ? `<button class="comment-del" onclick="window.deleteComment('${postId}','${c.id}')">삭제</button>` : ''}
+          ${canDel ? `<button class="comment-del" data-postid="${postId}" data-commentid="${c.id}">삭제</button>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -360,7 +377,7 @@ async function loadComments(postId) {
   }
 }
 
-window.submitComment = async function(postId) {
+async function submitComment(postId) {
   const input = document.getElementById('cinput-' + postId);
   const text = input.value.trim();
   if (!text) return;
@@ -382,7 +399,7 @@ window.submitComment = async function(postId) {
   }
 };
 
-window.deleteComment = async function(postId, commentId) {
+async function deleteComment(postId, commentId) {
   if (!confirm('댓글을 삭제하시겠어요?')) return;
   try {
     await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
