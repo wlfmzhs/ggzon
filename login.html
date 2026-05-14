@@ -566,6 +566,7 @@ window.doAdminLogin = async function() {
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _deferredPrompt = e; });
 
   function showPwaPrompt(url) {
+    if (navigator.storage?.persist) navigator.storage.persist();
     _redirectUrl = url;
     if (_isInstalled || localStorage.getItem('pwaPromptSeen')) { location.href = url; return; }
     const desc = document.getElementById('pwa-desc');
