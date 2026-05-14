@@ -1719,18 +1719,22 @@ window.openScoreHistOverlay = async () => {
 
     el.innerHTML = handiCard + buildScoreGraph(recent) + records.map(r => {
       const tot = r.totalScore ?? 0;
-      const hasScore = r.holes && r.holes.some(v => v !== null);
+      const isTournament = r.type === 'tournament';
+      const hasScore = isTournament || (r.holes && r.holes.some(v => v !== null));
       const label = !hasScore ? '-' : tot === 0 ? 'E' : tot > 0 ? `+${tot}` : String(tot);
       const cls   = tot < 0 ? 'under' : tot <= 9 ? 'pink' : 'white';
       const companions = (r.companions || []).map(c => c.name || c).join(', ');
+      const bottomBtn = isTournament
+        ? `<button class="btn-scorecard-view" onclick="location.href='tournament-result.html?id=${r.id}'" style="background:rgba(240,192,64,0.15);color:#f0c040;border-color:rgba(240,192,64,0.3);">대회 결과 보기</button>`
+        : `<button class="btn-scorecard-view" onclick="openScorecard('${r.id}')">스코어카드 다시 보기</button>`;
       return `<div class="score-hist-card">
         <div class="score-hist-top">
-          <div class="score-hist-course">${r.course || '골프장'}</div>
+          <div class="score-hist-course">${isTournament ? `🏆 ${r.tournamentName || r.course}` : (r.course || '골프장')}</div>
           <div class="score-hist-chip ${cls}">${label}</div>
         </div>
-        <div class="score-hist-meta">${r.date || ''}</div>
+        <div class="score-hist-meta">${r.date || ''}${isTournament ? ' · 대회' : ''}</div>
         ${companions ? `<div class="score-hist-companions">동반자: ${companions}</div>` : ''}
-        <button class="btn-scorecard-view" onclick="openScorecard('${r.id}')">스코어카드 다시 보기</button>
+        ${bottomBtn}
       </div>`;
     }).join('') + SCORE_QUOTE;
   } catch (e) {
