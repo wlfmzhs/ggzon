@@ -125,22 +125,26 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const tournId = new URLSearchParams(location.search).get('id');
-const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
-let currentUid = ggzonUser?.uid || null;
-let currentNick = ggzonUser?.nickname || '';
+
+const _ggzonKakao = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
+  ? { uid: _ggzonKakao.uid, displayName: _ggzonKakao.nickname, email: '' }
+  : null;
+
+let currentUid = null;
+let currentNick = '';
 
 if (!tournId) {
   document.getElementById('app').innerHTML = '<div class="loading-wrap" style="color:rgba(255,255,255,0.4);font-size:13px;">잘못된 접근입니다</div>';
-} else if (currentUid) {
-  load();
 } else {
   onAuthStateChanged(auth, (user) => {
-    if (!user) {
+    const effectiveUser = user || _kakaoFbUser;
+    if (!effectiveUser) {
       location.href = 'login.html?return=' + encodeURIComponent('tournament-score.html?id=' + tournId);
       return;
     }
-    currentUid = user.uid;
-    currentNick = user.displayName || user.email || '';
+    currentUid = effectiveUser.uid;
+    currentNick = effectiveUser.displayName || effectiveUser.email || '';
     load();
   });
 }
