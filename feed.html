@@ -104,6 +104,7 @@
 
     .card-bottom { padding: 10px 14px 4px; display: flex; align-items: center; }
     .comment-btn { background: none; border: none; color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+    .comment-btn svg, .comment-btn span { pointer-events: none; }
     .comment-section { padding: 0 14px 14px; display: none; }
     .comment-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.06); }
     .comment-nick { font-size: 12px; font-weight: 800; color: var(--green-light); white-space: nowrap; min-width: 48px; }
@@ -331,9 +332,9 @@ function toggleComments(postId) {
   if (!isOpen) {
     if (!_commentLoaded.has(postId)) loadComments(postId);
     const input = document.getElementById('cinput-' + postId);
-    if (input) setTimeout(() => input.focus(), 150);
+    if (input) input.focus();
   }
-};
+}
 
 async function loadComments(postId) {
   _commentLoaded.add(postId);
