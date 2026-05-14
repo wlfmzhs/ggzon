@@ -76,14 +76,14 @@
     .scoreboard { padding: 24px 20px 48px; }
     .section-label { font-size: 11px; font-weight: 800; color: var(--orange); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; padding-left: 4px; }
     .score-header {
-      display: grid; grid-template-columns: 36px 1fr 52px;
+      display: grid; grid-template-columns: 36px 1fr 96px;
       gap: 0 8px; padding: 8px 12px;
       font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3);
       letter-spacing: 0.5px; text-transform: uppercase;
       border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px;
     }
     .score-row {
-      display: grid; grid-template-columns: 36px 1fr 52px;
+      display: grid; grid-template-columns: 36px 1fr 96px;
       gap: 0 8px; padding: 10px 12px; border-radius: 10px; align-items: center;
     }
     .score-row.top3 { background: rgba(232,76,30,0.08); }
@@ -93,10 +93,12 @@
     .rank.silver { color: #c0c0c0; font-size: 14px; }
     .rank.bronze { color: #cd7f32; font-size: 14px; }
     .player-name { font-size: 15px; font-weight: 700; color: var(--white); }
-    .score { font-size: 15px; font-weight: 800; text-align: right; }
-    .score.under { color: var(--orange); }
-    .score.even { color: #7dd87d; }
-    .score.over { color: rgba(255,255,255,0.7); }
+    .score-cell { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
+    .strokes { font-size: 16px; font-weight: 900; color: var(--white); white-space: nowrap; }
+    .par-diff { font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .par-diff.under { color: var(--orange); }
+    .par-diff.even { color: #7dd87d; }
+    .par-diff.over { color: rgba(255,255,255,0.45); }
 
     .avg-row {
       display: flex; align-items: center; justify-content: space-between;
@@ -159,7 +161,7 @@ async function load() {
 
     if (!tournSnap.exists()) throw new Error('대회 정보를 찾을 수 없습니다');
     const t = tournSnap.data();
-    const coursePar = t.coursePar || null;
+    const coursePar = t.coursePar || 72;
     const year = t.date ? t.date.slice(0, 4) : '';
 
     // 1) 등록 데이터에서 uid → 본명
@@ -209,9 +211,8 @@ async function load() {
     const avgStrokes = results.length > 0
       ? Math.round(results.reduce((s, r) => s + r.totalStrokes, 0) / results.length)
       : null;
-    const avgDisplay = avgStrokes !== null
-      ? (coursePar !== null ? scoreText(avgStrokes - coursePar) : String(avgStrokes))
-      : '-';
+    const avgRel = avgStrokes !== null ? avgStrokes - coursePar : null;
+    const avgDisplay = avgRel !== null ? scoreText(avgRel) : '-';
 
     document.getElementById('app').innerHTML = `
       <div class="hero">
@@ -244,7 +245,7 @@ async function load() {
         <div class="section-label">스코어보드</div>
         <div class="score-header">
           <div>순위</div><div>선수</div>
-          <div style="text-align:right">${coursePar ? '타수' : '총타'}</div>
+          <div style="text-align:right">총타수</div>
         </div>
         <div id="scoreList"></div>
         ${results.length === 0 ? '<div class="no-score">아직 스코어를 제출한 참가자가 없습니다.<br>스코어 입력 후 결과가 표시됩니다.</div>' : ''}
@@ -259,15 +260,19 @@ async function load() {
     const list = document.getElementById('scoreList');
     let prevRank = null;
     results.forEach(r => {
-      const display = r.rel !== null ? scoreText(r.rel) : String(r.totalStrokes);
-      const cls = r.rel !== null ? scoreClass(r.rel) : 'over';
+      const rel = r.totalStrokes - coursePar;
+      const diffText = scoreText(rel);
+      const diffCls = scoreClass(rel);
       const rankDisplay = r.rank === prevRank ? '' : r.rank;
       const row = document.createElement('div');
       row.className = 'score-row' + (r.rank <= 3 ? ' top3' : '');
       row.innerHTML = `
         <div class="rank ${rankClass(r.rank)}">${rankDisplay}</div>
         <div class="player-name">${r.name}</div>
-        <div class="score ${cls}">${display}</div>
+        <div class="score-cell">
+          <span class="strokes">${r.totalStrokes}</span>
+          <span class="par-diff ${diffCls}">${diffText}</span>
+        </div>
       `;
       list.appendChild(row);
       prevRank = r.rank;
