@@ -276,6 +276,17 @@ async function loadFeed() {
       </div>`;
     }).join('');
 
+    // 댓글 버튼 직접 리스너 등록
+    el.querySelectorAll('.comment-btn').forEach(btn => {
+      btn.addEventListener('click', () => toggleComments(btn.dataset.postid));
+    });
+    el.querySelectorAll('.comment-submit').forEach(btn => {
+      btn.addEventListener('click', () => submitComment(btn.dataset.postid));
+    });
+    el.querySelectorAll('.comment-input').forEach(input => {
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submitComment(input.dataset.postid); });
+    });
+
     // 모든 이미지가 로드될 때까지 오버레이 유지 후 한번에 표시
     const imgs = Array.from(el.querySelectorAll('.feed-photo'));
     let loaded = 0;
@@ -309,25 +320,8 @@ async function loadFeed() {
 
 loadFeed();
 
-// ── 댓글 이벤트 위임 ─────────────────────────────────
+// ── 댓글 ─────────────────────────────────────────────
 const _commentLoaded = new Set();
-
-document.getElementById('feed-list').addEventListener('click', (e) => {
-  const toggleBtn = e.target.closest('.comment-btn');
-  if (toggleBtn) { toggleComments(toggleBtn.dataset.postid); return; }
-
-  const submitBtn = e.target.closest('.comment-submit');
-  if (submitBtn) { submitComment(submitBtn.dataset.postid); return; }
-
-  const delBtn = e.target.closest('.comment-del');
-  if (delBtn) { deleteComment(delBtn.dataset.postid, delBtn.dataset.commentid); return; }
-});
-
-document.getElementById('feed-list').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
-  const input = e.target.closest('.comment-input');
-  if (input) submitComment(input.dataset.postid);
-});
 
 function toggleComments(postId) {
   const section = document.getElementById('comments-' + postId);
@@ -371,6 +365,9 @@ async function loadComments(postId) {
         </div>
       </div>`;
     }).join('');
+    listEl.querySelectorAll('.comment-del').forEach(btn => {
+      btn.addEventListener('click', () => deleteComment(btn.dataset.postid, btn.dataset.commentid));
+    });
   } catch(e) {
     _commentLoaded.delete(postId);
     listEl.innerHTML = `<div style="font-size:11px;color:rgba(255,100,100,0.7);padding:8px 0;">${e.code === 'permission-denied' ? 'Firebase 규칙을 업데이트해주세요' : '불러오기 실패: ' + e.message}</div>`;
