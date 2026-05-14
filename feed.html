@@ -286,9 +286,12 @@ async function loadFeed() {
       </div>`;
     }).join('');
 
-    // 댓글 버튼 직접 리스너 등록
-    el.querySelectorAll('.comment-btn').forEach(btn => {
-      btn.addEventListener('click', () => toggleComments(btn.dataset.postid));
+    // 댓글 버튼 직접 리스너 등록 (card-bottom 전체 영역)
+    el.querySelectorAll('.card-bottom').forEach(bar => {
+      bar.addEventListener('click', () => {
+        const btn = bar.querySelector('.comment-btn');
+        if (btn) toggleComments(btn.dataset.postid);
+      });
     });
     el.querySelectorAll('.comment-submit').forEach(btn => {
       btn.addEventListener('click', () => submitComment(btn.dataset.postid));
