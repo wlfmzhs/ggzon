@@ -151,9 +151,10 @@ const scoreText = s => s < 0 ? String(s) : s === 0 ? 'E' : '+' + s;
 
 async function load() {
   try {
-    const [tournSnap, scoresSnap] = await Promise.all([
+    const [tournSnap, scoresSnap, regsSnap] = await Promise.all([
       getDoc(doc(db, 'tournaments', tournId)),
-      getDocs(collection(db, 'tournaments', tournId, 'scores'))
+      getDocs(collection(db, 'tournaments', tournId, 'scores')),
+      getDocs(collection(db, 'tournaments', tournId, 'registrations'))
     ]);
 
     if (!tournSnap.exists()) throw new Error('대회 정보를 찾을 수 없습니다');
@@ -161,8 +162,18 @@ async function load() {
     const coursePar = t.coursePar || null;
     const year = t.date ? t.date.slice(0, 4) : '';
 
+    // uid → 본명 맵
+    const nameMap = {};
+    regsSnap.docs.forEach(d => {
+      const r = d.data();
+      if (r.userId && r.name) nameMap[r.userId] = r.name;
+    });
+
     const results = scoresSnap.docs
-      .map(d => d.data())
+      .map(d => {
+        const s = d.data();
+        return { ...s, name: nameMap[s.uid] || s.name };
+      })
       .filter(s => s.totalStrokes > 0)
       .sort((a, b) => a.totalStrokes - b.totalStrokes);
 
