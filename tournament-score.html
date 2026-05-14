@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d7a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>스코어 입력 — GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root { --green: #2d7a4f; --green-light: #3ea066; --green-dark: #0A2406; }
+    html, body { width: 100%; min-height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #fff; }
+    body { display: flex; align-items: flex-start; justify-content: center; padding: 24px; }
+    .phone-frame {
+      width: 390px; background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      overflow: hidden; position: relative; min-height: 600px;
+    }
+    .phone-frame::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 10;
+    }
+    .appbar {
+      padding: 36px 18px 16px; display: flex; align-items: center; justify-content: space-between; position: relative;
+    }
+    .appbar-title { font-size: 17px; font-weight: 900; color: #fff; position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    .back-btn { background: none; border: none; color: var(--green-light); font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; padding: 4px; }
+    .content { padding: 8px 20px 48px; }
+    .loading-wrap { display: flex; align-items: center; justify-content: center; padding: 80px 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tourn-info { background: rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; margin-bottom: 24px; }
+    .tourn-name { font-size: 18px; font-weight: 900; margin-bottom: 4px; }
+    .tourn-meta { font-size: 12px; color: rgba(255,255,255,0.4); }
+
+    .section-title { font-size: 12px; font-weight: 800; color: var(--green-light); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+
+    .score-input-wrap { background: rgba(255,255,255,0.04); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .score-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 10px; }
+    .score-input-row { display: flex; align-items: center; gap: 12px; }
+    .score-num {
+      flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 12px; color: #fff; font-size: 28px; font-weight: 900; font-family: inherit;
+      padding: 14px 16px; outline: none; text-align: center;
+      -webkit-appearance: none; appearance: none;
+    }
+    .score-num:focus { border-color: var(--green-light); }
+    .par-display { font-size: 13px; color: rgba(255,255,255,0.35); text-align: center; min-width: 70px; }
+    .par-display strong { display: block; font-size: 20px; font-weight: 900; }
+    .par-display strong.under { color: #e84c1e; }
+    .par-display strong.even { color: #7dd87d; }
+    .par-display strong.over { color: rgba(255,255,255,0.7); }
+
+    .already-box { background: rgba(62,160,102,0.08); border: 1px solid rgba(62,160,102,0.2); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: rgba(255,255,255,0.6); }
+    .already-box strong { color: var(--green-light); }
+
+    .submit-btn {
+      width: 100%; padding: 16px; border-radius: 14px; background: var(--green);
+      color: #fff; font-size: 16px; font-weight: 900; border: none; cursor: pointer; font-family: inherit;
+      margin-top: 8px;
+    }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .msg { padding: 12px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; margin-top: 12px; display: none; }
+    .msg.error { background: rgba(220,50,50,0.15); color: #ff6b6b; display: block; }
+    .msg.success { background: rgba(46,160,80,0.15); color: #3ea066; display: block; }
+
+    @media (max-width: 480px) {
+      html, body { background: var(--green-dark); padding: 0; }
+      body { align-items: flex-start; }
+      .phone-frame { width: 100%; border-radius: 0; box-shadow: none; min-height: 100vh; }
+      .phone-frame::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="appbar">
+    <button class="back-btn" onclick="history.back()">← 뒤로</button>
+    <span class="appbar-title">스코어 입력</span>
+    <span></span>
+  </div>
+  <div id="app">
+    <div class="loading-wrap">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style="animation:spin 1s linear infinite">
+        <circle cx="20" cy="20" r="16" stroke="rgba(62,160,102,0.2)" stroke-width="4"/>
+        <path d="M20 4a16 16 0 0 1 16 16" stroke="#3ea066" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const db = getFirestore(app);
+
+const tournId = new URLSearchParams(location.search).get('id');
+const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const currentUid = ggzonUser?.uid || null;
+const currentNick = ggzonUser?.nickname || '';
+
+if (!tournId) {
+  document.getElementById('app').innerHTML = '<div class="loading-wrap" style="color:rgba(255,255,255,0.4);font-size:13px;">잘못된 접근입니다</div>';
+} else if (!currentUid) {
+  location.href = 'login.html?return=tournament-score.html?id=' + tournId;
+} else {
+  load();
+}
+
+async function load() {
+  try {
+    const snap = await getDoc(doc(db, 'tournaments', tournId));
+    if (!snap.exists()) throw new Error('대회 정보를 찾을 수 없습니다');
+    const t = snap.data();
+
+    // 이미 입력한 스코어 확인
+    const scoreSnap = await getDoc(doc(db, 'tournaments', tournId, 'scores', currentUid));
+    const existing = scoreSnap.exists() ? scoreSnap.data() : null;
+
+    const coursePar = t.coursePar || null;
+
+    document.getElementById('app').innerHTML = `
+      <div class="content">
+        <div class="tourn-info">
+          <div class="tourn-name">${t.name || '대회'}</div>
+          <div class="tourn-meta">${[t.date, t.golfCourseName].filter(Boolean).join(' · ')}</div>
+        </div>
+        ${existing ? `
+        <div class="already-box">
+          이미 입력한 스코어: <strong>${existing.totalStrokes}타${coursePar ? ' (' + scoreText(existing.totalStrokes - coursePar) + ')' : ''}</strong><br>
+          <span style="font-size:11px;">다시 제출하면 덮어씌워집니다</span>
+        </div>` : ''}
+        <div class="score-input-wrap">
+          <div class="score-label">내 총 타수 (18홀)</div>
+          <div class="score-input-row">
+            <input class="score-num" id="stroke-input" type="number" min="54" max="200"
+              placeholder="${coursePar ? coursePar : '72'}"
+              value="${existing ? existing.totalStrokes : ''}"
+              oninput="updateRelScore()" />
+            ${coursePar ? `
+            <div class="par-display">
+              <span>파 대비</span>
+              <strong id="rel-display" class="">-</strong>
+            </div>` : ''}
+          </div>
+        </div>
+        <button class="submit-btn" id="submit-btn" onclick="submitScore()">스코어 제출</button>
+        <div class="msg" id="msg"></div>
+      </div>
+    `;
+
+    window._coursePar = coursePar;
+    window._currentNick = currentNick;
+    if (existing) updateRelScore();
+
+  } catch(e) {
+    document.getElementById('app').innerHTML = `<div class="loading-wrap" style="color:rgba(255,255,255,0.4);font-size:13px;">불러오기 실패: ${e.message}</div>`;
+  }
+}
+
+window.updateRelScore = function() {
+  const par = window._coursePar;
+  if (!par) return;
+  const val = parseInt(document.getElementById('stroke-input').value);
+  const el = document.getElementById('rel-display');
+  if (!el || isNaN(val)) { if (el) { el.textContent = '-'; el.className = ''; } return; }
+  const rel = val - par;
+  el.textContent = scoreText(rel);
+  el.className = rel < 0 ? 'under' : rel === 0 ? 'even' : 'over';
+};
+
+window.submitScore = async function() {
+  const input = document.getElementById('stroke-input');
+  const totalStrokes = parseInt(input.value);
+  if (isNaN(totalStrokes) || totalStrokes < 54 || totalStrokes > 200) {
+    showMsg('올바른 타수를 입력해주세요 (54~200)', 'error'); return;
+  }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    await setDoc(doc(db, 'tournaments', tournId, 'scores', currentUid), {
+      uid: currentUid,
+      name: window._currentNick,
+      totalStrokes,
+      submittedAt: serverTimestamp()
+    });
+    showMsg('스코어가 저장되었습니다!', 'success');
+    btn.textContent = '저장 완료';
+    setTimeout(() => { location.href = 'tournament-result.html?id=' + tournId; }, 1200);
+  } catch(e) {
+    showMsg('저장 실패: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = '스코어 제출';
+  }
+};
+
+function showMsg(text, type) {
+  const el = document.getElementById('msg');
+  if (!el) return;
+  el.textContent = text; el.className = 'msg ' + type;
+}
+
+function scoreText(s) {
+  return s < 0 ? String(s) : s === 0 ? 'E' : '+' + s;
+}
+</script>
+</body>
+</html>
