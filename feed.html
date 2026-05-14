@@ -117,13 +117,12 @@
       100% { opacity: 0; transform: translateX(-50%) translateY(-130px) scale(0.9); }
     }
     .comment-balloon {
-      position: fixed;
+      position: absolute;
       background: rgba(45,122,79,0.95); color: #fff; border-radius: 20px;
       padding: 9px 18px 11px; font-size: 13px; font-weight: 700;
-      max-width: 72%; text-align: center; pointer-events: none; z-index: 9999;
+      max-width: 260px; text-align: center; pointer-events: none;
       word-break: break-all; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,0.45);
       animation: balloonFloat 2.2s ease forwards;
-      white-space: pre-wrap;
     }
     .comment-balloon::after {
       content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
@@ -200,6 +199,7 @@
     <div class="feed-empty">불러오는 중...</div>
   </div>
 </div>
+<div id="balloon-layer" style="position:fixed;inset:0;pointer-events:none;z-index:99999;overflow:hidden;"></div>
 
 <!-- 사진 업로드 모달 -->
 <div id="upload-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:flex-end;justify-content:center;">
@@ -388,14 +388,16 @@ function showBalloon(postId, text, delay = 0) {
     if (!card) return;
     const imgWrap = card.querySelector('.feed-img-wrap');
     if (!imgWrap) return;
-    const imgRect = imgWrap.getBoundingClientRect();
-    if (imgRect.width === 0) return;
+    const r = imgWrap.getBoundingClientRect();
+    if (r.width === 0 || r.bottom < 0 || r.top > window.innerHeight) return;
+    const layer = document.getElementById('balloon-layer');
+    if (!layer) return;
     const balloon = document.createElement('div');
     balloon.className = 'comment-balloon';
     balloon.textContent = text.length > 24 ? text.slice(0, 24) + '...' : text;
-    balloon.style.left = (imgRect.left + imgRect.width / 2) + 'px';
-    balloon.style.top  = (imgRect.bottom - 70) + 'px';
-    document.body.appendChild(balloon);
+    balloon.style.left = (r.left + r.width / 2) + 'px';
+    balloon.style.top  = Math.max(30, r.bottom - 70) + 'px';
+    layer.appendChild(balloon);
     balloon.addEventListener('animationend', () => balloon.remove());
   };
   delay > 0 ? setTimeout(run, delay) : run();
@@ -445,7 +447,7 @@ async function loadComments(postId) {
     });
     if (isFirstLoad && sorted.length > 0 && !_skipBalloon.has(postId)) {
       const latest = sorted[sorted.length - 1].data();
-      showBalloon(postId, latest.text, 350);
+      showBalloon(postId, latest.text, 800);
     }
     _skipBalloon.delete(postId);
   } catch(e) {
