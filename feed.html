@@ -102,6 +102,21 @@
     }
     .feed-empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 14px; }
 
+    .card-bottom { padding: 10px 14px 4px; display: flex; align-items: center; }
+    .comment-btn { background: none; border: none; color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+    .comment-section { padding: 0 14px 14px; display: none; }
+    .comment-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+    .comment-nick { font-size: 12px; font-weight: 800; color: var(--green-light); white-space: nowrap; min-width: 48px; }
+    .comment-text { font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.5; flex: 1; word-break: break-all; }
+    .comment-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .comment-time { font-size: 10px; color: rgba(255,255,255,0.28); white-space: nowrap; }
+    .comment-del { background: none; border: none; color: rgba(255,80,80,0.45); font-size: 10px; cursor: pointer; font-family: inherit; padding: 0; line-height: 1; }
+    .comment-input-row { display: flex; gap: 8px; margin-top: 10px; }
+    .comment-input { flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(62,160,102,0.25); border-radius: 10px; color: #fff; font-size: 13px; font-family: inherit; padding: 9px 12px; outline: none; }
+    .comment-input::placeholder { color: rgba(255,255,255,0.22); }
+    .comment-input:focus { border-color: rgba(62,160,102,0.55); }
+    .comment-submit { background: var(--green); border: none; border-radius: 10px; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; padding: 0 14px; white-space: nowrap; }
+
     #loading-overlay {
       position: absolute; inset: 0; background: var(--green-dark);
       display: flex; align-items: center; justify-content: center; z-index: 50; border-radius: 40px;
@@ -245,6 +260,19 @@ async function loadFeed() {
           </div>
           ${p.caption ? `<div class="feed-caption">${p.caption}</div>` : ''}
         </div>
+        <div class="card-bottom">
+          <button class="comment-btn" onclick="window.toggleComments('${d.id}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span id="ccount-${d.id}">댓글</span>
+          </button>
+        </div>
+        <div class="comment-section" id="comments-${d.id}">
+          <div class="comment-list" id="clist-${d.id}"></div>
+          <div class="comment-input-row">
+            <input class="comment-input" id="cinput-${d.id}" type="text" placeholder="댓글을 입력하세요" maxlength="80" onkeydown="if(event.key==='Enter')window.submitComment('${d.id}')" />
+            <button class="comment-submit" onclick="window.submitComment('${d.id}')">등록</button>
+          </div>
+        </div>
       </div>`;
     }).join('');
 
@@ -280,6 +308,83 @@ async function loadFeed() {
 }
 
 loadFeed();
+
+// ── 댓글 ─────────────────────────────────────────────
+const _commentLoaded = new Set();
+
+window.toggleComments = async function(postId) {
+  const section = document.getElementById('comments-' + postId);
+  const isOpen = section.style.display === 'block';
+  section.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen && !_commentLoaded.has(postId)) {
+    await loadComments(postId);
+  }
+  if (!isOpen) {
+    const input = document.getElementById('cinput-' + postId);
+    if (input) setTimeout(() => input.focus(), 100);
+  }
+};
+
+async function loadComments(postId) {
+  _commentLoaded.add(postId);
+  const listEl = document.getElementById('clist-' + postId);
+  const countEl = document.getElementById('ccount-' + postId);
+  try {
+    const snap = await getDocs(query(collection(db, 'posts', postId, 'comments'), orderBy('createdAt', 'asc')));
+    if (countEl) countEl.textContent = snap.size > 0 ? `댓글 ${snap.size}` : '댓글';
+    if (snap.empty) {
+      listEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.25);padding:10px 0;">첫 댓글을 남겨보세요</div>';
+      return;
+    }
+    listEl.innerHTML = snap.docs.map(c => {
+      const d = c.data();
+      const canDel = (currentUid && currentUid === d.uid) || isAdmin;
+      return `<div class="comment-item" id="comment-${c.id}">
+        <span class="comment-nick">${d.nickname || '멤버'}</span>
+        <span class="comment-text">${d.text}</span>
+        <div class="comment-meta">
+          <span class="comment-time">${formatDate(d.createdAt)}</span>
+          ${canDel ? `<button class="comment-del" onclick="window.deleteComment('${postId}','${c.id}')">삭제</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = `<div style="font-size:11px;color:rgba(255,100,100,0.7);padding:8px 0;">불러오기 실패</div>`;
+  }
+}
+
+window.submitComment = async function(postId) {
+  const input = document.getElementById('cinput-' + postId);
+  const text = input.value.trim();
+  if (!text) return;
+  if (!currentUid) { alert('로그인이 필요합니다'); return; }
+  const nickname = ggzonUser?.nickname || '관리자';
+  input.value = '';
+  input.disabled = true;
+  try {
+    await addDoc(collection(db, 'posts', postId, 'comments'), {
+      uid: currentUid, nickname, text, createdAt: serverTimestamp()
+    });
+    _commentLoaded.delete(postId);
+    await loadComments(postId);
+  } catch(e) {
+    alert('댓글 등록 실패: ' + e.message);
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+};
+
+window.deleteComment = async function(postId, commentId) {
+  if (!confirm('댓글을 삭제하시겠어요?')) return;
+  try {
+    await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
+    _commentLoaded.delete(postId);
+    await loadComments(postId);
+  } catch(e) {
+    alert('삭제 실패: ' + e.message);
+  }
+};
 
 window.deletePost = async function(postId) {
   if (!confirm('이 사진을 삭제하시겠어요?')) return;
