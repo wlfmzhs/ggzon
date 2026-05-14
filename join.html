@@ -374,8 +374,12 @@
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 14px; padding: 16px; margin-bottom: 8px;
-      display: flex; align-items: center; gap: 14px;
+      display: flex; flex-direction: column; gap: 0;
     }
+    .past-card-top { display: flex; align-items: center; gap: 14px; }
+    .past-btn-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .past-score-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 800; background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3); border-radius: 10px; color: #3ea066; cursor: pointer; font-family: inherit; }
+    .past-result-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 800; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: rgba(255,255,255,0.55); cursor: pointer; font-family: inherit; }
     .past-icon {
       width: 40px; height: 40px; flex-shrink: 0;
       background: rgba(62,160,102,0.1); border-radius: 12px;
@@ -947,17 +951,26 @@ function renderClosedList() {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div>마감된 조인이 없습니다</div>`;
     return;
   }
-  el.innerHTML = closed.map(j => `
+  el.innerHTML = closed.map(j => {
+    const participants = j.participants || [];
+    const isParticipant = currentUid && participants.some(p => p.uid === currentUid);
+    return `
     <div class="past-card">
-      <div class="past-icon">${j.timeType === 'night' ? '🌙' : '☀️'}</div>
-      <div class="past-info">
-        <div class="past-name">${j.course}</div>
-        <div class="past-sub">${j.date}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
+      <div class="past-card-top">
+        <div class="past-icon">${j.timeType === 'night' ? '🌙' : '☀️'}</div>
+        <div class="past-info">
+          <div class="past-name">${j.course}</div>
+          <div class="past-sub">${j.date}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
+        </div>
+        <span class="past-badge">마감</span>
+        ${isAdmin ? `<button class="past-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
       </div>
-      <span class="past-badge">마감</span>
-      ${isAdmin ? `<button class="past-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
-    </div>
-  `).join('');
+      <div class="past-btn-row">
+        ${isParticipant ? `<button class="past-score-btn" onclick="location.href='score.html?id=${j.id}'">내 스코어 작성</button>` : ''}
+        <button class="past-result-btn" onclick="location.href='round-result.html?id=${j.id}'">결과 보기</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── 카드 빌드 ─────────────────────────────────────────
