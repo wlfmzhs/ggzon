@@ -206,7 +206,7 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">골프 핸디</label>
+      <label class="form-label">골프 핸디 <span style="color:var(--green-light)">*</span></label>
       <select class="form-input" id="prof-handi">
         <option value="" disabled selected>선택</option>
         <option value="scratch">스크래치 이하</option>
@@ -428,6 +428,8 @@ window.saveProfile = async function() {
   const phone = document.getElementById('prof-phone').value.trim();
   if (!phone) { showMsg('prof-msg', '전화번호를 입력해주세요', 'error'); return; }
   if (!/^010-\d{4}-\d{4}$/.test(phone)) { showMsg('prof-msg', '전화번호를 올바르게 입력해주세요 (010-0000-0000)', 'error'); return; }
+  const handi = document.getElementById('prof-handi').value;
+  if (!handi) { showMsg('prof-msg', '골프 핸디를 선택해주세요', 'error'); return; }
   if (!document.getElementById('prof-terms').checked) { showMsg('prof-msg', '이용약관에 동의해 주세요', 'error'); return; }
   if (!document.getElementById('prof-privacy').checked) { showMsg('prof-msg', '개인정보처리방침에 동의해 주세요', 'error'); return; }
 
