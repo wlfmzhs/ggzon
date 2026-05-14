@@ -934,7 +934,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged, signOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
-  query, serverTimestamp, orderBy, where
+  query, serverTimestamp, orderBy, where, arrayRemove, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -1120,12 +1120,48 @@ window.saveEdit = async () => {
     await setDoc(doc(db, 'users', currentUser.uid), updates, { merge: true });
     userData = { ...userData, ...updates };
     document.getElementById('prof-nick').textContent = nick;
-    const sub = [userData.name, updates.handicap ? `핸디 ${updates.handicap}` : '', region].filter(Boolean).join(' · ');
+    const sub = [name, updates.handicap ? `핸디 ${updates.handicap}` : '', region].filter(Boolean).join(' · ');
     document.getElementById('prof-sub').textContent = sub;
     closeModal('modal-edit');
     showToast('저장되었습니다');
+
+    // 이름 변경 시 관련 컬렉션 일괄 업데이트
+    if (name && name !== userData.name) {
+      const uid = currentUser.uid;
+      propagateNameChange(uid, name).catch(() => {});
+    }
   } catch (e) { showToast('저장 실패: ' + e.message); }
 };
+
+async function propagateNameChange(uid, newName) {
+  // 1. 조인 참가자 이름 업데이트
+  const joinsSnap = await getDocs(collection(db, 'joins'));
+  for (const jDoc of joinsSnap.docs) {
+    const participants = jDoc.data().participants || [];
+    const entry = participants.find(p => p.uid === uid);
+    if (entry && entry.name !== newName) {
+      const updated = { ...entry, name: newName };
+      await updateDoc(jDoc.ref, {
+        participants: arrayRemove(entry)
+      });
+      await updateDoc(jDoc.ref, {
+        participants: arrayUnion(updated)
+      });
+    }
+  }
+
+  // 2. 대회 스코어 이름 업데이트
+  const tournsSnap = await getDocs(collection(db, 'tournaments'));
+  for (const tDoc of tournsSnap.docs) {
+    try {
+      const scoreRef = doc(db, 'tournaments', tDoc.id, 'scores', uid);
+      const scoreSnap = await getDoc(scoreRef);
+      if (scoreSnap.exists()) {
+        await updateDoc(scoreRef, { name: newName });
+      }
+    } catch (_) {}
+  }
+}
 
 window.openPwModal = () => {
   document.getElementById('pw-new').value = '';
