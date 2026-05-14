@@ -180,6 +180,10 @@
       <div class="form-hint">최대 12자 · 나중에 변경 가능</div>
     </div>
     <div class="form-group">
+      <label class="form-label">전화번호 <span style="color:var(--green-light)">*</span></label>
+      <input class="form-input" id="prof-phone" type="tel" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)" />
+    </div>
+    <div class="form-group">
       <label class="form-label">이름</label>
       <input class="form-input" id="prof-name" type="text" placeholder="홍길동" />
     </div>
@@ -421,6 +425,9 @@ window.saveProfile = async function() {
 
   const nick = document.getElementById('prof-nick').value.trim();
   if (!nick) { showMsg('prof-msg', '닉네임을 입력해주세요', 'error'); return; }
+  const phone = document.getElementById('prof-phone').value.trim();
+  if (!phone) { showMsg('prof-msg', '전화번호를 입력해주세요', 'error'); return; }
+  if (!/^010-\d{4}-\d{4}$/.test(phone)) { showMsg('prof-msg', '전화번호를 올바르게 입력해주세요 (010-0000-0000)', 'error'); return; }
   if (!document.getElementById('prof-terms').checked) { showMsg('prof-msg', '이용약관에 동의해 주세요', 'error'); return; }
   if (!document.getElementById('prof-privacy').checked) { showMsg('prof-msg', '개인정보처리방침에 동의해 주세요', 'error'); return; }
 
@@ -431,6 +438,7 @@ window.saveProfile = async function() {
   try {
     await setDoc(doc(db, 'users', pendingKakaoUser.uid), {
       nickname: nick,
+      phone: phone,
       name: document.getElementById('prof-name').value.trim(),
       birthYear2: birthRaw ? String(birthRaw).padStart(2, '0') : '',
       handicap: document.getElementById('prof-handi').value,
@@ -544,7 +552,7 @@ window.doAdminLogin = async function() {
       body: `
         <p>GOLGAB ZONE은 개인정보보호법 제30조에 따라 이용자의 개인정보를 보호합니다.</p>
         <p><strong>제1조 (수집하는 개인정보 항목)</strong></p>
-        <ul><li>필수: 카카오 계정 정보(ID, 닉네임)</li><li>선택: 이름, 출생연도, 핸디캡, 거주지역</li><li>자동 수집: 서비스 이용 기록, 접속 로그</li></ul>
+        <ul><li>필수: 카카오 계정 정보(ID, 닉네임), 전화번호</li><li>선택: 이름, 출생연도, 핸디캡, 거주지역</li><li>자동 수집: 서비스 이용 기록, 접속 로그</li></ul>
         <p><strong>제2조 (수집 및 이용 목적)</strong></p>
         <ul><li>회원 식별 및 서비스 제공</li><li>이벤트·대회 참가 신청 및 결과 안내</li><li>서비스 개선 및 신규 서비스 개발</li></ul>
         <p><strong>제3조 (보유 및 이용 기간)</strong></p>
@@ -558,6 +566,13 @@ window.doAdminLogin = async function() {
         <p style="margin-top:16px;color:rgba(255,255,255,0.4);font-size:11px;">시행일: 2026년 04월 23일</p>
       `
     }
+  };
+
+  window.formatPhone = function(input) {
+    let v = input.value.replace(/\D/g, '');
+    if (v.length <= 3) input.value = v;
+    else if (v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
+    else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
   };
 
   window.showTerm = function(type) {
