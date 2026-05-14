@@ -988,11 +988,12 @@ function buildCard(j) {
   if (alreadyJoined) { joinBtnText = '✓ 참여중 (취소)'; joinBtnClass += ' joined'; }
   else if (isFull)   { joinBtnText = '마감'; joinBtnClass += ' full'; }
 
-  const adminRow = isAdmin ? `
+  const isAuthor = currentUser && (j.creatorUid === currentUser.uid || (j.participants?.[0]?.uid === currentUser.uid));
+  const adminRow = (isAdmin || isAuthor) ? `
     <div class="card-admin-row">
       <button class="card-edit-btn" onclick="window.openAdminModal('${j.id}')">수정</button>
-      <button class="card-close-btn" onclick="window.confirmClose('${j.id}','${j.course}')">마감</button>
-      <button class="card-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>
+      ${isAdmin ? `<button class="card-close-btn" onclick="window.confirmClose('${j.id}','${j.course}')">마감</button>
+      <button class="card-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
     </div>` : '';
   const memo = j.memo ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px;line-height:1.6;">${j.memo}</div>` : '';
 
@@ -1158,7 +1159,7 @@ window.saveJoin = async function() {
     showToast('필드 조인은 그린피·전반·후반 코스를 모두 입력해주세요'); return;
   }
 
-  const data = { course, date, time, capacity: Number(capacity), kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp() };
+  const data = { course, date, time, capacity: Number(capacity), kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp(), creatorUid: currentUser.uid };
   if (currentJoinType === 'field') { data.greenfee = greenfee; data.frontCourse = frontCourse; data.backCourse = backCourse; }
 
   try {
