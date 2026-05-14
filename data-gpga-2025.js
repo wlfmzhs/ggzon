@@ -28,7 +28,7 @@ const GPGA2025 = {
     { rank: 21, name: '황대환',  score: 11,  golchelin: null },
     { rank: 21, name: '장병철',  score: 11,  golchelin: null },
     { rank: 21, name: '윤수민',  score: 11,  golchelin: null },
-    { rank: 24, name: '김성현',  score: 12,  golchelin: null },
+    { rank: 24, name: '김성헌',  score: 12,  golchelin: null },
     { rank: 24, name: '박충기',  score: 12,  golchelin: null },
     { rank: 24, name: '하정광',  score: 12,  golchelin: null },
     { rank: 27, name: '박찬웅',  score: 13,  golchelin: null },
