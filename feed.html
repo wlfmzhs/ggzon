@@ -312,16 +312,15 @@ loadFeed();
 // ── 댓글 ─────────────────────────────────────────────
 const _commentLoaded = new Set();
 
-window.toggleComments = async function(postId) {
+window.toggleComments = function(postId) {
   const section = document.getElementById('comments-' + postId);
+  if (!section) return;
   const isOpen = section.style.display === 'block';
   section.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen && !_commentLoaded.has(postId)) {
-    await loadComments(postId);
-  }
   if (!isOpen) {
+    if (!_commentLoaded.has(postId)) loadComments(postId);
     const input = document.getElementById('cinput-' + postId);
-    if (input) setTimeout(() => input.focus(), 100);
+    if (input) setTimeout(() => input.focus(), 150);
   }
 };
 
@@ -329,14 +328,21 @@ async function loadComments(postId) {
   _commentLoaded.add(postId);
   const listEl = document.getElementById('clist-' + postId);
   const countEl = document.getElementById('ccount-' + postId);
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.25);padding:8px 0;">불러오는 중...</div>';
   try {
-    const snap = await getDocs(query(collection(db, 'posts', postId, 'comments'), orderBy('createdAt', 'asc')));
-    if (countEl) countEl.textContent = snap.size > 0 ? `댓글 ${snap.size}` : '댓글';
-    if (snap.empty) {
-      listEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.25);padding:10px 0;">첫 댓글을 남겨보세요</div>';
+    const snap = await getDocs(collection(db, 'posts', postId, 'comments'));
+    const sorted = snap.docs.sort((a, b) => {
+      const at = a.data().createdAt?.seconds || 0;
+      const bt = b.data().createdAt?.seconds || 0;
+      return at - bt;
+    });
+    if (countEl) countEl.textContent = sorted.length > 0 ? `댓글 ${sorted.length}` : '댓글';
+    if (sorted.length === 0) {
+      listEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.25);padding:8px 0;">첫 댓글을 남겨보세요</div>';
       return;
     }
-    listEl.innerHTML = snap.docs.map(c => {
+    listEl.innerHTML = sorted.map(c => {
       const d = c.data();
       const canDel = (currentUid && currentUid === d.uid) || isAdmin;
       return `<div class="comment-item" id="comment-${c.id}">
@@ -349,7 +355,8 @@ async function loadComments(postId) {
       </div>`;
     }).join('');
   } catch(e) {
-    listEl.innerHTML = `<div style="font-size:11px;color:rgba(255,100,100,0.7);padding:8px 0;">불러오기 실패</div>`;
+    _commentLoaded.delete(postId);
+    listEl.innerHTML = `<div style="font-size:11px;color:rgba(255,100,100,0.7);padding:8px 0;">${e.code === 'permission-denied' ? 'Firebase 규칙을 업데이트해주세요' : '불러오기 실패: ' + e.message}</div>`;
   }
 }
 
