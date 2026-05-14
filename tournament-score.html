@@ -181,6 +181,12 @@ async function load() {
           <span style="font-size:11px;">다시 제출하면 덮어씌워집니다</span>
         </div>` : ''}
         <div class="score-input-wrap">
+          <div class="score-label">이름 <span style="color:var(--green-light)">*</span></div>
+          <input class="score-num" id="name-input" type="text" placeholder="본명을 입력해주세요"
+            value="${existing?.name || currentNick}"
+            style="font-size:16px;font-weight:700;margin-bottom:10px;" />
+        </div>
+        <div class="score-input-wrap">
           <div class="score-label">내 총 타수 (18홀)</div>
           <div class="score-input-row">
             <input class="score-num" id="stroke-input" type="number" min="54" max="200"
@@ -220,6 +226,8 @@ window.updateRelScore = function() {
 };
 
 window.submitScore = async function() {
+  const nameVal = document.getElementById('name-input').value.trim();
+  if (!nameVal) { showMsg('이름을 입력해주세요', 'error'); return; }
   const input = document.getElementById('stroke-input');
   const totalStrokes = parseInt(input.value);
   if (isNaN(totalStrokes) || totalStrokes < 54 || totalStrokes > 200) {
@@ -230,7 +238,7 @@ window.submitScore = async function() {
   try {
     await setDoc(doc(db, 'tournaments', tournId, 'scores', currentUid), {
       uid: currentUid,
-      name: window._currentNick,
+      name: nameVal,
       totalStrokes,
       submittedAt: serverTimestamp()
     });
