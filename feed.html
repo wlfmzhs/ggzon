@@ -298,7 +298,7 @@ async function loadFeed() {
             <span id="ccount-${d.id}">댓글</span>
           </button>
         </div>
-        <div class="comment-section" id="comments-${d.id}">
+        <div class="comment-section open" id="comments-${d.id}">
           <div class="comment-section-inner">
             <div class="comment-list" id="clist-${d.id}"></div>
             <div class="comment-input-row">
@@ -309,6 +309,9 @@ async function loadFeed() {
         </div>
       </div>`;
     }).join('');
+
+    // 모든 포스트 댓글 자동 로드
+    snap.docs.forEach(d => loadComments(d.id));
 
     // 댓글 버튼 직접 리스너 등록 (card-bottom 전체 영역)
     el.querySelectorAll('.card-bottom').forEach(bar => {
