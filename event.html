@@ -338,8 +338,12 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 14px; padding: 16px;
       margin-bottom: 8px;
-      display: flex; align-items: center; gap: 14px;
+      display: flex; flex-direction: column; gap: 0;
     }
+    .past-card-top { display: flex; align-items: center; gap: 14px; }
+    .past-btn-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .past-score-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 800; background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.3); border-radius: 10px; color: #3ea066; cursor: pointer; font-family: inherit; }
+    .past-result-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 800; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: rgba(255,255,255,0.55); cursor: pointer; font-family: inherit; }
     .past-icon {
       width: 40px; height: 40px; flex-shrink: 0;
       background: rgba(240,192,64,0.1); border-radius: 12px;
@@ -1675,17 +1679,31 @@ function renderPastList() {
   const hiddenIds = JSON.parse(localStorage.getItem('hiddenPastIds') || '[]');
   const visible = allPast.filter(t => !hiddenIds.includes(t.id));
 
-  el.innerHTML = visible.map(t => `
-    <div class="past-card" ${t.fromDB && isAdmin && !t.resultUrl ? `onclick="openDetail('${t.id}')"` : (t.resultUrl ? `onclick="location.href='${t.resultUrl}'"` : '')} style="${t.resultUrl || (t.fromDB && isAdmin) ? 'cursor:pointer;' : ''}">
-      <div class="past-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(240,192,64,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
-      <div class="past-info">
-        <div class="past-name">${t.name}</div>
-        <div class="past-year">${t.year || ''} ${t.slogan ? '· ' + t.slogan : ''}</div>
+  el.innerHTML = visible.map(t => {
+    const topClick = t.resultUrl ? `onclick="location.href='${t.resultUrl}'"` : (t.fromDB && isAdmin ? `onclick="openDetail('${t.id}')"` : '');
+    const topCursor = (t.resultUrl || (t.fromDB && isAdmin)) ? 'cursor:pointer;' : '';
+    const badge = t.resultUrl
+      ? '<span class="past-badge" style="background:rgba(232,76,30,0.2);color:#e84c1e;border-color:rgba(232,76,30,0.3);">결과보기</span>'
+      : '<span class="past-badge">종료</span>';
+    const btnRow = t.fromDB && !t.resultUrl ? `
+      <div class="past-btn-row">
+        <button class="past-score-btn" onclick="event.stopPropagation();location.href='tournament-score.html?id=${t.id}'">내 스코어 작성</button>
+        <button class="past-result-btn" onclick="event.stopPropagation();location.href='tournament-result.html?id=${t.id}'">결과 보기</button>
+      </div>` : '';
+    return `
+    <div class="past-card">
+      <div class="past-card-top" ${topClick} style="${topCursor}">
+        <div class="past-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(240,192,64,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
+        <div class="past-info">
+          <div class="past-name">${t.name}</div>
+          <div class="past-year">${t.year || ''} ${t.slogan ? '· ' + t.slogan : ''}</div>
+        </div>
+        ${badge}
+        ${isAdmin ? `<button class="past-delete-btn" onclick="event.stopPropagation();confirmDeletePast('${t.id}', '${t.name}', ${!!t.fromDB})">삭제</button>` : ''}
       </div>
-      ${t.resultUrl ? '<span class="past-badge" style="background:rgba(232,76,30,0.2);color:#e84c1e;border-color:rgba(232,76,30,0.3);">결과보기</span>' : '<span class="past-badge">종료</span>'}
-      ${isAdmin ? `<button class="past-delete-btn" onclick="event.stopPropagation();confirmDeletePast('${t.id}', '${t.name}', ${!!t.fromDB})">삭제</button>` : ''}
-    </div>
-  `).join('');
+      ${btnRow}
+    </div>`;
+  }).join('');
 }
 
 // ── Tab switch ─────────────────────────────────────────
