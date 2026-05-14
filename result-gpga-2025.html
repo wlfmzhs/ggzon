@@ -122,7 +122,7 @@
     }
     .score-header {
       display: grid;
-      grid-template-columns: 36px 1fr 52px;
+      grid-template-columns: 36px 1fr 96px;
       gap: 0 8px;
       padding: 8px 12px;
       font-size: 10px; font-weight: 700;
@@ -133,7 +133,7 @@
     }
     .score-row {
       display: grid;
-      grid-template-columns: 36px 1fr 52px;
+      grid-template-columns: 36px 1fr 96px;
       gap: 0 8px;
       padding: 10px 12px;
       border-radius: 10px;
@@ -160,12 +160,12 @@
     .star-inline {
       font-size: 11px; color: var(--gold); letter-spacing: 0px;
     }
-    .score {
-      font-size: 15px; font-weight: 800; text-align: right;
-    }
-    .score.under { color: var(--orange); }
-    .score.even { color: #7dd87d; }
-    .score.over { color: rgba(255,255,255,0.7); }
+    .score-cell { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
+    .strokes { font-size: 16px; font-weight: 900; color: var(--white); white-space: nowrap; }
+    .par-diff { font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .par-diff.under { color: var(--orange); }
+    .par-diff.even { color: #7dd87d; }
+    .par-diff.over { color: rgba(255,255,255,0.45); }
 
     .golchelin-badge {
       display: flex; align-items: center; gap: 3px;
@@ -232,8 +232,7 @@
       <div class="score-header">
         <div>순위</div>
         <div>선수</div>
-        <div style="text-align:right">타수</div>
-        <div></div>
+        <div style="text-align:right">총타수</div>
       </div>
 
       <!-- 스코어 데이터 -->
@@ -248,9 +247,10 @@
 
   <script src="data-gpga-2025.js"></script>
   <script>
+    const GPGA_PAR = 72;
     const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
     const scoreClass = s => s < 0 ? 'under' : s === 0 ? 'even' : 'over';
-    const scoreText = s => s < 0 ? s : s === 0 ? 'E' : '+' + s;
+    const scoreText = s => s < 0 ? String(s) : s === 0 ? 'E' : '+' + s;
     const starText = g => g === '1스타' ? '★' : g === '2스타' ? '★★' : g === '3스타' ? '★★★' : '';
 
     const list = document.getElementById('scoreList');
@@ -260,10 +260,16 @@
       row.className = 'score-row' + (r.rank <= 3 ? ' top3' : '');
       const rankDisplay = r.rank === prevRank ? '' : r.rank;
       const rankCls = rankClass(r.rank);
+      const totalStrokes = GPGA_PAR + r.score;
+      const diffCls = scoreClass(r.score);
+      const diffText = scoreText(r.score);
       row.innerHTML = `
         <div class="rank ${rankCls}">${rankDisplay}</div>
         <div class="player-name">${r.name}${r.golchelin ? `<span class="star-inline">${starText(r.golchelin)}</span>` : ''}</div>
-        <div class="score ${scoreClass(r.score)}">${scoreText(r.score)}</div>
+        <div class="score-cell">
+          <span class="strokes">${totalStrokes}</span>
+          <span class="par-diff ${diffCls}">${diffText}</span>
+        </div>
       `;
       list.appendChild(row);
       prevRank = r.rank;
