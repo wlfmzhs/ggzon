@@ -127,6 +127,15 @@
     }
   </style>
 </head>
+<script>
+  (function() {
+    var u = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+    if (u && u.loginType === 'kakao') {
+      var ret = localStorage.getItem('ggzon_return') || 'dashboard.html';
+      window.location.replace(ret);
+    }
+  })();
+</script>
 <body>
 <div class="phone-frame">
 
