@@ -111,7 +111,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -154,6 +154,28 @@ async function load() {
     const snap = await getDoc(doc(db, 'tournaments', tournId));
     if (!snap.exists()) throw new Error('대회 정보를 찾을 수 없습니다');
     const t = snap.data();
+    const isAdmin = currentNick === 'wlfmzhs@naver.com';
+
+    // 참가 등록 여부 확인 (관리자 제외)
+    if (!isAdmin) {
+      const regSnap = await getDocs(query(
+        collection(db, 'tournaments', tournId, 'registrations'),
+        where('userId', '==', currentUid)
+      ));
+      if (regSnap.empty) {
+        document.getElementById('app').innerHTML = `
+          <div class="content">
+            <div class="tourn-info">
+              <div class="tourn-name">${t.name || '대회'}</div>
+              <div class="tourn-meta">${[t.date, t.golfCourseName].filter(Boolean).join(' · ')}</div>
+            </div>
+            <div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);font-size:14px;line-height:1.8;">
+              참가 등록된 분만<br>스코어를 입력할 수 있습니다
+            </div>
+          </div>`;
+        return;
+      }
+    }
 
     // 이미 입력한 스코어 확인
     const scoreSnap = await getDoc(doc(db, 'tournaments', tournId, 'scores', currentUid));
