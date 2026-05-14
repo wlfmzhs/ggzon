@@ -235,8 +235,20 @@ let allMembers = [];
 let allJoins = [];
 
 // ── Auth ──────────────────────────────────────────────
+const _ggzonKakao = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoUid = _ggzonKakao?.loginType === 'kakao' ? _ggzonKakao.uid : null;
+
 onAuthStateChanged(auth, async (user) => {
-  if (!user || user.email !== ADMIN_EMAIL) {
+  let isAdminUser = user && user.email === ADMIN_EMAIL;
+
+  if (!isAdminUser && _kakaoUid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', _kakaoUid));
+      if (snap.exists() && snap.data().isAdmin) isAdminUser = true;
+    } catch(_) {}
+  }
+
+  if (!isAdminUser) {
     window.location.href = 'dashboard.html';
     return;
   }
