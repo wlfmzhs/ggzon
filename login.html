@@ -165,6 +165,31 @@
     </div>
   </div>
 
+  <!-- Step 1-b: 정보 보완 (기존 회원 중 누락) -->
+  <div class="step" id="step-update">
+    <div class="step-title">정보 업데이트</div>
+    <div class="step-desc">서비스 이용을 위해 아래 정보를 추가로 입력해주세요</div>
+    <div class="form-group" id="update-phone-group">
+      <label class="form-label">전화번호 <span style="color:var(--green-light)">*</span></label>
+      <input class="form-input" id="update-phone" type="tel" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)" />
+    </div>
+    <div class="form-group" id="update-handi-group">
+      <label class="form-label">골프 핸디 <span style="color:var(--green-light)">*</span></label>
+      <select class="form-input" id="update-handi">
+        <option value="" disabled selected>선택</option>
+        <option value="scratch">스크래치 이하</option>
+        <option value="1-9">1~9</option>
+        <option value="10-18">10~18</option>
+        <option value="19-27">19~27</option>
+        <option value="28-36">28~36</option>
+        <option value="37+">37 이상</option>
+        <option value="beginner">입문자</option>
+      </select>
+    </div>
+    <div id="update-msg" class="msg"></div>
+    <button class="submit-btn" id="update-btn" onclick="saveUpdate()">저장하고 시작하기 →</button>
+  </div>
+
   <!-- Step 2: 프로필 설정 (신규 가입) -->
   <div class="step" id="step-profile">
     <div class="step-title">프로필 설정</div>
@@ -268,7 +293,7 @@ import {
   setPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc
+  getFirestore, doc, getDoc, setDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ★ 카카오 JavaScript 앱 키를 여기에 입력하세요 ★
@@ -320,6 +345,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 let pendingKakaoUser = null;
+let pendingUpdateUser = null;
 
 function showStep(id) {
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -397,7 +423,16 @@ async function handleKakaoReturn() {
         nickname: data.nickname || kakaoNick,
         loginType: 'kakao'
       }));
-      showPwaPrompt(getReturnUrl());
+      const needPhone = !data.phone;
+      const needHandi = !data.handicap;
+      if (needPhone || needHandi) {
+        pendingUpdateUser = { uid };
+        if (!needPhone) document.getElementById('update-phone-group').style.display = 'none';
+        if (!needHandi) document.getElementById('update-handi-group').style.display = 'none';
+        showStep('step-update');
+      } else {
+        showPwaPrompt(getReturnUrl());
+      }
     } else {
       pendingKakaoUser = { uid, kakaoNick, kakaoId };
       document.getElementById('prof-nick').value = kakaoNick;
@@ -460,6 +495,37 @@ window.saveProfile = async function() {
   } catch (e) {
     showMsg('prof-msg', '저장 실패: ' + e.message, 'error');
     btn.disabled = false; btn.textContent = '가입 완료 →';
+  }
+};
+
+// ── 기존 회원 정보 보완 ─────────────────────────────────
+window.saveUpdate = async function() {
+  if (!pendingUpdateUser) return;
+  const phoneGroup = document.getElementById('update-phone-group');
+  const handiGroup = document.getElementById('update-handi-group');
+  const updates = {};
+
+  if (phoneGroup.style.display !== 'none') {
+    const phone = document.getElementById('update-phone').value.trim();
+    if (!phone) { showMsg('update-msg', '전화번호를 입력해주세요', 'error'); return; }
+    if (!/^010-\d{4}-\d{4}$/.test(phone)) { showMsg('update-msg', '전화번호를 올바르게 입력해주세요 (010-0000-0000)', 'error'); return; }
+    updates.phone = phone;
+  }
+  if (handiGroup.style.display !== 'none') {
+    const handi = document.getElementById('update-handi').value;
+    if (!handi) { showMsg('update-msg', '골프 핸디를 선택해주세요', 'error'); return; }
+    updates.handicap = handi;
+  }
+
+  const btn = document.getElementById('update-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    await updateDoc(doc(db, 'users', pendingUpdateUser.uid), updates);
+    pendingUpdateUser = null;
+    showPwaPrompt(getReturnUrl());
+  } catch(e) {
+    showMsg('update-msg', '저장 실패: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = '저장하고 시작하기 →';
   }
 };
 
