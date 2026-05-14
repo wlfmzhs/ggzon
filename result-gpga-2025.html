@@ -122,8 +122,8 @@
     }
     .score-header {
       display: grid;
-      grid-template-columns: 36px 1fr 96px;
-      gap: 0 8px;
+      grid-template-columns: 36px 1fr 38px 46px;
+      gap: 0 6px;
       padding: 8px 12px;
       font-size: 10px; font-weight: 700;
       color: rgba(255,255,255,0.3);
@@ -133,8 +133,8 @@
     }
     .score-row {
       display: grid;
-      grid-template-columns: 36px 1fr 96px;
-      gap: 0 8px;
+      grid-template-columns: 36px 1fr 38px 46px;
+      gap: 0 6px;
       padding: 10px 12px;
       border-radius: 10px;
       align-items: center;
@@ -160,9 +160,8 @@
     .star-inline {
       font-size: 11px; color: var(--gold); letter-spacing: 0px;
     }
-    .score-cell { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
-    .strokes { font-size: 16px; font-weight: 900; color: var(--white); white-space: nowrap; }
-    .par-diff { font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .strokes { font-size: 16px; font-weight: 900; color: var(--white); text-align: right; display: block; }
+    .par-diff { font-size: 13px; font-weight: 800; text-align: right; display: block; }
     .par-diff.under { color: var(--orange); }
     .par-diff.even { color: #7dd87d; }
     .par-diff.over { color: rgba(255,255,255,0.45); }
@@ -232,7 +231,8 @@
       <div class="score-header">
         <div>순위</div>
         <div>선수</div>
-        <div style="text-align:right">총타수</div>
+        <div style="text-align:right">타수</div>
+        <div style="text-align:right">파대비</div>
       </div>
 
       <!-- 스코어 데이터 -->
@@ -266,10 +266,8 @@
       row.innerHTML = `
         <div class="rank ${rankCls}">${rankDisplay}</div>
         <div class="player-name">${r.name}${r.golchelin ? `<span class="star-inline">${starText(r.golchelin)}</span>` : ''}</div>
-        <div class="score-cell">
-          <span class="strokes">${totalStrokes}</span>
-          <span class="par-diff ${diffCls}">${diffText}</span>
-        </div>
+        <span class="strokes">${totalStrokes}</span>
+        <span class="par-diff ${diffCls}">${diffText}</span>
       `;
       list.appendChild(row);
       prevRank = r.rank;

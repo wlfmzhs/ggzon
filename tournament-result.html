@@ -76,15 +76,15 @@
     .scoreboard { padding: 24px 20px 48px; }
     .section-label { font-size: 11px; font-weight: 800; color: var(--orange); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; padding-left: 4px; }
     .score-header {
-      display: grid; grid-template-columns: 36px 1fr 96px;
-      gap: 0 8px; padding: 8px 12px;
+      display: grid; grid-template-columns: 36px 1fr 38px 46px;
+      gap: 0 6px; padding: 8px 12px;
       font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3);
       letter-spacing: 0.5px; text-transform: uppercase;
       border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px;
     }
     .score-row {
-      display: grid; grid-template-columns: 36px 1fr 96px;
-      gap: 0 8px; padding: 10px 12px; border-radius: 10px; align-items: center;
+      display: grid; grid-template-columns: 36px 1fr 38px 46px;
+      gap: 0 6px; padding: 10px 12px; border-radius: 10px; align-items: center;
     }
     .score-row.top3 { background: rgba(232,76,30,0.08); }
     .score-row.top3:first-child { background: rgba(232,76,30,0.12); }
@@ -93,9 +93,8 @@
     .rank.silver { color: #c0c0c0; font-size: 14px; }
     .rank.bronze { color: #cd7f32; font-size: 14px; }
     .player-name { font-size: 15px; font-weight: 700; color: var(--white); }
-    .score-cell { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
-    .strokes { font-size: 16px; font-weight: 900; color: var(--white); white-space: nowrap; }
-    .par-diff { font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .strokes { font-size: 16px; font-weight: 900; color: var(--white); text-align: right; display: block; }
+    .par-diff { font-size: 13px; font-weight: 800; text-align: right; display: block; }
     .par-diff.under { color: var(--orange); }
     .par-diff.even { color: #7dd87d; }
     .par-diff.over { color: rgba(255,255,255,0.45); }
@@ -245,7 +244,8 @@ async function load() {
         <div class="section-label">스코어보드</div>
         <div class="score-header">
           <div>순위</div><div>선수</div>
-          <div style="text-align:right">총타수</div>
+          <div style="text-align:right">타수</div>
+          <div style="text-align:right">파대비</div>
         </div>
         <div id="scoreList"></div>
         ${results.length === 0 ? '<div class="no-score">아직 스코어를 제출한 참가자가 없습니다.<br>스코어 입력 후 결과가 표시됩니다.</div>' : ''}
@@ -269,10 +269,8 @@ async function load() {
       row.innerHTML = `
         <div class="rank ${rankClass(r.rank)}">${rankDisplay}</div>
         <div class="player-name">${r.name}</div>
-        <div class="score-cell">
-          <span class="strokes">${r.totalStrokes}</span>
-          <span class="par-diff ${diffCls}">${diffText}</span>
-        </div>
+        <span class="strokes">${r.totalStrokes}</span>
+        <span class="par-diff ${diffCls}">${diffText}</span>
       `;
       list.appendChild(row);
       prevRank = r.rank;
