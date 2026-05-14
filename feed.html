@@ -384,12 +384,12 @@ const cardObserver = new IntersectionObserver((entries) => {
     cardObserver.unobserve(entry.target);
     tryShowBalloon(postId);
   });
-}, { threshold: 0.35 });
+}, { threshold: 0.2 });
 
 function tryShowBalloon(postId, tries = 0) {
   const text = _latestComment.get(postId);
   if (text) {
-    showBalloon(postId, text, 250);
+    showBalloon(postId, text, 100);
   } else if (tries < 8) {
     setTimeout(() => tryShowBalloon(postId, tries + 1), 250);
   }
@@ -420,8 +420,10 @@ function showBalloon(postId, text, delay = 0) {
     const balloon = document.createElement('div');
     balloon.className = 'comment-balloon';
     balloon.textContent = text.length > 24 ? text.slice(0, 24) + '...' : text;
+    // r.bottom이 뷰포트 밖(카드가 아직 다 안 들어온 경우)이면 뷰포트 하단 기준으로 클램핑
+    const visibleBottom = Math.min(r.bottom, window.innerHeight - 20);
     balloon.style.left = (r.left + r.width / 2) + 'px';
-    balloon.style.top  = Math.max(30, r.bottom - 70) + 'px';
+    balloon.style.top  = Math.max(30, visibleBottom - 70) + 'px';
     layer.appendChild(balloon);
     balloon.addEventListener('animationend', () => balloon.remove());
   };
