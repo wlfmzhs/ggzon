@@ -333,6 +333,9 @@ async function loadFeed() {
       input.addEventListener('keydown', e => { if (e.key === 'Enter') submitComment(input.dataset.postid); });
     });
 
+    // 각 카드 IntersectionObserver 등록 (화면 진입시 풍선)
+    el.querySelectorAll('.feed-card').forEach(card => cardObserver.observe(card));
+
     // 모든 이미지가 로드될 때까지 오버레이 유지 후 한번에 표시
     const imgs = Array.from(el.querySelectorAll('.feed-photo'));
     let loaded = 0;
@@ -368,7 +371,29 @@ loadFeed();
 
 // ── 댓글 ─────────────────────────────────────────────
 const _commentLoaded = new Set();
-const _skipBalloon = new Set();
+const _latestComment = new Map();   // postId → 최신 댓글 텍스트
+const _balloonedPosts = new Set();  // 이미 풍선 뜬 포스트
+
+// 카드가 화면에 들어오면 풍선 트리거
+const cardObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const postId = entry.target.id.replace('post-', '');
+    if (_balloonedPosts.has(postId)) return;
+    _balloonedPosts.add(postId);
+    cardObserver.unobserve(entry.target);
+    tryShowBalloon(postId);
+  });
+}, { threshold: 0.35 });
+
+function tryShowBalloon(postId, tries = 0) {
+  const text = _latestComment.get(postId);
+  if (text) {
+    showBalloon(postId, text, 250);
+  } else if (tries < 8) {
+    setTimeout(() => tryShowBalloon(postId, tries + 1), 250);
+  }
+}
 
 function toggleComments(postId) {
   const section = document.getElementById('comments-' + postId);
@@ -407,12 +432,13 @@ window.doRefresh = async function() {
   const icon = document.getElementById('refresh-icon');
   if (icon) icon.style.animation = 'spin 0.7s linear infinite';
   _commentLoaded.clear();
+  _latestComment.clear();
+  _balloonedPosts.clear();
   await loadFeed();
   if (icon) icon.style.animation = '';
 };
 
 async function loadComments(postId) {
-  const isFirstLoad = !_commentLoaded.has(postId);
   _commentLoaded.add(postId);
   const listEl = document.getElementById('clist-' + postId);
   const countEl = document.getElementById('ccount-' + postId);
@@ -445,11 +471,8 @@ async function loadComments(postId) {
     listEl.querySelectorAll('.comment-del').forEach(btn => {
       btn.addEventListener('click', () => deleteComment(btn.dataset.postid, btn.dataset.commentid));
     });
-    if (isFirstLoad && sorted.length > 0 && !_skipBalloon.has(postId)) {
-      const latest = sorted[sorted.length - 1].data();
-      showBalloon(postId, latest.text, 800);
-    }
-    _skipBalloon.delete(postId);
+    // 최신 댓글 저장 → observer가 대기 중이면 자동으로 풍선 뜸
+    _latestComment.set(postId, sorted[sorted.length - 1].data().text);
   } catch(e) {
     _commentLoaded.delete(postId);
     listEl.innerHTML = `<div style="font-size:11px;color:rgba(255,100,100,0.7);padding:8px 0;">${e.code === 'permission-denied' ? 'Firebase 규칙을 업데이트해주세요' : '불러오기 실패: ' + e.message}</div>`;
@@ -468,8 +491,9 @@ async function submitComment(postId) {
     await addDoc(collection(db, 'posts', postId, 'comments'), {
       uid: currentUid, nickname, text, createdAt: serverTimestamp()
     });
+    _latestComment.set(postId, text);
     showBalloon(postId, text);
-    _skipBalloon.add(postId);
+    _balloonedPosts.add(postId); // 이번 댓글은 이미 풍선 표시됨
     _commentLoaded.delete(postId);
     await loadComments(postId);
     const section = document.getElementById('comments-' + postId);
