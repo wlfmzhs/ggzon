@@ -389,7 +389,7 @@ async function submitComment(postId) {
   const text = input.value.trim();
   if (!text) return;
   if (!currentUid) { alert('로그인이 필요합니다'); return; }
-  const nickname = ggzonUser?.nickname || '관리자';
+  const nickname = ggzonUser?.nickname || '골갑';
   input.value = '';
   input.disabled = true;
   try {
