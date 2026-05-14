@@ -57,7 +57,7 @@
     }
     .appbar-cam {
       background: none; border: none; color: rgba(255,255,255,0.6);
-      cursor: pointer; padding: 4px; line-height: 0;
+      cursor: pointer; padding: 5px; line-height: 0;
     }
     .content { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 14px 0 28px; }
     .content::-webkit-scrollbar { display: none; }
@@ -117,10 +117,10 @@
       100% { opacity: 0; transform: translateX(-50%) translateY(-130px) scale(0.9); }
     }
     .comment-balloon {
-      position: absolute;
+      position: fixed;
       background: rgba(45,122,79,0.95); color: #fff; border-radius: 20px;
       padding: 9px 18px 11px; font-size: 13px; font-weight: 700;
-      max-width: 72%; text-align: center; pointer-events: none; z-index: 200;
+      max-width: 72%; text-align: center; pointer-events: none; z-index: 9999;
       word-break: break-all; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,0.45);
       animation: balloonFloat 2.2s ease forwards;
       white-space: pre-wrap;
@@ -169,7 +169,7 @@
   <div class="appbar">
     <button class="appbar-back" onclick="history.back()">← 뒤로</button>
     <span class="appbar-title">GGLOG</span>
-    <div style="display:flex;gap:4px;align-items:center;">
+    <div style="display:flex;gap:6px;align-items:center;">
       <button class="appbar-cam" id="refresh-btn" onclick="doRefresh()" title="새로고침">
         <svg id="refresh-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -386,17 +386,15 @@ function showBalloon(postId, text) {
   if (!card) return;
   const imgWrap = card.querySelector('.feed-img-wrap');
   if (!imgWrap) return;
-  const phone = document.querySelector('.phone');
-  const phoneRect = phone.getBoundingClientRect();
   const imgRect = imgWrap.getBoundingClientRect();
 
   const balloon = document.createElement('div');
   balloon.className = 'comment-balloon';
   balloon.textContent = text.length > 24 ? text.slice(0, 24) + '...' : text;
-  // .phone 기준 좌표 계산 (overflow 잘림 방지)
-  balloon.style.left = (imgRect.left - phoneRect.left + imgRect.width / 2) + 'px';
-  balloon.style.bottom = (phoneRect.bottom - imgRect.bottom + 24) + 'px';
-  phone.appendChild(balloon);
+  // position:fixed 로 뷰포트 기준 좌표 (부모 overflow:hidden 영향 없음)
+  balloon.style.left = (imgRect.left + imgRect.width / 2) + 'px';
+  balloon.style.bottom = (window.innerHeight - imgRect.bottom + 24) + 'px';
+  document.body.appendChild(balloon);
   balloon.addEventListener('animationend', () => balloon.remove());
 }
 
