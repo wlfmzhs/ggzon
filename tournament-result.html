@@ -129,7 +129,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -162,17 +162,33 @@ async function load() {
     const coursePar = t.coursePar || null;
     const year = t.date ? t.date.slice(0, 4) : '';
 
-    // uid → 본명 맵
+    // 1) 등록 데이터에서 uid → 본명
     const nameMap = {};
     regsSnap.docs.forEach(d => {
       const r = d.data();
       if (r.userId && r.name) nameMap[r.userId] = r.name;
     });
 
+    // 2) 스코어 uid 목록으로 유저 프로필 일괄 조회
+    const scoreUids = [...new Set(scoresSnap.docs.map(d => d.data().uid).filter(Boolean))];
+    const profileSnaps = await Promise.all(scoreUids.map(uid => getDoc(doc(db, 'users', uid)).catch(() => null)));
+    profileSnaps.forEach((snap, i) => {
+      if (snap?.exists()) {
+        const profile = snap.data();
+        const realName = profile.name || profile.nickname;
+        if (realName) nameMap[scoreUids[i]] = realName;
+      }
+    });
+
+    // 3) 결과 생성 + 본명으로 저장된 스코어 갱신
     const results = scoresSnap.docs
       .map(d => {
         const s = d.data();
-        return { ...s, name: nameMap[s.uid] || s.name };
+        const realName = nameMap[s.uid];
+        if (realName && realName !== s.name) {
+          updateDoc(doc(db, 'tournaments', tournId, 'scores', s.uid), { name: realName }).catch(() => {});
+        }
+        return { ...s, name: realName || s.name };
       })
       .filter(s => s.totalStrokes > 0)
       .sort((a, b) => a.totalStrokes - b.totalStrokes);
