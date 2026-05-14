@@ -175,6 +175,8 @@ async function load() {
           </div>`;
         return;
       }
+      // 본명을 등록 데이터에서 가져옴
+      currentNick = regSnap.docs[0].data().name || currentNick;
     }
 
     // 이미 입력한 스코어 확인
