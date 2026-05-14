@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email == 'wlfmzhs@naver.com';
+    }
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth != null &&
+        request.auth.uid == uid;
+    }
+
+    function isKakaoOwner(userId) {
+      return request.auth == null &&
+        userId.matches('kakao_.+');
+    }
+
+    function isAnyUser() {
+      return true;
+    }
+
+    function onlyAllowedJoinFields() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['participants', 'scores', 'partyId']);
+    }
+
+    match /users/{userId} {
+      allow read: if isAnyUser();
+      allow write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
+
+      match /scoreHistory/{docId} {
+        allow read, write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
+      }
+    }
+
+    match /joins/{joinId} {
+      allow read: if isAnyUser();
+      allow create: if isAnyUser();
+      allow delete: if isAdmin();
+      allow update: if isAdmin() || (isAnyUser() && onlyAllowedJoinFields());
+    }
+
+    match /courses/{courseId} {
+      allow read, write: if isAnyUser();
+    }
+
+    match /notices/{noticeId} {
+      allow read: if isAnyUser();
+      allow write: if isAdmin();
+    }
+
+    match /achievements/{achId} {
+      allow read: if isAnyUser();
+      allow create: if (isLoggedIn() && request.resource.data.uid == request.auth.uid) ||
+        (request.auth == null && request.resource.data.uid.matches('kakao_.+'));
+      allow update, delete: if isAdmin() ||
+        (isLoggedIn() && resource.data.uid == request.auth.uid) ||
+        (request.auth == null && resource.data.uid.matches('kakao_.+'));
+    }
+
+    match /pointHistory/{histId} {
+      allow read: if isAnyUser();
+      allow write: if isAdmin();
+    }
+
+    match /visits/{visitId} {
+      allow read, write: if isAnyUser();
+    }
+
+    match /tournaments/{tournamentId} {
+      allow read: if isAnyUser();
+      allow write: if isAdmin();
+
+      match /registrations/{regId} {
+        allow read: if isAnyUser();
+        allow create: if isAnyUser();
+        allow update, delete: if isAdmin();
+      }
+
+      match /scores/{scoreId} {
+        allow read: if isAnyUser();
+        allow write: if isAnyUser();
+      }
+    }
+
+    match /banned/{uid} {
+      allow read: if isAnyUser();
+      allow write: if isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if isAnyUser();
+      allow create: if isAnyUser();
+      allow delete: if isAdmin();
+
+      match /comments/{commentId} {
+        allow read, create: if isAnyUser();
+        allow delete: if isAdmin() || isAnyUser();
+      }
+    }
+  }
+}

@@ -1014,7 +1014,7 @@ onAuthStateChanged(auth, async (user) => {
 
     updateAchMenuDesc();
 
-    if (user.email === ADMIN_EMAIL) {
+    if (user.email === ADMIN_EMAIL || userData.isAdmin) {
       document.getElementById('admin-section').classList.remove('hidden');
     }
   } catch (e) {
@@ -1668,9 +1668,44 @@ window.openScoreHistOverlay = async () => {
   const el = document.getElementById('score-hist-list');
   el.innerHTML = '<div class="empty-msg">불러오는 중...</div>';
   try {
-    const snap = await getDocs(
+    let snap = await getDocs(
       query(collection(db, 'users', currentUser.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
     );
+    // 대회 스코어 백필: scoreHistory에 없는 대회 점수 자동 동기화
+    try {
+      const existingIds = new Set(snap.docs.map(d => d.id));
+      const tournsSnap = await getDocs(collection(db, 'tournaments'));
+      const backfills = [];
+      // Firebase 이메일 로그인 + 카카오 세션 동시 존재 시 카카오 UID도 체크
+      const altUid = (_ggzonKakao?.uid && _ggzonKakao.uid !== currentUser.uid) ? _ggzonKakao.uid : null;
+      for (const tDoc of tournsSnap.docs) {
+        if (existingIds.has(tDoc.id)) continue;
+        let tScoreSnap = await getDoc(doc(db, 'tournaments', tDoc.id, 'scores', currentUser.uid));
+        if (!tScoreSnap.exists() && altUid) {
+          tScoreSnap = await getDoc(doc(db, 'tournaments', tDoc.id, 'scores', altUid));
+        }
+        if (!tScoreSnap.exists()) continue;
+        const tData = tDoc.data();
+        const tScore = tScoreSnap.data();
+        const coursePar = tData.coursePar || 72;
+        backfills.push(setDoc(doc(db, 'users', currentUser.uid, 'scoreHistory', tDoc.id), {
+          course: tData.golfCourseName || tData.name || '',
+          date: tData.date || '',
+          totalScore: (tScore.totalStrokes || 0) - coursePar,
+          totalStrokes: tScore.totalStrokes || 0,
+          holes: [],
+          parHoles: [],
+          companions: [],
+          type: 'tournament',
+          tournamentName: tData.name || '',
+          submittedAt: tScore.submittedAt || serverTimestamp()
+        }));
+      }
+      if (backfills.length > 0) {
+        await Promise.all(backfills);
+        snap = await getDocs(query(collection(db, 'users', currentUser.uid, 'scoreHistory'), orderBy('submittedAt', 'desc')));
+      }
+    } catch(_) {}
     if (snap.empty) {
       el.innerHTML = '<div class="empty-msg">저장된 스코어 기록이 없습니다<br><span style="font-size:11px;margin-top:6px;display:block;">라운드 후 스코어 페이지에서 제출하세요</span></div>' + SCORE_QUOTE;
       document.getElementById('score-hist-desc').textContent = '라운드 스코어 누적 기록';

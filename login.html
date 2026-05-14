@@ -465,11 +465,13 @@ window.saveProfile = async function() {
   if (!pendingKakaoUser) return;
 
   const inviteCode = document.getElementById('prof-invite').value.trim().toUpperCase();
-  const VALID_CODE = 'GGZON0513';
-  const EXPIRY = new Date('2026-05-14T00:00:00+09:00');
+  const VALID_CODES = {
+    'GGZON0513': new Date('2026-05-14T00:00:00+09:00'),
+    'GGZON2026': new Date('2026-06-15T00:00:00+09:00'),
+  };
   if (!inviteCode) { showMsg('prof-msg', '초대 코드를 입력해주세요', 'error'); return; }
-  if (inviteCode !== VALID_CODE) { showMsg('prof-msg', '유효하지 않은 초대 코드입니다', 'error'); return; }
-  if (new Date() > EXPIRY) { showMsg('prof-msg', '만료된 초대 코드입니다', 'error'); return; }
+  if (!VALID_CODES[inviteCode]) { showMsg('prof-msg', '유효하지 않은 초대 코드입니다', 'error'); return; }
+  if (new Date() > VALID_CODES[inviteCode]) { showMsg('prof-msg', '만료된 초대 코드입니다', 'error'); return; }
 
   const nick = document.getElementById('prof-nick').value.trim();
   if (!nick) { showMsg('prof-msg', '닉네임을 입력해주세요', 'error'); return; }
