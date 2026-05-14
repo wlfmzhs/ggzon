@@ -1405,7 +1405,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
-  onSnapshot, serverTimestamp, writeBatch, deleteField
+  onSnapshot, serverTimestamp, writeBatch, deleteField, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -1666,13 +1666,29 @@ function updateCardProgress(tournamentId, count, total) {
 }
 
 // ── Render past list ──────────────────────────────────
-function renderPastList() {
+async function renderPastList() {
   const el = document.getElementById('past-list');
-  // Also show closed tournaments from Firestore
   const closedFromDB = activeTournaments.filter(t => t.status === 'closed' || t.status === 'past');
 
+  // requireRegistration 대회에 한해 내 참석 여부 확인
+  const myTournIds = new Set();
+  const uid = currentUser?.uid;
+  if (uid) {
+    await Promise.all(
+      closedFromDB.filter(t => t.requireRegistration).map(async t => {
+        try {
+          const snap = await getDocs(query(
+            collection(db, 'tournaments', t.id, 'registrations'),
+            where('userId', '==', uid)
+          ));
+          if (!snap.empty) myTournIds.add(t.id);
+        } catch (_) {}
+      })
+    );
+  }
+
   const allPast = [
-    ...closedFromDB.map(t => ({ id: t.id, name: t.name, slogan: t.slogan, year: t.date ? t.date.slice(0,4) : '', icon: '', fromDB: true })),
+    ...closedFromDB.map(t => ({ id: t.id, name: t.name, slogan: t.slogan, year: t.date ? t.date.slice(0,4) : '', icon: '', fromDB: true, requireRegistration: t.requireRegistration })),
     ...PAST_TOURNAMENTS
   ];
 
@@ -1685,9 +1701,10 @@ function renderPastList() {
     const badge = t.resultUrl
       ? '<span class="past-badge" style="background:rgba(232,76,30,0.2);color:#e84c1e;border-color:rgba(232,76,30,0.3);">결과보기</span>'
       : '<span class="past-badge">종료</span>';
-    const btnRow = t.fromDB && !t.resultUrl ? `
+    const showScoreBtn = t.fromDB && !t.resultUrl && (!t.requireRegistration || myTournIds.has(t.id) || isAdmin);
+    const btnRow = (showScoreBtn || (t.fromDB && !t.resultUrl)) ? `
       <div class="past-btn-row">
-        <button class="past-score-btn" onclick="event.stopPropagation();location.href='tournament-score.html?id=${t.id}'">내 스코어 작성</button>
+        ${showScoreBtn ? `<button class="past-score-btn" onclick="event.stopPropagation();location.href='tournament-score.html?id=${t.id}'">내 스코어 작성</button>` : ''}
         <button class="past-result-btn" onclick="event.stopPropagation();location.href='tournament-result.html?id=${t.id}'">결과 보기</button>
       </div>` : '';
     return `
@@ -2512,6 +2529,7 @@ window.saveTournament = async function() {
       showToast('대회 정보가 수정되었습니다');
     } else {
       data.createdAt = serverTimestamp();
+      data.requireRegistration = true;
       await addDoc(collection(db, 'tournaments'), data);
       showToast('대회가 만들어졌습니다!');
     }
