@@ -110,6 +110,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -120,19 +121,28 @@ const app = initializeApp({
   messagingSenderId: "774722580869",
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 const tournId = new URLSearchParams(location.search).get('id');
 const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
-const currentUid = ggzonUser?.uid || null;
-const currentNick = ggzonUser?.nickname || '';
+let currentUid = ggzonUser?.uid || null;
+let currentNick = ggzonUser?.nickname || '';
 
 if (!tournId) {
   document.getElementById('app').innerHTML = '<div class="loading-wrap" style="color:rgba(255,255,255,0.4);font-size:13px;">잘못된 접근입니다</div>';
-} else if (!currentUid) {
-  location.href = 'login.html?return=tournament-score.html?id=' + tournId;
-} else {
+} else if (currentUid) {
   load();
+} else {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      location.href = 'login.html?return=' + encodeURIComponent('tournament-score.html?id=' + tournId);
+      return;
+    }
+    currentUid = user.uid;
+    currentNick = user.displayName || user.email || '';
+    load();
+  });
 }
 
 async function load() {

@@ -331,6 +331,10 @@ if (new URLSearchParams(window.location.search).get('logout') === '1') {
   history.replaceState({}, '', window.location.pathname);
 }
 
+// URL의 return 파라미터를 localStorage에 먼저 저장 (이미 로그인 상태에서도 적용)
+const _urlReturn = new URLSearchParams(window.location.search).get('return');
+if (_urlReturn) localStorage.setItem('ggzon_return', _urlReturn);
+
 // 이미 카카오 로그인된 경우
 const savedUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
 if (savedUser && savedUser.loginType === 'kakao') {
