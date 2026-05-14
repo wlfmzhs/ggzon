@@ -207,6 +207,7 @@ async function load() {
 
     window._coursePar = coursePar;
     window._currentNick = currentNick;
+    window._tournData = t;
     if (existing) updateRelScore();
 
   } catch(e) {
@@ -236,12 +237,29 @@ window.submitScore = async function() {
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
   try {
+    const t = window._tournData || {};
     await setDoc(doc(db, 'tournaments', tournId, 'scores', currentUid), {
       uid: currentUid,
       name: nameVal,
       totalStrokes,
       submittedAt: serverTimestamp()
     });
+
+    // 마이페이지 스코어 기록에도 저장 (totalScore = 파 대비)
+    const par = window._coursePar || 72;
+    await setDoc(doc(db, 'users', currentUid, 'scoreHistory', tournId), {
+      course: t.golfCourseName || t.name || '',
+      date: t.date || '',
+      totalScore: totalStrokes - par,
+      totalStrokes,
+      holes: [],
+      parHoles: [],
+      companions: [],
+      type: 'tournament',
+      tournamentName: t.name || '',
+      submittedAt: serverTimestamp()
+    });
+
     showMsg('스코어가 저장되었습니다!', 'success');
     btn.textContent = '저장 완료';
     setTimeout(() => { location.href = 'tournament-result.html?id=' + tournId; }, 1200);
