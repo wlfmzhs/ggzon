@@ -111,9 +111,9 @@
     .comment-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.06); }
 
     @keyframes balloonFloat {
-      0%   { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.8); }
-      15%  { opacity: 1; transform: translateX(-50%) translateY(-14px) scale(1); }
-      70%  { opacity: 1; transform: translateX(-50%) translateY(-70px) scale(1); }
+      0%   { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.85); }
+      12%  { opacity: 1; transform: translateX(-50%) translateY(-14px) scale(1); }
+      65%  { opacity: 1; transform: translateX(-50%) translateY(-72px) scale(1); }
       100% { opacity: 0; transform: translateX(-50%) translateY(-130px) scale(0.9); }
     }
     .comment-balloon {
@@ -368,6 +368,7 @@ loadFeed();
 
 // ── 댓글 ─────────────────────────────────────────────
 const _commentLoaded = new Set();
+const _skipBalloon = new Set();
 
 function toggleComments(postId) {
   const section = document.getElementById('comments-' + postId);
@@ -381,21 +382,23 @@ function toggleComments(postId) {
   }
 }
 
-function showBalloon(postId, text) {
-  const card = document.getElementById('post-' + postId);
-  if (!card) return;
-  const imgWrap = card.querySelector('.feed-img-wrap');
-  if (!imgWrap) return;
-  const imgRect = imgWrap.getBoundingClientRect();
-
-  const balloon = document.createElement('div');
-  balloon.className = 'comment-balloon';
-  balloon.textContent = text.length > 24 ? text.slice(0, 24) + '...' : text;
-  // position:fixed 로 뷰포트 기준 좌표 (부모 overflow:hidden 영향 없음)
-  balloon.style.left = (imgRect.left + imgRect.width / 2) + 'px';
-  balloon.style.bottom = (window.innerHeight - imgRect.bottom + 24) + 'px';
-  document.body.appendChild(balloon);
-  balloon.addEventListener('animationend', () => balloon.remove());
+function showBalloon(postId, text, delay = 0) {
+  const run = () => {
+    const card = document.getElementById('post-' + postId);
+    if (!card) return;
+    const imgWrap = card.querySelector('.feed-img-wrap');
+    if (!imgWrap) return;
+    const imgRect = imgWrap.getBoundingClientRect();
+    if (imgRect.width === 0) return;
+    const balloon = document.createElement('div');
+    balloon.className = 'comment-balloon';
+    balloon.textContent = text.length > 24 ? text.slice(0, 24) + '...' : text;
+    balloon.style.left = (imgRect.left + imgRect.width / 2) + 'px';
+    balloon.style.top  = (imgRect.bottom - 70) + 'px';
+    document.body.appendChild(balloon);
+    balloon.addEventListener('animationend', () => balloon.remove());
+  };
+  delay > 0 ? setTimeout(run, delay) : run();
 }
 
 window.doRefresh = async function() {
@@ -407,6 +410,7 @@ window.doRefresh = async function() {
 };
 
 async function loadComments(postId) {
+  const isFirstLoad = !_commentLoaded.has(postId);
   _commentLoaded.add(postId);
   const listEl = document.getElementById('clist-' + postId);
   const countEl = document.getElementById('ccount-' + postId);
@@ -439,6 +443,11 @@ async function loadComments(postId) {
     listEl.querySelectorAll('.comment-del').forEach(btn => {
       btn.addEventListener('click', () => deleteComment(btn.dataset.postid, btn.dataset.commentid));
     });
+    if (isFirstLoad && sorted.length > 0 && !_skipBalloon.has(postId)) {
+      const latest = sorted[sorted.length - 1].data();
+      showBalloon(postId, latest.text, 350);
+    }
+    _skipBalloon.delete(postId);
   } catch(e) {
     _commentLoaded.delete(postId);
     listEl.innerHTML = `<div style="font-size:11px;color:rgba(255,100,100,0.7);padding:8px 0;">${e.code === 'permission-denied' ? 'Firebase 규칙을 업데이트해주세요' : '불러오기 실패: ' + e.message}</div>`;
@@ -458,6 +467,7 @@ async function submitComment(postId) {
       uid: currentUid, nickname, text, createdAt: serverTimestamp()
     });
     showBalloon(postId, text);
+    _skipBalloon.add(postId);
     _commentLoaded.delete(postId);
     await loadComments(postId);
     const section = document.getElementById('comments-' + postId);
