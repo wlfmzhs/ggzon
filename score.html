@@ -454,9 +454,15 @@ document.getElementById('party-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('party-overlay')) closePartySheet();
 });
 
+const _ggzonKakao = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
+  ? { uid: _ggzonKakao.uid, displayName: _ggzonKakao.nickname, email: '' }
+  : null;
+
 onAuthStateChanged(auth, user => {
-  if (!user) { location.href = 'login.html'; return; }
-  currentUser = user;
+  const effectiveUser = user || _kakaoFbUser;
+  if (!effectiveUser) { location.href = 'login.html'; return; }
+  currentUser = effectiveUser;
   document.getElementById('loading-overlay').classList.add('hidden');
   onSnapshot(doc(db, 'joins', joinId), snap => {
     if (!snap.exists()) return;
