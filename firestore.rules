@@ -50,6 +50,13 @@ service cloud.firestore {
       }
     }
 
+    match /subRounds/{roundId} {
+      allow read: if isAnyUser();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isAnyUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['entries']));
+    }
+
     match /courses/{courseId} {
       allow read, write: if isAnyUser();
     }

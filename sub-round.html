@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d7a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>구독자 라운드 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f; --green-light: #3ea066; --green-dark: #0A2406;
+      --gold: #f0c040; --border: rgba(62,160,102,0.18);
+    }
+    html, body { width: 100%; height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #fff; overscroll-behavior: none; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .phone { width: 390px; height: 844px; background: var(--green-dark); border-radius: 40px; box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+    .phone::before { content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100; }
+    @media (max-width: 768px) {
+      html, body { background: var(--green-dark); overflow: hidden; height: 100%; }
+      body { align-items: flex-start; min-height: unset; }
+      .phone { position: fixed; top: 0; left: 0; right: 0; height: 100svh; width: 100%; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+
+    #loading-overlay { position: absolute; inset: 0; background: var(--green-dark); display: flex; align-items: center; justify-content: center; z-index: 999; border-radius: 40px; }
+    #loading-overlay.hidden { display: none; }
+    .spinner { width: 32px; height: 32px; border: 3px solid rgba(62,160,102,0.3); border-top-color: var(--green-light); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .appbar { flex-shrink: 0; padding: 32px 18px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 10; }
+    .appbar-left { display: flex; align-items: center; gap: 8px; }
+    #btn-back { background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0; color: var(--green-light); font-size: 20px; line-height: 1; }
+    .appbar-title { font-size: 16px; font-weight: 900; }
+    #btn-new-round { display: none; background: rgba(62,160,102,0.2); border: 1px solid rgba(62,160,102,0.4); color: var(--green-light); font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-family: inherit; }
+
+    .hidden { display: none !important; }
+    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: none; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    .tab-bar { flex-shrink: 0; display: flex; border-bottom: 1px solid var(--border); padding: 0 16px; }
+    .tab-btn { flex: 1; padding: 12px 0; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .tab-btn.active { color: #fff; border-bottom-color: var(--green-light); }
+
+    .list-content { padding: 16px 16px 80px; }
+
+    /* 카드 */
+    .round-card { background: linear-gradient(135deg, rgba(45,122,79,0.25) 0%, rgba(10,36,6,0.5) 100%); border: 1px solid rgba(62,160,102,0.35); border-radius: 20px; padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; }
+    .round-card::before { content: ''; position: absolute; top: -30px; right: -30px; width: 100px; height: 100px; background: radial-gradient(circle, rgba(62,160,102,0.15) 0%, transparent 70%); border-radius: 50%; }
+    .round-card.night { background: linear-gradient(135deg, rgba(40,50,130,0.35) 0%, rgba(5,8,35,0.65) 100%); border-color: rgba(110,130,255,0.35); }
+    .round-card.night::before { background: radial-gradient(circle, rgba(110,130,255,0.15) 0%, transparent 70%); }
+
+    /* 배지 */
+    .badge-open { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,0.7); font-size: 9px; font-weight: 900; letter-spacing: 1px; padding: 3px 7px; border-radius: 10px; animation: pulse 1.5s ease-in-out infinite; }
+    .badge-drawn { background: rgba(240,192,64,0.15); color: var(--gold); border: 1.5px solid rgba(240,192,64,0.5); font-size: 9px; font-weight: 900; letter-spacing: 1px; padding: 3px 7px; border-radius: 10px; }
+    .badge-closed { background: transparent; color: rgba(255,255,255,0.35); border: 1.5px solid rgba(255,255,255,0.2); font-size: 9px; font-weight: 900; letter-spacing: 1px; padding: 3px 7px; border-radius: 10px; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .day-label { font-size: 11px; font-weight: 700; color: var(--green-light); background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.2); padding: 2px 8px; border-radius: 8px; }
+    .night-label { font-size: 11px; font-weight: 700; color: #8899ff; background: rgba(100,120,255,0.12); border: 1px solid rgba(100,120,255,0.25); padding: 2px 8px; border-radius: 8px; }
+    .sub-label { font-size: 11px; font-weight: 700; color: var(--gold); background: rgba(240,192,64,0.1); border: 1px solid rgba(240,192,64,0.25); padding: 2px 8px; border-radius: 8px; }
+
+    .card-status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .card-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 16px; }
+    .card-meta { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .card-meta-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.65); }
+    .card-meta-icon { width: 14px; height: 14px; color: var(--green-light); flex-shrink: 0; }
+    .card-meta-label { color: rgba(255,255,255,0.35); min-width: 52px; }
+    .card-meta-val { color: #fff; font-weight: 800; }
+    .card-meta-memo { color: rgba(255,255,255,0.75); font-weight: 600; font-size: 11px; line-height: 1.5; white-space: pre-line; flex: 1; }
+
+    /* 응모 현황 */
+    .entry-bar { margin-bottom: 16px; }
+    .entry-bar-top { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; }
+    .entry-bar-label { color: rgba(255,255,255,0.45); }
+    .entry-bar-num { color: var(--green-light); font-weight: 700; }
+    .entry-bar-track { height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+    .entry-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--green-light)); border-radius: 3px; transition: width 0.5s ease; }
+
+    /* 응모자 칩 */
+    .entry-list { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+    .entry-list-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .entry-list-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; }
+    .entry-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .entry-chip { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; padding: 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+    .entry-chip.me { color: var(--green-light); background: rgba(62,160,102,0.15); border-color: rgba(62,160,102,0.35); }
+    .entry-count-badge { font-size: 11px; font-weight: 800; color: var(--green-light); background: rgba(62,160,102,0.15); border: 1px solid rgba(62,160,102,0.3); padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .entry-empty { font-size: 11px; color: rgba(255,255,255,0.2); font-style: italic; }
+
+    /* 당첨자 칩 */
+    .winner-list { background: rgba(240,192,64,0.06); border: 1px solid rgba(240,192,64,0.2); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+    .winner-list-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .winner-list-label { font-size: 10px; font-weight: 700; color: rgba(240,192,64,0.6); letter-spacing: 0.5px; }
+    .winner-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .winner-chip { font-size: 11px; font-weight: 800; color: var(--gold); background: rgba(240,192,64,0.1); border: 1px solid rgba(240,192,64,0.3); border-radius: 20px; padding: 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+    .winner-chip.me { background: rgba(240,192,64,0.25); border-color: rgba(240,192,64,0.55); }
+
+    /* 당첨 알림 배너 */
+    .win-banner { background: rgba(240,192,64,0.12); border: 1px solid rgba(240,192,64,0.4); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; font-weight: 700; color: var(--gold); text-align: center; }
+    .lose-banner { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px; color: rgba(255,255,255,0.35); text-align: center; }
+
+    /* 버튼 */
+    .btn-apply { width: 100%; padding: 13px; background: linear-gradient(90deg, var(--green), var(--green-light)); color: #fff; font-size: 15px; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; font-family: inherit; margin-bottom: 8px; transition: opacity 0.2s; }
+    .btn-apply:active { opacity: 0.8; }
+    .btn-apply.applied { background: rgba(62,160,102,0.15); border: 1px solid rgba(62,160,102,0.4); color: var(--green-light); }
+    .btn-apply:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* 관리자 버튼 */
+    .card-admin-row { display: flex; gap: 8px; margin-top: 10px; }
+    .card-edit-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; font-family: inherit; background: rgba(240,192,64,0.15); color: var(--gold); border: 1px solid rgba(240,192,64,0.3); }
+    .card-draw-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; font-family: inherit; background: rgba(62,160,102,0.2); color: var(--green-light); border: 1px solid rgba(62,160,102,0.4); }
+    .card-close-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; font-family: inherit; background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+    .card-delete-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; font-family: inherit; background: rgba(180,0,0,0.2); color: #ff6b6b; border: 1px solid rgba(180,0,0,0.35); }
+
+    /* 마감 카드 */
+    .past-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; }
+    .past-icon { width: 40px; height: 40px; flex-shrink: 0; background: rgba(62,160,102,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .past-info { flex: 1; min-width: 0; }
+    .past-name { font-size: 15px; font-weight: 800; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .past-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .past-badge { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 8px; flex-shrink: 0; }
+    .past-delete-btn { flex-shrink: 0; background: rgba(180,0,0,0.15); color: #ff6b6b; border: 1px solid rgba(180,0,0,0.25); font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 8px; cursor: pointer; font-family: inherit; margin-left: 6px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 13px; }
+
+    /* 관리자 모달 */
+    .admin-overlay { position: absolute; inset: 0; background: var(--green-dark); z-index: 200; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1); visibility: hidden; }
+    .admin-overlay.open { transform: translateY(0); visibility: visible; }
+    .admin-appbar { flex-shrink: 0; padding: 28px 18px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .admin-appbar-title { font-size: 15px; font-weight: 900; }
+    .admin-close-btn { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 22px; cursor: pointer; line-height: 1; }
+    .admin-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px 18px 40px; scrollbar-width: none; }
+    .admin-scroll::-webkit-scrollbar { display: none; }
+    .admin-section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 1px; text-transform: uppercase; margin: 0 0 14px; }
+    .admin-form-group { margin-bottom: 14px; }
+    .admin-label { display: block; font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 6px; font-weight: 600; }
+    .admin-input, .admin-textarea { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 11px 14px; color: #fff; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; -webkit-appearance: none; height: 46px; }
+    .admin-input:focus, .admin-textarea:focus { border-color: var(--green-light); }
+    .admin-input::placeholder, .admin-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .admin-textarea { height: auto; min-height: 70px; resize: vertical; }
+    .toggle-group { display: flex; gap: 8px; }
+    .toggle-btn { flex: 1; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); transition: all 0.2s; }
+    .toggle-btn.active-day { background: rgba(62,160,102,0.2); border-color: rgba(62,160,102,0.5); color: var(--green-light); }
+    .toggle-btn.active-night { background: rgba(100,120,255,0.2); border-color: rgba(100,120,255,0.5); color: #8899ff; }
+    .admin-save-btn { width: 100%; padding: 14px; margin-top: 20px; background: linear-gradient(90deg, var(--green), var(--green-light)); color: #fff; font-size: 15px; font-weight: 800; border: none; border-radius: 14px; cursor: pointer; font-family: inherit; }
+
+    /* 컨펌 */
+    .confirm-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: flex-end; z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .confirm-overlay.open { opacity: 1; pointer-events: all; }
+    .confirm-sheet { width: 100%; background: #1a2e1a; border-radius: 24px 24px 0 0; padding: 24px 20px 32px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+    .confirm-overlay.open .confirm-sheet { transform: translateY(0); }
+    .confirm-title { font-size: 16px; font-weight: 900; margin-bottom: 8px; }
+    .confirm-msg { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 20px; line-height: 1.6; white-space: pre-line; }
+    .confirm-btns { display: flex; gap: 8px; }
+    .confirm-cancel { flex: 1; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.08); border: none; color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .confirm-ok { flex: 1; padding: 12px; border-radius: 12px; background: #e74c3c; border: none; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .confirm-ok.green { background: var(--green-light); }
+
+    /* 토스트 */
+    .toast { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(30,30,30,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div id="loading-overlay"><div class="spinner"></div></div>
+
+  <div class="appbar">
+    <div class="appbar-left">
+      <button id="btn-back" onclick="history.back()">‹</button>
+      <span class="appbar-title">구독자 라운드</span>
+    </div>
+    <button id="btn-new-round" onclick="openModal(null)">+ 만들기</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">진행중</button>
+    <button class="tab-btn" id="tab-closed" onclick="switchTab('closed')">마감</button>
+  </div>
+
+  <div class="scroll-area">
+    <div id="tab-content-active" class="list-content">
+      <div id="active-list"><div class="empty-state"><div class="spinner"></div></div></div>
+    </div>
+    <div id="tab-content-closed" class="list-content hidden">
+      <div id="closed-list"></div>
+    </div>
+  </div>
+
+  <!-- 관리자 모달 -->
+  <div class="admin-overlay" id="admin-overlay">
+    <div class="admin-appbar">
+      <span class="admin-appbar-title" id="modal-title">라운드 만들기</span>
+      <button class="admin-close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="admin-scroll" id="admin-scroll-area">
+      <input type="hidden" id="editing-id" />
+      <div class="admin-section-title">기본 정보</div>
+      <div class="admin-form-group">
+        <label class="admin-label">주간 / 야간</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active-day" id="toggle-day" onclick="setTimeType('day')">낮</button>
+          <button class="toggle-btn" id="toggle-night" onclick="setTimeType('night')">야간</button>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">골프장 이름 *</label>
+        <input class="admin-input" id="f-course" placeholder="예) 블루원 용인CC" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">전반 코스</label>
+        <input class="admin-input" id="f-front" placeholder="예) 동코스" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">후반 코스</label>
+        <input class="admin-input" id="f-back" placeholder="예) 서코스" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">날짜 *</label>
+        <input class="admin-input" id="f-date" type="date" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">시간 *</label>
+        <input class="admin-input" id="f-time" type="time" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">모집 인원 *</label>
+        <input class="admin-input" id="f-capacity" type="number" placeholder="4" min="1" max="20" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">그린피</label>
+        <input class="admin-input" id="f-greenfee" placeholder="예) 150,000" inputmode="numeric" oninput="fmtMoney(this)" />
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-label">메모 (선택)</label>
+        <textarea class="admin-textarea" id="f-memo" placeholder="추가 안내사항"></textarea>
+      </div>
+      <button class="admin-save-btn" onclick="saveRound()">저장하기</button>
+    </div>
+  </div>
+
+  <!-- 컨펌 -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-sheet">
+      <div class="confirm-title" id="confirm-title"></div>
+      <div class="confirm-msg" id="confirm-msg"></div>
+      <div class="confirm-btns">
+        <button class="confirm-cancel" onclick="closeConfirm()">취소</button>
+        <button class="confirm-ok" id="confirm-ok-btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  serverTimestamp, orderBy, query, deleteField
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let currentUser = null;
+let isAdmin     = false;
+let rounds      = [];
+let currentTab  = 'active';
+let currentTimeType = 'day';
+let confirmCallback = null;
+
+const _ggzonKakao  = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
+  ? { uid: _ggzonKakao.uid, displayName: _ggzonKakao.nickname, email: '' }
+  : null;
+
+onAuthStateChanged(auth, async user => {
+  const effectiveUser = user || _kakaoFbUser;
+  if (!effectiveUser) {
+    location.href = 'login.html?return=' + encodeURIComponent('sub-round.html');
+    return;
+  }
+  currentUser = effectiveUser;
+  isAdmin = currentUser.email === 'wlfmzhs@naver.com';
+  if (isAdmin) document.getElementById('btn-new-round').style.display = 'block';
+  document.getElementById('loading-overlay').classList.add('hidden');
+  await loadRounds();
+});
+
+async function loadRounds() {
+  try {
+    const snap = await getDocs(query(collection(db, 'subRounds'), orderBy('createdAt', 'desc')));
+    rounds = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { rounds = []; }
+  renderActive();
+  renderClosed();
+}
+
+// ── 탭 전환 ──────────────────────────────────────────
+window.switchTab = function(tab) {
+  currentTab = tab;
+  document.getElementById('tab-active').classList.toggle('active', tab === 'active');
+  document.getElementById('tab-closed').classList.toggle('active', tab === 'closed');
+  document.getElementById('tab-content-active').classList.toggle('hidden', tab !== 'active');
+  document.getElementById('tab-content-closed').classList.toggle('hidden', tab !== 'closed');
+};
+
+// ── 렌더 ─────────────────────────────────────────────
+function renderActive() {
+  const el = document.getElementById('active-list');
+  const active = rounds.filter(r => r.status !== 'closed');
+  if (!active.length) {
+    el.innerHTML = `<div class="empty-state">현재 진행중인 구독자 라운드가 없습니다</div>`;
+    return;
+  }
+  el.innerHTML = active.map(r => buildCard(r)).join('');
+}
+
+function renderClosed() {
+  const el = document.getElementById('closed-list');
+  const closed = rounds.filter(r => r.status === 'closed');
+  if (!closed.length) {
+    el.innerHTML = `<div class="empty-state">마감된 라운드가 없습니다</div>`;
+    return;
+  }
+  el.innerHTML = closed.map(r => `
+    <div class="past-card">
+      <div class="past-icon">${r.timeType === 'night' ? '🌙' : '☀️'}</div>
+      <div class="past-info">
+        <div class="past-name">${r.course}</div>
+        <div class="past-sub">${r.date}${r.greenfee ? ' · ' + fmtFee(r.greenfee) : ''}</div>
+      </div>
+      <span class="past-badge">마감</span>
+      ${isAdmin ? `<button class="past-delete-btn" onclick="window.confirmDelete('${r.id}','${r.course}')">삭제</button>` : ''}
+    </div>
+  `).join('');
+}
+
+function buildCard(r) {
+  const entries  = r.entries  || {};
+  const winners  = r.winners  || [];
+  const entryArr = Object.entries(entries).map(([uid, d]) => ({ uid, name: d.name }));
+  const entryCount = entryArr.length;
+  const myUid    = currentUser?.uid || '';
+  const iApplied = !!entries[myUid];
+  const iWon     = winners.some(w => w.uid === myUid);
+  const drawn    = r.status === 'drawn';
+  const isNight  = r.timeType === 'night';
+
+  const badge = r.status === 'drawn'
+    ? `<span class="badge-drawn">추첨완료</span>`
+    : `<span class="badge-open">응모중</span>`;
+
+  const timeBadge = isNight ? `<span class="night-label">야간</span>` : `<span class="day-label">낮</span>`;
+
+  // 메타
+  const metaRows = [
+    `<div class="card-meta-row">${icons.calendar}<span class="card-meta-label">날짜</span><span class="card-meta-val">${r.date || '-'}</span></div>`,
+    `<div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span><span class="card-meta-val">${r.time || '-'}</span></div>`,
+    `<div class="card-meta-row">${icons.users}<span class="card-meta-label">모집 인원</span><span class="card-meta-val">${r.capacity}명</span></div>`,
+    r.greenfee ? `<div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span><span class="card-meta-val">${fmtFee(r.greenfee)}</span></div>` : '',
+    r.memo     ? `<div class="card-meta-row" style="align-items:flex-start;">${icons.note}<span class="card-meta-label">참고</span><span class="card-meta-memo">${r.memo}</span></div>` : '',
+  ].join('');
+
+  // 응모 현황 바
+  const fillPct = r.capacity > 0 ? Math.min(100, Math.round(entryCount / (r.capacity * 2) * 100)) : 0;
+  const entryBar = !drawn ? `
+    <div class="entry-bar">
+      <div class="entry-bar-top">
+        <span class="entry-bar-label">응모 현황</span>
+        <span class="entry-bar-num">${entryCount}명 응모중</span>
+      </div>
+      <div class="entry-bar-track"><div class="entry-bar-fill" style="width:${fillPct}%"></div></div>
+    </div>` : '';
+
+  // 응모자 목록
+  const entryListHtml = !drawn ? `
+    <div class="entry-list">
+      <div class="entry-list-top">
+        <span class="entry-list-label">응모자</span>
+        <span class="entry-count-badge">${entryCount}명</span>
+      </div>
+      ${entryArr.length === 0
+        ? `<span class="entry-empty">아직 없음</span>`
+        : `<div class="entry-chips">${entryArr.map(e =>
+            `<span class="entry-chip${e.uid === myUid ? ' me' : ''}">${e.name}</span>`
+          ).join('')}</div>`
+      }
+    </div>` : '';
+
+  // 당첨자 목록 (추첨 후)
+  const winnerListHtml = drawn ? `
+    <div class="winner-list">
+      <div class="winner-list-top">
+        <span class="winner-list-label">당첨자</span>
+        <span class="entry-count-badge" style="color:var(--gold);background:rgba(240,192,64,0.15);border-color:rgba(240,192,64,0.3);">${winners.length}명</span>
+      </div>
+      <div class="winner-chips">${winners.map(w =>
+        `<span class="winner-chip${w.uid === myUid ? ' me' : ''}">${w.name}</span>`
+      ).join('')}</div>
+    </div>` : '';
+
+  // 당첨/미당첨 배너
+  const resultBanner = drawn
+    ? (iWon
+        ? `<div class="win-banner">축하합니다! 당첨되셨습니다</div>`
+        : (iApplied ? `<div class="lose-banner">이번에는 아쉽게 미당첨되었습니다</div>` : ''))
+    : '';
+
+  // 응모 버튼
+  const applyBtn = !drawn ? `
+    <button class="btn-apply${iApplied ? ' applied' : ''}"
+      onclick="window.toggleApply('${r.id}')">
+      ${iApplied ? '응모 취소' : '응모하기'}
+    </button>` : '';
+
+  // 관리자 버튼
+  const adminRow = isAdmin ? `
+    <div class="card-admin-row">
+      <button class="card-edit-btn" onclick="window.openModal('${r.id}')">수정</button>
+      ${r.status === 'open' ? `<button class="card-draw-btn" onclick="window.confirmDraw('${r.id}','${r.course}')">추첨하기</button>` : ''}
+      <button class="card-close-btn" onclick="window.confirmClose('${r.id}','${r.course}')">마감</button>
+      <button class="card-delete-btn" onclick="window.confirmDelete('${r.id}','${r.course}')">삭제</button>
+    </div>` : '';
+
+  return `
+    <div class="round-card${isNight ? ' night' : ''}" id="card-${r.id}">
+      <div class="card-status-row">
+        ${badge}
+        <span class="sub-label">구독자 라운드</span>
+        ${timeBadge}
+      </div>
+      <div class="card-title">${r.course}</div>
+      <div class="card-meta">${metaRows}</div>
+      ${entryBar}
+      ${entryListHtml}
+      ${winnerListHtml}
+      ${resultBanner}
+      ${applyBtn}
+      ${adminRow}
+    </div>`;
+}
+
+// ── 응모/취소 ────────────────────────────────────────
+window.toggleApply = async function(roundId) {
+  const r    = rounds.find(x => x.id === roundId);
+  if (!r || r.status !== 'open') return;
+  const uid  = currentUser.uid;
+  const nick = currentUser.displayName || _ggzonKakao?.nickname || '골퍼';
+  const btn  = document.querySelector(`#card-${roundId} .btn-apply`);
+  if (btn) { btn.disabled = true; }
+
+  try {
+    if (r.entries?.[uid]) {
+      // 취소
+      await updateDoc(doc(db, 'subRounds', roundId), { [`entries.${uid}`]: deleteField() });
+    } else {
+      // 응모
+      await updateDoc(doc(db, 'subRounds', roundId), {
+        [`entries.${uid}`]: { name: nick, appliedAt: serverTimestamp() }
+      });
+    }
+    await loadRounds();
+  } catch(e) {
+    showToast('오류: ' + e.message);
+    if (btn) btn.disabled = false;
+  }
+};
+
+// ── 추첨 ─────────────────────────────────────────────
+window.confirmDraw = function(id, course) {
+  const r = rounds.find(x => x.id === id);
+  const entryArr = Object.entries(r.entries || {});
+  if (entryArr.length === 0) { showToast('응모자가 없습니다'); return; }
+  showConfirm(
+    '추첨하기',
+    `${course}\n응모자 ${entryArr.length}명 중 ${r.capacity}명을 무작위 추첨합니다.\n\n추첨 후에는 취소할 수 없습니다.`,
+    async () => {
+      try {
+        const shuffled = entryArr.map(([uid, d]) => ({ uid, name: d.name })).sort(() => Math.random() - 0.5);
+        const winners  = shuffled.slice(0, r.capacity);
+        await updateDoc(doc(db, 'subRounds', id), { winners, status: 'drawn' });
+        showToast('추첨 완료!');
+        await loadRounds();
+      } catch(e) { showToast('오류: ' + e.message); }
+    },
+    'green'
+  );
+};
+
+// ── 마감 ─────────────────────────────────────────────
+window.confirmClose = function(id, course) {
+  showConfirm('마감', `"${course}" 라운드를 마감합니다.`, async () => {
+    try {
+      await updateDoc(doc(db, 'subRounds', id), { status: 'closed' });
+      showToast('마감되었습니다');
+      await loadRounds();
+    } catch(e) { showToast('오류: ' + e.message); }
+  });
+};
+
+// ── 삭제 ─────────────────────────────────────────────
+window.confirmDelete = function(id, course) {
+  showConfirm('삭제', `"${course}" 라운드를 삭제합니다.\n이 작업은 되돌릴 수 없습니다.`, async () => {
+    try {
+      await deleteDoc(doc(db, 'subRounds', id));
+      showToast('삭제되었습니다');
+      await loadRounds();
+    } catch(e) { showToast('오류: ' + e.message); }
+  });
+};
+
+// ── 저장 ─────────────────────────────────────────────
+window.saveRound = async function() {
+  const course   = document.getElementById('f-course').value.trim();
+  const date     = document.getElementById('f-date').value;
+  const time     = document.getElementById('f-time').value;
+  const capacity = document.getElementById('f-capacity').value;
+  if (!course || !date || !time || !capacity) { showToast('필수 항목을 모두 입력해주세요'); return; }
+
+  const data = {
+    course, date, time,
+    capacity: Number(capacity),
+    greenfee:    document.getElementById('f-greenfee').value.trim(),
+    frontCourse: document.getElementById('f-front').value.trim(),
+    backCourse:  document.getElementById('f-back').value.trim(),
+    memo:        document.getElementById('f-memo').value.trim(),
+    timeType:    currentTimeType,
+    updatedAt:   serverTimestamp(),
+  };
+
+  const editId = document.getElementById('editing-id').value;
+  try {
+    if (editId) {
+      await updateDoc(doc(db, 'subRounds', editId), data);
+      showToast('수정되었습니다');
+    } else {
+      await addDoc(collection(db, 'subRounds'), { ...data, status: 'open', entries: {}, winners: [], createdAt: serverTimestamp() });
+      showToast('라운드가 만들어졌습니다!');
+    }
+    closeModal();
+    await loadRounds();
+  } catch(e) { showToast('저장 실패: ' + e.message); }
+};
+
+// ── 모달 ─────────────────────────────────────────────
+window.openModal = function(id) {
+  document.getElementById('editing-id').value = id || '';
+  document.getElementById('modal-title').textContent = id ? '라운드 수정' : '라운드 만들기';
+  if (id) {
+    const r = rounds.find(x => x.id === id);
+    if (r) {
+      document.getElementById('f-course').value   = r.course   || '';
+      document.getElementById('f-date').value     = r.date     || '';
+      document.getElementById('f-time').value     = r.time     || '';
+      document.getElementById('f-capacity').value = r.capacity || '';
+      document.getElementById('f-front').value    = r.frontCourse || '';
+      document.getElementById('f-back').value     = r.backCourse  || '';
+      document.getElementById('f-greenfee').value = r.greenfee    || '';
+      document.getElementById('f-memo').value     = r.memo        || '';
+      setTimeType(r.timeType || 'day');
+    }
+  } else {
+    ['f-course','f-date','f-time','f-capacity','f-front','f-back','f-greenfee','f-memo'].forEach(id => { document.getElementById(id).value = ''; });
+    setTimeType('day');
+  }
+  document.getElementById('admin-overlay').classList.add('open');
+};
+
+window.closeModal = function() {
+  document.getElementById('admin-overlay').classList.remove('open');
+};
+
+window.setTimeType = function(type) {
+  currentTimeType = type;
+  document.getElementById('toggle-day').className   = 'toggle-btn' + (type === 'day'   ? ' active-day'   : '');
+  document.getElementById('toggle-night').className = 'toggle-btn' + (type === 'night' ? ' active-night' : '');
+};
+
+// 키보드 스크롤
+(function() {
+  const sc = document.getElementById('admin-scroll-area');
+  function ensureVisible() {
+    const el = document.activeElement;
+    if (!el || !sc.contains(el)) return;
+    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+    const vvH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > vvH - 20) sc.scrollTop += rect.bottom - vvH + 60;
+  }
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', ensureVisible);
+  sc.addEventListener('focusin', e => {
+    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') return;
+    setTimeout(ensureVisible, 300);
+  });
+})();
+
+// ── 컨펌 ─────────────────────────────────────────────
+function showConfirm(title, msg, cb, okColor) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent   = msg;
+  const okBtn = document.getElementById('confirm-ok-btn');
+  okBtn.className = 'confirm-ok' + (okColor === 'green' ? ' green' : '');
+  okBtn.textContent = '확인';
+  confirmCallback = cb;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+window.closeConfirm = function() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  confirmCallback = null;
+};
+document.getElementById('confirm-ok-btn').onclick = async () => {
+  if (confirmCallback) { await confirmCallback(); }
+  window.closeConfirm();
+};
+
+// ── 유틸 ─────────────────────────────────────────────
+function fmtFee(val) {
+  const n = parseInt(String(val).replace(/[^\d]/g, ''));
+  if (isNaN(n)) return val;
+  return n >= 10000 ? (n / 10000).toFixed(0) + '만원' : n.toLocaleString() + '원';
+}
+
+window.fmtMoney = function(el) {
+  const raw = el.value.replace(/[^\d]/g, '');
+  el.value = raw ? parseInt(raw).toLocaleString() : '';
+};
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+const icons = {
+  calendar: `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  clock:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  users:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  money:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  note:     `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+};
+</script>
+</body>
+</html>
