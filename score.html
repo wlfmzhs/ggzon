@@ -384,6 +384,7 @@ const joinId = new URLSearchParams(location.search).get('id');
 if (!joinId) location.href = 'join.html';
 
 let currentUser    = null;
+let isAdmin        = false;
 let joinData       = null;
 let pickerHole     = null;
 let pickerUid      = null;
@@ -463,6 +464,7 @@ onAuthStateChanged(auth, user => {
   const effectiveUser = user || _kakaoFbUser;
   if (!effectiveUser) { location.href = 'login.html'; return; }
   currentUser = effectiveUser;
+  isAdmin = currentUser.email === 'wlfmzhs@naver.com';
   document.getElementById('loading-overlay').classList.add('hidden');
   onSnapshot(doc(db, 'joins', joinId), snap => {
     if (!snap.exists()) return;
@@ -628,8 +630,9 @@ function render() {
   const scores       = { ...(joinData.scores || {}), ...(partyJoinData ? (partyJoinData.scores || {}) : {}) };
   const myUids       = new Set(myPlayers.map(p => p.uid));
   const isParticipant = myPlayers.some(p => p.uid === currentUser.uid);
+  const canEdit = isParticipant || isAdmin;
 
-  if (!isParticipant) document.getElementById('notice-bar').style.display = 'flex';
+  if (!canEdit) document.getElementById('notice-bar').style.display = 'flex';
   if (isParticipant) document.getElementById('submit-bar').classList.add('show');
 
   // 요약 바 (실시간 순위)
@@ -664,9 +667,9 @@ function render() {
   }).join('');
 
   // 전반 테이블
-  document.getElementById('table-front').innerHTML = buildTable(players, scores, myUids, 0, 9, parFront, 'front', isParticipant);
+  document.getElementById('table-front').innerHTML = buildTable(players, scores, myUids, 0, 9, parFront, 'front', canEdit);
   // 후반 테이블
-  document.getElementById('table-back').innerHTML  = buildTable(players, scores, myUids, 9, 18, parBack, 'back', isParticipant);
+  document.getElementById('table-back').innerHTML  = buildTable(players, scores, myUids, 9, 18, parBack, 'back', canEdit);
 }
 
 function buildTable(players, scores, myUids, from, to, parArray, side, canEditPar) {
@@ -697,7 +700,7 @@ function buildTable(players, scores, myUids, from, to, parArray, side, canEditPa
 
   players.forEach(p => {
     const isMyRow    = currentUser && p.uid === currentUser.uid;
-    const canEditRow = canEditPar && myUids.has(p.uid);
+    const canEditRow = canEditPar && (myUids.has(p.uid) || isAdmin);
     const holes      = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const slice      = holes.slice(from, to);
     const hasAny     = slice.some(v => v !== null);
