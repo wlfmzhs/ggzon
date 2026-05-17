@@ -858,7 +858,10 @@ function setupCourseAC() {
     }).join('');
     list.style.display = 'block';
   });
-  inp.addEventListener('blur', () => setTimeout(() => list.style.display = 'none', 200));
+  inp.addEventListener('blur', () => {
+    setTimeout(() => list.style.display = 'none', 200);
+    updateSubCourseChips(inp.value.trim());
+  });
 }
 
 window._selectCourse = function(courseId) {
@@ -879,17 +882,18 @@ function updateSubCourseChips(courseName) {
     ).join('');
     const list  = document.getElementById(`ac-${side}`);
     const input = document.getElementById(`admin-${side}-course`);
-    input.oninput = () => {
-      const q = input.value.trim();
-      if (!q || !names.length) { list.style.display = 'none'; return; }
-      const hits = names.filter(n => n.includes(q));
+    const showSubList = (q) => {
+      if (!names.length) { list.style.display = 'none'; return; }
+      const hits = q ? names.filter(n => n.includes(q)) : names;
       if (!hits.length) { list.style.display = 'none'; return; }
       list.innerHTML = hits.map(n =>
         `<div class="ac-item" onmousedown="window._selectSubCourse('${side}','${n}')">${n}</div>`
       ).join('');
       list.style.display = 'block';
     };
-    input.onblur = () => setTimeout(() => list.style.display = 'none', 200);
+    input.oninput = () => showSubList(input.value.trim());
+    input.onfocus = () => showSubList(input.value.trim());
+    input.onblur  = () => setTimeout(() => list.style.display = 'none', 200);
   });
 }
 
