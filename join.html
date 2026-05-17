@@ -213,6 +213,8 @@
       width: 14px; height: 14px; color: var(--green-light); flex-shrink: 0;
     }
     .card-meta-label { color: rgba(255,255,255,0.35); min-width: 52px; }
+    .card-meta-val { color: #fff; font-weight: 800; }
+    .card-meta-memo { color: rgba(255,255,255,0.75); font-weight: 600; font-size: 11px; line-height: 1.5; white-space: pre-line; flex: 1; }
 
     /* 참석 인원 프로그레스 */
     .card-progress-area { margin-bottom: 16px; }
@@ -735,6 +737,7 @@ const icons = {
   location: `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
   users:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   money:    `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  note:     `<svg class="card-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
 };
 
 // ── 골프장 자동완성 ────────────────────────────────────
@@ -995,7 +998,7 @@ function buildCard(j) {
       ${isAdmin ? `<button class="card-close-btn" onclick="window.confirmClose('${j.id}','${j.course}')">마감</button>
       <button class="card-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
     </div>` : '';
-  const memo = j.memo ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px;line-height:1.6;">${j.memo}</div>` : '';
+  const memo = '';
 
   return `
     <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}" id="card-${j.id}">
@@ -1013,10 +1016,11 @@ function buildCard(j) {
         </button>` : ''}
       </div>
       <div class="card-meta">
-        <div class="card-meta-row">${icons.calendar}<span class="card-meta-label">날짜</span>${j.date}</div>
-        <div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span>${j.time}</div>
-        <div class="card-meta-row">${icons.users}<span class="card-meta-label">참석 인원</span>${currentCount} / ${j.capacity}명</div>
-        ${j.joinType !== 'screen' && j.greenfee ? `<div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span>${fmtFee(j.greenfee)}</div>` : ''}
+        <div class="card-meta-row">${icons.calendar}<span class="card-meta-label">날짜</span><span class="card-meta-val">${j.date}</span></div>
+        <div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span><span class="card-meta-val">${j.time}</span></div>
+        <div class="card-meta-row">${icons.users}<span class="card-meta-label">참석 인원</span><span class="card-meta-val">${currentCount} / ${j.capacity}명</span></div>
+        ${j.joinType !== 'screen' && j.greenfee ? `<div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span><span class="card-meta-val">${fmtFee(j.greenfee)}</span></div>` : ''}
+        ${j.memo ? `<div class="card-meta-row" style="align-items:flex-start;">${icons.note}<span class="card-meta-label">참고</span><span class="card-meta-memo">${j.memo}</span></div>` : ''}
       </div>
       <div class="card-progress-area">
         <div class="card-progress-top">
