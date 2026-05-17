@@ -252,6 +252,9 @@
         <span class="live-dot"></span>실시간 스코어
         <span id="course-sub" style="color:rgba(255,255,255,0.5);"></span>
         <span class="party-indicator" id="party-indicator" style="display:none;">· 2팀 연결</span>
+        <span id="viewer-count" style="display:none;align-items:center;gap:3px;margin-left:2px;">·
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span id="viewer-num">0</span>
+        </span>
       </div>
     </div>
     <button class="party-btn" id="btn-party" title="팀 연결">
@@ -367,7 +370,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, orderBy, writeBatch, addDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, orderBy, writeBatch, addDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -386,6 +389,10 @@ if (!joinId) location.href = 'join.html';
 let currentUser    = null;
 let isAdmin        = false;
 let joinData       = null;
+let viewerDocRef   = null;
+let heartbeatTimer = null;
+let viewerStarted  = false;
+const sessionId    = Math.random().toString(36).slice(2);
 let pickerHole     = null;
 let pickerUid      = null;
 let partyJoinData  = null;
@@ -495,6 +502,11 @@ onAuthStateChanged(auth, user => {
       loadCoursePar();
     }
     render();
+    if (!viewerStarted) {
+      viewerStarted = true;
+      registerViewer();
+      startViewerCount();
+    }
   });
 });
 
@@ -871,6 +883,44 @@ async function submitScore() {
     btn.textContent = '제출하기';
   }
 }
+
+// ── 시청자 수 presence ───────────────────────────────
+async function registerViewer() {
+  if (!joinId) return;
+  viewerDocRef = doc(db, 'joins', joinId, 'viewers', sessionId);
+  try { await setDoc(viewerDocRef, { uid: currentUser?.uid || 'anon', at: serverTimestamp() }); } catch(_) {}
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = setInterval(async () => {
+    try { await setDoc(viewerDocRef, { uid: currentUser?.uid || 'anon', at: serverTimestamp() }); } catch(_) {}
+  }, 30000);
+}
+
+async function unregisterViewer() {
+  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+  if (viewerDocRef) { try { await deleteDoc(viewerDocRef); } catch(_) {} viewerDocRef = null; }
+}
+
+function startViewerCount() {
+  onSnapshot(collection(db, 'joins', joinId, 'viewers'), snap => {
+    const now = Date.now();
+    const count = snap.docs.filter(d => {
+      const at = d.data().at;
+      return !at || (now - at.toMillis()) < 90000;
+    }).length;
+    const el = document.getElementById('viewer-count');
+    const numEl = document.getElementById('viewer-num');
+    if (el && numEl) {
+      numEl.textContent = count;
+      el.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+  });
+}
+
+window.addEventListener('beforeunload', unregisterViewer);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') unregisterViewer();
+  else registerViewer();
+});
 
 function showToast(msg) {
   const el = document.getElementById('toast');
