@@ -1140,6 +1140,28 @@ window.closeAdminModal = function() {
   document.getElementById('admin-overlay').classList.remove('open');
 };
 
+// ── 키보드 올라올 때 입력창 자동 스크롤 ──────────────
+(function() {
+  const adminScroll = document.querySelector('.admin-scroll');
+  function ensureVisible() {
+    const el = document.activeElement;
+    if (!el || !adminScroll.contains(el)) return;
+    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+    const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > vvHeight - 20) {
+      adminScroll.scrollTop += rect.bottom - vvHeight + 60;
+    }
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', ensureVisible);
+  }
+  adminScroll.addEventListener('focusin', e => {
+    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') return;
+    setTimeout(ensureVisible, 300);
+  });
+})();
+
 // ── 저장 ─────────────────────────────────────────────
 window.saveJoin = async function() {
   const course      = document.getElementById('admin-course').value.trim();
