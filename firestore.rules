@@ -44,6 +44,10 @@ service cloud.firestore {
       allow create: if isAnyUser();
       allow delete: if isAdmin();
       allow update: if isAdmin() || (isAnyUser() && onlyAllowedJoinFields());
+
+      match /viewers/{viewerId} {
+        allow read, write: if isAnyUser();
+      }
     }
 
     match /courses/{courseId} {
