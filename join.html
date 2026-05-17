@@ -191,12 +191,19 @@
       background: var(--green); border-color: var(--green); color: #fff;
     }
     .badge-open {
-      background: #e74c3c; color: #fff;
+      background: transparent; color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.7);
       font-size: 9px; font-weight: 900; letter-spacing: 1px;
       padding: 3px 7px; border-radius: 10px;
       animation: pulse 1.5s ease-in-out infinite;
     }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .badge-closed {
+      background: transparent; color: rgba(255,255,255,0.35);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      font-size: 9px; font-weight: 900; letter-spacing: 1px;
+      padding: 3px 7px; border-radius: 10px;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
     .card-status-row {
       display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
@@ -980,6 +987,9 @@ function buildCard(j) {
   const daysPassed = createdDate ? Math.floor((Date.now() - createdDate.getTime()) / 86400000) : 0;
   const daysLabel = createdDate ? `${createdStr} (${daysPassed === 0 ? '오늘' : daysPassed + '일지남'})` : '';
 
+  const teeTime = j.date && j.time ? new Date(j.date + 'T' + j.time) : null;
+  const isTeeingSoon = teeTime && (teeTime.getTime() - Date.now()) <= 5 * 60 * 60 * 1000;
+
   const participants = j.participants || [];
   const currentCount = participants.length;
   const isFull = currentCount >= j.capacity;
@@ -1003,7 +1013,10 @@ function buildCard(j) {
   return `
     <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}" id="card-${j.id}">
       <div class="card-status-row">
-        <span class="badge-open">모집중${daysLabel ? ` · ${daysLabel}` : ''}</span>
+        ${isTeeingSoon
+          ? `<span class="badge-closed">모집 마감${daysLabel ? ` · ${daysLabel}` : ''}</span>`
+          : `<span class="badge-open">모집중${daysLabel ? ` · ${daysLabel}` : ''}</span>`
+        }
         ${joinTypeBadge}
         ${timeBadge}
       </div>
