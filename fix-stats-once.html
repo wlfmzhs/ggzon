@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GG PLAYER 통계 수동 재집계</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0a2406; color: #fff; font-family: 'Apple SD Gothic Neo', sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+    h2 { font-size: 18px; margin-bottom: 4px; }
+    .sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 20px; }
+    .warn { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 10px; padding: 12px; font-size: 12px; color: #ff9b8a; margin-bottom: 16px; line-height: 1.6; }
+    .log { background: #000; border-radius: 10px; padding: 14px; font-size: 11px; font-family: monospace; min-height: 160px; white-space: pre-wrap; color: #3ea066; margin-bottom: 14px; max-height: 400px; overflow-y: auto; }
+    .btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+    .btn-run { background: #3ea066; color: #fff; }
+    .btn-run:disabled { background: rgba(62,160,102,0.3); cursor: not-allowed; }
+    .success { color: #3ea066; }
+    .error   { color: #e74c3c; }
+    .info    { color: #f0c040; }
+    .dim     { color: rgba(255,255,255,0.35); }
+  </style>
+</head>
+<body>
+  <h2>GG PLAYER 통계 수동 재집계</h2>
+  <p class="sub">조인 4명 + 3차 흑백대전 참가자 scoreHistory 기반 통계 재계산</p>
+  <div class="warn">관리자 계정(wlfmzhs@naver.com)으로 로그인된 상태에서 실행하세요.</div>
+  <div id="log" class="log">대기 중...</div>
+  <button class="btn btn-run" id="btn-run" onclick="runFix()">통계 재집계 실행</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, updateDoc,
+  query, orderBy, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// 조인 수동 처리 대상 이름
+const JOIN_NAMES = ['하준경', '임종우', '오병석', '정호룡'];
+
+let logEl;
+function log(msg, cls = '') {
+  if (!logEl) logEl = document.getElementById('log');
+  logEl.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+onAuthStateChanged(auth, user => {
+  if (!user || user.email !== 'wlfmzhs@naver.com') {
+    log('관리자 계정으로 로그인 후 실행하세요.', 'error');
+    document.getElementById('btn-run').disabled = true;
+  } else {
+    log(`로그인 확인: ${user.email}`, 'success');
+  }
+});
+
+// 특정 uid의 scoreHistory를 읽어 통계 재계산 후 users 문서 업데이트
+async function recalcStats(uid, name) {
+  try {
+    const histSnap = await getDocs(
+      query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+    );
+    if (histSnap.empty) {
+      log(`  ${name}: scoreHistory 없음 — 건너뜀`, 'dim');
+      return;
+    }
+    const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
+    const recent10 = allScores.slice(0, 10);
+    const recent3  = allScores.slice(0, 3);
+    const prev3    = allScores.slice(3, 6);
+    const handicap = recent10.length
+      ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
+      : null;
+    const handicapTrend = (recent3.length === 3 && prev3.length === 3)
+      ? Math.round((recent3.reduce((a, b) => a + b, 0) / 3 - prev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+      : null;
+    const bestScore  = Math.min(...allScores);
+    const roundCount = allScores.length;
+
+    await updateDoc(doc(db, 'users', uid), {
+      handicap, bestScore, roundCount, handicapTrend, statsUpdatedAt: serverTimestamp()
+    });
+    const hLabel = handicap === null ? 'null' : (handicap > 0 ? '+' + handicap : String(handicap));
+    log(`  ${name}: ${roundCount}라운드 / 핸디 ${hLabel} / 베스트 ${bestScore > 0 ? '+' + bestScore : bestScore}`, 'success');
+  } catch(e) {
+    log(`  ${name}: 오류 — ${e.message}`, 'error');
+  }
+}
+
+window.runFix = async function() {
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+  logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+
+  try {
+    // ── users 전체 로드 (이름 매핑용) ─────────────────────
+    log('유저 목록 로드 중...', 'info');
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const nameToUid = {};
+    usersSnap.docs.forEach(d => {
+      const data = d.data();
+      const n = data.name || data.nickname || '';
+      if (n) nameToUid[n] = d.id;
+    });
+
+    // ── 1. 조인 4명 통계 재집계 ───────────────────────────
+    log('\n[1] 조인 4명 통계 재집계', 'info');
+    for (const name of JOIN_NAMES) {
+      const uid = nameToUid[name];
+      if (!uid) { log(`  ${name}: 유저 문서 없음`, 'error'); continue; }
+      await recalcStats(uid, name);
+    }
+
+    // ── 2. 3차 흑백대전 참가자 통계 재집계 ──────────────
+    log('\n[2] 3차 흑백대전 참가자 검색 중...', 'info');
+    const tournsSnap = await getDocs(collection(db, 'tournaments'));
+    const bwTourns = tournsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(t => (t.name || '').includes('흑백대전'))
+      .sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+
+    if (!bwTourns.length) {
+      log('  흑백대전 대회를 찾을 수 없습니다.', 'error');
+    } else {
+      // 가장 최근 흑백대전 (3차) 선택
+      const target = bwTourns[0];
+      log(`  대회: ${target.name} / ${target.date} / ID: ${target.id}`, 'success');
+
+      // scores 컬렉션에서 제출자 목록
+      const scoresSnap = await getDocs(collection(db, 'tournaments', target.id, 'scores'));
+      if (scoresSnap.empty) {
+        log('  스코어 제출 내역 없음', 'dim');
+      } else {
+        log(`  제출자 ${scoresSnap.docs.length}명 처리 중...`, 'info');
+        for (const scoreDoc of scoresSnap.docs) {
+          const uid  = scoreDoc.id;
+          const data = scoreDoc.data();
+          const name = data.name || uid.slice(0, 8);
+          await recalcStats(uid, name);
+        }
+      }
+    }
+
+    log('\n모든 처리가 완료되었습니다.', 'success');
+    log('이 파일을 삭제해 주세요: fix-stats-once.html', 'dim');
+    btn.textContent = '처리 완료';
+
+  } catch(e) {
+    log('오류: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '다시 시도';
+  }
+};
+</script>
+</body>
+</html>
