@@ -767,6 +767,8 @@
   const db = getFirestore(app);
   const storage = getStorage(app);
 
+  let _isAdmin = false;
+
   function setNick(nick) {
     document.getElementById('user-nick').textContent = nick;
     document.getElementById('header-name').textContent = nick;
@@ -801,6 +803,7 @@
     onAuthStateChanged(auth, async (user) => {
       document.getElementById('loading-overlay').classList.add('hidden');
       if (!user) { window.location.href = 'login.html'; return; }
+      _isAdmin = user.email === 'wlfmzhs@naver.com';
       onLoginReady();
       const fallbackName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '멤버';
       try {
@@ -1101,20 +1104,23 @@
   async function loadLatestTournamentChart() {
     try {
       const snap = await getDocs(query(collection(db, 'tournaments'), orderBy('createdAt', 'desc'), limit(20)));
-      const closed = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(t => t.status === 'closed');
-      if (!closed) { document.getElementById('chartTitle').textContent = '마감된 대회가 없습니다'; return; }
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // status 'closed' 우선, 없으면 가장 최신 대회
+      const target = all.find(t => t.status === 'closed') || all[0];
+      if (!target) { document.getElementById('chartTitle').textContent = '등록된 대회가 없습니다'; return; }
 
-      _chartTournId   = closed.id;
-      _chartCoursePar = closed.coursePar || 72;
+      _chartTournId   = target.id;
+      _chartCoursePar = target.coursePar || 72;
 
-      document.getElementById('chartTitle').textContent = `${closed.name} 타수 분포`;
-      document.getElementById('chartLink').href = `tournament-result.html?id=${closed.id}`;
+      document.getElementById('chartTitle').textContent = `${target.name} 타수 분포`;
+      document.getElementById('chartLink').href = `tournament-result.html?id=${target.id}`;
       document.getElementById('chartLink').style.display = '';
-      if (isAdmin) document.getElementById('chartAdminBtn').style.display = '';
+      if (_isAdmin) document.getElementById('chartAdminBtn').style.display = '';
 
       await renderChart();
     } catch(e) {
       document.getElementById('chartTitle').textContent = '대회 결과 불러오기 실패';
+      console.error('chart error:', e);
     }
   }
 
