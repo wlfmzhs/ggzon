@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3차 흑백대전 포인트 소급 지급</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0a2406; color: #fff; font-family: 'Apple SD Gothic Neo', sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+    h2 { font-size: 18px; margin-bottom: 4px; }
+    .sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 16px; }
+    .warn { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 10px; padding: 12px; font-size: 12px; color: #ff9b8a; margin-bottom: 16px; line-height: 1.6; }
+    .log { background: #000; border-radius: 10px; padding: 14px; font-size: 11px; font-family: monospace; min-height: 200px; white-space: pre-wrap; color: #3ea066; margin-bottom: 14px; max-height: 500px; overflow-y: auto; }
+    .btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+    .btn-run { background: #3ea066; color: #fff; }
+    .btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
+    .success { color: #3ea066; }
+    .error   { color: #e74c3c; }
+    .info    { color: #f0c040; }
+    .skip    { color: rgba(255,255,255,0.3); }
+  </style>
+</head>
+<body>
+  <h2>3차 흑백대전 포인트 소급 지급</h2>
+  <p class="sub">기존 제출자 대회참여+10 · 스코어 포인트 일괄 지급 / 성갑 계정 제외</p>
+  <div class="warn">
+    · 이미 포인트를 받은 사람은 자동 건너뜀 (중복 없음)<br>
+    · 성갑 계정은 제외됨
+  </div>
+  <div id="log" class="log">대기 중...</div>
+  <button class="btn btn-run" id="btn-run" onclick="runFix()">포인트 소급 지급 실행</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc,
+  query, orderBy, where, increment, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const EXCLUDE_NAMES = ['성갑'];
+
+let logEl;
+function log(msg, cls = '') {
+  if (!logEl) logEl = document.getElementById('log');
+  logEl.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+onAuthStateChanged(auth, user => {
+  if (!user || user.email !== 'wlfmzhs@naver.com') {
+    log('관리자 계정으로 로그인 후 실행하세요.', 'error');
+    document.getElementById('btn-run').disabled = true;
+  } else {
+    log(`로그인 확인: ${user.email}`, 'success');
+  }
+});
+
+window.runFix = async function() {
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true; btn.textContent = '처리 중...';
+  logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+
+  try {
+    // 3차 흑백대전 탐색
+    log('3차 흑백대전 탐색 중...', 'info');
+    const tournsSnap = await getDocs(collection(db, 'tournaments'));
+    const bwList = tournsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(t => (t.name || '').includes('흑백대전'))
+      .sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+
+    if (!bwList.length) { log('흑백대전 대회를 찾을 수 없습니다.', 'error'); btn.disabled = false; return; }
+    const tourn = bwList[0];
+    const par   = tourn.coursePar || 72;
+    const courseName = tourn.golfCourseName || tourn.name || '대회';
+    log(`대회: ${tourn.name} / ${tourn.date} / par ${par}`, 'success');
+
+    // 기존 제출자 전체 로드
+    const scoresSnap = await getDocs(collection(db, 'tournaments', tourn.id, 'scores'));
+    log(`제출자: ${scoresSnap.docs.length}명\n`, 'info');
+
+    // 기존 pointHistory에서 이 대회 관련 수령자 uid 수집 (중복 방지)
+    const histSnap = await getDocs(
+      query(collection(db, 'pointHistory'), where('ref', '==', courseName))
+    );
+    const alreadyPaidUids = new Set(histSnap.docs.map(d => d.data().uid));
+    // 스코어 ref도 포함 (e.g. "3차 흑백대전 (언더파)")
+    const histSnap2 = await getDocs(
+      query(collection(db, 'pointHistory'), where('type', '==', '대회참여'))
+    );
+    histSnap2.docs.forEach(d => {
+      const data = d.data();
+      if ((data.ref || '').includes('흑백대전')) alreadyPaidUids.add(data.uid);
+    });
+    log(`이미 지급된 uid: ${alreadyPaidUids.size}명 제외\n`, 'info');
+
+    let ok = 0, skipped = 0, excluded = 0;
+
+    for (const scoreDoc of scoresSnap.docs) {
+      const uid  = scoreDoc.id;
+      const data = scoreDoc.data();
+      const name = data.name || uid.slice(0, 10);
+      const totalStrokes = data.totalStrokes || 0;
+
+      // 테스트 계정 제외
+      if (EXCLUDE_NAMES.includes(name)) {
+        log(`  [제외] ${name} — 테스트 계정`, 'skip');
+        excluded++;
+        continue;
+      }
+
+      // 이미 지급된 경우 건너뜀
+      if (alreadyPaidUids.has(uid)) {
+        log(`  [중복] ${name} — 이미 지급됨`, 'skip');
+        skipped++;
+        continue;
+      }
+
+      if (!totalStrokes || totalStrokes < 54) {
+        log(`  [건너뜀] ${name} — 타수 없음`, 'skip');
+        skipped++;
+        continue;
+      }
+
+      try {
+        const totalScore = totalStrokes - par;
+        const now = new Date().toISOString();
+
+        // 대회참여 +10
+        await setDoc(doc(db, 'users', uid), { totalPoints: increment(10) }, { merge: true });
+        await addDoc(collection(db, 'pointHistory'), {
+          uid, name, type: '대회참여', amount: 10,
+          ref: courseName, date: now,
+        });
+
+        // 스코어 포인트
+        const pts   = totalScore < 0 ? 40 : totalScore <= 5 ? 30 : totalScore <= 9 ? 20 : totalScore <= 15 ? 15 : 10;
+        const label = totalScore < 0 ? '언더파' : totalScore <= 5 ? 'E~+5' : totalScore <= 9 ? '+6~+9' : totalScore <= 15 ? '+10~+15' : '+16이상';
+        await setDoc(doc(db, 'users', uid), { totalPoints: increment(pts) }, { merge: true });
+        await addDoc(collection(db, 'pointHistory'), {
+          uid, name, type: '스코어', amount: pts,
+          ref: `${courseName} (${label})`, date: now,
+        });
+
+        log(`  [OK] ${name}: 대회참여+10 / 스코어+${pts} (${label}) / 타수 ${totalStrokes}`, 'success');
+        ok++;
+      } catch(e) {
+        log(`  [실패] ${name}: ${e.message}`, 'error');
+      }
+    }
+
+    log(`\n완료: 지급 ${ok}명 / 중복건너뜀 ${skipped}명 / 제외 ${excluded}명`, 'success');
+    log('이 파일을 삭제해 주세요: fix-bw3-points-once.html', 'skip');
+    btn.textContent = '처리 완료';
+
+  } catch(e) {
+    log('오류: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = '다시 시도';
+  }
+};
+</script>
+</body>
+</html>
