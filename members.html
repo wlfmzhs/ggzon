@@ -137,6 +137,16 @@
       text-align: center; font-size: 13px; color: rgba(255,255,255,0.3);
       padding: 50px 24px; line-height: 1.8;
     }
+
+    .load-more-btn {
+      display: block; width: calc(100% - 28px); margin: 4px 14px 24px;
+      padding: 13px; border-radius: 12px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit; text-align: center;
+      transition: background 0.15s;
+    }
+    .load-more-btn:active { background: rgba(255,255,255,0.1); }
   </style>
 </head>
 <body>
@@ -157,6 +167,7 @@
   <div class="scroll-area">
     <div class="rank-note" id="rank-note">랭킹 불러오는 중...</div>
     <div id="player-list"></div>
+    <button class="load-more-btn" id="load-more-btn" style="display:none;" onclick="showAllPlayers()">더보기</button>
   </div>
 </div>
 
@@ -182,55 +193,31 @@
     loadPlayers();
   });
 
-  async function loadPlayers() {
-    const el = document.getElementById('player-list');
-    const note = document.getElementById('rank-note');
-    try {
-      const snap = await getDocs(query(
-        collection(db, 'users'),
-        orderBy('handicap'),
-        limit(10)
-      ));
+  let allPlayers = [];
+  const PAGE = 10;
 
-      if (snap.empty) {
-        el.innerHTML = '<div class="empty-msg">아직 스코어를 제출한 멤버가 없습니다<br>라운드 후 스코어를 제출하면 자동 등록됩니다</div>';
-        note.textContent = '';
-        return;
-      }
-
-      const rankClass = ['rank-1','rank-2','rank-3'];
-
-      el.innerHTML = snap.docs.map((d, i) => {
-        const u = d.data();
-        const rank = i + 1;
-        const rc = rank <= 3 ? rankClass[rank - 1] : '';
-
-        const nick = u.nickname || u.name || '멤버';
-
-        const metaParts = [];
-        if (u.birthYear2) metaParts.push(u.birthYear2 + '년생');
-        if (u.region) metaParts.push(u.region);
-        if (u.roundCount) metaParts.push(u.roundCount + '라운드');
-
-        const h = u.handicap ?? 0;
-        const hLabel = h === 0 ? 'E' : h > 0 ? `+${h}` : String(h);
-        const hCls = h < 0 ? 'cls-under' : h <= 9 ? 'cls-pink' : 'cls-white';
-
-        const best = u.bestScore ?? null;
-        const bestStr = best === null ? '' : ` · 베스트 ${best === 0 ? 'E' : best > 0 ? '+' + best : best}`;
-
-        const t = u.handicapTrend;
-        let trendHtml = '<span class="trend-flat">- 유지</span>';
-        if (t !== null && t !== undefined) {
-          if (t < -0.5) trendHtml = `<span class="trend-down">&#9660; ${Math.abs(t).toFixed(1)} 개선</span>`;
-          else if (t > 0.5) trendHtml = `<span class="trend-up">&#9650; ${t.toFixed(1)} 상승</span>`;
-        }
-
-        const badges = [];
-        if (u.hasEagle) badges.push('<span class="badge badge-eagle">이글</span>');
-        if (u.hasHoleinone) badges.push('<span class="badge badge-holeinone">홀인원</span>');
-
-        return `<div class="member-card ${rc}" style="animation-delay:${i * 0.07}s">
+  function buildCard(u, rank) {
+    const rc = rank <= 3 ? ['rank-1','rank-2','rank-3'][rank - 1] : '';
+    const nick = u.nickname || u.name || '멤버';
+    const metaParts = [];
+    if (u.birthYear2) metaParts.push(u.birthYear2 + '년생');
+    if (u.region) metaParts.push(u.region);
+    if (u.roundCount) metaParts.push(u.roundCount + '라운드');
+    const h = u.handicap ?? 0;
+    const hLabel = h === 0 ? 'E' : h > 0 ? `+${h}` : String(h);
+    const hCls = h < 0 ? 'cls-under' : h <= 9 ? 'cls-pink' : 'cls-white';
+    const best = u.bestScore ?? null;
+    const bestStr = best === null ? '' : ` · 베스트 ${best === 0 ? 'E' : best > 0 ? '+' + best : best}`;
+    const t = u.handicapTrend;
+    let trendHtml = '<span class="trend-flat">- 유지</span>';
+    if (t !== null && t !== undefined) {
+      if (t < -0.5) trendHtml = `<span class="trend-down">&#9660; ${Math.abs(t).toFixed(1)} 개선</span>`;
+      else if (t > 0.5) trendHtml = `<span class="trend-up">&#9650; ${t.toFixed(1)} 상승</span>`;
+    }
+    const badges = [];
+    if (u.hasEagle) badges.push('<span class="badge badge-eagle">이글</span>');
+    if (u.hasHoleinone) badges.push('<span class="badge badge-holeinone">홀인원</span>');
+    return `<div class="member-card ${rc}" style="animation-delay:${Math.min(rank - 1, 9) * 0.07}s">
   <div class="rank-num">${rank}</div>
   <div class="member-info">
     <div class="member-nick">${nick}</div>
@@ -242,7 +229,37 @@
     <div class="trend-line">${trendHtml}</div>
   </div>
 </div>`;
-      }).join('');
+  }
+
+  function renderList(players, el) {
+    el.innerHTML = players.map((u, i) => buildCard(u, i + 1)).join('');
+  }
+
+  async function loadPlayers() {
+    const el   = document.getElementById('player-list');
+    const note = document.getElementById('rank-note');
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), orderBy('handicap'), limit(200)));
+      allPlayers = snap.docs
+        .map(d => d.data())
+        .filter(u => u.roundCount > 0 && u.handicap !== null && u.handicap !== undefined);
+
+      if (!allPlayers.length) {
+        el.innerHTML = '<div class="empty-msg">아직 스코어를 제출한 멤버가 없습니다<br>라운드 후 스코어를 제출하면 자동 등록됩니다</div>';
+        note.textContent = '';
+        return;
+      }
+
+      renderList(allPlayers.slice(0, PAGE), el);
+
+      // 더보기 버튼 (11위 이상 있을 때만)
+      const moreBtn = document.getElementById('load-more-btn');
+      if (allPlayers.length > PAGE) {
+        moreBtn.style.display = 'block';
+        moreBtn.textContent = `더보기 (${allPlayers.length - PAGE}명)`;
+      } else {
+        moreBtn.style.display = 'none';
+      }
 
       note.textContent = '스코어 제출 시 자동 업데이트 · 최근 10경기 평균 기준';
     } catch(e) {
@@ -250,6 +267,12 @@
       note.textContent = '';
     }
   }
+
+  window.showAllPlayers = function() {
+    const el = document.getElementById('player-list');
+    renderList(allPlayers, el);
+    document.getElementById('load-more-btn').style.display = 'none';
+  };
 </script>
 <script src="/ptr.js"></script>
 </body>
