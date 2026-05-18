@@ -879,7 +879,7 @@ async function submitScore() {
         const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
         const hasScore = pHoles.some(v => v !== null);
 
-        // 동반자 scoreHistory 저장 (스코어가 입력된 경우만, 이미 제출 안 한 경우만)
+        // 동반자 scoreHistory 저장 + 통계 업데이트 (스코어가 입력된 경우만, 이미 제출 안 한 경우만)
         let pAlreadySubmitted = isMe ? alreadySubmitted : false;
         if (!isMe && hasScore) {
           const pHistSnap = await getDoc(doc(db, 'users', p.uid, 'scoreHistory', joinId));
@@ -897,6 +897,29 @@ async function submitScore() {
               joinId,
               submittedAt: serverTimestamp(),
             });
+            // 동반자 핸디캡 통계 업데이트
+            try {
+              const pHistAllSnap = await getDocs(
+                query(collection(db, 'users', p.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+              );
+              const pAllScores = pHistAllSnap.docs.map(d => d.data().totalScore ?? 0);
+              const pRecent10 = pAllScores.slice(0, 10);
+              const pRecent3  = pAllScores.slice(0, 3);
+              const pPrev3    = pAllScores.slice(3, 6);
+              const pHandicap = pRecent10.length
+                ? Math.round(pRecent10.reduce((a, b) => a + b, 0) / pRecent10.length * 10) / 10
+                : null;
+              const pHandicapTrend = (pRecent3.length === 3 && pPrev3.length === 3)
+                ? Math.round((pRecent3.reduce((a, b) => a + b, 0) / 3 - pPrev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+                : null;
+              await updateDoc(doc(db, 'users', p.uid), {
+                handicap: pHandicap,
+                bestScore: pAllScores.length ? Math.min(...pAllScores) : null,
+                roundCount: pAllScores.length,
+                handicapTrend: pHandicapTrend,
+                statsUpdatedAt: serverTimestamp(),
+              });
+            } catch(_) {}
           }
         }
 
