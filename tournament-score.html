@@ -111,7 +111,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -259,6 +259,30 @@ window.submitScore = async function() {
       tournamentName: t.name || '',
       submittedAt: serverTimestamp()
     });
+
+    // 핸디캡 통계 업데이트
+    try {
+      const histSnap = await getDocs(
+        query(collection(db, 'users', currentUid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+      );
+      const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
+      const recent10 = allScores.slice(0, 10);
+      const recent3  = allScores.slice(0, 3);
+      const prev3    = allScores.slice(3, 6);
+      const handicap = recent10.length
+        ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
+        : null;
+      const handicapTrend = (recent3.length === 3 && prev3.length === 3)
+        ? Math.round((recent3.reduce((a, b) => a + b, 0) / 3 - prev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+        : null;
+      await updateDoc(doc(db, 'users', currentUid), {
+        handicap,
+        bestScore: allScores.length ? Math.min(...allScores) : null,
+        roundCount: allScores.length,
+        handicapTrend,
+        statsUpdatedAt: serverTimestamp()
+      });
+    } catch(_) {}
 
     showMsg('스코어가 저장되었습니다!', 'success');
     btn.textContent = '저장 완료';
