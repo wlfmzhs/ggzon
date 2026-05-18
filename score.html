@@ -854,15 +854,13 @@ async function submitScore() {
       );
       const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
       const recent10 = allScores.slice(0, 10);
-      const recent3  = allScores.slice(0, 3);
-      const prev3    = allScores.slice(3, 6);
       const handicap = recent10.length
         ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
         : null;
       const bestScore = allScores.length ? Math.min(...allScores) : null;
       const roundCount = allScores.length;
-      const handicapTrend = (recent3.length === 3 && prev3.length === 3)
-        ? Math.round((recent3.reduce((a, b) => a + b, 0) / 3 - prev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+      const handicapTrend = allScores.length >= 2
+        ? Math.round((allScores[0] - allScores[1]) * 10) / 10
         : null;
       await updateDoc(doc(db, 'users', currentUser.uid), {
         handicap, bestScore, roundCount, handicapTrend, statsUpdatedAt: serverTimestamp()
@@ -904,13 +902,11 @@ async function submitScore() {
               );
               const pAllScores = pHistAllSnap.docs.map(d => d.data().totalScore ?? 0);
               const pRecent10 = pAllScores.slice(0, 10);
-              const pRecent3  = pAllScores.slice(0, 3);
-              const pPrev3    = pAllScores.slice(3, 6);
               const pHandicap = pRecent10.length
                 ? Math.round(pRecent10.reduce((a, b) => a + b, 0) / pRecent10.length * 10) / 10
                 : null;
-              const pHandicapTrend = (pRecent3.length === 3 && pPrev3.length === 3)
-                ? Math.round((pRecent3.reduce((a, b) => a + b, 0) / 3 - pPrev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+              const pHandicapTrend = pAllScores.length >= 2
+                ? Math.round((pAllScores[0] - pAllScores[1]) * 10) / 10
                 : null;
               await updateDoc(doc(db, 'users', p.uid), {
                 handicap: pHandicap,
