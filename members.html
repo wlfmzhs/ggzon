@@ -133,6 +133,9 @@
     .trend-up   { color: #e74c3c; }
     .trend-flat { color: rgba(255,255,255,0.28); }
 
+    .rank-arrow-up   { font-size: 10px; color: #e74c3c; font-weight: 900; margin-left: 5px; vertical-align: middle; line-height: 1; }
+    .rank-arrow-down { font-size: 10px; color: #4a8fd4; font-weight: 900; margin-left: 5px; vertical-align: middle; line-height: 1; }
+
     .empty-msg {
       text-align: center; font-size: 13px; color: rgba(255,255,255,0.3);
       padding: 50px 24px; line-height: 1.8;
@@ -210,9 +213,15 @@
     const bestStr = best === null ? '' : ` · 베스트 ${best === 0 ? 'E' : best > 0 ? '+' + best : best}`;
     const t = u.handicapTrend;
     let trendHtml = '<span class="trend-flat">- 유지</span>';
+    let arrowHtml = '';
     if (t !== null && t !== undefined) {
-      if (t < -0.5) trendHtml = `<span class="trend-down">&#9660; ${Math.abs(t).toFixed(1)} 개선</span>`;
-      else if (t > 0.5) trendHtml = `<span class="trend-up">&#9650; ${t.toFixed(1)} 상승</span>`;
+      if (t < -0.5) {
+        trendHtml = `<span class="trend-down">&#9660; ${Math.abs(t).toFixed(1)} 개선</span>`;
+        arrowHtml = `<span class="rank-arrow-up">&#9650;</span>`;
+      } else if (t > 0.5) {
+        trendHtml = `<span class="trend-up">&#9650; ${t.toFixed(1)} 상승</span>`;
+        arrowHtml = `<span class="rank-arrow-down">&#9660;</span>`;
+      }
     }
     const badges = [];
     if (u.hasEagle) badges.push('<span class="badge badge-eagle">이글</span>');
@@ -220,7 +229,7 @@
     return `<div class="member-card ${rc}" style="animation-delay:${Math.min(rank - 1, 9) * 0.07}s">
   <div class="rank-num">${rank}</div>
   <div class="member-info">
-    <div class="member-nick">${nick}</div>
+    <div class="member-nick">${nick}${arrowHtml}</div>
     <div class="member-meta">${metaParts.join(' · ')}${bestStr}</div>
     ${badges.length ? `<div class="member-badges">${badges.join('')}</div>` : ''}
   </div>
