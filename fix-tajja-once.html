@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>타짜골퍼 통계 확인/수정</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0a2406; color: #fff; font-family: 'Apple SD Gothic Neo', sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+    h2 { font-size: 18px; margin-bottom: 4px; }
+    .sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 20px; }
+    .log { background: #000; border-radius: 10px; padding: 14px; font-size: 11px; font-family: monospace; min-height: 200px; white-space: pre-wrap; color: #3ea066; margin-bottom: 14px; max-height: 500px; overflow-y: auto; }
+    .btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+    .btn-check { background: rgba(62,160,102,0.25); border: 1px solid rgba(62,160,102,0.5); color: #3ea066; }
+    .btn-fix   { background: #3ea066; color: #fff; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .success { color: #3ea066; }
+    .error   { color: #e74c3c; }
+    .info    { color: #f0c040; }
+    .dim     { color: rgba(255,255,255,0.35); }
+  </style>
+</head>
+<body>
+  <h2>타짜골퍼 (오병석) 통계 확인/수정</h2>
+  <p class="sub">scoreHistory 현황 확인 후 필요시 stats 재집계</p>
+  <div id="log" class="log">대기 중...</div>
+  <button class="btn btn-check" id="btn-check" onclick="checkUser()">현황 확인</button>
+  <button class="btn btn-fix"   id="btn-fix"   onclick="fixUser()" style="display:none">stats 재집계 실행</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, updateDoc,
+  query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let logEl;
+let foundUid = null;
+
+function log(msg, cls = '') {
+  if (!logEl) logEl = document.getElementById('log');
+  logEl.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+onAuthStateChanged(auth, user => {
+  if (!user || user.email !== 'wlfmzhs@naver.com') {
+    log('관리자 계정으로 로그인 후 실행하세요.', 'error');
+    document.getElementById('btn-check').disabled = true;
+  } else {
+    log(`로그인 확인: ${user.email}`, 'success');
+  }
+});
+
+window.checkUser = async function() {
+  logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+  document.getElementById('btn-check').disabled = true;
+
+  try {
+    // users 전체에서 name OR nickname 매칭
+    log('유저 검색 중 (name: 오병석 / nickname: 타짜골퍼)...', 'info');
+    const usersSnap = await getDocs(collection(db, 'users'));
+    let targetDoc = null;
+    usersSnap.docs.forEach(d => {
+      const u = d.data();
+      if (u.name === '오병석' || u.nickname === '타짜골퍼') {
+        targetDoc = { uid: d.id, ...u };
+      }
+    });
+
+    if (!targetDoc) {
+      log('유저를 찾을 수 없습니다. name/nickname 필드를 확인해주세요.', 'error');
+      // 모든 유저 name/nickname 목록 출력
+      log('\n--- 전체 유저 name/nickname 목록 ---', 'dim');
+      usersSnap.docs.forEach(d => {
+        const u = d.data();
+        log(`  ${d.id.slice(0,8)}... | name: ${u.name || '-'} | nickname: ${u.nickname || '-'}`, 'dim');
+      });
+      document.getElementById('btn-check').disabled = false;
+      return;
+    }
+
+    foundUid = targetDoc.uid;
+    log(`\n유저 발견!`, 'success');
+    log(`  UID     : ${foundUid}`, 'info');
+    log(`  name    : ${targetDoc.name || '-'}`, 'info');
+    log(`  nickname: ${targetDoc.nickname || '-'}`, 'info');
+    log(`  현재 roundCount : ${targetDoc.roundCount ?? 'null'}`, targetDoc.roundCount > 0 ? 'success' : 'error');
+    log(`  현재 handicap   : ${targetDoc.handicap ?? 'null'}`, targetDoc.handicap !== null && targetDoc.handicap !== undefined ? 'success' : 'error');
+    log(`  현재 bestScore  : ${targetDoc.bestScore ?? 'null'}`, 'info');
+
+    // scoreHistory 목록 확인
+    log('\nscoreHistory 목록:', 'info');
+    const histSnap = await getDocs(
+      query(collection(db, 'users', foundUid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+    );
+
+    if (histSnap.empty) {
+      log('  scoreHistory 없음!', 'error');
+    } else {
+      histSnap.docs.forEach((d, i) => {
+        const s = d.data();
+        const score = s.totalScore ?? 0;
+        const scoreStr = score === 0 ? 'E' : score > 0 ? `+${score}` : String(score);
+        const type = s.type === 'tournament' ? `[대회] ${s.tournamentName || s.course}` : `[라운드] ${s.course}`;
+        log(`  ${i+1}. ${type} / ${s.date || '-'} / ${scoreStr}`, 'success');
+      });
+      log(`\n  총 ${histSnap.docs.length}개 기록`, histSnap.docs.length >= 2 ? 'success' : 'error');
+    }
+
+    log('\n확인 완료. stats 재집계가 필요하면 아래 버튼을 누르세요.', 'info');
+    document.getElementById('btn-fix').style.display = 'block';
+    document.getElementById('btn-check').disabled = false;
+
+  } catch(e) {
+    log('오류: ' + e.message, 'error');
+    document.getElementById('btn-check').disabled = false;
+  }
+};
+
+window.fixUser = async function() {
+  if (!foundUid) { log('먼저 현황 확인을 실행하세요.', 'error'); return; }
+  document.getElementById('btn-fix').disabled = true;
+
+  try {
+    log('\nstats 재집계 중...', 'info');
+    const histSnap = await getDocs(
+      query(collection(db, 'users', foundUid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+    );
+
+    if (histSnap.empty) {
+      log('scoreHistory가 없어 집계할 수 없습니다.', 'error');
+      document.getElementById('btn-fix').disabled = false;
+      return;
+    }
+
+    const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
+    const recent10  = allScores.slice(0, 10);
+    const recent3   = allScores.slice(0, 3);
+    const prev3     = allScores.slice(3, 6);
+    const handicap  = recent10.length
+      ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
+      : null;
+    const handicapTrend = (recent3.length === 3 && prev3.length === 3)
+      ? Math.round((recent3.reduce((a, b) => a + b, 0) / 3 - prev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+      : null;
+    const bestScore  = Math.min(...allScores);
+    const roundCount = allScores.length;
+
+    await updateDoc(doc(db, 'users', foundUid), {
+      handicap, bestScore, roundCount, handicapTrend, statsUpdatedAt: serverTimestamp()
+    });
+
+    const hLabel = handicap === null ? 'null' : (handicap > 0 ? '+' + handicap : String(handicap));
+    log(`  roundCount  : ${roundCount}`, 'success');
+    log(`  handicap    : ${hLabel}`, 'success');
+    log(`  bestScore   : ${bestScore > 0 ? '+' + bestScore : bestScore}`, 'success');
+    log(`  handicapTrend: ${handicapTrend ?? 'null'}`, 'success');
+    log('\n완료! GG PLAYER에 반영됩니다.', 'success');
+    log('이 파일을 삭제해 주세요: fix-tajja-once.html', 'dim');
+
+  } catch(e) {
+    log('오류: ' + e.message, 'error');
+    document.getElementById('btn-fix').disabled = false;
+  }
+};
+</script>
+</body>
+</html>
