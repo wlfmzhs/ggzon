@@ -636,29 +636,53 @@
         <div class="live-empty">불러오는 중...</div>
       </div>
 
-      <!-- 대회 결과 히스토그램 -->
+      <!-- 대회 결과 히스토그램 (동적) -->
       <div class="chart-section section-gap" id="chartSection" style="margin-top:20px;">
         <div class="chart-header">
-          <div class="chart-title">2025 GPGA OPEN 타수 분포</div>
-          <a href="result-gpga-2025.html" class="chart-link">전체보기 →</a>
+          <div class="chart-title" id="chartTitle">대회 결과 불러오는 중...</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button id="chartAdminBtn" style="display:none;background:rgba(62,160,102,0.2);border:1px solid rgba(62,160,102,0.4);color:var(--green-light);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:inherit;" onclick="openScoreEntryModal()">+ 스코어 입력</button>
+            <a id="chartLink" href="#" class="chart-link" style="display:none;">전체보기 →</a>
+          </div>
         </div>
-        <div class="chart-highlight">
+        <div class="chart-highlight" id="chartHighlight" style="display:none;">
           <div class="chart-highlight-item">
-            <div class="chart-highlight-num">48<span>명</span></div>
-            <div class="chart-highlight-label">참가자</div>
+            <div class="chart-highlight-num" id="chartCount">-<span>명</span></div>
+            <div class="chart-highlight-label">제출자</div>
           </div>
           <div class="chart-highlight-divider"></div>
           <div class="chart-highlight-item">
-            <div class="chart-highlight-num highlight-avg">+11<span>타</span></div>
+            <div class="chart-highlight-num highlight-avg" id="chartAvg">-</div>
             <div class="chart-highlight-label">평균 스코어</div>
           </div>
           <div class="chart-highlight-divider"></div>
           <div class="chart-highlight-item">
-            <div class="chart-highlight-num highlight-top">42%</div>
-            <div class="chart-highlight-label">싱글디지트(+9이하)</div>
+            <div class="chart-highlight-num highlight-top" id="chartSingle">-</div>
+            <div class="chart-highlight-label">싱글(+9이하)</div>
           </div>
         </div>
         <div class="chart-bars" id="chartBars"></div>
+      </div>
+
+      <!-- 어드민 스코어 입력 모달 -->
+      <div id="scoreEntryOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:flex-end;" class="bottom-modal">
+        <div style="width:100%;max-width:390px;margin:0 auto;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:80vh;display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
+            <div style="font-size:16px;font-weight:900;" id="scoreEntryTitle">스코어 입력</div>
+            <button onclick="closeScoreEntryModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:22px;cursor:pointer;line-height:1;">×</button>
+          </div>
+          <div style="overflow-y:auto;flex:1;scrollbar-width:none;">
+            <div id="unsubmittedList" style="margin-bottom:16px;"></div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;margin-top:4px;">
+              <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:10px;font-weight:700;">직접 입력</div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input id="manualName" placeholder="이름" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none;" />
+                <input id="manualStrokes" type="number" placeholder="타수" style="width:72px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none;" />
+                <button onclick="saveManualScore()" style="background:#3ea066;border:none;border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div><!-- /content-inner-pad -->
@@ -728,7 +752,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const app = initializeApp({
@@ -755,6 +779,7 @@
     loadTournamentList();
     loadGGLogGrid();
     loadGGPlayerList();
+    loadLatestTournamentChart();
     window._isPaidUser = true;
   }
 
@@ -1059,6 +1084,208 @@
     _selectedFile = null;
   };
 
+  // ── 최신 마감 대회 차트 ────────────────────────────────
+  let _chartTournId = null;
+  let _chartCoursePar = 72;
+
+  const BINS = [
+    { label: '언더',  min: -99, max: -1  },
+    { label: 'E',     min: 0,   max: 0   },
+    { label: '+1~5',  min: 1,   max: 5   },
+    { label: '+6~9',  min: 6,   max: 9   },
+    { label: '+10~15',min: 10,  max: 15  },
+    { label: '+16~20',min: 16,  max: 20  },
+    { label: '+21',   min: 21,  max: 999 },
+  ];
+
+  async function loadLatestTournamentChart() {
+    try {
+      const snap = await getDocs(query(collection(db, 'tournaments'), orderBy('createdAt', 'desc'), limit(20)));
+      const closed = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(t => t.status === 'closed');
+      if (!closed) { document.getElementById('chartTitle').textContent = '마감된 대회가 없습니다'; return; }
+
+      _chartTournId   = closed.id;
+      _chartCoursePar = closed.coursePar || 72;
+
+      document.getElementById('chartTitle').textContent = `${closed.name} 타수 분포`;
+      document.getElementById('chartLink').href = `tournament-result.html?id=${closed.id}`;
+      document.getElementById('chartLink').style.display = '';
+      if (isAdmin) document.getElementById('chartAdminBtn').style.display = '';
+
+      await renderChart();
+    } catch(e) {
+      document.getElementById('chartTitle').textContent = '대회 결과 불러오기 실패';
+    }
+  }
+
+  async function renderChart() {
+    const scoresSnap = await getDocs(collection(db, 'tournaments', _chartTournId, 'scores'));
+    const rels = scoresSnap.docs
+      .map(d => d.data().totalStrokes)
+      .filter(s => s > 0)
+      .map(s => s - _chartCoursePar);
+
+    if (!rels.length) {
+      document.getElementById('chartTitle').textContent += ' (제출 없음)';
+      return;
+    }
+
+    const avg    = Math.round(rels.reduce((a, b) => a + b, 0) / rels.length * 10) / 10;
+    const single = rels.filter(r => r <= 9).length;
+    const singlePct = Math.round(single / rels.length * 100);
+
+    document.getElementById('chartCount').innerHTML = `${rels.length}<span>명</span>`;
+    document.getElementById('chartAvg').innerHTML = `${avg > 0 ? '+' : ''}${avg}<span>타</span>`;
+    document.getElementById('chartSingle').textContent = `${singlePct}%`;
+    document.getElementById('chartHighlight').style.display = 'flex';
+
+    const bins = BINS.map(b => ({ ...b, count: rels.filter(r => r >= b.min && r <= b.max).length }));
+    const avgBinIdx = bins.findIndex(b => avg >= b.min && avg <= b.max);
+    const maxCount  = Math.max(...bins.map(b => b.count), 1);
+    const barsEl    = document.getElementById('chartBars');
+    barsEl.innerHTML = '';
+
+    bins.forEach((bin, i) => {
+      const heightPct = (bin.count / maxCount) * 100;
+      const isAvg  = i === avgBinIdx;
+      const isUnder = i === 0 && bin.count > 0;
+      const color  = isAvg ? 'var(--green-light)' : isUnder ? '#e84c1e' : 'rgba(62,160,102,0.45)';
+      const col    = document.createElement('div');
+      col.className = 'bar-col' + (isAvg ? ' avg-col' : '');
+      col.innerHTML = `
+        <div class="bar-count">${bin.count || ''}</div>
+        <div class="bar-wrap"><div class="bar" style="height:${heightPct}%;background:${color};transition-delay:${i*0.08}s"></div></div>
+        <div class="bar-label">${bin.label}</div>`;
+      barsEl.appendChild(col);
+    });
+
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { barsEl.querySelectorAll('.bar').forEach(b => b.classList.add('animated')); obs.disconnect(); }});
+    }, { threshold: 0.3 });
+    obs.observe(document.getElementById('chartSection'));
+  }
+
+  // ── 스코어 입력 모달 (어드민) ──────────────────────────
+  window.openScoreEntryModal = async function() {
+    if (!_chartTournId) return;
+    document.getElementById('scoreEntryOverlay').style.display = 'flex';
+
+    // 등록자 중 미제출자 목록
+    const [regsSnap, scoresSnap] = await Promise.all([
+      getDocs(collection(db, 'tournaments', _chartTournId, 'registrations')),
+      getDocs(collection(db, 'tournaments', _chartTournId, 'scores')),
+    ]);
+    const submittedUids = new Set(scoresSnap.docs.map(d => d.id));
+    const unsubmitted   = regsSnap.docs
+      .map(d => ({ uid: d.data().userId || d.id, name: d.data().name || d.data().nickname || '-' }))
+      .filter(r => r.uid && !submittedUids.has(r.uid));
+
+    const listEl = document.getElementById('unsubmittedList');
+    if (!unsubmitted.length) {
+      listEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:8px;">미제출 등록자 없음</div>';
+    } else {
+      listEl.innerHTML = `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;font-weight:700;">미제출 등록자 (${unsubmitted.length}명)</div>` +
+        unsubmitted.map(r => `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="flex:1;font-size:13px;font-weight:700;">${r.name}</span>
+            <input type="number" placeholder="타수" data-uid="${r.uid}" data-name="${r.name}"
+              style="width:72px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:10px;padding:8px 10px;color:#fff;font-size:13px;font-family:inherit;outline:none;" />
+            <button onclick="saveRegisteredScore('${r.uid}','${r.name}',this)"
+              style="background:#3ea066;border:none;border-radius:10px;padding:8px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">저장</button>
+          </div>`).join('');
+    }
+  };
+
+  window.closeScoreEntryModal = function() {
+    document.getElementById('scoreEntryOverlay').style.display = 'none';
+  };
+
+  window.saveRegisteredScore = async function(uid, name, btn) {
+    const row    = btn.parentElement;
+    const inp    = row.querySelector('input[type=number]');
+    const strokes = parseInt(inp.value);
+    if (!strokes || strokes < 50 || strokes > 150) { inp.style.borderColor = '#e74c3c'; return; }
+    btn.disabled = true; btn.textContent = '...';
+    await _saveScore(uid, name, strokes);
+    row.innerHTML = `<span style="font-size:12px;color:var(--green-light);padding:4px 0;">${name} — ${strokes}타 저장됨</span>`;
+  };
+
+  window.saveManualScore = async function() {
+    const name    = document.getElementById('manualName').value.trim();
+    const strokes = parseInt(document.getElementById('manualStrokes').value);
+    if (!name || !strokes || strokes < 50 || strokes > 150) return;
+    const btn = document.querySelector('#scoreEntryOverlay button[onclick="saveManualScore()"]');
+    btn.disabled = true; btn.textContent = '...';
+
+    // 이름으로 uid 탐색
+    const usersSnap = await getDocs(collection(db, 'users'));
+    let uid = null;
+    usersSnap.docs.forEach(d => {
+      const u = d.data();
+      if ((u.name === name || u.nickname === name) && !uid) uid = d.id;
+    });
+    uid = uid || ('manual_' + name.replace(/\s/g, '_'));
+
+    await _saveScore(uid, name, strokes);
+    document.getElementById('manualName').value = '';
+    document.getElementById('manualStrokes').value = '';
+    btn.disabled = false; btn.textContent = '저장';
+    showToast?.(`${name} ${strokes}타 저장됨`);
+  };
+
+  async function _saveScore(uid, name, strokes) {
+    if (!_chartTournId) return;
+    const par        = _chartCoursePar;
+    const totalScore = strokes - par;
+    const now        = serverTimestamp();
+
+    // 대회 scores 저장
+    await setDoc(doc(db, 'tournaments', _chartTournId, 'scores', uid), {
+      uid, name, totalStrokes: strokes, submittedAt: now,
+    });
+
+    // users scoreHistory 저장 (실제 uid인 경우만)
+    if (!uid.startsWith('manual_')) {
+      try {
+        const histRef = doc(db, 'users', uid, 'scoreHistory', _chartTournId);
+        const existing = await getDoc(histRef);
+        if (!existing.exists()) {
+          const tournSnap = await getDoc(doc(db, 'tournaments', _chartTournId));
+          const t = tournSnap.data() || {};
+          await setDoc(histRef, {
+            course: t.golfCourseName || t.name || '',
+            date: t.date || '',
+            totalScore, totalStrokes: strokes,
+            holes: [], parHoles: [], companions: [],
+            type: 'tournament',
+            tournamentName: t.name || '',
+            submittedAt: now,
+          });
+          // stats 재집계
+          const allHistSnap = await getDocs(query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc')));
+          const allScores   = allHistSnap.docs.map(d => d.data().totalScore ?? 0);
+          const recent10    = allScores.slice(0, 10);
+          const handicap    = recent10.length ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10 : null;
+          const handicapTrend = allScores.length >= 2 ? Math.round((allScores[0] - allScores[1]) * 10) / 10 : null;
+          await setDoc(doc(db, 'users', uid), {
+            handicap, bestScore: allScores.length ? Math.min(...allScores) : null,
+            roundCount: allScores.length, handicapTrend, statsUpdatedAt: now,
+          }, { merge: true });
+        }
+      } catch(_) {}
+    }
+
+    // 차트 새로고침
+    await renderChart();
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg; el.style.opacity = '1';
+    setTimeout(() => { el.style.opacity = '0'; }, 2500);
+  }
+
   window.doUpload = async function() {
     if (!_selectedFile) return;
     const btn = document.getElementById('upload-btn');
@@ -1087,33 +1314,6 @@
     }
   };
 
-</script>
-<script src="data-gpga-2025.js"></script>
-<script>
-  const maxCount = Math.max(...GPGA2025.histogram.map(b => b.count));
-  const bars = document.getElementById('chartBars');
-  GPGA2025.histogram.forEach((bin, i) => {
-    const heightPct = (bin.count / maxCount) * 100;
-    const col = document.createElement('div');
-    col.className = 'bar-col' + (bin.avg ? ' avg-col' : '');
-    col.innerHTML = `
-      <div class="bar-count">${bin.count}</div>
-      <div class="bar-wrap">
-        <div class="bar" style="height:${heightPct}%;background:${bin.avg ? 'var(--green-light)' : (i===0 ? '#e84c1e' : 'rgba(62,160,102,0.45)')};transition-delay:${i*0.08}s"></div>
-      </div>
-      <div class="bar-label">${bin.label}</div>
-    `;
-    bars.appendChild(col);
-  });
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        document.querySelectorAll('#chartBars .bar').forEach(b => b.classList.add('animated'));
-        observer.disconnect();
-      }
-    });
-  }, { threshold: 0.3 });
-  observer.observe(document.getElementById('chartSection'));
 </script>
 <script src="/ptr.js"></script>
 </body>
