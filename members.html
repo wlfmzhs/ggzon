@@ -135,6 +135,7 @@
 
     .rank-arrow-up   { font-size: 10px; color: #e74c3c; font-weight: 900; margin-left: 5px; vertical-align: middle; line-height: 1; }
     .rank-arrow-down { font-size: 10px; color: #4a8fd4; font-weight: 900; margin-left: 5px; vertical-align: middle; line-height: 1; }
+    .golchelin-stars { font-size: 10px; color: #f0c040; margin-left: 6px; vertical-align: middle; letter-spacing: 1px; line-height: 1; }
 
     .empty-msg {
       text-align: center; font-size: 13px; color: rgba(255,255,255,0.3);
@@ -196,12 +197,21 @@
     loadPlayers();
   });
 
+  // 골슐랭스타 데이터 (golchelin-star.html 동기화)
+  const GOLCHELIN = {
+    "어정우": 3,
+    "이상훈": 2, "임지헌": 2, "이원석": 2, "김도영": 2, "김덕규": 2,
+    "이용훈": 1, "김철영": 1, "권성민": 1,
+  };
+
   let allPlayers = [];
   const PAGE = 10;
 
   function buildCard(u, rank) {
     const rc = rank <= 3 ? ['rank-1','rank-2','rank-3'][rank - 1] : '';
     const nick = u.nickname || u.name || '멤버';
+    const starCount = GOLCHELIN[u.name] || GOLCHELIN[u.nickname] || 0;
+    const starHtml = starCount ? `<span class="golchelin-stars">${'★'.repeat(starCount)}</span>` : '';
     const metaParts = [];
     if (u.birthYear2) metaParts.push(u.birthYear2 + '년생');
     if (u.region) metaParts.push(u.region);
@@ -229,7 +239,7 @@
     return `<div class="member-card ${rc}" style="animation-delay:${Math.min(rank - 1, 9) * 0.07}s">
   <div class="rank-num">${rank}</div>
   <div class="member-info">
-    <div class="member-nick">${nick}${arrowHtml}</div>
+    <div class="member-nick">${nick}${arrowHtml}${starHtml}</div>
     <div class="member-meta">${metaParts.join(' · ')}${bestStr}</div>
     ${badges.length ? `<div class="member-badges">${badges.join('')}</div>` : ''}
   </div>
