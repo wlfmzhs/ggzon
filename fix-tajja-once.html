@@ -25,7 +25,7 @@
   <p class="sub">scoreHistory 현황 확인 후 필요시 stats 재집계</p>
   <div id="log" class="log">대기 중...</div>
   <button class="btn btn-check" id="btn-check" onclick="checkUser()">현황 확인</button>
-  <button class="btn btn-fix"   id="btn-fix"   onclick="fixUser()" style="display:none">stats 재집계 실행</button>
+  <button class="btn btn-fix"   id="btn-fix"   onclick="addTournamentHistory()" style="display:none">흑백대전 scoreHistory 추가 + 재집계</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -131,32 +131,102 @@ window.checkUser = async function() {
   }
 };
 
-window.fixUser = async function() {
+window.addTournamentHistory = async function() {
   if (!foundUid) { log('먼저 현황 확인을 실행하세요.', 'error'); return; }
   document.getElementById('btn-fix').disabled = true;
 
   try {
-    log('\nstats 재집계 중...', 'info');
-    const histSnap = await getDocs(
-      query(collection(db, 'users', foundUid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
-    );
+    // ── 1. 최근 흑백대전 대회 탐색 ───────────────────────
+    log('\n흑백대전 대회 탐색 중...', 'info');
+    const tournsSnap = await getDocs(collection(db, 'tournaments'));
+    const bwList = tournsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(t => (t.name || '').includes('흑백대전'))
+      .sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
 
-    if (histSnap.empty) {
-      log('scoreHistory가 없어 집계할 수 없습니다.', 'error');
+    if (!bwList.length) { log('흑백대전 대회를 찾을 수 없습니다.', 'error'); document.getElementById('btn-fix').disabled = false; return; }
+    const tourn = bwList[0];
+    log(`  대회: ${tourn.name} / ${tourn.date} / ID: ${tourn.id}`, 'success');
+
+    // ── 2. 대회 scores에서 오병석 스코어 탐색 (이름으로) ─
+    log('\n대회 scores에서 오병석 스코어 탐색...', 'info');
+    const scoresSnap = await getDocs(collection(db, 'tournaments', tourn.id, 'scores'));
+    let tournScore = null;
+    let tournScoreUid = null;
+    scoresSnap.docs.forEach(d => {
+      const s = d.data();
+      if (s.name === '오병석' || s.name === '타짜골퍼') {
+        tournScore = s;
+        tournScoreUid = d.id;
+      }
+    });
+
+    // 못 찾으면 registrations에서도 시도
+    if (!tournScore) {
+      log('  scores에서 직접 검색 실패 — registrations에서 추가 탐색...', 'info');
+      const regsSnap = await getDocs(collection(db, 'tournaments', tourn.id, 'registrations'));
+      let regUid = null;
+      regsSnap.docs.forEach(d => {
+        const r = d.data();
+        if (r.name === '오병석' || r.name === '타짜골퍼' || r.uid === foundUid) regUid = d.id;
+      });
+      if (regUid) {
+        const sDoc = await getDoc(doc(db, 'tournaments', tourn.id, 'scores', regUid));
+        if (sDoc.exists()) { tournScore = sDoc.data(); tournScoreUid = regUid; }
+      }
+    }
+
+    // 대회 scores 전체 목록 출력 (진단용)
+    log('\n  대회 제출 전체 목록:', 'dim');
+    scoresSnap.docs.forEach(d => {
+      log(`    uid: ${d.id.slice(0,12)}... / name: ${d.data().name || '-'} / strokes: ${d.data().totalStrokes ?? '-'}`, 'dim');
+    });
+
+    if (!tournScore) {
+      log('\n오병석 대회 스코어를 찾을 수 없습니다.', 'error');
+      log('위 목록에서 오병석 이름을 확인하고 관리자에게 알려주세요.', 'info');
       document.getElementById('btn-fix').disabled = false;
       return;
     }
 
+    log(`\n  스코어 발견: name=${tournScore.name} / strokes=${tournScore.totalStrokes} / uid=${tournScoreUid}`, 'success');
+
+    // ── 3. kakao_4894166099의 scoreHistory에 대회 기록 추가 ─
+    const par = tourn.coursePar || 72;
+    const totalScore = (tournScore.totalStrokes || 0) - par;
+    const histRef = doc(db, 'users', foundUid, 'scoreHistory', tourn.id);
+    const existSnap = await getDoc(histRef);
+    if (existSnap.exists()) {
+      log('\n이미 scoreHistory에 대회 기록이 있습니다.', 'info');
+    } else {
+      const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await setDoc(histRef, {
+        course: tourn.golfCourseName || tourn.name || '',
+        date: tourn.date || '',
+        totalScore,
+        totalStrokes: tournScore.totalStrokes || 0,
+        holes: [], parHoles: [], companions: [],
+        type: 'tournament',
+        tournamentName: tourn.name || '',
+        submittedAt: serverTimestamp(),
+      });
+      const scoreStr = totalScore === 0 ? 'E' : totalScore > 0 ? '+' + totalScore : String(totalScore);
+      log(`\n  scoreHistory 추가 완료: ${tourn.name} / ${scoreStr}`, 'success');
+    }
+
+    // ── 4. stats 재집계 ────────────────────────────────
+    log('\nstats 재집계 중...', 'info');
+    const histSnap = await getDocs(
+      query(collection(db, 'users', foundUid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+    );
     const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
     const recent10  = allScores.slice(0, 10);
     const recent3   = allScores.slice(0, 3);
     const prev3     = allScores.slice(3, 6);
     const handicap  = recent10.length
-      ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
-      : null;
+      ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10 : null;
     const handicapTrend = (recent3.length === 3 && prev3.length === 3)
-      ? Math.round((recent3.reduce((a, b) => a + b, 0) / 3 - prev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10
-      : null;
+      ? Math.round((recent3.reduce((a, b) => a + b, 0) / 3 - prev3.reduce((a, b) => a + b, 0) / 3) * 10) / 10 : null;
     const bestScore  = Math.min(...allScores);
     const roundCount = allScores.length;
 
@@ -168,7 +238,6 @@ window.fixUser = async function() {
     log(`  roundCount  : ${roundCount}`, 'success');
     log(`  handicap    : ${hLabel}`, 'success');
     log(`  bestScore   : ${bestScore > 0 ? '+' + bestScore : bestScore}`, 'success');
-    log(`  handicapTrend: ${handicapTrend ?? 'null'}`, 'success');
     log('\n완료! GG PLAYER에 반영됩니다.', 'success');
     log('이 파일을 삭제해 주세요: fix-tajja-once.html', 'dim');
 
