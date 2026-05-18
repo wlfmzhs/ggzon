@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>울산CC 포인트/기록 수동 처리</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0a2406; color: #fff; font-family: 'Apple SD Gothic Neo', sans-serif; padding: 24px; max-width: 480px; margin: 0 auto; }
+    h2 { font-size: 18px; margin-bottom: 4px; }
+    .sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 24px; }
+    .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(62,160,102,0.25); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .label { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+    .val { font-size: 14px; font-weight: 700; }
+    .log { background: #000; border-radius: 10px; padding: 14px; font-size: 11px; font-family: monospace; min-height: 120px; white-space: pre-wrap; color: #3ea066; margin-bottom: 16px; max-height: 320px; overflow-y: auto; }
+    .btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+    .btn-run { background: #3ea066; color: #fff; }
+    .btn-run:disabled { background: rgba(62,160,102,0.3); cursor: not-allowed; }
+    .btn-del { background: rgba(231,76,60,0.2); border: 1px solid rgba(231,76,60,0.4); color: #ff7b6b; font-size: 13px; padding: 10px; }
+    .warn { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 10px; padding: 12px; font-size: 12px; color: #ff9b8a; margin-bottom: 16px; line-height: 1.6; }
+    .success { color: #3ea066; }
+    .error { color: #e74c3c; }
+    .info { color: #f0c040; }
+  </style>
+</head>
+<body>
+  <h2>울산CC 수동 포인트/기록 처리</h2>
+  <p class="sub">하준경 · 임종우 · 오병석 · 정호룡 — 1회용 수정 스크립트</p>
+
+  <div class="warn">
+    관리자 계정(wlfmzhs@naver.com)으로 로그인된 상태에서만 실행하세요.<br>
+    실행 후 이 파일은 삭제해 주세요.
+  </div>
+
+  <div class="card">
+    <div class="label">처리 대상</div>
+    <div class="val">울산CC 조인 (가장 최근 진행중 or 마감 건)</div>
+  </div>
+
+  <div id="log" class="log">대기 중...</div>
+
+  <button class="btn btn-run" id="btn-run" onclick="runFix()">포인트 & 스코어 기록 처리 실행</button>
+  <button class="btn btn-del" onclick="deleteSelf()">처리 완료 — 이 페이지 파일 삭제 요청</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, updateDoc, setDoc, addDoc,
+  query, where, orderBy, serverTimestamp, increment
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const TARGET_NAMES = ['하준경', '임종우', '오병석', '정호룡'];
+
+let logEl;
+function log(msg, cls = '') {
+  if (!logEl) logEl = document.getElementById('log');
+  logEl.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    log('로그인 필요: 먼저 login.html에서 관리자 계정으로 로그인하세요.', 'error');
+    document.getElementById('btn-run').disabled = true;
+  } else {
+    log(`로그인 확인: ${user.email}`, 'success');
+    if (user.email !== 'wlfmzhs@naver.com') {
+      log('관리자 계정이 아닙니다. 실행이 제한됩니다.', 'error');
+      document.getElementById('btn-run').disabled = true;
+    }
+  }
+});
+
+window.runFix = async function() {
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+  logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+
+  try {
+    // ── 1. 울산CC 조인 찾기 ─────────────────────────────
+    log('1. 울산CC 조인 검색 중...', 'info');
+    const joinsSnap = await getDocs(collection(db, 'joins'));
+    const ulsanJoins = joinsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(j => (j.course || '').includes('울산CC'))
+      .sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+
+    if (!ulsanJoins.length) {
+      log('울산CC 조인을 찾을 수 없습니다.', 'error');
+      btn.disabled = false; btn.textContent = '다시 시도';
+      return;
+    }
+
+    // 아직 pointsAwarded 가 없는 건 우선 선택, 없으면 최신 건
+    const target = ulsanJoins.find(j => !j.pointsAwarded) || ulsanJoins[0];
+    log(`조인 발견: ${target.course} / ${target.date} ${target.time} / ID: ${target.id}`, 'success');
+    log(`참여자(저장된): ${(target.participants || []).map(p => p.name).join(', ')}`, 'info');
+
+    if (target.pointsAwarded) {
+      log('이 조인은 이미 pointsAwarded = true 입니다. 중복 처리를 건너뜁니다.', 'error');
+      btn.disabled = false; btn.textContent = '완료됨';
+      return;
+    }
+
+    const joinParticipants = target.participants || [];
+    const joinScores = target.scores || {};
+    const parHoles = [
+      ...(target.parFront || Array(9).fill(null)),
+      ...(target.parBack  || Array(9).fill(null)),
+    ];
+
+    // ── 2. 4명 유저 UID 찾기 ──────────────────────────────
+    log('\n2. 유저 UID 검색 중...', 'info');
+    const allUsersSnap = await getDocs(collection(db, 'users'));
+    const userMap = {}; // name -> { uid, name, docData }
+    allUsersSnap.docs.forEach(d => {
+      const data = d.data();
+      const n = data.name || data.nickname || '';
+      if (TARGET_NAMES.includes(n)) {
+        userMap[n] = { uid: d.id, name: n, ...data };
+        log(`  찾음: ${n} (uid: ${d.id})`, 'success');
+      }
+    });
+
+    const notFound = TARGET_NAMES.filter(n => !userMap[n]);
+    if (notFound.length) {
+      log(`  못 찾음: ${notFound.join(', ')} — 조인 participants 데이터로 대체 시도`, 'info');
+      // 조인 participants에서 uid를 가져와서 보완
+      joinParticipants.forEach(p => {
+        if (TARGET_NAMES.includes(p.name) && !userMap[p.name]) {
+          userMap[p.name] = { uid: p.uid, name: p.name };
+          log(`  participants에서 보완: ${p.name} (uid: ${p.uid})`, 'info');
+        }
+      });
+    }
+
+    const foundUsers = Object.values(userMap);
+    if (!foundUsers.length) {
+      log('처리 가능한 유저가 없습니다.', 'error');
+      btn.disabled = false; btn.textContent = '다시 시도';
+      return;
+    }
+
+    // ── 3. 각 유저 처리 ──────────────────────────────────
+    log('\n3. 포인트 & 스코어 기록 처리 중...', 'info');
+    const now = new Date().toISOString();
+
+    for (const user of foundUsers) {
+      log(`\n  [${user.name}] uid: ${user.uid}`, 'info');
+
+      // 스코어 데이터 (join 문서의 scores 필드에서)
+      const pHoles = (joinScores[user.uid] || {}).holes || Array(18).fill(null);
+      const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
+      const hasScore = pHoles.some(v => v !== null);
+      log(`    스코어: ${hasScore ? pTotal + ' (홀 입력 수: ' + pHoles.filter(v=>v!==null).length + ')' : '입력 없음'}`, hasScore ? 'success' : 'info');
+
+      // 이미 제출됐는지 확인
+      const histRef = doc(db, 'users', user.uid, 'scoreHistory', target.id);
+      const histSnap = await getDoc(histRef);
+      const alreadyDone = histSnap.exists();
+
+      if (alreadyDone) {
+        log(`    scoreHistory 이미 존재 — 건너뜀`, 'info');
+      } else if (hasScore) {
+        const companions = foundUsers.filter(u => u.uid !== user.uid).map(u => ({ name: u.name, uid: u.uid }));
+        await setDoc(histRef, {
+          course:      target.course      || '',
+          frontCourse: target.frontCourse || '',
+          backCourse:  target.backCourse  || '',
+          date:        target.date        || '',
+          companions,
+          totalScore:  pTotal,
+          holes:       pHoles,
+          parHoles,
+          joinId:      target.id,
+          submittedAt: serverTimestamp(),
+        });
+        log(`    scoreHistory 저장 완료 (${pTotal > 0 ? '+' : ''}${pTotal})`, 'success');
+      } else {
+        log(`    스코어 없음 — scoreHistory 저장 생략`, 'info');
+      }
+
+      // 조인참여 포인트 +10
+      await updateDoc(doc(db, 'users', user.uid), { totalPoints: increment(10) });
+      await addDoc(collection(db, 'pointHistory'), {
+        uid: user.uid, name: user.name,
+        type: '조인참여', amount: 10,
+        ref: target.course || '울산CC', date: now,
+      });
+      log(`    조인참여 포인트 +10 지급`, 'success');
+
+      // 스코어 포인트 (스코어 있고 미제출인 경우)
+      if (hasScore && !alreadyDone) {
+        const pts = pTotal < 0 ? 40 : pTotal <= 5 ? 30 : pTotal <= 9 ? 20 : pTotal <= 15 ? 15 : 10;
+        const label = pTotal < 0 ? '언더파' : pTotal <= 5 ? 'E~+5' : pTotal <= 9 ? '+6~+9' : pTotal <= 15 ? '+10~+15' : '+16이상';
+        await updateDoc(doc(db, 'users', user.uid), { totalPoints: increment(pts) });
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: user.uid, name: user.name,
+          type: '스코어', amount: pts,
+          ref: `${target.course || '울산CC'} (${label})`, date: now,
+        });
+        log(`    스코어 포인트 +${pts} 지급 (${label})`, 'success');
+      }
+    }
+
+    // ── 4. 조인 마감 처리 ─────────────────────────────────
+    log('\n4. 조인 마감 처리...', 'info');
+    await updateDoc(doc(db, 'joins', target.id), {
+      status: 'closed',
+      pointsAwarded: true,
+    });
+    log('   status: closed + pointsAwarded: true 설정 완료', 'success');
+
+    log('\n완료! 모든 처리가 정상적으로 완료되었습니다.', 'success');
+    btn.textContent = '처리 완료';
+
+  } catch (e) {
+    log('오류 발생: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '다시 시도';
+  }
+};
+
+window.deleteSelf = function() {
+  alert('이 파일을 수동으로 삭제해 주세요:\nC:\\Users\\golgab\\Desktop\\golf story\\ggzon\\fix-ulsan-once.html');
+};
+</script>
+</body>
+</html>
