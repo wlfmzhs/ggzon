@@ -1271,6 +1271,22 @@
             handicap, bestScore: allScores.length ? Math.min(...allScores) : null,
             roundCount: allScores.length, handicapTrend, statsUpdatedAt: now,
           }, { merge: true });
+
+          // GG 포인트 지급 (최초 입력 시만)
+          const nowStr     = new Date().toISOString();
+          const t2         = (await getDoc(doc(db, 'tournaments', _chartTournId))).data() || {};
+          const courseName = t2.golfCourseName || t2.name || '대회';
+          await setDoc(doc(db, 'users', uid), { totalPoints: increment(10) }, { merge: true });
+          await addDoc(collection(db, 'pointHistory'), {
+            uid, name, type: '대회참여', amount: 10, ref: courseName, date: nowStr,
+          });
+          const pts   = totalScore < 0 ? 40 : totalScore <= 5 ? 30 : totalScore <= 9 ? 20 : totalScore <= 15 ? 15 : 10;
+          const label = totalScore < 0 ? '언더파' : totalScore <= 5 ? 'E~+5' : totalScore <= 9 ? '+6~+9' : totalScore <= 15 ? '+10~+15' : '+16이상';
+          await setDoc(doc(db, 'users', uid), { totalPoints: increment(pts) }, { merge: true });
+          await addDoc(collection(db, 'pointHistory'), {
+            uid, name, type: '스코어', amount: pts,
+            ref: `${courseName} (${label})`, date: nowStr,
+          });
         }
       } catch(_) {}
     }
