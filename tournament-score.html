@@ -111,7 +111,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, increment, serverTimestamp, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -238,23 +238,22 @@ window.submitScore = async function() {
   btn.disabled = true; btn.textContent = '저장 중...';
   try {
     const t = window._tournData || {};
+    const par        = window._coursePar || 72;
+    const totalScore = totalStrokes - par;
+
+    // 중복 제출 여부 먼저 확인 (포인트 중복 방지)
+    const alreadySubmitted = (await getDoc(doc(db, 'users', currentUid, 'scoreHistory', tournId))).exists();
+
     await setDoc(doc(db, 'tournaments', tournId, 'scores', currentUid), {
-      uid: currentUid,
-      name: nameVal,
-      totalStrokes,
-      submittedAt: serverTimestamp()
+      uid: currentUid, name: nameVal, totalStrokes, submittedAt: serverTimestamp()
     });
 
-    // 마이페이지 스코어 기록에도 저장 (totalScore = 파 대비)
-    const par = window._coursePar || 72;
+    // 마이페이지 스코어 기록 저장
     await setDoc(doc(db, 'users', currentUid, 'scoreHistory', tournId), {
       course: t.golfCourseName || t.name || '',
       date: t.date || '',
-      totalScore: totalStrokes - par,
-      totalStrokes,
-      holes: [],
-      parHoles: [],
-      companions: [],
+      totalScore, totalStrokes,
+      holes: [], parHoles: [], companions: [],
       type: 'tournament',
       tournamentName: t.name || '',
       submittedAt: serverTimestamp()
@@ -266,21 +265,42 @@ window.submitScore = async function() {
         query(collection(db, 'users', currentUid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
       );
       const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
-      const recent10 = allScores.slice(0, 10);
-      const handicap = recent10.length
-        ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
-        : null;
+      const recent10  = allScores.slice(0, 10);
+      const handicap  = recent10.length
+        ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10 : null;
       const handicapTrend = allScores.length >= 2
-        ? Math.round((allScores[0] - allScores[1]) * 10) / 10
-        : null;
+        ? Math.round((allScores[0] - allScores[1]) * 10) / 10 : null;
       await updateDoc(doc(db, 'users', currentUid), {
-        handicap,
-        bestScore: allScores.length ? Math.min(...allScores) : null,
-        roundCount: allScores.length,
-        handicapTrend,
-        statsUpdatedAt: serverTimestamp()
+        handicap, bestScore: allScores.length ? Math.min(...allScores) : null,
+        roundCount: allScores.length, handicapTrend, statsUpdatedAt: serverTimestamp()
       });
     } catch(_) {}
+
+    // GG 포인트 지급 (최초 제출 시만)
+    if (!alreadySubmitted) {
+      try {
+        const now = new Date().toISOString();
+        const courseName = t.golfCourseName || t.name || '대회';
+
+        // 대회참여 +10
+        await updateDoc(doc(db, 'users', currentUid), { totalPoints: increment(10) });
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: currentUid, name: nameVal,
+          type: '대회참여', amount: 10,
+          ref: courseName, date: now,
+        });
+
+        // 스코어 포인트
+        const pts   = totalScore < 0 ? 40 : totalScore <= 5 ? 30 : totalScore <= 9 ? 20 : totalScore <= 15 ? 15 : 10;
+        const label = totalScore < 0 ? '언더파' : totalScore <= 5 ? 'E~+5' : totalScore <= 9 ? '+6~+9' : totalScore <= 15 ? '+10~+15' : '+16이상';
+        await updateDoc(doc(db, 'users', currentUid), { totalPoints: increment(pts) });
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: currentUid, name: nameVal,
+          type: '스코어', amount: pts,
+          ref: `${courseName} (${label})`, date: now,
+        });
+      } catch(_) {}
+    }
 
     showMsg('스코어가 저장되었습니다!', 'success');
     btn.textContent = '저장 완료';
