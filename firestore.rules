@@ -115,5 +115,32 @@ service cloud.firestore {
         allow delete: if isAdmin() || isAnyUser();
       }
     }
+
+    match /usedItems/{itemId} {
+      allow read: if isAnyUser();
+      allow create: if isLoggedIn();
+      allow update: if isAdmin() ||
+        (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])) ||
+        (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
+          resource.data.status == 'sale') ||
+        (isLoggedIn() && resource.data.status == 'sale' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','buyerId','buyerNick'])) ||
+        (isLoggedIn() && resource.data.buyerId == request.auth.uid &&
+          resource.data.status == 'shipped' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
+          resource.data.status == 'confirmed' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        (isAnyUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']));
+      allow delete: if isAdmin() ||
+        (isLoggedIn() && resource.data.sellerId == request.auth.uid && resource.data.status == 'sale');
+
+      match /comments/{commentId} {
+        allow read, create: if isAnyUser();
+        allow delete: if isAdmin() ||
+          (isLoggedIn() && resource.data.authorId == request.auth.uid);
+      }
+    }
   }
 }
