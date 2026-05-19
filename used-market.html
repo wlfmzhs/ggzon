@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+<meta charset="UTF-8" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#1a0e00" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="GGZON" />
+<link rel="apple-touch-icon" href="/image/icon-512.png" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="preconnect" href="https://firestore.googleapis.com" />
+<link rel="preconnect" href="https://www.gstatic.com" />
+<title>GOLGAB ZONE — 중고득템</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --amber: #f5841f;
+    --amber-dim: rgba(245,132,31,0.18);
+    --amber-dark: #1a0e00;
+    --card-bg: #1e1408;
+    --border: rgba(245,132,31,0.18);
+    --text: #fff;
+    --text-dim: rgba(255,255,255,0.45);
+  }
+  html, body { width: 100%; height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: var(--text); }
+  body { display: flex; align-items: center; justify-content: center; }
+  .phone {
+    width: 390px; height: 844px;
+    background: var(--amber-dark);
+    border-radius: 40px;
+    box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .phone::before {
+    content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+  }
+  .appbar {
+    flex-shrink: 0; padding: 36px 18px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .appbar-title { font-size: 17px; font-weight: 900; color: #fff; position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+  .appbar-back { background: none; border: none; color: var(--amber); font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; padding: 4px; }
+  .appbar-btn { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; padding: 5px; line-height: 0; }
+
+  /* 카테고리 탭 */
+  .cat-scroll { flex-shrink: 0; display: flex; gap: 8px; padding: 0 16px 14px; overflow-x: auto; scrollbar-width: none; }
+  .cat-scroll::-webkit-scrollbar { display: none; }
+  .cat-chip {
+    flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.55); font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .cat-chip.active { background: var(--amber); border-color: var(--amber); color: #fff; }
+
+  /* 목록 */
+  .content { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 14px 80px; }
+  .content::-webkit-scrollbar { display: none; }
+  .item-card {
+    display: flex; gap: 12px; padding: 14px; margin-bottom: 10px;
+    background: var(--card-bg); border-radius: 16px;
+    border: 1px solid var(--border); cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .item-card:active { transform: scale(0.98); }
+  .item-thumb {
+    width: 88px; height: 88px; border-radius: 12px; object-fit: cover;
+    flex-shrink: 0; background: rgba(255,255,255,0.05);
+  }
+  .item-thumb-placeholder {
+    width: 88px; height: 88px; border-radius: 12px; flex-shrink: 0;
+    background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.2); font-size: 22px;
+  }
+  .item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+  .item-title { font-size: 14px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-price { font-size: 16px; font-weight: 900; color: var(--amber); margin-top: 4px; }
+  .item-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .item-nick { font-size: 11px; color: var(--text-dim); }
+  .item-view { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--text-dim); }
+  .status-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 800; flex-shrink: 0;
+  }
+  .status-sale { background: rgba(245,132,31,0.2); color: var(--amber); }
+  .status-pending { background: rgba(255,200,0,0.15); color: #ffc800; }
+  .status-confirmed { background: rgba(0,180,255,0.15); color: #00b4ff; }
+  .status-shipped { background: rgba(80,200,80,0.15); color: #50c850; }
+  .status-done { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); }
+  .empty-msg { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 14px; }
+
+  /* FAB */
+  .fab {
+    position: absolute; bottom: 24px; right: 20px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--amber); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(245,132,31,0.45);
+    font-family: inherit; z-index: 10;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .fab:active { transform: scale(0.93); box-shadow: 0 2px 10px rgba(245,132,31,0.3); }
+
+  /* 등록 bottom sheet */
+  .sheet-overlay {
+    display: none; position: absolute; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 200;
+    align-items: flex-end; border-radius: 40px; overflow: hidden;
+  }
+  .sheet-overlay.open { display: flex; }
+  .sheet {
+    width: 100%; background: #1e1408; border-radius: 24px 24px 0 0;
+    padding: 0 0 40px; max-height: 90%;
+    display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .sheet-overlay.open .sheet { transform: translateY(0); }
+  .sheet-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 12px auto 0; }
+  .sheet-header { padding: 14px 18px 0; display: flex; align-items: center; justify-content: space-between; }
+  .sheet-title { font-size: 16px; font-weight: 900; color: #fff; }
+  .sheet-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 26px; cursor: pointer; font-family: inherit; line-height: 1; padding: 0; }
+  .sheet-body { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 16px 18px; }
+  .sheet-body::-webkit-scrollbar { display: none; }
+
+  /* 사진 업로드 영역 */
+  .photo-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .photo-slot {
+    width: 72px; height: 72px; border-radius: 12px;
+    border: 2px dashed rgba(245,132,31,0.35);
+    background: rgba(255,255,255,0.04);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+  .photo-slot:hover { border-color: var(--amber); }
+  .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-slot .del-btn {
+    position: absolute; top: 3px; right: 3px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(0,0,0,0.7); border: none; color: #fff;
+    font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    line-height: 1; z-index: 5;
+  }
+  .photo-add {
+    width: 72px; height: 72px; border-radius: 12px;
+    border: 2px dashed rgba(245,132,31,0.35);
+    background: rgba(255,255,255,0.04);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0; gap: 3px;
+    transition: border-color 0.15s;
+  }
+  .photo-add:hover { border-color: var(--amber); }
+  .photo-add span { font-size: 10px; color: rgba(245,132,31,0.7); font-weight: 700; }
+  .photo-count { font-size: 11px; color: var(--text-dim); margin-bottom: 16px; text-align: center; }
+
+  /* 폼 필드 */
+  .field-label { font-size: 12px; font-weight: 700; color: var(--text-dim); margin-bottom: 6px; }
+  .field-input, .field-select, .field-textarea {
+    width: 100%; padding: 12px 14px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; color: #fff; font-size: 14px; font-family: inherit;
+    outline: none; transition: border-color 0.15s;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus { border-color: var(--amber); }
+  .field-input::placeholder, .field-textarea::placeholder { color: rgba(255,255,255,0.2); }
+  .field-textarea { resize: none; height: 88px; line-height: 1.5; }
+  .field-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+  option { background: #1e1408; }
+  .field-row { margin-bottom: 14px; }
+  .price-wrap { position: relative; }
+  .price-wrap .field-input { padding-right: 32px; }
+  .price-unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text-dim); pointer-events: none; }
+
+  .submit-btn {
+    width: 100%; padding: 15px; border-radius: 14px;
+    background: var(--amber); color: #fff; font-size: 15px; font-weight: 900;
+    border: none; cursor: pointer; font-family: inherit; margin-top: 4px;
+    transition: opacity 0.15s;
+  }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* 로딩 */
+  #loading-overlay {
+    position: absolute; inset: 0; background: var(--amber-dark);
+    display: flex; align-items: center; justify-content: center; z-index: 50; border-radius: 40px;
+  }
+  #loading-overlay.hidden { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 토스트 */
+  .toast {
+    position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(30,20,8,0.95); color: #fff; border-radius: 22px;
+    padding: 10px 22px; font-size: 13px; font-weight: 700; white-space: nowrap;
+    border: 1px solid rgba(245,132,31,0.3); z-index: 9999;
+    pointer-events: none; opacity: 0; transition: opacity 0.2s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 480px) {
+    html, body { background: var(--amber-dark); }
+    body { align-items: flex-start; }
+    .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+    .phone::before { display: none; }
+    #loading-overlay { border-radius: 0; }
+    .sheet-overlay { border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div id="loading-overlay">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style="animation:spin 1s linear infinite">
+      <circle cx="20" cy="20" r="16" stroke="rgba(245,132,31,0.2)" stroke-width="4"/>
+      <path d="M20 4a16 16 0 0 1 16 16" stroke="#f5841f" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="appbar">
+    <button class="appbar-back" onclick="history.back()">← 뒤로</button>
+    <span class="appbar-title">중고득템</span>
+    <div style="width:44px;"></div>
+  </div>
+
+  <!-- 카테고리 탭 -->
+  <div class="cat-scroll" id="cat-scroll">
+    <button class="cat-chip active" data-cat="">전체</button>
+    <button class="cat-chip" data-cat="드라이버">드라이버</button>
+    <button class="cat-chip" data-cat="아이언">아이언</button>
+    <button class="cat-chip" data-cat="퍼터">퍼터</button>
+    <button class="cat-chip" data-cat="우드/유틸">우드/유틸</button>
+    <button class="cat-chip" data-cat="의류/신발">의류/신발</button>
+    <button class="cat-chip" data-cat="골프백">골프백</button>
+    <button class="cat-chip" data-cat="기타">기타</button>
+  </div>
+
+  <div class="content" id="item-list">
+    <div class="empty-msg">불러오는 중...</div>
+  </div>
+
+  <!-- FAB 등록 버튼 -->
+  <button class="fab" id="fab-btn" onclick="openSheet()" title="중고 상품 등록">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- 등록 Bottom Sheet -->
+  <div class="sheet-overlay" id="sheet-overlay" onclick="handleOverlayClick(event)">
+    <div class="sheet" id="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <span class="sheet-title">중고 상품 등록</span>
+        <button class="sheet-close" onclick="closeSheet()">×</button>
+      </div>
+      <div class="sheet-body">
+        <!-- 사진 업로드 -->
+        <div class="field-label">사진 (최대 5장)</div>
+        <div class="photo-row" id="photo-row">
+          <div class="photo-add" id="photo-add-btn" onclick="document.getElementById('photo-input').click()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(245,132,31,0.7)" stroke-width="2" stroke-linecap="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>사진 추가</span>
+          </div>
+        </div>
+        <div class="photo-count" id="photo-count">0 / 5</div>
+
+        <!-- 제목 -->
+        <div class="field-row">
+          <div class="field-label">제목</div>
+          <input class="field-input" id="f-title" type="text" placeholder="상품명을 입력하세요" maxlength="50" />
+        </div>
+        <!-- 카테고리 -->
+        <div class="field-row">
+          <div class="field-label">카테고리</div>
+          <select class="field-select field-input" id="f-cat">
+            <option value="">선택하세요</option>
+            <option value="드라이버">드라이버</option>
+            <option value="아이언">아이언</option>
+            <option value="퍼터">퍼터</option>
+            <option value="우드/유틸">우드/유틸</option>
+            <option value="의류/신발">의류/신발</option>
+            <option value="골프백">골프백</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <!-- 가격 -->
+        <div class="field-row">
+          <div class="field-label">가격</div>
+          <div class="price-wrap">
+            <input class="field-input" id="f-price" type="number" placeholder="판매 가격" min="0" max="99999999" />
+            <span class="price-unit">원</span>
+          </div>
+        </div>
+        <!-- 설명 -->
+        <div class="field-row">
+          <div class="field-label">상품 설명</div>
+          <textarea class="field-textarea" id="f-desc" placeholder="상품 상태, 구매 시기, 사용 횟수 등을 적어주세요" maxlength="500"></textarea>
+        </div>
+
+        <button class="submit-btn" id="submit-btn" onclick="submitItem()">등록하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="photo-input" accept="image/*" multiple style="display:none;" />
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, query, orderBy, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const CLOUDINARY_CLOUD = 'da9tzfmg0';
+const CLOUDINARY_PRESET = 'GG ZON';
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let currentUserDoc = null;
+let selectedPhotos = []; // { file, previewUrl }
+let currentCat = '';
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function fmtPrice(n) {
+  return Number(n).toLocaleString('ko-KR') + '원';
+}
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return '방금 전';
+  if (diff < 3600) return Math.floor(diff/60) + '분 전';
+  if (diff < 86400) return Math.floor(diff/3600) + '시간 전';
+  return Math.floor(diff/86400) + '일 전';
+}
+
+function statusLabel(s) {
+  const map = { sale: '판매중', pending: '입금대기', confirmed: '발송준비', shipped: '발송완료', done: '거래완료' };
+  return map[s] || s;
+}
+function statusClass(s) {
+  const map = { sale: 'status-sale', pending: 'status-pending', confirmed: 'status-confirmed', shipped: 'status-shipped', done: 'status-done' };
+  return map[s] || 'status-sale';
+}
+
+async function loadItems(cat) {
+  const list = document.getElementById('item-list');
+  list.innerHTML = '<div class="empty-msg">불러오는 중...</div>';
+  try {
+    let q;
+    if (cat) {
+      q = query(collection(db, 'usedItems'), where('category', '==', cat), orderBy('createdAt', 'desc'));
+    } else {
+      q = query(collection(db, 'usedItems'), orderBy('createdAt', 'desc'));
+    }
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      list.innerHTML = '<div class="empty-msg">등록된 상품이 없습니다</div>';
+      return;
+    }
+    let html = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const thumb = d.photos && d.photos[0];
+      const thumbHtml = thumb
+        ? `<img class="item-thumb" src="${thumb}" alt="" loading="lazy" />`
+        : `<div class="item-thumb-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 19H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z"/><circle cx="12" cy="12" r="3"/></svg></div>`;
+      html += `
+        <div class="item-card" onclick="location.href='used-market-detail.html?id=${doc.id}'">
+          ${thumbHtml}
+          <div class="item-info">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span class="status-badge ${statusClass(d.status)}">${statusLabel(d.status)}</span>
+                ${d.category ? `<span style="font-size:10px;color:rgba(255,255,255,0.3);">${d.category}</span>` : ''}
+              </div>
+              <div class="item-title">${d.title || ''}</div>
+            </div>
+            <div>
+              <div class="item-price">${fmtPrice(d.price)}</div>
+              <div class="item-meta">
+                <span class="item-nick">${d.sellerNick || ''}</span>
+                <span class="item-view">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  ${d.viewCount || 0}
+                </span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.25);">${timeAgo(d.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    });
+    list.innerHTML = html;
+  } catch(e) {
+    console.error(e);
+    list.innerHTML = '<div class="empty-msg">불러오기 실패</div>';
+  }
+}
+
+// 카테고리 탭
+document.querySelectorAll('.cat-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCat = btn.dataset.cat;
+    loadItems(currentCat);
+  });
+});
+
+// Bottom sheet
+window.openSheet = function() {
+  if (!currentUser) { showToast('로그인이 필요합니다'); return; }
+  const overlay = document.getElementById('sheet-overlay');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('open'));
+};
+window.closeSheet = function() {
+  const overlay = document.getElementById('sheet-overlay');
+  overlay.classList.remove('open');
+  setTimeout(() => { overlay.style.display = 'none'; }, 300);
+};
+window.handleOverlayClick = function(e) {
+  if (e.target === document.getElementById('sheet-overlay')) closeSheet();
+};
+
+// 사진 업로드
+function renderPhotoSlots() {
+  const row = document.getElementById('photo-row');
+  const addBtn = document.getElementById('photo-add-btn');
+  // 기존 슬롯 제거
+  row.querySelectorAll('.photo-slot').forEach(s => s.remove());
+  selectedPhotos.forEach((p, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'photo-slot';
+    slot.innerHTML = `<img src="${p.previewUrl}" alt="" />
+      <button class="del-btn" onclick="removePhoto(${i})">×</button>`;
+    row.insertBefore(slot, addBtn);
+  });
+  // 5장 초과 시 추가 버튼 숨김
+  addBtn.style.display = selectedPhotos.length >= 5 ? 'none' : 'flex';
+  document.getElementById('photo-count').textContent = `${selectedPhotos.length} / 5`;
+}
+
+window.removePhoto = function(i) {
+  URL.revokeObjectURL(selectedPhotos[i].previewUrl);
+  selectedPhotos.splice(i, 1);
+  renderPhotoSlots();
+};
+
+document.getElementById('photo-input').addEventListener('change', function(e) {
+  const files = Array.from(e.target.files);
+  const remaining = 5 - selectedPhotos.length;
+  files.slice(0, remaining).forEach(f => {
+    selectedPhotos.push({ file: f, previewUrl: URL.createObjectURL(f) });
+  });
+  renderPhotoSlots();
+  this.value = '';
+  if (files.length > remaining) showToast(`최대 5장까지 등록 가능합니다`);
+});
+
+function compressImage(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 1080;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+async function uploadToCloudinary(file) {
+  const blob = await compressImage(file);
+  if (!blob) throw new Error('이미지 압축 실패');
+  const fd = new FormData();
+  fd.append('file', blob, 'photo.jpg');
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  fd.append('public_id', 'used_' + Date.now() + '_' + Math.random().toString(36).substr(2,5));
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST', body: fd
+  });
+  if (!res.ok) throw new Error('업로드 실패');
+  return (await res.json()).secure_url;
+}
+
+window.submitItem = async function() {
+  const title = document.getElementById('f-title').value.trim();
+  const cat = document.getElementById('f-cat').value;
+  const priceRaw = document.getElementById('f-price').value;
+  const desc = document.getElementById('f-desc').value.trim();
+  const price = parseInt(priceRaw, 10);
+
+  if (!title) { showToast('제목을 입력해주세요'); return; }
+  if (!cat) { showToast('카테고리를 선택해주세요'); return; }
+  if (!priceRaw || isNaN(price) || price < 0) { showToast('가격을 올바르게 입력해주세요'); return; }
+  if (!desc) { showToast('상품 설명을 입력해주세요'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '등록 중...';
+
+  try {
+    // 사진 업로드
+    const photoUrls = [];
+    for (const p of selectedPhotos) {
+      showToast(`사진 업로드 중... (${photoUrls.length+1}/${selectedPhotos.length})`);
+      const url = await uploadToCloudinary(p.file);
+      photoUrls.push(url);
+    }
+
+    // Firestore 저장
+    await addDoc(collection(db, 'usedItems'), {
+      title,
+      category: cat,
+      price,
+      description: desc,
+      photos: photoUrls,
+      sellerId: currentUser.uid,
+      sellerNick: currentUserDoc?.nick || currentUserDoc?.name || currentUser.email?.split('@')[0] || '익명',
+      status: 'sale',
+      viewCount: 0,
+      buyerId: null,
+      buyerNick: null,
+      createdAt: serverTimestamp()
+    });
+
+    // 초기화
+    selectedPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    selectedPhotos = [];
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-cat').value = '';
+    document.getElementById('f-price').value = '';
+    document.getElementById('f-desc').value = '';
+    renderPhotoSlots();
+    closeSheet();
+    showToast('상품이 등록되었습니다');
+    loadItems(currentCat);
+  } catch(e) {
+    console.error(e);
+    showToast('등록 실패: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '등록하기';
+  }
+};
+
+// Auth
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+  if (user) {
+    try {
+      const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) currentUserDoc = snap.data();
+    } catch(e) {}
+  }
+  document.getElementById('loading-overlay').classList.add('hidden');
+  loadItems(currentCat);
+});
+</script>
+</body>
+</html>
