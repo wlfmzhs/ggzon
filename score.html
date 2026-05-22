@@ -230,6 +230,19 @@
     .par-opt { padding: 16px 8px; border-radius: 14px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); font-size: 18px; font-weight: 900; color: #fff; cursor: pointer; font-family: inherit; text-align: center; }
     .par-opt:active { opacity: 0.7; }
 
+    /* 공유 버튼 */
+    .share-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; cursor: pointer; color: rgba(255,255,255,0.5); padding: 5px 10px; line-height: 0; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .share-btn:active { opacity: 0.6; }
+    .share-btn-label { font-size: 11px; font-weight: 700; line-height: 1; color: rgba(255,255,255,0.5); }
+
+    /* 캡처용 공유 카드 (화면 밖에 렌더링) */
+    #share-card {
+      position: fixed; left: -9999px; top: 0;
+      width: 390px; background: var(--green-dark);
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      padding-bottom: 24px;
+    }
+
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); }
       body { align-items: flex-start; }
@@ -238,6 +251,7 @@
       #loading-overlay { border-radius: 0; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="phone">
@@ -258,12 +272,18 @@
         </span>
       </div>
     </div>
-    <button class="party-btn" id="btn-party" title="팀 연결">
-      <div class="party-btn-inner">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        <span class="party-btn-label">단체라운드</span>
-      </div>
-    </button>
+    <div style="display:flex;align-items:center;gap:7px;flex-shrink:0;">
+      <button class="share-btn" id="btn-share" title="스코어 공유" onclick="shareScore()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        <span class="share-btn-label">공유</span>
+      </button>
+      <button class="party-btn" id="btn-party" title="팀 연결">
+        <div class="party-btn-inner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span class="party-btn-label">단체라운드</span>
+        </div>
+      </button>
+    </div>
   </div>
 
   <div class="scroll-area">
@@ -994,6 +1014,60 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') unregisterViewer();
   else registerViewer();
 });
+
+// 스코어 화면 이미지 공유
+window.shareScore = async function() {
+  const btn = document.getElementById('btn-share');
+  const label = btn?.querySelector('.share-btn-label');
+  if (label) label.textContent = '생성중...';
+  if (btn) btn.disabled = true;
+
+  // 50ms 대기 후 캡처 (버튼 UI 반영)
+  await new Promise(r => setTimeout(r, 50));
+
+  try {
+    const phone = document.querySelector('.phone');
+    const canvas = await html2canvas(phone, {
+      backgroundColor: '#0A2406',
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    });
+
+    const courseName = document.getElementById('course-name')?.textContent?.trim() || 'GGZON';
+    const fileName = `ggzon-${courseName}.png`;
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) { showToast('이미지 생성 실패'); return; }
+      const file = new File([blob], fileName, { type: 'image/png' });
+      try {
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: `${courseName} 라이브 스코어` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = fileName;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('이미지 저장 완료');
+        }
+      } catch(e) {
+        if (e.name !== 'AbortError') showToast('공유 실패');
+      } finally {
+        if (label) label.textContent = '공유';
+        if (btn) btn.disabled = false;
+      }
+    }, 'image/png');
+
+  } catch(e) {
+    console.error(e);
+    showToast('이미지 생성 실패');
+    if (label) label.textContent = '공유';
+    if (btn) btn.disabled = false;
+  }
+};
 
 function showToast(msg) {
   const el = document.getElementById('toast');
