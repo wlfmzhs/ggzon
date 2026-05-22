@@ -122,8 +122,25 @@
   .auction-divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
   .auction-divider-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.25); white-space: nowrap; }
   .auction-optional-field { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 12px 0; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.06); }
-  /* datetime-local 오버플로 방지 */
-  input[type="datetime-local"].field-input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+  /* datetime-local: 래퍼가 테두리 담당, input은 내부에서 투명 */
+  .datetime-wrap {
+    width: 100%; overflow: hidden;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    transition: border-color 0.15s;
+  }
+  .datetime-wrap:focus-within { border-color: var(--amber); }
+  .datetime-wrap input[type="datetime-local"] {
+    display: block; width: 100%; min-width: 0;
+    background: transparent; border: none; outline: none;
+    padding: 12px 14px; color: #fff;
+    font-size: 14px; font-family: inherit;
+    color-scheme: dark; box-sizing: border-box;
+  }
+  .datetime-wrap input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+  }
 
   /* FAB */
   .fab {
@@ -390,8 +407,8 @@
           <!-- 종료 일시 -->
           <div class="field-row" style="margin-bottom:12px;">
             <div class="field-label">경매 종료 일시 <span style="color:var(--amber)">*</span></div>
-            <div style="width:100%;overflow:hidden;border-radius:12px;">
-              <input class="field-input" id="f-auction-end" type="datetime-local" style="color-scheme:dark;display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;" />
+            <div class="datetime-wrap">
+              <input id="f-auction-end" type="datetime-local" />
             </div>
           </div>
         </div>
