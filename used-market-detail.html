@@ -271,8 +271,7 @@ import {
   getFirestore, doc, getDoc, updateDoc, deleteDoc, increment,
   collection, query, orderBy, getDocs, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const ADMIN_EMAIL = 'wlfmzhs@naver.com';
+import { isLoggedIn, getUid, getNick, getKakaoUser, ADMIN_EMAIL } from '/ggzon-auth.js';
 const SHARED_ACCOUNT = '카카오뱅크 3333-01-4734859';
 
 const app = initializeApp({
@@ -374,9 +373,10 @@ function renderTradeSteps(status) {
 }
 
 function renderPage(data, comments) {
-  const isSeller = currentUser && currentUser.uid === data.sellerId;
-  const isBuyer = currentUser && currentUser.uid === data.buyerId;
-  const isAdmin = currentUser && currentUserDoc?.email === ADMIN_EMAIL;
+  const uid = getUid(currentUser);
+  const isSeller = !!uid && uid === data.sellerId;
+  const isBuyer = !!uid && uid === data.buyerId;
+  const isAdmin = currentUser?.email === ADMIN_EMAIL || currentUserDoc?.email === ADMIN_EMAIL;
   const status = data.status || 'sale';
 
   const galleryHtml = renderGallery(data.photos);
@@ -457,7 +457,7 @@ function renderActionButtons(status, isSeller, isBuyer, isAdmin, data) {
   let barHtml = '';
 
   if (status === 'sale') {
-    if (!currentUser) {
+    if (!isLoggedIn(currentUser)) {
       barHtml = `<button class="action-btn btn-buy" onclick="showToast('로그인이 필요합니다')">구매하기</button>`;
     } else if (isSeller) {
       // seller sees their item
@@ -519,14 +519,15 @@ window.handleModalClick = function(e) {
 };
 
 window.confirmPurchase = async function() {
-  if (!currentUser || !itemId) return;
+  const uid = getUid(currentUser);
+  if (!uid || !itemId) return;
   const btn = document.querySelector('.modal-confirm-btn');
   btn.disabled = true; btn.textContent = '처리 중...';
   try {
-    const nick = currentUserDoc?.nick || currentUserDoc?.name || currentUser.email?.split('@')[0] || '구매자';
+    const nick = getNick(currentUser, currentUserDoc) || '구매자';
     await updateDoc(doc(db, 'usedItems', itemId), {
       status: 'pending',
-      buyerId: currentUser.uid,
+      buyerId: uid,
       buyerNick: nick
     });
     closeBuyModal();
@@ -596,15 +597,16 @@ window.deleteItem = async function() {
 
 // 댓글
 window.submitComment = async function() {
-  if (!currentUser) { showToast('로그인이 필요합니다'); return; }
+  const uid = getUid(currentUser);
+  if (!isLoggedIn(currentUser)) { showToast('로그인이 필요합니다'); return; }
   const input = document.getElementById('comment-input');
   const text = input?.value?.trim();
   if (!text) return;
   input.value = '';
   try {
-    const nick = currentUserDoc?.nick || currentUserDoc?.name || currentUser.email?.split('@')[0] || '익명';
+    const nick = getNick(currentUser, currentUserDoc);
     await addDoc(collection(db, 'usedItems', itemId, 'comments'), {
-      authorId: currentUser.uid,
+      authorId: uid,
       authorNick: nick,
       text,
       createdAt: serverTimestamp()
@@ -649,8 +651,8 @@ async function loadItem() {
     updateDoc(doc(db, 'usedItems', itemId), { viewCount: increment(1) }).catch(() => {});
 
     // 삭제 버튼 표시 (관리자 또는 판매자)
-    const isAdmin = currentUserDoc?.email === ADMIN_EMAIL;
-    const isSeller = currentUser && currentUser.uid === itemData.sellerId;
+    const isAdmin = currentUser?.email === ADMIN_EMAIL || currentUserDoc?.email === ADMIN_EMAIL;
+    const isSeller = getUid(currentUser) === itemData.sellerId;
     if (isAdmin || isSeller) document.getElementById('del-btn').style.display = 'block';
 
     renderPage(itemData, comments);
@@ -662,9 +664,10 @@ async function loadItem() {
 
 onAuthStateChanged(auth, async user => {
   currentUser = user;
-  if (user) {
+  const uid = getUid(user);
+  if (uid) {
     try {
-      const snap = await getDoc(doc(db, 'users', user.uid));
+      const snap = await getDoc(doc(db, 'users', uid));
       if (snap.exists()) currentUserDoc = snap.data();
     } catch(e) {}
   }
