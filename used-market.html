@@ -335,6 +335,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, query, orderBy, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { isLoggedIn, getUid, getNick } from '/ggzon-auth.js';
 
 const CLOUDINARY_CLOUD = 'da9tzfmg0';
 const CLOUDINARY_PRESET = 'GG ZON';
@@ -451,8 +452,7 @@ document.querySelectorAll('.cat-chip').forEach(btn => {
 
 // Bottom sheet
 window.openSheet = function() {
-  const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
-  if (!currentUser && !ggzonUser) { showToast('로그인이 필요합니다'); return; }
+  if (!isLoggedIn(currentUser)) { showToast('로그인이 필요합니다'); return; }
   const overlay = document.getElementById('sheet-overlay');
   overlay.style.display = 'flex';
   requestAnimationFrame(() => overlay.classList.add('open'));
@@ -549,9 +549,8 @@ window.submitItem = async function() {
   if (!priceRaw || isNaN(price) || price < 0) { showToast('가격을 올바르게 입력해주세요'); return; }
   if (!desc) { showToast('상품 설명을 입력해주세요'); return; }
 
-  const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
-  const sellerId = currentUser ? currentUser.uid : (ggzonUser ? ggzonUser.uid : null);
-  const sellerNick = currentUserDoc?.nickname || currentUserDoc?.name || (ggzonUser ? ggzonUser.nickname : null) || (currentUser ? currentUser.email?.split('@')[0] : null) || '익명';
+  const sellerId = getUid(currentUser);
+  const sellerNick = getNick(currentUser, currentUserDoc);
   if (!sellerId) { showToast('로그인이 필요합니다'); return; }
 
   const btn = document.getElementById('submit-btn');
