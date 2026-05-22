@@ -656,6 +656,18 @@
         <textarea class="admin-textarea" id="admin-memo" placeholder="추가 안내사항을 입력하세요"></textarea>
       </div>
 
+      <div class="admin-form-group" id="empty-room-group">
+        <label class="admin-label">참석자 설정</label>
+        <button type="button" id="toggle-empty-room" onclick="toggleEmptyRoom()"
+          style="width:100%;padding:10px 14px;border-radius:10px;
+          background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+          color:rgba(255,255,255,0.4);font-size:13px;font-weight:700;font-family:inherit;
+          text-align:left;cursor:pointer;transition:all 0.2s;">
+          빈방으로 만들기 (나를 참석자에 넣지 않음)
+        </button>
+        <input type="hidden" id="admin-empty-room" value="0" />
+      </div>
+
       <button class="admin-save-btn" onclick="saveJoin()">저장하기</button>
     </div>
   </div>
@@ -1153,11 +1165,29 @@ window.openAdminModal = function(id) {
     window.setJoinType('field');
     window.setTimeType('day');
   }
+  // 빈방 토글 초기화
+  document.getElementById('admin-empty-room').value = '0';
+  const emptyBtn = document.getElementById('toggle-empty-room');
+  emptyBtn.style.background = 'rgba(255,255,255,0.06)';
+  emptyBtn.style.borderColor = 'rgba(255,255,255,0.12)';
+  emptyBtn.style.color = 'rgba(255,255,255,0.4)';
+  // 수정 모드에선 빈방 옵션 숨김
+  document.getElementById('empty-room-group').style.display = id ? 'none' : 'block';
   document.getElementById('admin-overlay').classList.add('open');
 };
 
 window.closeAdminModal = function() {
   document.getElementById('admin-overlay').classList.remove('open');
+};
+
+window.toggleEmptyRoom = function() {
+  const btn = document.getElementById('toggle-empty-room');
+  const val = document.getElementById('admin-empty-room');
+  const on = val.value === '1';
+  val.value = on ? '0' : '1';
+  btn.style.background = on ? 'rgba(255,255,255,0.06)' : 'rgba(62,160,102,0.2)';
+  btn.style.borderColor = on ? 'rgba(255,255,255,0.12)' : 'rgba(62,160,102,0.5)';
+  btn.style.color = on ? 'rgba(255,255,255,0.4)' : '#3ea066';
 };
 
 // ── 키보드 올라올 때 오버레이 높이 + 스크롤 동시 조정 ──────────────
@@ -1235,13 +1265,17 @@ window.saveJoin = async function() {
       showToast('조인이 수정되었습니다');
     } else {
       data.createdAt = serverTimestamp();
-      // 개설자 자동 참석 등록
-      let creatorName = currentUser.displayName || '';
-      try {
-        const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userSnap.exists()) creatorName = userSnap.data().name || userSnap.data().nickname || creatorName;
-      } catch (_) {}
-      data.participants = [{ uid: currentUser.uid, name: creatorName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() }];
+      const isEmptyRoom = document.getElementById('admin-empty-room').value === '1';
+      if (isEmptyRoom) {
+        data.participants = [];
+      } else {
+        let creatorName = currentUser.displayName || '';
+        try {
+          const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userSnap.exists()) creatorName = userSnap.data().name || userSnap.data().nickname || creatorName;
+        } catch (_) {}
+        data.participants = [{ uid: currentUser.uid, name: creatorName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() }];
+      }
       await addDoc(collection(db, 'joins'), data);
       showToast('조인이 만들어졌습니다!');
     }
