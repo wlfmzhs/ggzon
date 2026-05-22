@@ -1113,14 +1113,14 @@ window.saveEdit = async () => {
   }
   try {
     const updates = { name, nickname: nick, region, phone };
-    if (handicap !== '') updates.handicap = handicap;
+    if (handicap !== '') updates.handicapRange = handicap;
     if (birthYearRaw) {
       updates.birthYear2 = birthYearRaw.padStart(2, '0');
     }
     await setDoc(doc(db, 'users', currentUser.uid), updates, { merge: true });
     userData = { ...userData, ...updates };
     document.getElementById('prof-nick').textContent = nick;
-    const sub = [name, updates.handicap ? `핸디 ${updates.handicap}` : '', region].filter(Boolean).join(' · ');
+    const sub = [name, region].filter(Boolean).join(' · ');
     document.getElementById('prof-sub').textContent = sub;
     closeModal('modal-edit');
     showToast('저장되었습니다');
