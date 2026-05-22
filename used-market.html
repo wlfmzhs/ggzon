@@ -588,12 +588,14 @@ async function uploadToCloudinary(file) {
   const fd = new FormData();
   fd.append('file', blob, 'photo.jpg');
   fd.append('upload_preset', CLOUDINARY_PRESET);
-  fd.append('public_id', 'used_' + Date.now() + '_' + Math.random().toString(36).substr(2,5));
   const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
     method: 'POST', body: fd
   });
-  if (!res.ok) throw new Error('업로드 실패');
-  return (await res.json()).secure_url;
+  const json = await res.json();
+  if (!res.ok || !json.secure_url) {
+    throw new Error(json?.error?.message || '사진 업로드 실패');
+  }
+  return json.secure_url;
 }
 
 window.toggleAuction = function(on) {
