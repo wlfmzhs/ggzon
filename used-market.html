@@ -248,6 +248,7 @@
     <button class="cat-chip" data-cat="아이언">아이언</button>
     <button class="cat-chip" data-cat="퍼터">퍼터</button>
     <button class="cat-chip" data-cat="우드/유틸">우드/유틸</button>
+    <button class="cat-chip" data-cat="샤프트">샤프트</button>
     <button class="cat-chip" data-cat="의류/신발">의류/신발</button>
     <button class="cat-chip" data-cat="골프백">골프백</button>
     <button class="cat-chip" data-cat="기타">기타</button>
@@ -302,6 +303,7 @@
             <option value="아이언">아이언</option>
             <option value="퍼터">퍼터</option>
             <option value="우드/유틸">우드/유틸</option>
+            <option value="샤프트">샤프트</option>
             <option value="의류/신발">의류/신발</option>
             <option value="골프백">골프백</option>
             <option value="기타">기타</option>
@@ -449,7 +451,8 @@ document.querySelectorAll('.cat-chip').forEach(btn => {
 
 // Bottom sheet
 window.openSheet = function() {
-  if (!currentUser) { showToast('로그인이 필요합니다'); return; }
+  const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+  if (!currentUser && !ggzonUser) { showToast('로그인이 필요합니다'); return; }
   const overlay = document.getElementById('sheet-overlay');
   overlay.style.display = 'flex';
   requestAnimationFrame(() => overlay.classList.add('open'));
@@ -546,6 +549,11 @@ window.submitItem = async function() {
   if (!priceRaw || isNaN(price) || price < 0) { showToast('가격을 올바르게 입력해주세요'); return; }
   if (!desc) { showToast('상품 설명을 입력해주세요'); return; }
 
+  const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+  const sellerId = currentUser ? currentUser.uid : (ggzonUser ? ggzonUser.uid : null);
+  const sellerNick = currentUserDoc?.nickname || currentUserDoc?.name || (ggzonUser ? ggzonUser.nickname : null) || (currentUser ? currentUser.email?.split('@')[0] : null) || '익명';
+  if (!sellerId) { showToast('로그인이 필요합니다'); return; }
+
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
   btn.textContent = '등록 중...';
@@ -566,8 +574,8 @@ window.submitItem = async function() {
       price,
       description: desc,
       photos: photoUrls,
-      sellerId: currentUser.uid,
-      sellerNick: currentUserDoc?.nick || currentUserDoc?.name || currentUser.email?.split('@')[0] || '익명',
+      sellerId,
+      sellerNick,
       status: 'sale',
       viewCount: 0,
       buyerId: null,
