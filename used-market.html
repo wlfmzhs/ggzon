@@ -116,8 +116,14 @@
   .toggle-slider:before { position: absolute; content: ''; height: 20px; width: 20px; left: 3px; bottom: 3px; background: rgba(255,255,255,0.6); border-radius: 50%; transition: 0.2s; }
   .toggle-wrap input:checked + .toggle-slider { background: var(--amber); }
   .toggle-wrap input:checked + .toggle-slider:before { background: #fff; transform: translateX(18px); }
-  .auction-fields { background: rgba(245,132,31,0.06); border: 1px solid rgba(245,132,31,0.2); border-radius: 14px; padding: 14px 14px 2px; margin-bottom: 14px; }
+  .auction-fields { background: rgba(245,132,31,0.06); border: 1px solid rgba(245,132,31,0.2); border-radius: 14px; padding: 14px 14px 2px; margin-bottom: 14px; overflow: hidden; }
   .auction-section-label { font-size: 10px; font-weight: 800; color: rgba(245,132,31,0.7); letter-spacing: 0.1em; margin-bottom: 12px; }
+  .auction-divider { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }
+  .auction-divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+  .auction-divider-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.25); white-space: nowrap; }
+  .auction-optional-field { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 12px 0; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.06); }
+  /* datetime-local 오버플로 방지 */
+  input[type="datetime-local"].field-input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
 
   /* FAB */
   .fab {
@@ -344,21 +350,16 @@
         <!-- 경매 설정 -->
         <div id="auction-fields" class="auction-fields" style="display:none;">
           <div class="auction-section-label">AUCTION SETTING</div>
+
+          <!-- 시작가 (필수) -->
           <div class="field-row">
             <div class="field-label">시작가 <span style="color:var(--amber)">*</span></div>
             <div class="price-wrap">
-              <input class="field-input" id="f-start-price" type="number" placeholder="최소 입찰 금액" min="0" />
+              <input class="field-input" id="f-start-price" type="number" placeholder="경매 시작 최저 금액" min="0" />
               <span class="price-unit">원</span>
             </div>
           </div>
-          <div class="field-row">
-            <div class="field-label">즉시구매가 <span style="font-size:10px;color:rgba(255,255,255,0.3);">선택</span></div>
-            <div class="price-wrap">
-              <input class="field-input" id="f-buynow-price" type="number" placeholder="입력 시 이 금액에 즉시 낙찰" min="0" />
-              <span class="price-unit">원</span>
-            </div>
-          </div>
-          <div class="field-row">
+          <div class="field-row" style="margin-bottom:4px;">
             <div class="field-label">최소 입찰 단위</div>
             <select class="field-select field-input" id="f-bid-step">
               <option value="1000">1,000원</option>
@@ -367,9 +368,29 @@
               <option value="50000">50,000원</option>
             </select>
           </div>
+
+          <!-- 구분선 -->
+          <div class="auction-divider">
+            <div class="auction-divider-line"></div>
+            <div class="auction-divider-label">선택 옵션</div>
+            <div class="auction-divider-line"></div>
+          </div>
+
+          <!-- 즉시구매가 (선택) -->
+          <div class="auction-optional-field">
+            <div class="field-row">
+              <div class="field-label" style="color:rgba(255,255,255,0.4);">즉시구매가 <span style="font-size:10px;">— 이 금액 입찰 시 경매 즉시 종료</span></div>
+              <div class="price-wrap">
+                <input class="field-input" id="f-buynow-price" type="number" placeholder="미입력 시 비활성" min="0" style="border-color:rgba(255,255,255,0.08);" />
+                <span class="price-unit">원</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 종료 일시 -->
           <div class="field-row" style="margin-bottom:12px;">
             <div class="field-label">경매 종료 일시 <span style="color:var(--amber)">*</span></div>
-            <input class="field-input" id="f-auction-end" type="datetime-local" style="color-scheme:dark;" />
+            <input class="field-input" id="f-auction-end" type="datetime-local" style="color-scheme:dark;width:100%;min-width:0;max-width:100%;box-sizing:border-box;" />
           </div>
         </div>
         <!-- 설명 -->
