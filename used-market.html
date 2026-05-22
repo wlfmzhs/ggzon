@@ -683,16 +683,24 @@ window.submitItem = async function() {
   btn.disabled = true;
   btn.textContent = '등록 중...';
 
+  // 사진 업로드
+  let photoUrls = [];
   try {
-    // 사진 업로드
-    const photoUrls = [];
     for (const p of selectedPhotos) {
       showToast(`사진 업로드 중... (${photoUrls.length+1}/${selectedPhotos.length})`);
       const url = await uploadToCloudinary(p.file);
       photoUrls.push(url);
     }
+  } catch(e) {
+    console.error('[사진 업로드 오류]', e);
+    showToast('사진 오류: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '등록하기';
+    return;
+  }
 
-    // Firestore 저장
+  // Firestore 저장
+  try {
     await addDoc(collection(db, 'usedItems'), {
       title,
       category: cat,
@@ -709,25 +717,27 @@ window.submitItem = async function() {
       isAuction: false,
       ...auctionExtra,
     });
-
-    // 초기화
-    selectedPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
-    selectedPhotos = [];
-    document.getElementById('f-title').value = '';
-    document.getElementById('f-cat').value = '';
-    document.getElementById('f-price').value = '';
-    document.getElementById('f-desc').value = '';
-    renderPhotoSlots();
-    closeSheet();
-    showToast('상품이 등록되었습니다');
-    loadItems(currentCat);
   } catch(e) {
-    console.error(e);
-    showToast('등록 실패: ' + e.message);
-  } finally {
+    console.error('[Firestore 저장 오류]', e);
+    showToast('저장 오류: ' + e.message);
     btn.disabled = false;
     btn.textContent = '등록하기';
+    return;
   }
+
+  // 성공 초기화
+  selectedPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl));
+  selectedPhotos = [];
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-cat').value = '';
+  document.getElementById('f-price').value = '';
+  document.getElementById('f-desc').value = '';
+  renderPhotoSlots();
+  closeSheet();
+  showToast('상품이 등록되었습니다');
+  loadItems(currentCat);
+  btn.disabled = false;
+  btn.textContent = '등록하기';
 };
 
 // 금액 입력 콤마 포맷
