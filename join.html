@@ -1160,25 +1160,50 @@ window.closeAdminModal = function() {
   document.getElementById('admin-overlay').classList.remove('open');
 };
 
-// ── 키보드 올라올 때 입력창 자동 스크롤 ──────────────
+// ── 키보드 올라올 때 오버레이 높이 + 스크롤 동시 조정 ──────────────
 (function() {
   const adminScroll = document.querySelector('.admin-scroll');
-  function ensureVisible() {
-    const el = document.activeElement;
-    if (!el || !adminScroll.contains(el)) return;
-    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
-    const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    const rect = el.getBoundingClientRect();
-    if (rect.bottom > vvHeight - 20) {
-      adminScroll.scrollTop += rect.bottom - vvHeight + 60;
+  const adminOverlay = document.getElementById('admin-overlay');
+
+  function adjust() {
+    if (!adminOverlay.classList.contains('open')) return;
+    const vp = window.visualViewport;
+    if (!vp) return;
+    const kb = Math.max(0, window.innerHeight - (vp.offsetTop + vp.height));
+    if (kb > 10) {
+      adminOverlay.style.bottom = kb + 'px';
+      adminScroll.style.paddingBottom = '20px';
+      const el = document.activeElement;
+      if (el && adminScroll.contains(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+        setTimeout(() => {
+          const rect = el.getBoundingClientRect();
+          if (rect.bottom > vp.height - 20) {
+            adminScroll.scrollTop += rect.bottom - vp.height + 60;
+          }
+        }, 50);
+      }
+    } else {
+      adminOverlay.style.bottom = '';
+      adminScroll.style.paddingBottom = '';
     }
   }
+
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', ensureVisible);
+    window.visualViewport.addEventListener('resize', adjust);
   }
   adminScroll.addEventListener('focusin', e => {
     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') return;
-    setTimeout(ensureVisible, 300);
+    setTimeout(adjust, 100);
+    setTimeout(adjust, 350);
+    setTimeout(adjust, 600);
+  });
+  adminScroll.addEventListener('focusout', () => {
+    setTimeout(() => {
+      if (!adminScroll.contains(document.activeElement)) {
+        adminOverlay.style.bottom = '';
+        adminScroll.style.paddingBottom = '';
+      }
+    }, 200);
   });
 })();
 
