@@ -332,7 +332,7 @@
         <div class="field-row" id="price-row">
           <div class="field-label">가격</div>
           <div class="price-wrap">
-            <input class="field-input" id="f-price" type="number" placeholder="판매 가격" min="0" max="99999999" />
+            <input class="field-input" id="f-price" type="text" inputmode="numeric" placeholder="판매 가격" oninput="fmtInput(this)" />
             <span class="price-unit">원</span>
           </div>
         </div>
@@ -355,7 +355,7 @@
           <div class="field-row">
             <div class="field-label">시작가 <span style="color:var(--amber)">*</span></div>
             <div class="price-wrap">
-              <input class="field-input" id="f-start-price" type="number" placeholder="경매 시작 최저 금액" min="0" />
+              <input class="field-input" id="f-start-price" type="text" inputmode="numeric" placeholder="경매 시작 최저 금액" oninput="fmtInput(this)" />
               <span class="price-unit">원</span>
             </div>
           </div>
@@ -381,7 +381,7 @@
             <div class="field-row">
               <div class="field-label" style="color:rgba(255,255,255,0.4);">즉시구매가 <span style="font-size:10px;">— 이 금액 입찰 시 경매 즉시 종료</span></div>
               <div class="price-wrap">
-                <input class="field-input" id="f-buynow-price" type="number" placeholder="미입력 시 비활성" min="0" style="border-color:rgba(255,255,255,0.08);" />
+                <input class="field-input" id="f-buynow-price" type="text" inputmode="numeric" placeholder="미입력 시 비활성" oninput="fmtInput(this)" style="border-color:rgba(255,255,255,0.08);" />
                 <span class="price-unit">원</span>
               </div>
             </div>
@@ -441,6 +441,15 @@ function showToast(msg) {
 
 function fmtPrice(n) {
   return Number(n).toLocaleString('ko-KR') + '원';
+}
+
+window.fmtInput = function(el) {
+  const raw = el.value.replace(/[^0-9]/g, '');
+  el.value = raw ? Number(raw).toLocaleString('ko-KR') : '';
+};
+
+function parsePrice(str) {
+  return parseInt((str || '').replace(/,/g, ''), 10);
 }
 
 function timeAgo(ts) {
@@ -636,14 +645,13 @@ window.submitItem = async function() {
 
   let price, auctionExtra = {};
   if (isAuction) {
-    const startRaw = document.getElementById('f-start-price').value;
-    const startPrice = parseInt(startRaw, 10);
-    if (!startRaw || isNaN(startPrice) || startPrice < 0) { showToast('시작가를 입력해주세요'); return; }
+    const startPrice = parsePrice(document.getElementById('f-start-price').value);
+    if (!startPrice || isNaN(startPrice) || startPrice <= 0) { showToast('시작가를 입력해주세요'); return; }
     const endVal = document.getElementById('f-auction-end').value;
     if (!endVal) { showToast('경매 종료 일시를 설정해주세요'); return; }
     const endDate = new Date(endVal);
     if (endDate <= new Date()) { showToast('종료 일시는 현재 시간 이후로 설정해주세요'); return; }
-    const buyNowRaw = document.getElementById('f-buynow-price').value;
+    const buyNowRaw = document.getElementById('f-buynow-price').value.replace(/,/g, '');
     const buyNowPrice = buyNowRaw ? parseInt(buyNowRaw, 10) : null;
     if (buyNowPrice !== null && buyNowPrice <= startPrice) { showToast('즉시구매가는 시작가보다 높아야 합니다'); return; }
     const minStep = parseInt(document.getElementById('f-bid-step').value, 10);
@@ -661,9 +669,8 @@ window.submitItem = async function() {
       auctionStatus: 'active',
     };
   } else {
-    const priceRaw = document.getElementById('f-price').value;
-    price = parseInt(priceRaw, 10);
-    if (!priceRaw || isNaN(price) || price < 0) { showToast('가격을 올바르게 입력해주세요'); return; }
+    price = parsePrice(document.getElementById('f-price').value);
+    if (!price || isNaN(price) || price <= 0) { showToast('가격을 올바르게 입력해주세요'); return; }
   }
 
   const sellerId = getUid(currentUser);

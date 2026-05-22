@@ -559,7 +559,7 @@ function renderAuction(data, isSeller, isAdmin) {
     const hasLogin = isLoggedIn(currentUser);
     bar.innerHTML = `
       <div class="auction-bid-row">
-        <input class="bid-input" id="bid-input" type="number" placeholder="${fmtPrice(minNext)} 이상"
+        <input class="bid-input" id="bid-input" type="text" inputmode="numeric" placeholder="${fmtPrice(minNext)} 이상" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
           ${!hasLogin ? 'disabled' : ''} />
         <button class="bid-submit-btn" id="bid-submit-btn" onclick="submitBid()"
           ${!hasLogin ? 'disabled' : ''}>${hasLogin ? '입찰하기' : '로그인 필요'}</button>
@@ -617,7 +617,7 @@ function renderAuction(data, isSeller, isAdmin) {
 window.submitBid = async function() {
   const uid = getUid(currentUser);
   if (!uid) { showToast('로그인이 필요합니다'); return; }
-  const bidVal = parseInt(document.getElementById('bid-input')?.value, 10);
+  const bidVal = parseInt((document.getElementById('bid-input')?.value || '').replace(/,/g, ''), 10);
   if (!bidVal || isNaN(bidVal) || bidVal <= 0) { showToast('입찰 금액을 입력해주세요'); return; }
 
   const btn = document.getElementById('bid-submit-btn');
