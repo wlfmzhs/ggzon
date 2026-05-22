@@ -332,7 +332,7 @@
         <div class="field-row" id="price-row">
           <div class="field-label">가격</div>
           <div class="price-wrap">
-            <input class="field-input" id="f-price" type="text" inputmode="numeric" placeholder="판매 가격" oninput="fmtInput(this)" />
+            <input class="field-input" id="f-price" type="text" inputmode="numeric" placeholder="판매 가격" />
             <span class="price-unit">원</span>
           </div>
         </div>
@@ -355,7 +355,7 @@
           <div class="field-row">
             <div class="field-label">시작가 <span style="color:var(--amber)">*</span></div>
             <div class="price-wrap">
-              <input class="field-input" id="f-start-price" type="text" inputmode="numeric" placeholder="경매 시작 최저 금액" oninput="fmtInput(this)" />
+              <input class="field-input" id="f-start-price" type="text" inputmode="numeric" placeholder="경매 시작 최저 금액" />
               <span class="price-unit">원</span>
             </div>
           </div>
@@ -381,7 +381,7 @@
             <div class="field-row">
               <div class="field-label" style="color:rgba(255,255,255,0.4);">즉시구매가 <span style="font-size:10px;">— 이 금액 입찰 시 경매 즉시 종료</span></div>
               <div class="price-wrap">
-                <input class="field-input" id="f-buynow-price" type="text" inputmode="numeric" placeholder="미입력 시 비활성" oninput="fmtInput(this)" style="border-color:rgba(255,255,255,0.08);" />
+                <input class="field-input" id="f-buynow-price" type="text" inputmode="numeric" placeholder="미입력 시 비활성" style="border-color:rgba(255,255,255,0.08);" />
                 <span class="price-unit">원</span>
               </div>
             </div>
@@ -390,7 +390,9 @@
           <!-- 종료 일시 -->
           <div class="field-row" style="margin-bottom:12px;">
             <div class="field-label">경매 종료 일시 <span style="color:var(--amber)">*</span></div>
-            <input class="field-input" id="f-auction-end" type="datetime-local" style="color-scheme:dark;width:100%;min-width:0;max-width:100%;box-sizing:border-box;" />
+            <div style="width:100%;overflow:hidden;border-radius:12px;">
+              <input class="field-input" id="f-auction-end" type="datetime-local" style="color-scheme:dark;display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;" />
+            </div>
           </div>
         </div>
         <!-- 설명 -->
@@ -727,6 +729,21 @@ window.submitItem = async function() {
     btn.textContent = '등록하기';
   }
 };
+
+// 금액 입력 콤마 포맷
+function applyPriceFormat(el) {
+  if (!el) return;
+  el.addEventListener('input', function() {
+    const raw = this.value.replace(/[^0-9]/g, '');
+    const cursor = this.selectionStart;
+    const prevCommas = (this.value.slice(0, cursor).match(/,/g) || []).length;
+    this.value = raw ? Number(raw).toLocaleString('ko-KR') : '';
+    // 커서 위치 보정 (추가된 콤마 수만큼)
+    const newCommas = (this.value.slice(0, cursor).match(/,/g) || []).length;
+    try { this.setSelectionRange(cursor + newCommas - prevCommas, cursor + newCommas - prevCommas); } catch(_) {}
+  });
+}
+['f-price', 'f-start-price', 'f-buynow-price'].forEach(id => applyPriceFormat(document.getElementById(id)));
 
 // Auth
 onAuthStateChanged(auth, async user => {
