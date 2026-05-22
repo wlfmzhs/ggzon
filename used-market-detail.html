@@ -209,6 +209,37 @@
   }
   .toast.show { opacity: 1; }
 
+  /* 경매 UI */
+  .auction-box { background: rgba(120,80,255,0.07); border: 1px solid rgba(120,80,255,0.25); border-radius: 16px; padding: 16px; margin: 14px 0; }
+  .auction-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .auction-badge { font-size: 10px; font-weight: 900; letter-spacing: 0.1em; color: #a07aff; background: rgba(120,80,255,0.15); padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(120,80,255,0.3); }
+  .auction-timer { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6); }
+  .auction-timer.urgent { color: #e74c3c; animation: blink-red 1s ease-in-out infinite; }
+  @keyframes blink-red { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .auction-current { margin-bottom: 10px; }
+  .auction-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; margin-bottom: 4px; }
+  .auction-price { font-size: 28px; font-weight: 900; color: #a07aff; display: block; }
+  .auction-count { font-size: 11px; color: rgba(255,255,255,0.35); }
+  .auction-info-row { display: flex; gap: 14px; font-size: 11px; color: rgba(255,255,255,0.4); padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 10px; }
+  .auction-info-row span b { color: rgba(255,255,255,0.75); }
+  .bid-history-title { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.35); margin-bottom: 6px; letter-spacing: 0.04em; }
+  .bid-item { font-size: 12px; color: rgba(255,255,255,0.6); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; }
+  .bid-item:last-child { border-bottom: none; }
+  .bid-item-amount { font-weight: 800; color: #a07aff; }
+  .auction-ended-box { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px; text-align: center; margin: 14px 0; }
+  .auction-ended-label { font-size: 12px; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
+  .auction-winner { font-size: 15px; font-weight: 900; color: #a07aff; }
+  /* 경매 하단 바 */
+  .auction-bid-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .bid-input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(120,80,255,0.3); border-radius: 12px; color: #fff; font-size: 14px; font-family: inherit; padding: 12px 14px; outline: none; }
+  .bid-input:focus { border-color: #a07aff; }
+  .bid-input::placeholder { color: rgba(255,255,255,0.2); }
+  .bid-submit-btn { background: #7850ff; border: none; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 900; cursor: pointer; font-family: inherit; padding: 12px 18px; white-space: nowrap; transition: opacity 0.15s; }
+  .bid-submit-btn:active { opacity: 0.8; }
+  .bid-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .buynow-btn { width: 100%; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, #f5841f, #ff6b35); color: #fff; font-size: 14px; font-weight: 900; border: none; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+  .buynow-btn:active { opacity: 0.8; }
+
   @media (max-width: 480px) {
     html, body { background: var(--amber-dark); }
     body { align-items: flex-start; }
@@ -269,7 +300,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, updateDoc, deleteDoc, increment,
-  collection, query, orderBy, getDocs, addDoc, serverTimestamp
+  collection, query, orderBy, getDocs, addDoc, serverTimestamp,
+  runTransaction, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { isLoggedIn, getUid, getNick, getKakaoUser, ADMIN_EMAIL } from '/ggzon-auth.js';
 const SHARED_ACCOUNT = '카카오뱅크 3333-01-4734859';
@@ -292,6 +324,8 @@ let currentUser = null;
 let currentUserDoc = null;
 let itemData = null;
 let photoIndex = 0;
+let auctionTimerInterval = null;
+let auctionBidUnsubscribe = null;
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -414,7 +448,10 @@ function renderPage(data, comments) {
         <div class="item-title">${data.title || ''}</div>
         <span class="status-badge ${statusClass(status)}">${statusLabel(status)}</span>
       </div>
-      <div class="item-price">${fmtPrice(data.price)}</div>
+      ${data.isAuction
+        ? `<div class="item-price" style="font-size:13px;color:rgba(255,255,255,0.4);font-weight:700;margin:8px 0 4px;">시작가 ${fmtPrice(data.auctionStartPrice)}</div>`
+        : `<div class="item-price">${fmtPrice(data.price)}</div>`
+      }
       <div class="item-meta-row">
         <div class="meta-item">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -445,8 +482,230 @@ function renderPage(data, comments) {
     </div>
   `;
 
-  renderActionButtons(status, isSeller, isBuyer, isAdmin, data);
+  if (data.isAuction) {
+    renderAuction(data, isSeller, isAdmin);
+  } else {
+    renderActionButtons(status, isSeller, isBuyer, isAdmin, data);
+  }
 }
+
+// ── 경매 ──────────────────────────────────────────────────
+function fmtCountdown(ms) {
+  if (ms <= 0) return '종료됨';
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (d > 0) return `${d}일 ${h}시간 ${m}분`;
+  if (h > 0) return `${h}시간 ${m}분 ${sec}초`;
+  return `${m}분 ${sec}초`;
+}
+
+function renderAuction(data, isSeller, isAdmin) {
+  const area = document.getElementById('action-area');
+  const bar = document.getElementById('bottom-bar');
+  if (!area || !bar) return;
+
+  const now = new Date();
+  const endAt = data.auctionEndAt?.toDate?.() || null;
+  const isExpired = !endAt || now >= endAt;
+  const aStatus = data.auctionStatus || 'active';
+  const isEnded = aStatus !== 'active' || isExpired;
+  const uid = getUid(currentUser);
+  const currentBid = data.auctionCurrentBid;
+  const hasBids = data.auctionBidCount > 0;
+
+  // 경매 박스 렌더
+  const bidHistoryEl = `<div id="bid-history-list"><div style="font-size:12px;color:rgba(255,255,255,0.3);text-align:center;padding:8px 0;">불러오는 중...</div></div>`;
+  let endedBox = '';
+  if (isEnded) {
+    if (hasBids) {
+      endedBox = `<div class="auction-ended-box">
+        <div class="auction-ended-label">낙찰</div>
+        <div class="auction-winner">${data.auctionHighestBidderNick || '낙찰자'} · ${fmtPrice(currentBid)}</div>
+      </div>`;
+    } else {
+      endedBox = `<div class="auction-ended-box"><div class="auction-ended-label" style="font-size:14px;color:rgba(255,255,255,0.4);">유찰 — 입찰자 없이 종료됨</div></div>`;
+    }
+  }
+
+  area.innerHTML = `
+    <div class="auction-box">
+      <div class="auction-header">
+        <span class="auction-badge">AUCTION</span>
+        <span class="auction-timer" id="auction-timer">${isEnded ? '경매 종료' : fmtCountdown(endAt - now)}</span>
+      </div>
+      <div class="auction-current">
+        <div class="auction-label">${isEnded ? '최종 입찰가' : '현재 입찰가'}</div>
+        <span class="auction-price">${currentBid ? fmtPrice(currentBid) : '입찰 없음'}</span>
+        <span class="auction-count">${hasBids ? `${data.auctionBidCount}회 입찰` : '아직 입찰 없음'}</span>
+      </div>
+      <div class="auction-info-row">
+        <span>시작가 <b>${fmtPrice(data.auctionStartPrice)}</b></span>
+        <span>단위 <b>${fmtPrice(data.auctionMinStep)}</b></span>
+        ${data.auctionBuyNowPrice ? `<span>즉시구매 <b>${fmtPrice(data.auctionBuyNowPrice)}</b></span>` : ''}
+      </div>
+      <div class="bid-history-title">입찰 내역</div>
+      ${bidHistoryEl}
+    </div>
+    ${endedBox}
+    ${isAdmin && isEnded && hasBids ? `<button class="action-btn btn-confirm" onclick="adminFinalize()">낙찰 확정 처리</button>` : ''}
+  `;
+
+  // 하단 바: 입찰 UI or 상태 안내
+  if (!isEnded && !isSeller) {
+    const minNext = (currentBid ?? data.auctionStartPrice) + (currentBid !== null ? data.auctionMinStep : 0);
+    const hasLogin = isLoggedIn(currentUser);
+    bar.innerHTML = `
+      <div class="auction-bid-row">
+        <input class="bid-input" id="bid-input" type="number" placeholder="${fmtPrice(minNext)} 이상"
+          ${!hasLogin ? 'disabled' : ''} />
+        <button class="bid-submit-btn" id="bid-submit-btn" onclick="submitBid()"
+          ${!hasLogin ? 'disabled' : ''}>${hasLogin ? '입찰하기' : '로그인 필요'}</button>
+      </div>
+      ${data.auctionBuyNowPrice
+        ? `<button class="buynow-btn" onclick="executeBuyNow()">${!hasLogin ? '즉시구매 ' : ''}${fmtPrice(data.auctionBuyNowPrice)}에 즉시구매</button>`
+        : ''}
+    `;
+  } else if (isSeller && !isEnded) {
+    bar.innerHTML = `<div style="text-align:center;font-size:13px;color:rgba(255,255,255,0.35);padding:10px 0;">내가 등록한 경매 상품입니다</div>`;
+  } else {
+    bar.innerHTML = '';
+  }
+
+  // 카운트다운 타이머
+  if (auctionTimerInterval) clearInterval(auctionTimerInterval);
+  if (!isEnded && endAt) {
+    auctionTimerInterval = setInterval(() => {
+      const remain = endAt - new Date();
+      const el = document.getElementById('auction-timer');
+      if (!el) { clearInterval(auctionTimerInterval); return; }
+      if (remain <= 0) {
+        el.textContent = '경매 종료';
+        clearInterval(auctionTimerInterval);
+        loadItem();
+        return;
+      }
+      el.textContent = fmtCountdown(remain);
+      el.classList.toggle('urgent', remain < 300000);
+    }, 1000);
+  }
+
+  // 실시간 입찰 내역
+  if (auctionBidUnsubscribe) auctionBidUnsubscribe();
+  auctionBidUnsubscribe = onSnapshot(
+    query(collection(db, 'usedItems', itemId, 'bids'), orderBy('amount', 'desc')),
+    snap => {
+      const el = document.getElementById('bid-history-list');
+      if (!el) return;
+      if (snap.empty) {
+        el.innerHTML = `<div style="font-size:12px;color:rgba(255,255,255,0.3);text-align:center;padding:8px 0;">아직 입찰이 없습니다</div>`;
+        return;
+      }
+      el.innerHTML = snap.docs.slice(0, 5).map(d => {
+        const b = d.data();
+        return `<div class="bid-item">
+          <span class="bid-item-amount">${fmtPrice(b.amount)}</span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.3);">${timeAgo(b.createdAt)}</span>
+        </div>`;
+      }).join('');
+    }
+  );
+}
+
+window.submitBid = async function() {
+  const uid = getUid(currentUser);
+  if (!uid) { showToast('로그인이 필요합니다'); return; }
+  const bidVal = parseInt(document.getElementById('bid-input')?.value, 10);
+  if (!bidVal || isNaN(bidVal) || bidVal <= 0) { showToast('입찰 금액을 입력해주세요'); return; }
+
+  const btn = document.getElementById('bid-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = doc(db, 'usedItems', itemId);
+      const snap = await tx.get(ref);
+      const d = snap.data();
+      if (d.auctionStatus !== 'active') throw new Error('경매가 종료되었습니다');
+      if (new Date() >= d.auctionEndAt.toDate()) throw new Error('경매가 종료되었습니다');
+      if (uid === d.sellerId) throw new Error('내 상품에는 입찰할 수 없습니다');
+      const minBid = d.auctionCurrentBid !== null
+        ? d.auctionCurrentBid + d.auctionMinStep
+        : d.auctionStartPrice;
+      if (bidVal < minBid) throw new Error(`최소 ${fmtPrice(minBid)} 이상 입찰해야 합니다`);
+
+      const nick = getNick(currentUser, currentUserDoc);
+      const bidRef = doc(collection(db, 'usedItems', itemId, 'bids'));
+      tx.set(bidRef, { bidderUid: uid, amount: bidVal, createdAt: serverTimestamp() });
+
+      const updates = {
+        auctionCurrentBid: bidVal,
+        auctionHighestBidderUid: uid,
+        auctionHighestBidderNick: nick,
+        auctionBidCount: increment(1),
+      };
+      // 즉시구매가 도달 시 경매 종료
+      if (d.auctionBuyNowPrice && bidVal >= d.auctionBuyNowPrice) {
+        updates.auctionStatus = 'sold';
+        updates.status = 'pending';
+        updates.buyerId = uid;
+        updates.buyerNick = nick;
+        updates.auctionCurrentBid = d.auctionBuyNowPrice;
+      }
+      tx.update(ref, updates);
+    });
+    showToast('입찰 완료!');
+    await loadItem();
+  } catch(e) {
+    showToast(e.message || '입찰 실패');
+    if (btn) { btn.disabled = false; btn.textContent = '입찰하기'; }
+  }
+};
+
+window.executeBuyNow = async function() {
+  const uid = getUid(currentUser);
+  if (!uid) { showToast('로그인이 필요합니다'); return; }
+  if (!itemData?.auctionBuyNowPrice) return;
+  if (!confirm(`${fmtPrice(itemData.auctionBuyNowPrice)}에 즉시구매 하시겠습니까?`)) return;
+  document.querySelector('.buynow-btn').disabled = true;
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = doc(db, 'usedItems', itemId);
+      const snap = await tx.get(ref);
+      const d = snap.data();
+      if (d.auctionStatus !== 'active') throw new Error('경매가 이미 종료되었습니다');
+      if (new Date() >= d.auctionEndAt.toDate()) throw new Error('경매가 종료되었습니다');
+      if (uid === d.sellerId) throw new Error('내 상품에는 입찰할 수 없습니다');
+      const nick = getNick(currentUser, currentUserDoc);
+      const bidRef = doc(collection(db, 'usedItems', itemId, 'bids'));
+      tx.set(bidRef, { bidderUid: uid, amount: d.auctionBuyNowPrice, createdAt: serverTimestamp() });
+      tx.update(ref, {
+        auctionStatus: 'sold', status: 'pending',
+        auctionCurrentBid: d.auctionBuyNowPrice,
+        auctionHighestBidderUid: uid, auctionHighestBidderNick: nick,
+        auctionBidCount: increment(1),
+        buyerId: uid, buyerNick: nick,
+      });
+    });
+    showToast('즉시구매 완료! 입금 안내를 확인해주세요.');
+    await loadItem();
+  } catch(e) {
+    showToast(e.message || '즉시구매 실패');
+    const btn = document.querySelector('.buynow-btn');
+    if (btn) btn.disabled = false;
+  }
+};
+
+window.adminFinalize = async function() {
+  if (!itemData) return;
+  try {
+    await updateDoc(doc(db, 'usedItems', itemId), { auctionStatus: 'ended', status: 'pending' });
+    showToast('낙찰 확정 처리 완료');
+    await loadItem();
+  } catch(e) { showToast('오류: ' + e.message); }
+};
 
 function renderActionButtons(status, isSeller, isBuyer, isAdmin, data) {
   const area = document.getElementById('action-area');
@@ -649,6 +908,16 @@ async function loadItem() {
 
     // 뷰 카운트 증가 (비동기)
     updateDoc(doc(db, 'usedItems', itemId), { viewCount: increment(1) }).catch(() => {});
+
+    // 경매 만료 자동 처리
+    if (itemData.isAuction && itemData.auctionStatus === 'active') {
+      const endAt = itemData.auctionEndAt?.toDate?.();
+      if (endAt && new Date() >= endAt) {
+        const newStatus = itemData.auctionBidCount > 0 ? 'ended' : 'cancelled';
+        updateDoc(doc(db, 'usedItems', itemId), { auctionStatus: newStatus }).catch(() => {});
+        itemData.auctionStatus = newStatus;
+      }
+    }
 
     // 삭제 버튼 표시 (관리자 또는 판매자)
     const isAdmin = currentUser?.email === ADMIN_EMAIL || currentUserDoc?.email === ADMIN_EMAIL;
