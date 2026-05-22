@@ -73,11 +73,19 @@
       overflow-x: auto; scrollbar-width: none;
     }
     .top-tabs::-webkit-scrollbar { display: none; }
+    .tab-badge {
+      display: none; position: absolute; top: 4px; right: 2px;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      background: #e74c3c; color: #fff; border-radius: 10px;
+      font-size: 9px; font-weight: 900; line-height: 16px;
+      text-align: center; pointer-events: none; box-sizing: border-box;
+    }
     .top-tab {
       flex-shrink: 0; padding: 10px 14px;
       font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4);
       border: none; background: none; cursor: pointer; font-family: inherit;
       border-bottom: 2px solid transparent; white-space: nowrap;
+      position: relative;
     }
     .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
     .ggcup-tab { color: #f0c040 !important; }
@@ -483,19 +491,19 @@
 
   <div class="top-tabs">
     <button class="top-tab active">홈</button>
-    <button class="top-tab gglog-tab" onclick="location.href='feed.html'">
+    <button class="top-tab gglog-tab" id="tab-feed" onclick="markSeen('feed');location.href='feed.html'">
       <span class="gglog-wrap">
         <span class="gglog-cam"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
         <span class="gglog-txt">GGLOG</span>
       </span>
     </button>
-    <button class="top-tab" onclick="checkPaidAndGo('event.html')">단체라운드 대회</button>
-    <button class="top-tab" onclick="checkPaidAndGo('join.html')">조인</button>
+    <button class="top-tab" id="tab-event" onclick="markSeen('event');checkPaidAndGo('event.html')">단체라운드 대회</button>
+    <button class="top-tab" id="tab-join" onclick="markSeen('join');checkPaidAndGo('join.html')">조인</button>
     <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>
     <button class="top-tab" onclick="checkPaidAndGo('sub-round.html')">구독자라운드</button>
     <button class="top-tab" onclick="location.href='round-map.html'">라운드지도</button>
     <button class="top-tab" onclick="showToast('준비 중입니다')">쇼핑</button>
-    <button class="top-tab" onclick="location.href='used-market.html'">중고득템</button>
+    <button class="top-tab" id="tab-market" onclick="markSeen('market');location.href='used-market.html'">중고득템</button>
   </div>
 
   <div class="content">
@@ -753,7 +761,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const app = initializeApp({
@@ -783,7 +791,51 @@
     loadGGLogGrid();
     loadGGPlayerList();
     loadLatestTournamentChart();
+    loadTabBadges();
     window._isPaidUser = true;
+  }
+
+  window.markSeen = function(key) {
+    localStorage.setItem('ggzon_seen_' + key, new Date().toISOString());
+    const badge = document.getElementById('badge-' + key);
+    if (badge) badge.style.display = 'none';
+  };
+
+  async function loadTabBadges() {
+    const TAB_CONFIG = [
+      { tabId: 'tab-feed',   badgeId: 'badge-feed',   col: 'feed',        key: 'feed'   },
+      { tabId: 'tab-event',  badgeId: 'badge-event',  col: 'tournaments', key: 'event'  },
+      { tabId: 'tab-join',   badgeId: 'badge-join',   col: 'joins',       key: 'join'   },
+      { tabId: 'tab-market', badgeId: 'badge-market', col: 'usedItems',   key: 'market' },
+    ];
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+    for (const cfg of TAB_CONFIG) {
+      const btn = document.getElementById(cfg.tabId);
+      if (!btn) continue;
+
+      // 배지 요소 생성
+      const badge = document.createElement('span');
+      badge.className = 'tab-badge';
+      badge.id = cfg.badgeId;
+      btn.appendChild(badge);
+
+      try {
+        const lastSeenStr = localStorage.getItem('ggzon_seen_' + cfg.key);
+        const since = lastSeenStr ? new Date(lastSeenStr) : threeDaysAgo;
+        const q = query(
+          collection(db, cfg.col),
+          where('createdAt', '>', Timestamp.fromDate(since)),
+          limit(10)
+        );
+        const snap = await getDocs(q);
+        const count = snap.size;
+        if (count > 0) {
+          badge.textContent = count >= 10 ? '9+' : String(count);
+          badge.style.display = 'block';
+        }
+      } catch(_) {}
+    }
   }
 
   // 카카오 세션 먼저 확인
