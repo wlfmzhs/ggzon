@@ -106,6 +106,19 @@
   .status-done { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); }
   .empty-msg { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 14px; }
 
+  /* 경매 토글 */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .toggle-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); }
+  .toggle-sub { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+  .toggle-wrap { position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; }
+  .toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: rgba(255,255,255,0.12); border-radius: 26px; transition: 0.2s; }
+  .toggle-slider:before { position: absolute; content: ''; height: 20px; width: 20px; left: 3px; bottom: 3px; background: rgba(255,255,255,0.6); border-radius: 50%; transition: 0.2s; }
+  .toggle-wrap input:checked + .toggle-slider { background: var(--amber); }
+  .toggle-wrap input:checked + .toggle-slider:before { background: #fff; transform: translateX(18px); }
+  .auction-fields { background: rgba(245,132,31,0.06); border: 1px solid rgba(245,132,31,0.2); border-radius: 14px; padding: 14px 14px 2px; margin-bottom: 14px; }
+  .auction-section-label { font-size: 10px; font-weight: 800; color: rgba(245,132,31,0.7); letter-spacing: 0.1em; margin-bottom: 12px; }
+
   /* FAB */
   .fab {
     position: absolute; bottom: 24px; right: 20px;
@@ -310,11 +323,53 @@
           </select>
         </div>
         <!-- 가격 -->
-        <div class="field-row">
+        <div class="field-row" id="price-row">
           <div class="field-label">가격</div>
           <div class="price-wrap">
             <input class="field-input" id="f-price" type="number" placeholder="판매 가격" min="0" max="99999999" />
             <span class="price-unit">원</span>
+          </div>
+        </div>
+        <!-- 경매 토글 -->
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">경매로 판매하기</div>
+            <div class="toggle-sub">입찰을 받아 최고가 낙찰</div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" id="f-auction" onchange="toggleAuction(this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <!-- 경매 설정 -->
+        <div id="auction-fields" class="auction-fields" style="display:none;">
+          <div class="auction-section-label">AUCTION SETTING</div>
+          <div class="field-row">
+            <div class="field-label">시작가 <span style="color:var(--amber)">*</span></div>
+            <div class="price-wrap">
+              <input class="field-input" id="f-start-price" type="number" placeholder="최소 입찰 금액" min="0" />
+              <span class="price-unit">원</span>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">즉시구매가 <span style="font-size:10px;color:rgba(255,255,255,0.3);">선택</span></div>
+            <div class="price-wrap">
+              <input class="field-input" id="f-buynow-price" type="number" placeholder="입력 시 이 금액에 즉시 낙찰" min="0" />
+              <span class="price-unit">원</span>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">최소 입찰 단위</div>
+            <select class="field-select field-input" id="f-bid-step">
+              <option value="1000">1,000원</option>
+              <option value="5000">5,000원</option>
+              <option value="10000">10,000원</option>
+              <option value="50000">50,000원</option>
+            </select>
+          </div>
+          <div class="field-row" style="margin-bottom:12px;">
+            <div class="field-label">경매 종료 일시 <span style="color:var(--amber)">*</span></div>
+            <input class="field-input" id="f-auction-end" type="datetime-local" style="color-scheme:dark;" />
           </div>
         </div>
         <!-- 설명 -->
@@ -334,7 +389,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, where, getDocs, addDoc, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { isLoggedIn, getUid, getNick } from '/ggzon-auth.js';
 
 const CLOUDINARY_CLOUD = 'da9tzfmg0';
@@ -408,19 +463,23 @@ async function loadItems(cat) {
       const thumbHtml = thumb
         ? `<img class="item-thumb" src="${thumb}" alt="" loading="lazy" />`
         : `<div class="item-thumb-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 19H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z"/><circle cx="12" cy="12" r="3"/></svg></div>`;
+      const isAuctionItem = d.isAuction && d.auctionStatus === 'active';
+      const priceDisplay = isAuctionItem
+        ? (d.auctionCurrentBid ? `현재 ${fmtPrice(d.auctionCurrentBid)}` : `시작가 ${fmtPrice(d.auctionStartPrice)}`)
+        : fmtPrice(d.price);
       html += `
         <div class="item-card" onclick="location.href='used-market-detail.html?id=${doc.id}'">
           ${thumbHtml}
           <div class="item-info">
             <div>
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                <span class="status-badge ${statusClass(d.status)}">${statusLabel(d.status)}</span>
+                ${isAuctionItem ? `<span class="status-badge" style="background:rgba(120,80,255,0.2);color:#a07aff;">경매</span>` : `<span class="status-badge ${statusClass(d.status)}">${statusLabel(d.status)}</span>`}
                 ${d.category ? `<span style="font-size:10px;color:rgba(255,255,255,0.3);">${d.category}</span>` : ''}
               </div>
               <div class="item-title">${d.title || ''}</div>
             </div>
             <div>
-              <div class="item-price">${fmtPrice(d.price)}</div>
+              <div class="item-price">${priceDisplay}</div>
               <div class="item-meta">
                 <span class="item-nick">${d.sellerNick || ''}</span>
                 <span class="item-view">
@@ -537,17 +596,52 @@ async function uploadToCloudinary(file) {
   return (await res.json()).secure_url;
 }
 
+window.toggleAuction = function(on) {
+  document.getElementById('auction-fields').style.display = on ? 'block' : 'none';
+  document.getElementById('price-row').style.display = on ? 'none' : 'block';
+};
+
 window.submitItem = async function() {
   const title = document.getElementById('f-title').value.trim();
   const cat = document.getElementById('f-cat').value;
-  const priceRaw = document.getElementById('f-price').value;
   const desc = document.getElementById('f-desc').value.trim();
-  const price = parseInt(priceRaw, 10);
+  const isAuction = document.getElementById('f-auction')?.checked || false;
 
   if (!title) { showToast('제목을 입력해주세요'); return; }
   if (!cat) { showToast('카테고리를 선택해주세요'); return; }
-  if (!priceRaw || isNaN(price) || price < 0) { showToast('가격을 올바르게 입력해주세요'); return; }
   if (!desc) { showToast('상품 설명을 입력해주세요'); return; }
+
+  let price, auctionExtra = {};
+  if (isAuction) {
+    const startRaw = document.getElementById('f-start-price').value;
+    const startPrice = parseInt(startRaw, 10);
+    if (!startRaw || isNaN(startPrice) || startPrice < 0) { showToast('시작가를 입력해주세요'); return; }
+    const endVal = document.getElementById('f-auction-end').value;
+    if (!endVal) { showToast('경매 종료 일시를 설정해주세요'); return; }
+    const endDate = new Date(endVal);
+    if (endDate <= new Date()) { showToast('종료 일시는 현재 시간 이후로 설정해주세요'); return; }
+    const buyNowRaw = document.getElementById('f-buynow-price').value;
+    const buyNowPrice = buyNowRaw ? parseInt(buyNowRaw, 10) : null;
+    if (buyNowPrice !== null && buyNowPrice <= startPrice) { showToast('즉시구매가는 시작가보다 높아야 합니다'); return; }
+    const minStep = parseInt(document.getElementById('f-bid-step').value, 10);
+    price = startPrice;
+    auctionExtra = {
+      isAuction: true,
+      auctionStartPrice: startPrice,
+      auctionBuyNowPrice: buyNowPrice,
+      auctionMinStep: minStep,
+      auctionEndAt: Timestamp.fromDate(endDate),
+      auctionCurrentBid: null,
+      auctionHighestBidderUid: null,
+      auctionHighestBidderNick: null,
+      auctionBidCount: 0,
+      auctionStatus: 'active',
+    };
+  } else {
+    const priceRaw = document.getElementById('f-price').value;
+    price = parseInt(priceRaw, 10);
+    if (!priceRaw || isNaN(price) || price < 0) { showToast('가격을 올바르게 입력해주세요'); return; }
+  }
 
   const sellerId = getUid(currentUser);
   const sellerNick = getNick(currentUser, currentUserDoc);
@@ -579,7 +673,9 @@ window.submitItem = async function() {
       viewCount: 0,
       buyerId: null,
       buyerNick: null,
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      isAuction: false,
+      ...auctionExtra,
     });
 
     // 초기화
