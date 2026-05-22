@@ -133,6 +133,7 @@
     .po-zero  { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.2) !important; }
     .po-p1    { background: none !important; border: 1.5px solid rgba(255,255,255,0.5) !important; border-radius: 0 !important; }
     .po-p2up  { background: none !important; border: 1.5px solid rgba(255,255,255,0.5) !important; border-radius: 0 !important; outline: 1.5px solid rgba(255,255,255,0.5); outline-offset: 3px; }
+    .po-delete { background: rgba(231,76,60,0.08) !important; border-color: rgba(231,76,60,0.3) !important; } .po-delete .pv { color: rgba(231,76,60,0.75); font-size: 20px !important; } .po-delete .pl { color: rgba(231,76,60,0.5); }
     .picker-cancel { width: 100%; padding: 13px; background: rgba(255,255,255,0.07); border: none; border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
     /* 제출 버튼 영역 */
@@ -765,12 +766,17 @@ window._openPicker = function(uid, holeIdx) {
   pickerHole = holeIdx;
   pickerUid  = uid;
   document.getElementById('picker-title').textContent = `${holeIdx + 1}번 홀`;
-  document.getElementById('picker-grid').innerHTML = OPTS.map(o =>
+  const optsHtml = OPTS.map(o =>
     `<button class="picker-opt ${o.cls}" onclick="window._selectScore(${o.v})">
       <span class="pv">${o.v === 0 ? '0' : o.v > 0 ? '+'+o.v : o.v}</span>
       <span class="pl">${o.label}</span>
     </button>`
   ).join('');
+  const deleteHtml = `<button class="picker-opt po-delete" onclick="window._selectScore(null)">
+    <span class="pv">×</span>
+    <span class="pl">삭제</span>
+  </button>`;
+  document.getElementById('picker-grid').innerHTML = optsHtml + deleteHtml;
   document.getElementById('picker-overlay').classList.add('open');
 };
 
