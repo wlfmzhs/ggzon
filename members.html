@@ -178,7 +178,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const app = initializeApp({
     apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -262,10 +262,10 @@
     const el   = document.getElementById('player-list');
     const note = document.getElementById('rank-note');
     try {
-      const snap = await getDocs(query(collection(db, 'users'), orderBy('handicap'), limit(200)));
+      const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(200)));
       allPlayers = snap.docs
         .map(d => d.data())
-        .filter(u => u.roundCount > 0 && u.handicap !== null && u.handicap !== undefined);
+        .filter(u => u.roundCount > 0 && typeof u.handicap === 'number');
 
       if (!allPlayers.length) {
         el.innerHTML = '<div class="empty-msg">아직 스코어를 제출한 멤버가 없습니다<br>라운드 후 스코어를 제출하면 자동 등록됩니다</div>';

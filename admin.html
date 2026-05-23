@@ -372,7 +372,10 @@ window.recalcAllHandicap = async function() {
           query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
         );
         if (!histSnap.empty) {
-          const allScores = histSnap.docs.map(d => d.data().totalScore ?? 0);
+          // 실제 홀 스코어가 없는 빈 제출(totalScore=0이고 holes 전부 null)은 제외
+          const allScores = histSnap.docs
+            .filter(d => { const h = d.data().holes || []; return h.some(v => v !== null); })
+            .map(d => d.data().totalScore ?? 0);
           const recent10 = allScores.slice(0, 10);
           const handicap = Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10;
           const bestScore = Math.min(...allScores);

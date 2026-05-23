@@ -1013,11 +1013,10 @@
   async function loadGGPlayerList() {
     const el = document.getElementById('ggplayer-list');
     try {
-      const snap = await getDocs(query(collection(db, 'users'), orderBy('handicap'), limit(50)));
-      // 라운드 기록이 있는 유저만 필터 (null handicap = 미참여자 제외)
+      const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(30)));
       const validDocs = snap.docs.filter(d => {
         const u = d.data();
-        return (u.roundCount > 0) && u.handicap !== null && u.handicap !== undefined;
+        return (u.roundCount > 0) && typeof u.handicap === 'number';
       }).slice(0, 3);
       if (validDocs.length === 0) { el.innerHTML = '<div class="live-empty">아직 등록된 플레이어가 없습니다</div>'; return; }
       const rankCls = ['r1','r2','r3'];
