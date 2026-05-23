@@ -182,7 +182,7 @@ async function load() {
     });
 
     // 3) 결과 생성 + 본명으로 저장된 스코어 갱신
-    const results = scoresSnap.docs
+    const registered = scoresSnap.docs
       .map(d => {
         const s = d.data();
         const realName = nameMap[s.uid];
@@ -191,7 +191,20 @@ async function load() {
         }
         return { ...s, name: realName || s.name };
       })
-      .filter(s => s.totalStrokes > 0)
+      .filter(s => s.totalStrokes > 0);
+
+    // 4) pendingPlayers (미등록 참가자) 합산
+    const pendingMap = t.pendingPlayers || {};
+    const registeredNames = new Set(registered.map(r => r.name));
+    const pending = Object.entries(pendingMap)
+      .filter(([name]) => !registeredNames.has(name))
+      .map(([name, data]) => ({
+        name,
+        totalStrokes: data.totalStrokes,
+        uid: null,
+      }));
+
+    const results = [...registered, ...pending]
       .sort((a, b) => a.totalStrokes - b.totalStrokes);
 
     // 순위 부여
