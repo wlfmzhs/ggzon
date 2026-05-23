@@ -173,6 +173,7 @@
       <div style="display:flex;gap:6px;">
         <button id="btn-all-paid" onclick="window.setAllPaid()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;cursor:pointer;font-family:inherit;">전체 유료 전환</button>
         <button id="btn-gg-rebuild" onclick="window.fullRebuildGG()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(100,120,255,0.18);border:1px solid rgba(100,120,255,0.5);color:#aabbff;cursor:pointer;font-family:inherit;">GG 전체 재빌드</button>
+        <button onclick="window.unifyRealNames()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,160,60,0.18);border:1px solid rgba(255,160,60,0.5);color:#ffb060;cursor:pointer;font-family:inherit;">실명 통합</button>
       </div>
     </div>
     <div id="member-list"></div>
@@ -611,6 +612,24 @@ window.switchTab = function(tab) {
   if (tab === 'pending' && !_pendingTabInited) {
     _pendingTabInited = true;
     initPendingTab();
+  }
+};
+
+// ── 실명 통합 (nickname = name) ───────────────────────
+window.unifyRealNames = async function() {
+  if (!confirm(`${allMembers.length}명 전원의 닉네임을 실명으로 통합합니다.\n이름이 없는 회원은 건너뜁니다. 계속할까요?`)) return;
+  let count = 0;
+  try {
+    await Promise.all(allMembers.map(async m => {
+      if (!m.name) return;
+      if (m.nickname === m.name) return;
+      await updateDoc(doc(db, 'users', m.id), { nickname: m.name });
+      count++;
+    }));
+    showToast(`${count}명 실명 통합 완료`);
+    await loadMembers();
+  } catch(e) {
+    showToast('오류: ' + e.message);
   }
 };
 
