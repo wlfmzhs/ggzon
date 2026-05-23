@@ -663,7 +663,7 @@ window.unifyRealNames = async function() {
 };
 
 // ── 미등록 스코어 일괄 저장 ──────────────────────────
-const ALL_SCORES_65 = [
+const ALL_SCORES_64 = [
   { name: '전웅규', totalScore: -1 }, { name: '어정우', totalScore: 0 },
   { name: '장준혁', totalScore: 1 },  { name: '황우익', totalScore: 2 },
   { name: '김도영', totalScore: 2 },  { name: '하준경', totalScore: 3 },
@@ -673,7 +673,7 @@ const ALL_SCORES_65 = [
   { name: '황대환', totalScore: 5 },  { name: '조명진', totalScore: 6 },
   { name: '권대근', totalScore: 6 },  { name: '박영철', totalScore: 6 },
   { name: '이호명', totalScore: 7 },  { name: '서현성', totalScore: 7 },
-  { name: '박찬웅', totalScore: 8 },  { name: '김경운', totalScore: 9 },
+  { name: '박찬웅', totalScore: 8 },  { name: '김경운', totalScore: 8 },
   { name: '이동준', totalScore: 9 },  { name: '한성용', totalScore: 9 },
   { name: '박명훈', totalScore: 9 },  { name: '임종우', totalScore: 9 },
   { name: '배근효', totalScore: 10 }, { name: '김종보', totalScore: 10 },
@@ -683,8 +683,7 @@ const ALL_SCORES_65 = [
   { name: '이광욱', totalScore: 12 }, { name: '성갑',   totalScore: 12 },
   { name: '박충기', totalScore: 12 }, { name: '김성우', totalScore: 12 },
   { name: '송현진', totalScore: 12 }, { name: '조희라', totalScore: 12 },
-  { name: '조회라', totalScore: 12 }, { name: '안두하', totalScore: 12 },
-  { name: '이수현', totalScore: 12 },
+  { name: '안두하', totalScore: 12 }, { name: '이수현', totalScore: 12 },
   { name: '원동욱', totalScore: 13 }, { name: '박성훈', totalScore: 13 },
   { name: '이승현', totalScore: 15 }, { name: '조유찬', totalScore: 15 },
   { name: '김정남', totalScore: 15 }, { name: '강성욱', totalScore: 16 },
@@ -736,13 +735,13 @@ window.loadTournScores = async function() {
       ...scoresSnap.docs.map(d => d.data().name).filter(Boolean),
       ...Object.keys((existingPending.data()?.pendingPlayers) || {}),
     ]);
-    _pendingToImport = ALL_SCORES_65.filter(p => !existingNames.has(p.name));
-    const regCount = ALL_SCORES_65.filter(p => existingNames.has(p.name)).length;
+    _pendingToImport = ALL_SCORES_64.filter(p => !existingNames.has(p.name));
+    const regCount = ALL_SCORES_64.filter(p => existingNames.has(p.name)).length;
     statusEl.innerHTML = `<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px;">
       <span style="color:var(--green-light);font-weight:700;">${regCount}명</span> 등록됨 &nbsp;/&nbsp;
-      <span style="color:#f0c040;font-weight:700;">${_pendingToImport.length}명</span> 미등록 &nbsp;/&nbsp; 전체 ${ALL_SCORES_65.length}명
+      <span style="color:#f0c040;font-weight:700;">${_pendingToImport.length}명</span> 미등록 &nbsp;/&nbsp; 전체 ${ALL_SCORES_64.length}명
     </div>`;
-    listEl.innerHTML = ALL_SCORES_65.map((p, i) => {
+    listEl.innerHTML = ALL_SCORES_64.map((p, i) => {
       const done = existingNames.has(p.name);
       const sc = p.totalScore === 0 ? 'E' : p.totalScore > 0 ? '+' + p.totalScore : String(p.totalScore);
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:8px;margin-bottom:3px;background:${done ? 'rgba(62,160,102,0.07)' : 'rgba(240,192,64,0.05)'};border:1px solid ${done ? 'rgba(62,160,102,0.18)' : 'rgba(240,192,64,0.15)'};">
