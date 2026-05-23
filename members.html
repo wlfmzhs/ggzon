@@ -151,6 +151,39 @@
       transition: background 0.15s;
     }
     .load-more-btn:active { background: rgba(255,255,255,0.1); }
+
+    .member-card { cursor: pointer; }
+    .member-card:active { opacity: 0.85; }
+    .drop-toggle { font-size: 10px; color: rgba(255,255,255,0.25); margin-top: 5px; text-align: right; transition: color 0.2s; }
+    .member-card.open .drop-toggle { color: var(--green-light); }
+
+    .history-drop {
+      display: none;
+      margin: -5px 14px 9px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+    }
+    .history-drop.open { display: block; }
+    .hist-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 12px;
+    }
+    .hist-row:last-child { border-bottom: none; }
+    .hist-num  { font-size: 10px; color: rgba(255,255,255,0.25); min-width: 16px; text-align: center; }
+    .hist-date { font-size: 10px; color: rgba(255,255,255,0.3); min-width: 58px; }
+    .hist-course { flex: 1; color: rgba(255,255,255,0.65); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hist-type { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.07); padding: 2px 6px; border-radius: 6px; white-space: nowrap; }
+    .hist-score { font-size: 14px; font-weight: 900; min-width: 34px; text-align: right; }
+    .hist-score.s-under { color: #e74c3c; }
+    .hist-score.s-even  { color: #ffb3c8; }
+    .hist-score.s-good  { color: rgba(255,255,255,0.8); }
+    .hist-score.s-over  { color: rgba(255,255,255,0.4); }
+    .hist-loading { text-align: center; padding: 14px; color: rgba(255,255,255,0.25); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -179,6 +212,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  // limit을 별칭으로 사용 (내부 변수명 충돌 방지용)
 
   const app = initializeApp({
     apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -214,6 +248,7 @@
   function buildCard(u, rank) {
     const rc = rank <= 3 ? ['rank-1','rank-2','rank-3'][rank - 1] : '';
     const nick = u.nickname || u.name || '멤버';
+    const uid  = u.uid || '';
     const starCount = GOLCHELIN[u.name] || GOLCHELIN[u.nickname] || 0;
     const starHtml = starCount ? `<span class="golchelin-stars">${'★'.repeat(starCount)}</span>` : '';
     const metaParts = [];
@@ -240,7 +275,10 @@
     const badges = [];
     if (u.hasEagle) badges.push('<span class="badge badge-eagle">이글</span>');
     if (u.hasHoleinone) badges.push('<span class="badge badge-holeinone">홀인원</span>');
-    return `<div class="member-card ${rc}" style="animation-delay:${Math.min(rank - 1, 9) * 0.07}s">
+    const dropId = `drop-${uid}`;
+    const cardId = `card-${uid}`;
+    return `
+<div class="member-card ${rc}" id="${cardId}" style="animation-delay:${Math.min(rank-1,9)*0.07}s;border-radius:16px 16px ${uid ? '0 0' : '16px 16px'};" onclick="window.toggleDrop('${uid}','${dropId}','${cardId}')">
   <div class="rank-num">${rank}</div>
   <div class="member-info">
     <div class="member-nick">${nick}${arrowHtml}${starHtml}</div>
@@ -250,13 +288,73 @@
   <div class="member-right">
     <div class="handi-big ${hCls}">${hLabel}</div>
     <div class="trend-line">${trendHtml}</div>
+    <div class="drop-toggle">▼ 기록</div>
   </div>
-</div>`;
+</div>
+<div class="history-drop" id="${dropId}"><div class="hist-loading">불러오는 중...</div></div>`;
   }
 
   function renderList(players, el) {
     el.innerHTML = players.map((u, i) => buildCard(u, i + 1)).join('');
   }
+
+  const _dropCache = {};
+  window.toggleDrop = async function(uid, dropId, cardId) {
+    if (!uid) return;
+    const drop = document.getElementById(dropId);
+    const card = document.getElementById(cardId);
+    if (!drop || !card) return;
+
+    const isOpen = drop.classList.contains('open');
+    // 다른 열린 드롭다운 닫기
+    document.querySelectorAll('.history-drop.open').forEach(el => {
+      el.classList.remove('open');
+      const cId = el.id.replace('drop-', 'card-');
+      const c = document.getElementById(cId);
+      if (c) { c.classList.remove('open'); c.style.borderRadius = '16px 16px 0 0'; }
+    });
+    if (isOpen) { card.style.borderRadius = '16px'; return; }
+
+    drop.classList.add('open');
+    card.classList.add('open');
+    card.style.borderRadius = '16px 16px 0 0';
+
+    if (_dropCache[uid]) { drop.innerHTML = _dropCache[uid]; return; }
+
+    drop.innerHTML = '<div class="hist-loading">불러오는 중...</div>';
+    try {
+      const snap = await getDocs(
+        query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'), limit(10))
+      );
+      const valid = snap.docs.filter(d => {
+        const r = d.data();
+        return r.type === 'tournament' || (r.holes || []).some(v => v !== null);
+      });
+      if (!valid.length) {
+        drop.innerHTML = '<div class="hist-loading">기록 없음</div>';
+        _dropCache[uid] = drop.innerHTML;
+        return;
+      }
+      drop.innerHTML = valid.map((d, i) => {
+        const r  = d.data();
+        const sc = r.totalScore ?? 0;
+        const scLabel = sc === 0 ? 'E' : sc > 0 ? `+${sc}` : String(sc);
+        const scCls   = sc < 0 ? 's-under' : sc === 0 ? 's-even' : sc <= 9 ? 's-good' : 's-over';
+        const typeLabel = r.type === 'tournament' ? '대회' : '조인';
+        const courseName = r.tournamentName || r.course || '-';
+        return `<div class="hist-row">
+  <span class="hist-num">${i + 1}</span>
+  <span class="hist-date">${r.date || ''}</span>
+  <span class="hist-course">${courseName}</span>
+  <span class="hist-type">${typeLabel}</span>
+  <span class="hist-score ${scCls}">${scLabel}</span>
+</div>`;
+      }).join('');
+      _dropCache[uid] = drop.innerHTML;
+    } catch(e) {
+      drop.innerHTML = '<div class="hist-loading">불러오기 실패</div>';
+    }
+  };
 
   async function loadPlayers() {
     const el   = document.getElementById('player-list');
@@ -264,7 +362,7 @@
     try {
       const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(200)));
       allPlayers = snap.docs
-        .map(d => d.data())
+        .map(d => ({ uid: d.id, ...d.data() }))
         .filter(u => u.roundCount > 0 && typeof u.handicap === 'number');
 
       if (!allPlayers.length) {
