@@ -303,7 +303,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  collection, getDocs, query, orderBy, serverTimestamp
+  collection, getDocs, query, orderBy, serverTimestamp, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ★ 카카오 JavaScript 앱 키를 여기에 입력하세요 ★
@@ -462,22 +462,27 @@ async function handleKakaoReturn() {
 
 handleKakaoReturn();
 
-// ── pendingScores 자동 연결 ─────────────────────────────
+// ── 미등록 스코어 자동 연결 ─────────────────────────────
 async function claimPendingScores(uid, name) {
   if (!name || !uid) return;
   try {
-    const pendingSnap = await getDoc(doc(db, 'pendingScores', name));
-    if (!pendingSnap.exists()) return;
-    const { entries } = pendingSnap.data();
-    if (!entries?.length) return;
-    for (const entry of entries) {
-      const { tournId, ...rest } = entry;
-      if (!tournId) continue;
-      const histRef = doc(db, 'users', uid, 'scoreHistory', tournId);
+    const tournsSnap = await getDocs(collection(db, 'tournaments'));
+    let claimed = false;
+    for (const tDoc of tournsSnap.docs) {
+      const pending = tDoc.data().pendingPlayers;
+      if (!pending || !pending[name]) continue;
+      const entry = pending[name];
+      const histRef = doc(db, 'users', uid, 'scoreHistory', tDoc.id);
       const existing = await getDoc(histRef);
-      if (existing.exists()) continue;
-      await setDoc(histRef, { ...rest, submittedAt: serverTimestamp() });
+      if (!existing.exists()) {
+        await setDoc(histRef, { ...entry, submittedAt: serverTimestamp() });
+      }
+      await updateDoc(doc(db, 'tournaments', tDoc.id), {
+        [`pendingPlayers.${name}`]: deleteField()
+      });
+      claimed = true;
     }
+    if (!claimed) return;
     const histSnap = await getDocs(
       query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
     );
@@ -495,7 +500,6 @@ async function claimPendingScores(uid, name) {
         statsUpdatedAt: serverTimestamp(),
       });
     }
-    await deleteDoc(doc(db, 'pendingScores', name));
   } catch(_) {}
 }
 
