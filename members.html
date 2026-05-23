@@ -158,15 +158,23 @@
     .member-card.open .drop-toggle { color: var(--green-light); }
 
     .history-drop {
-      display: none;
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.38s cubic-bezier(0.22,1,0.36,1), opacity 0.28s ease;
       margin: -5px 14px 9px;
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+      opacity: 0;
+    }
+    .history-drop.open { grid-template-rows: 1fr; opacity: 1; }
+    .history-drop-body {
+      overflow: hidden;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.09);
       border-top: none;
       border-radius: 0 0 14px 14px;
-      overflow: hidden;
+      min-height: 0;
     }
-    .history-drop.open { display: block; }
     .hist-row {
       display: flex; align-items: center; gap: 8px;
       padding: 9px 14px;
@@ -291,7 +299,7 @@
     <div class="drop-toggle">▼ 기록</div>
   </div>
 </div>
-<div class="history-drop" id="${dropId}"><div class="hist-loading">불러오는 중...</div></div>`;
+<div class="history-drop" id="${dropId}"><div class="history-drop-body"><div class="hist-loading">불러오는 중...</div></div></div>`;
   }
 
   function renderList(players, el) {
@@ -311,7 +319,7 @@
       el.classList.remove('open');
       const cId = el.id.replace('drop-', 'card-');
       const c = document.getElementById(cId);
-      if (c) { c.classList.remove('open'); c.style.borderRadius = '16px 16px 0 0'; }
+      if (c) { c.classList.remove('open'); c.style.borderRadius = '16px'; }
     });
     if (isOpen) { card.style.borderRadius = '16px'; return; }
 
@@ -321,7 +329,7 @@
 
     if (_dropCache[uid]) { drop.innerHTML = _dropCache[uid]; return; }
 
-    drop.innerHTML = '<div class="hist-loading">불러오는 중...</div>';
+    drop.innerHTML = '<div class="history-drop-body"><div class="hist-loading">불러오는 중...</div></div>';
     try {
       const snap = await getDocs(
         query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'), limit(10))
@@ -331,11 +339,11 @@
         return r.type === 'tournament' || (r.holes || []).some(v => v !== null);
       });
       if (!valid.length) {
-        drop.innerHTML = '<div class="hist-loading">기록 없음</div>';
+        drop.innerHTML = '<div class="history-drop-body"><div class="hist-loading">기록 없음</div></div>';
         _dropCache[uid] = drop.innerHTML;
         return;
       }
-      drop.innerHTML = valid.map((d, i) => {
+      drop.innerHTML = '<div class="history-drop-body">' + valid.map((d, i) => {
         const r  = d.data();
         const sc = r.totalScore ?? 0;
         const scLabel = sc === 0 ? 'E' : sc > 0 ? `+${sc}` : String(sc);
@@ -349,10 +357,10 @@
   <span class="hist-type">${typeLabel}</span>
   <span class="hist-score ${scCls}">${scLabel}</span>
 </div>`;
-      }).join('');
+      }).join('') + '</div>';
       _dropCache[uid] = drop.innerHTML;
     } catch(e) {
-      drop.innerHTML = '<div class="hist-loading">불러오기 실패</div>';
+      drop.innerHTML = '<div class="history-drop-body"><div class="hist-loading">불러오기 실패</div></div>';
     }
   };
 
