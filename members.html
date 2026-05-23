@@ -278,7 +278,7 @@
     const dropId = `drop-${uid}`;
     const cardId = `card-${uid}`;
     return `
-<div class="member-card ${rc}" id="${cardId}" style="animation-delay:${Math.min(rank-1,9)*0.07}s;border-radius:16px 16px ${uid ? '0 0' : '16px 16px'};" onclick="window.toggleDrop('${uid}','${dropId}','${cardId}')">
+<div class="member-card ${rc}" id="${cardId}" style="animation-delay:${Math.min(rank-1,9)*0.07}s;" onclick="window.toggleDrop('${uid}','${dropId}','${cardId}')">
   <div class="rank-num">${rank}</div>
   <div class="member-info">
     <div class="member-nick">${nick}${arrowHtml}${starHtml}</div>
@@ -372,6 +372,14 @@
       }
 
       renderList(allPlayers.slice(0, PAGE), el);
+
+      // 1위 자동 드롭다운 힌트 (1~2초 후 펼쳐서 클릭 유도)
+      if (allPlayers.length > 0) {
+        const first = allPlayers[0];
+        setTimeout(() => {
+          window.toggleDrop(first.uid, `drop-${first.uid}`, `card-${first.uid}`);
+        }, 1500);
+      }
 
       // 더보기 버튼 (11위 이상 있을 때만)
       const moreBtn = document.getElementById('load-more-btn');
