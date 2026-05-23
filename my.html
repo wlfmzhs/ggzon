@@ -1804,13 +1804,30 @@ window.openScorecard = (recordId) => {
   document.getElementById('sc-appbar-sub').textContent = r.date || '';
   document.getElementById('sc-admin-badge').style.display = isAdmin ? 'block' : 'none';
 
-  renderSc2Tables(isAdmin);
+  // parHoles가 비어 있으면 courses 컬렉션에서 par 데이터 자동 로드
+  const needsPar = !r.parHoles || r.parHoles.length === 0;
+  if (needsPar && r.course && (r.frontCourse || r.backCourse)) {
+    getDoc(doc(db, 'courses', r.course)).then(snap => {
+      if (snap.exists()) {
+        const nh = snap.data().nineHoles || {};
+        const pf = r.frontCourse && nh[r.frontCourse] ? [...nh[r.frontCourse]] : Array(9).fill(null);
+        const pb = r.backCourse  && nh[r.backCourse]  ? [...nh[r.backCourse]]  : Array(9).fill(null);
+        sc2Record = { ...sc2Record, parHoles: [...pf, ...pb] };
+      }
+      renderSc2Tables(isAdmin);
+    }).catch(() => renderSc2Tables(isAdmin));
+  } else {
+    renderSc2Tables(isAdmin);
+  }
+
   document.getElementById('scorecard-overlay').classList.add('show');
 };
 
 function renderSc2Tables(isAdmin) {
   const holes    = sc2Record.holes    || Array(18).fill(null);
-  const parHoles = sc2Record.parHoles || Array(18).fill(null);
+  // parHoles가 빈 배열([])이면 null-filled 배열로 대체
+  const raw = sc2Record.parHoles;
+  const parHoles = (Array.isArray(raw) && raw.length > 0) ? raw : Array(18).fill(null);
   const front = holes.slice(0, 9);
   const back  = holes.slice(9, 18);
   const frontTot = front.reduce((a, v) => a + (v ?? 0), 0);
