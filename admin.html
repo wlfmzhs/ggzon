@@ -726,8 +726,15 @@ window.loadTournScores = async function() {
     const tSnap = await getDoc(doc(db, 'tournaments', tournId));
     if (!tSnap.exists()) { statusEl.innerHTML = '<div style="color:#ff6b6b;font-size:12px;">대회 없음</div>'; return; }
     _selectedTourn = { id: tournId, ...tSnap.data() };
-    const scoresSnap = await getDocs(collection(db, 'tournaments', tournId, 'scores'));
-    const existingNames = new Set(scoresSnap.docs.map(d => d.data().name).filter(Boolean));
+    const [scoresSnap, existingPending] = await Promise.all([
+      getDocs(collection(db, 'tournaments', tournId, 'scores')),
+      getDoc(doc(db, 'tournaments', tournId)),
+    ]);
+    // 스코어 서브컬렉션의 이름 + 이미 저장된 pendingPlayers 이름 모두 "등록됨"으로 간주
+    const existingNames = new Set([
+      ...scoresSnap.docs.map(d => d.data().name).filter(Boolean),
+      ...Object.keys((existingPending.data()?.pendingPlayers) || {}),
+    ]);
     _pendingToImport = ALL_SCORES_64.filter(p => !existingNames.has(p.name));
     const regCount = ALL_SCORES_64.filter(p => existingNames.has(p.name)).length;
     statusEl.innerHTML = `<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px;">
