@@ -235,7 +235,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, getDoc, doc, updateDoc, addDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, where, increment, Timestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, doc, updateDoc, addDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, where, increment, Timestamp, arrayUnion, deleteField } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -682,7 +682,7 @@ const ALL_SCORES_64 = [
   { name: '박성진', totalScore: 11 }, { name: '김상우', totalScore: 12 },
   { name: '이광욱', totalScore: 12 }, { name: '성갑',   totalScore: 12 },
   { name: '박충기', totalScore: 12 }, { name: '김성우', totalScore: 12 },
-  { name: '송현진', totalScore: 12 }, { name: '조회라', totalScore: 12 },
+  { name: '송현진', totalScore: 12 }, { name: '조희라', totalScore: 12 },
   { name: '안두하', totalScore: 12 }, { name: '이수현', totalScore: 12 },
   { name: '원동욱', totalScore: 13 }, { name: '박성훈', totalScore: 13 },
   { name: '이승현', totalScore: 15 }, { name: '조유찬', totalScore: 15 },
@@ -751,7 +751,7 @@ window.loadTournScores = async function() {
     }).join('');
     if (_pendingToImport.length) {
       importBtn.style.display = 'block';
-      importBtn.textContent = `미등록 ${_pendingToImport.length}명 저장 (pendingScores)`;
+      importBtn.textContent = `미등록 ${_pendingToImport.length}명 재저장 (기존 초기화)`;
     }
   } catch(e) {
     statusEl.innerHTML = `<div style="color:#ff6b6b;font-size:12px;">오류: ${e.message}</div>`;
@@ -759,30 +759,34 @@ window.loadTournScores = async function() {
 };
 
 window.importPending = async function() {
-  if (!_pendingToImport.length || !_selectedTourn) return;
+  if (!_selectedTourn) return;
   const btn = document.getElementById('btn-import-pending');
   btn.disabled = true; btn.textContent = '저장 중...';
   const t = _selectedTourn;
   const coursePar = t.coursePar || 72;
   try {
-    const updates = {};
-    for (const p of _pendingToImport) {
-      updates[`pendingPlayers.${p.name}`] = {
-        tournamentName: t.name || '',
-        course: t.golfCourseName || t.name || '',
-        date: t.date || '',
-        totalScore: p.totalScore,
-        totalStrokes: p.totalScore + coursePar,
-        type: 'tournament',
-      };
+    // 기존 pendingPlayers 전체 초기화 후 재저장 (오타·삭제 반영)
+    await updateDoc(doc(db, 'tournaments', t.id), { pendingPlayers: deleteField() });
+    if (_pendingToImport.length > 0) {
+      const updates = {};
+      for (const p of _pendingToImport) {
+        updates[`pendingPlayers.${p.name}`] = {
+          tournamentName: t.name || '',
+          course: t.golfCourseName || t.name || '',
+          date: t.date || '',
+          totalScore: p.totalScore,
+          totalStrokes: p.totalScore + coursePar,
+          type: 'tournament',
+        };
+      }
+      await updateDoc(doc(db, 'tournaments', t.id), updates);
     }
-    await updateDoc(doc(db, 'tournaments', t.id), updates);
-    showToast(`${_pendingToImport.length}명 저장 완료`);
+    showToast(`미등록 ${_pendingToImport.length}명 재저장 완료`);
     window.loadTournScores();
   } catch(e) {
     showToast('오류: ' + e.message);
     btn.disabled = false;
-    btn.textContent = `미등록 ${_pendingToImport.length}명 저장 (pendingScores)`;
+    btn.textContent = `미등록 ${_pendingToImport.length}명 재저장`;
   }
 };
 
