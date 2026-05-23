@@ -178,6 +178,10 @@
   <div class="step" id="step-update">
     <div class="step-title">정보 업데이트</div>
     <div class="step-desc">서비스 이용을 위해 아래 정보를 추가로 입력해주세요</div>
+    <div class="form-group" id="update-name-group">
+      <label class="form-label">이름 <span style="color:var(--green-light)">*</span></label>
+      <input class="form-input" id="update-name" type="text" placeholder="홍길동" />
+    </div>
     <div class="form-group" id="update-phone-group">
       <label class="form-label">전화번호 <span style="color:var(--green-light)">*</span></label>
       <input class="form-input" id="update-phone" type="tel" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)" />
@@ -218,7 +222,7 @@
       <input class="form-input" id="prof-phone" type="tel" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)" />
     </div>
     <div class="form-group">
-      <label class="form-label">이름</label>
+      <label class="form-label">이름 <span style="color:var(--green-light)">*</span></label>
       <input class="form-input" id="prof-name" type="text" placeholder="홍길동" />
     </div>
     <div class="form-row">
@@ -437,11 +441,13 @@ async function handleKakaoReturn() {
         nickname: data.nickname || kakaoNick,
         loginType: 'kakao'
       }));
+      const needName  = !data.name;
       const needPhone = !data.phone;
       const needHandi = !data.handicap;
       claimPendingScores(uid, data.name);
-      if (needPhone || needHandi) {
+      if (needName || needPhone || needHandi) {
         pendingUpdateUser = { uid };
+        if (!needName)  document.getElementById('update-name-group').style.display  = 'none';
         if (!needPhone) document.getElementById('update-phone-group').style.display = 'none';
         if (!needHandi) document.getElementById('update-handi-group').style.display = 'none';
         showStep('step-update');
@@ -532,6 +538,7 @@ window.saveProfile = async function() {
 
   try {
     const profName = document.getElementById('prof-name').value.trim();
+    if (!profName) { showMsg('prof-msg', '이름을 입력해주세요', 'error'); btn.disabled = false; btn.textContent = '가입 완료 →'; return; }
     await setDoc(doc(db, 'users', pendingKakaoUser.uid), {
       nickname: nick,
       phone: phone,
@@ -561,10 +568,16 @@ window.saveProfile = async function() {
 // ── 기존 회원 정보 보완 ─────────────────────────────────
 window.saveUpdate = async function() {
   if (!pendingUpdateUser) return;
+  const nameGroup  = document.getElementById('update-name-group');
   const phoneGroup = document.getElementById('update-phone-group');
   const handiGroup = document.getElementById('update-handi-group');
   const updates = {};
 
+  if (nameGroup.style.display !== 'none') {
+    const name = document.getElementById('update-name').value.trim();
+    if (!name) { showMsg('update-msg', '이름을 입력해주세요', 'error'); return; }
+    updates.name = name;
+  }
   if (phoneGroup.style.display !== 'none') {
     const phone = document.getElementById('update-phone').value.trim();
     if (!phone) { showMsg('update-msg', '전화번호를 입력해주세요', 'error'); return; }

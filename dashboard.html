@@ -841,15 +841,19 @@
   const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
   if (ggzonUser && ggzonUser.loginType === 'kakao') {
     setNick(ggzonUser.nickname || '멤버');
-    onLoginReady();
-    // Firestore에서 최신 닉네임 동기화
     getDoc(doc(db, 'users', ggzonUser.uid)).then(snap => {
       if (snap.exists()) {
-        const nick = snap.data().nickname || ggzonUser.nickname;
+        const data = snap.data();
+        if (!data.name || !data.phone) {
+          window.location.href = 'login.html';
+          return;
+        }
+        const nick = data.nickname || ggzonUser.nickname;
         setNick(nick);
         localStorage.setItem('ggzon_user', JSON.stringify({ ...ggzonUser, nickname: nick }));
       }
-    }).catch(() => {});
+      onLoginReady();
+    }).catch(() => { onLoginReady(); });
   } else {
     // 관리자(이메일) 로그인 확인
     onAuthStateChanged(auth, async (user) => {
