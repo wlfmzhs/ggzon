@@ -743,13 +743,14 @@ window.loadTournScores = async function() {
         <span style="font-size:13px;font-weight:900;color:${done ? 'rgba(255,255,255,0.25)' : '#f0c040'};">${sc}</span>
       </div>`;
     }).join('');
-    // 미등록이 있든 없든 항상 재저장 버튼 표시 (기존 잘못된 pendingPlayers 정리 목적)
-    importBtn.style.display = 'block';
     importBtn.textContent = _pendingToImport.length
       ? `미등록 ${_pendingToImport.length}명 재저장 (기존 초기화)`
       : `pendingPlayers 초기화 (잘못된 항목 삭제)`;
   } catch(e) {
-    statusEl.innerHTML = `<div style="color:#ff6b6b;font-size:12px;">오류: ${e.message}</div>`;
+    statusEl.innerHTML += `<div style="color:#ff6b6b;font-size:12px;">오류: ${e.message}</div>`;
+    importBtn.textContent = `pendingPlayers 초기화 (잘못된 항목 삭제)`;
+  } finally {
+    importBtn.style.display = 'block';
   }
 };
 
