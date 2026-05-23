@@ -135,7 +135,8 @@
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('members')">회원 관리</button>
     <button class="tab-btn" onclick="switchTab('joins')">조인 현황</button>
-    <button class="tab-btn" onclick="switchTab('analytics')">방문 통계</button>
+    <button class="tab-btn" onclick="switchTab('analytics')">통계</button>
+    <button class="tab-btn" onclick="switchTab('pending')">미등록</button>
   </div>
 
   <div class="scroll-area" id="tab-members">
@@ -206,6 +207,18 @@
     <div id="analytics-list"><div class="empty-msg">방문 기록이 없습니다</div></div>
   </div>
 
+  <!-- 미등록 스코어 탭 -->
+  <div class="scroll-area" id="tab-pending" style="display:none;">
+    <div class="section-title" style="margin-bottom:8px;">대회 선택</div>
+    <select id="tourn-select" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(62,160,102,0.3);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:inherit;outline:none;margin-bottom:10px;">
+      <option value="">-- 로딩 중 --</option>
+    </select>
+    <button onclick="window.loadTournScores()" style="width:100%;padding:12px;border-radius:10px;background:rgba(62,160,102,0.2);border:1px solid rgba(62,160,102,0.4);color:var(--green-light);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:14px;">스코어 현황 불러오기</button>
+    <div id="pending-status"></div>
+    <div id="pending-list"></div>
+    <button id="btn-import-pending" onclick="window.importPending()" style="display:none;width:100%;padding:13px;border-radius:12px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:12px;"></button>
+  </div>
+
   <!-- 회원 상세 모달 -->
   <div class="modal-overlay" id="modal-member">
     <div class="modal">
@@ -220,7 +233,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, getDoc, doc, updateDoc, addDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, where, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, doc, updateDoc, addDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, where, increment, Timestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -587,13 +600,138 @@ async function loadJoins() {
 }
 
 // ── 탭 전환 ──────────────────────────────────────────
+let _pendingTabInited = false;
 window.switchTab = function(tab) {
-  ['members', 'joins', 'analytics'].forEach(t => {
+  ['members', 'joins', 'analytics', 'pending'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['members','joins','analytics'][i] === tab);
+    btn.classList.toggle('active', ['members','joins','analytics','pending'][i] === tab);
   });
+  if (tab === 'pending' && !_pendingTabInited) {
+    _pendingTabInited = true;
+    initPendingTab();
+  }
+};
+
+// ── 미등록 스코어 일괄 저장 ──────────────────────────
+const ALL_SCORES_64 = [
+  { name: '전웅규', totalScore: -1 }, { name: '어정우', totalScore: 0 },
+  { name: '장준혁', totalScore: 1 },  { name: '황우익', totalScore: 2 },
+  { name: '김도영', totalScore: 2 },  { name: '하준경', totalScore: 3 },
+  { name: '오병석', totalScore: 3 },  { name: '권성민', totalScore: 3 },
+  { name: '황현복', totalScore: 3 },  { name: '이용훈', totalScore: 4 },
+  { name: '차종학', totalScore: 5 },  { name: '김혜인', totalScore: 5 },
+  { name: '황대환', totalScore: 5 },  { name: '조명진', totalScore: 6 },
+  { name: '권대근', totalScore: 6 },  { name: '박영철', totalScore: 6 },
+  { name: '이호명', totalScore: 7 },  { name: '서현성', totalScore: 7 },
+  { name: '박찬웅', totalScore: 8 },  { name: '김경운', totalScore: 8 },
+  { name: '이동준', totalScore: 9 },  { name: '한성용', totalScore: 9 },
+  { name: '박명훈', totalScore: 9 },  { name: '임종우', totalScore: 9 },
+  { name: '배근효', totalScore: 10 }, { name: '김종보', totalScore: 10 },
+  { name: '하정광', totalScore: 10 }, { name: '윤수민', totalScore: 10 },
+  { name: '채훈',   totalScore: 10 }, { name: '오정석', totalScore: 11 },
+  { name: '박성진', totalScore: 11 }, { name: '김상우', totalScore: 12 },
+  { name: '이광욱', totalScore: 12 }, { name: '성갑',   totalScore: 12 },
+  { name: '박충기', totalScore: 12 }, { name: '김성우', totalScore: 12 },
+  { name: '송현진', totalScore: 12 }, { name: '조회라', totalScore: 12 },
+  { name: '안두하', totalScore: 12 }, { name: '이수현', totalScore: 12 },
+  { name: '원동욱', totalScore: 13 }, { name: '박성훈', totalScore: 13 },
+  { name: '이승현', totalScore: 15 }, { name: '조유찬', totalScore: 15 },
+  { name: '김정남', totalScore: 15 }, { name: '강성욱', totalScore: 16 },
+  { name: '권태운', totalScore: 16 }, { name: '박호빈', totalScore: 16 },
+  { name: '이정원', totalScore: 17 }, { name: '박정은', totalScore: 17 },
+  { name: '임채연', totalScore: 18 }, { name: '권진환', totalScore: 19 },
+  { name: '이상오', totalScore: 19 }, { name: '김덕규', totalScore: 19 },
+  { name: '김혜민', totalScore: 19 }, { name: '김제영', totalScore: 21 },
+  { name: '이동현', totalScore: 21 }, { name: '박형진', totalScore: 21 },
+  { name: '김무관', totalScore: 21 }, { name: '이상헌', totalScore: 23 },
+  { name: '장재훈', totalScore: 24 }, { name: '이동규', totalScore: 24 },
+  { name: '안병현', totalScore: 25 }, { name: '최재우', totalScore: 28 },
+];
+
+let _pendingToImport = [], _selectedTourn = null;
+
+async function initPendingTab() {
+  const sel = document.getElementById('tourn-select');
+  try {
+    const snap = await getDocs(collection(db, 'tournaments'));
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    sel.innerHTML = list.map(t =>
+      `<option value="${t.id}">${t.name || t.id} (${t.date || '날짜없음'})</option>`
+    ).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">불러오기 실패</option>';
+  }
+}
+
+window.loadTournScores = async function() {
+  const tournId = document.getElementById('tourn-select').value;
+  if (!tournId) return;
+  const statusEl = document.getElementById('pending-status');
+  const listEl   = document.getElementById('pending-list');
+  const importBtn = document.getElementById('btn-import-pending');
+  statusEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.4);padding:8px 0;">불러오는 중...</div>';
+  listEl.innerHTML = ''; importBtn.style.display = 'none';
+  try {
+    const tSnap = await getDoc(doc(db, 'tournaments', tournId));
+    if (!tSnap.exists()) { statusEl.innerHTML = '<div style="color:#ff6b6b;font-size:12px;">대회 없음</div>'; return; }
+    _selectedTourn = { id: tournId, ...tSnap.data() };
+    const scoresSnap = await getDocs(collection(db, 'tournaments', tournId, 'scores'));
+    const existingNames = new Set(scoresSnap.docs.map(d => d.data().name).filter(Boolean));
+    _pendingToImport = ALL_SCORES_64.filter(p => !existingNames.has(p.name));
+    const regCount = ALL_SCORES_64.filter(p => existingNames.has(p.name)).length;
+    statusEl.innerHTML = `<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px;">
+      <span style="color:var(--green-light);font-weight:700;">${regCount}명</span> 등록됨 &nbsp;/&nbsp;
+      <span style="color:#f0c040;font-weight:700;">${_pendingToImport.length}명</span> 미등록 &nbsp;/&nbsp; 전체 ${ALL_SCORES_64.length}명
+    </div>`;
+    listEl.innerHTML = ALL_SCORES_64.map((p, i) => {
+      const done = existingNames.has(p.name);
+      const sc = p.totalScore === 0 ? 'E' : p.totalScore > 0 ? '+' + p.totalScore : String(p.totalScore);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:8px;margin-bottom:3px;background:${done ? 'rgba(62,160,102,0.07)' : 'rgba(240,192,64,0.05)'};border:1px solid ${done ? 'rgba(62,160,102,0.18)' : 'rgba(240,192,64,0.15)'};">
+        <span style="font-size:12px;font-weight:700;color:${done ? 'rgba(255,255,255,0.35)' : '#fff'};">${i+1}. ${p.name}</span>
+        <span style="font-size:13px;font-weight:900;color:${done ? 'rgba(255,255,255,0.25)' : '#f0c040'};">${sc}</span>
+      </div>`;
+    }).join('');
+    if (_pendingToImport.length) {
+      importBtn.style.display = 'block';
+      importBtn.textContent = `미등록 ${_pendingToImport.length}명 저장 (pendingScores)`;
+    }
+  } catch(e) {
+    statusEl.innerHTML = `<div style="color:#ff6b6b;font-size:12px;">오류: ${e.message}</div>`;
+  }
+};
+
+window.importPending = async function() {
+  if (!_pendingToImport.length || !_selectedTourn) return;
+  const btn = document.getElementById('btn-import-pending');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  const t = _selectedTourn;
+  const coursePar = t.coursePar || 72;
+  try {
+    for (const p of _pendingToImport) {
+      const entry = {
+        tournId: t.id,
+        tournamentName: t.name || '',
+        course: t.golfCourseName || t.name || '',
+        date: t.date || '',
+        totalScore: p.totalScore,
+        totalStrokes: p.totalScore + coursePar,
+        type: 'tournament',
+      };
+      await setDoc(doc(db, 'pendingScores', p.name), {
+        name: p.name,
+        entries: arrayUnion(entry),
+      }, { merge: true });
+    }
+    showToast(`${_pendingToImport.length}명 저장 완료`);
+    window.loadTournScores();
+  } catch(e) {
+    showToast('오류: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = `미등록 ${_pendingToImport.length}명 저장 (pendingScores)`;
+  }
 };
 
 // ── 기타 ─────────────────────────────────────────────

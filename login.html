@@ -302,7 +302,8 @@ import {
   setPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc
+  getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
+  collection, getDocs, query, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ★ 카카오 JavaScript 앱 키를 여기에 입력하세요 ★
@@ -438,6 +439,7 @@ async function handleKakaoReturn() {
       }));
       const needPhone = !data.phone;
       const needHandi = !data.handicap;
+      claimPendingScores(uid, data.name);
       if (needPhone || needHandi) {
         pendingUpdateUser = { uid };
         if (!needPhone) document.getElementById('update-phone-group').style.display = 'none';
@@ -459,6 +461,43 @@ async function handleKakaoReturn() {
 }
 
 handleKakaoReturn();
+
+// ── pendingScores 자동 연결 ─────────────────────────────
+async function claimPendingScores(uid, name) {
+  if (!name || !uid) return;
+  try {
+    const pendingSnap = await getDoc(doc(db, 'pendingScores', name));
+    if (!pendingSnap.exists()) return;
+    const { entries } = pendingSnap.data();
+    if (!entries?.length) return;
+    for (const entry of entries) {
+      const { tournId, ...rest } = entry;
+      if (!tournId) continue;
+      const histRef = doc(db, 'users', uid, 'scoreHistory', tournId);
+      const existing = await getDoc(histRef);
+      if (existing.exists()) continue;
+      await setDoc(histRef, { ...rest, submittedAt: serverTimestamp() });
+    }
+    const histSnap = await getDocs(
+      query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+    );
+    const validScores = histSnap.docs
+      .filter(d => { const r = d.data(); return r.type === 'tournament' || (r.holes || []).some(v => v !== null); })
+      .map(d => d.data().totalScore ?? 0);
+    if (validScores.length > 0) {
+      const r10 = validScores.slice(0, 10);
+      await updateDoc(doc(db, 'users', uid), {
+        handicap: Math.round(r10.reduce((a, b) => a + b, 0) / r10.length * 10) / 10,
+        bestScore: Math.min(...validScores),
+        roundCount: validScores.length,
+        handicapTrend: validScores.length >= 2
+          ? Math.round((validScores[0] - validScores[1]) * 10) / 10 : null,
+        statsUpdatedAt: serverTimestamp(),
+      });
+    }
+    await deleteDoc(doc(db, 'pendingScores', name));
+  } catch(_) {}
+}
 
 // ── 프로필 저장 (신규) ──────────────────────────────────
 window.saveProfile = async function() {
@@ -488,10 +527,11 @@ window.saveProfile = async function() {
   const birthRaw = document.getElementById('prof-birth').value.trim();
 
   try {
+    const profName = document.getElementById('prof-name').value.trim();
     await setDoc(doc(db, 'users', pendingKakaoUser.uid), {
       nickname: nick,
       phone: phone,
-      name: document.getElementById('prof-name').value.trim(),
+      name: profName,
       birthYear2: birthRaw ? String(birthRaw).padStart(2, '0') : '',
       handicap: document.getElementById('prof-handi').value,
       region: document.getElementById('prof-region').value,
@@ -500,6 +540,7 @@ window.saveProfile = async function() {
       createdAt: new Date().toISOString(),
       isPaid: false
     });
+    await claimPendingScores(pendingKakaoUser.uid, profName);
     localStorage.setItem('ggzon_user', JSON.stringify({
       uid: pendingKakaoUser.uid,
       nickname: nick,
