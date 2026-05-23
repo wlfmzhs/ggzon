@@ -217,7 +217,7 @@
     </select>
     <button onclick="window.loadTournScores()" style="width:100%;padding:12px;border-radius:10px;background:rgba(62,160,102,0.2);border:1px solid rgba(62,160,102,0.4);color:var(--green-light);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:14px;">스코어 현황 불러오기</button>
     <div id="pending-status"></div>
-    <button id="btn-import-pending" onclick="window.importPending()" style="display:none;width:100%;padding:13px;border-radius:12px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:12px;"></button>
+    <button id="btn-import-pending" onclick="window.importPending()" style="width:100%;padding:13px;border-radius:12px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:12px;">pendingPlayers 초기화</button>
     <div id="pending-list"></div>
   </div>
 
@@ -721,7 +721,7 @@ window.loadTournScores = async function() {
   const listEl   = document.getElementById('pending-list');
   const importBtn = document.getElementById('btn-import-pending');
   statusEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.4);padding:8px 0;">불러오는 중...</div>';
-  listEl.innerHTML = ''; importBtn.style.display = 'none';
+  listEl.innerHTML = '';
   try {
     const tSnap = await getDoc(doc(db, 'tournaments', tournId));
     if (!tSnap.exists()) { statusEl.innerHTML = '<div style="color:#ff6b6b;font-size:12px;">대회 없음</div>'; return; }
@@ -748,9 +748,6 @@ window.loadTournScores = async function() {
       : `pendingPlayers 초기화 (잘못된 항목 삭제)`;
   } catch(e) {
     statusEl.innerHTML += `<div style="color:#ff6b6b;font-size:12px;">오류: ${e.message}</div>`;
-    importBtn.textContent = `pendingPlayers 초기화 (잘못된 항목 삭제)`;
-  } finally {
-    importBtn.style.display = 'block';
   }
 };
 
