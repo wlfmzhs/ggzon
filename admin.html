@@ -710,9 +710,9 @@ window.importPending = async function() {
   const t = _selectedTourn;
   const coursePar = t.coursePar || 72;
   try {
+    const updates = {};
     for (const p of _pendingToImport) {
-      const entry = {
-        tournId: t.id,
+      updates[`pendingPlayers.${p.name}`] = {
         tournamentName: t.name || '',
         course: t.golfCourseName || t.name || '',
         date: t.date || '',
@@ -720,11 +720,8 @@ window.importPending = async function() {
         totalStrokes: p.totalScore + coursePar,
         type: 'tournament',
       };
-      await setDoc(doc(db, 'pendingScores', p.name), {
-        name: p.name,
-        entries: arrayUnion(entry),
-      }, { merge: true });
     }
+    await updateDoc(doc(db, 'tournaments', t.id), updates);
     showToast(`${_pendingToImport.length}명 저장 완료`);
     window.loadTournScores();
   } catch(e) {
