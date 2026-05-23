@@ -384,6 +384,12 @@ window.recalcAllHandicap = async function() {
             : null;
           await updateDoc(doc(db, 'users', uid), { handicap, bestScore, roundCount, handicapTrend, statsUpdatedAt: serverTimestamp() });
           updated++;
+        } else {
+          // scoreHistory 없으면 랭킹에서 제거 (stale 데이터 정리)
+          const ud = userDoc.data();
+          if (ud.handicap !== null && ud.handicap !== undefined) {
+            await updateDoc(doc(db, 'users', uid), { handicap: null, roundCount: 0, bestScore: null, handicapTrend: null });
+          }
         }
       } catch(_) {}
       done++;
