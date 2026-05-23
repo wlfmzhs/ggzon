@@ -174,6 +174,7 @@
         <button id="btn-all-paid" onclick="window.setAllPaid()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;cursor:pointer;font-family:inherit;">전체 유료 전환</button>
         <button id="btn-gg-rebuild" onclick="window.fullRebuildGG()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(100,120,255,0.18);border:1px solid rgba(100,120,255,0.5);color:#aabbff;cursor:pointer;font-family:inherit;">GG 전체 재빌드</button>
         <button onclick="window.unifyRealNames()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,160,60,0.18);border:1px solid rgba(255,160,60,0.5);color:#ffb060;cursor:pointer;font-family:inherit;">실명 통합</button>
+        <button onclick="window.cleanBannedScores()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(220,50,50,0.18);border:1px solid rgba(220,50,50,0.4);color:#ff8888;cursor:pointer;font-family:inherit;">탈퇴 정리</button>
       </div>
     </div>
     <div id="member-list"></div>
@@ -559,13 +560,41 @@ window.fullRebuildGG = async function() {
 window.forceWithdraw = async function(uid, nickname) {
   if (!confirm(`"${nickname}" 회원을 강제 탈퇴 처리하시겠어요?\n탈퇴 후 해당 회원은 로그인이 차단됩니다.`)) return;
   try {
+    // 모든 대회 스코어에서 해당 uid 삭제
+    const tournsSnap = await getDocs(collection(db, 'tournaments'));
+    await Promise.all(tournsSnap.docs.map(t =>
+      deleteDoc(doc(db, 'tournaments', t.id, 'scores', uid)).catch(() => {})
+    ));
     await setDoc(doc(db, 'banned', uid), { bannedAt: serverTimestamp(), nickname });
     await deleteDoc(doc(db, 'users', uid));
-    showToast(`${nickname} 회원이 탈퇴 처리되었습니다.`);
+    showToast(`${nickname} 탈퇴 처리 완료 (대회 스코어 포함)`);
     window.closeModal();
     await loadMembers();
   } catch (e) {
     showToast('처리 중 오류가 발생했습니다.');
+  }
+};
+
+// 탈퇴 회원 잔여 스코어 정리
+window.cleanBannedScores = async function() {
+  if (!confirm('banned 목록에 있는 탈퇴 회원의 대회 스코어를 모두 삭제합니다. 계속할까요?')) return;
+  try {
+    const [bannedSnap, tournsSnap] = await Promise.all([
+      getDocs(collection(db, 'banned')),
+      getDocs(collection(db, 'tournaments')),
+    ]);
+    const bannedUids = bannedSnap.docs.map(d => d.id);
+    let count = 0;
+    for (const t of tournsSnap.docs) {
+      await Promise.all(bannedUids.map(async uid => {
+        const ref = doc(db, 'tournaments', t.id, 'scores', uid);
+        const snap = await getDoc(ref);
+        if (snap.exists()) { await deleteDoc(ref); count++; }
+      }));
+    }
+    showToast(`${count}건 대회 스코어 정리 완료`);
+  } catch(e) {
+    showToast('오류: ' + e.message);
   }
 };
 
