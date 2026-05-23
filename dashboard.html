@@ -1180,10 +1180,22 @@
   }
 
   async function renderChart() {
-    const scoresSnap = await getDocs(collection(db, 'tournaments', _chartTournId, 'scores'));
-    const rels = scoresSnap.docs
+    const [scoresSnap, tournSnap] = await Promise.all([
+      getDocs(collection(db, 'tournaments', _chartTournId, 'scores')),
+      getDoc(doc(db, 'tournaments', _chartTournId)),
+    ]);
+    const registeredStrokes = scoresSnap.docs
       .map(d => d.data().totalStrokes)
-      .filter(s => s > 0)
+      .filter(s => s > 0);
+    const registeredNames = new Set(
+      scoresSnap.docs.map(d => d.data().name).filter(Boolean)
+    );
+    const pendingMap = tournSnap.exists() ? (tournSnap.data().pendingPlayers || {}) : {};
+    const pendingStrokes = Object.entries(pendingMap)
+      .filter(([name]) => !registeredNames.has(name))
+      .map(([, data]) => data.totalStrokes)
+      .filter(s => s > 0);
+    const rels = [...registeredStrokes, ...pendingStrokes]
       .map(s => s - _chartCoursePar);
 
     if (!rels.length) {
