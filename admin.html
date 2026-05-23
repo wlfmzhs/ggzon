@@ -171,8 +171,7 @@
       <div class="section-title" style="margin-bottom:0;">회원 목록</div>
       <div style="display:flex;gap:6px;">
         <button id="btn-all-paid" onclick="window.setAllPaid()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;cursor:pointer;font-family:inherit;">전체 유료 전환</button>
-        <button id="btn-recalc-handicap" onclick="window.recalcAllHandicap()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(62,160,102,0.15);border:1px solid rgba(62,160,102,0.4);color:var(--green-light);cursor:pointer;font-family:inherit;">핸디캡 재계산</button>
-        <button id="btn-resync-scores" onclick="window.resyncClosedJoinScores()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(100,120,255,0.15);border:1px solid rgba(100,120,255,0.4);color:#8899ff;cursor:pointer;font-family:inherit;">스코어 소급</button>
+        <button id="btn-gg-rebuild" onclick="window.fullRebuildGG()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(100,120,255,0.18);border:1px solid rgba(100,120,255,0.5);color:#aabbff;cursor:pointer;font-family:inherit;">GG 전체 재빌드</button>
       </div>
     </div>
     <div id="member-list"></div>
@@ -221,7 +220,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, getDoc, doc, updateDoc, addDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, doc, updateDoc, addDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, where, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -358,130 +357,134 @@ window.setAllPaid = async function() {
   btn.disabled = false;
 };
 
-window.recalcAllHandicap = async function() {
-  const btn = document.getElementById('btn-recalc-handicap');
+// ── GG 전체 재빌드 ────────────────────────────────────
+// 마감된 필드 조인의 scores 데이터를 기준으로 scoreHistory·핸디캡·포인트를 정확하게 재구성
+window.fullRebuildGG = async function() {
+  const btn = document.getElementById('btn-gg-rebuild');
+  if (!confirm('마감된 모든 필드 조인의 스코어·핸디캡·포인트를 전면 재빌드합니다.\n기존 잘못된 데이터도 덮어씁니다. 계속할까요?')) return;
   btn.disabled = true;
-  let done = 0, updated = 0;
+
+  let scoreCount = 0, pointCount = 0;
   try {
+    // ── Phase 1: 마감된 필드 조인 스캔 ──────────────
+    btn.textContent = '조인 불러오는 중...';
+    const joinsSnap = await getDocs(collection(db, 'joins'));
+    const fieldJoins = joinsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(j => j.status === 'closed' && j.joinType !== 'screen');
+
+    for (let ji = 0; ji < fieldJoins.length; ji++) {
+      const join = fieldJoins[ji];
+      btn.textContent = `[1/2] 조인 ${ji + 1}/${fieldJoins.length}: ${join.course || ''}`;
+
+      const participants = join.participants || [];
+      const scores       = join.scores || {};
+      const now          = new Date().toISOString();
+      // 조인 날짜를 timestamp로 변환 (순서 보존용)
+      const joinTs = join.date
+        ? Timestamp.fromDate(new Date(join.date + 'T' + (join.time || '12:00') + ':00'))
+        : serverTimestamp();
+
+      const needParticipation = !join.pointsAwarded;
+      const needScoreBonus    = !join.scoreBonusAwarded;
+
+      for (const p of participants) {
+        if (!p.uid) continue;
+
+        const pHoles   = (scores[p.uid] || {}).holes || Array(18).fill(null);
+        const hasScore = pHoles.some(v => v !== null);
+        const pTotal   = hasScore ? pHoles.reduce((a, v) => a + (v ?? 0), 0) : null;
+
+        // scoreHistory: 스코어 있으면 무조건 덮어씀 (잘못된 기존 데이터 교체)
+        if (hasScore) {
+          await setDoc(doc(db, 'users', p.uid, 'scoreHistory', join.id), {
+            course:      join.course      || '',
+            frontCourse: join.frontCourse || '',
+            backCourse:  join.backCourse  || '',
+            date:        join.date        || '',
+            companions:  participants.filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
+            totalScore:  pTotal,
+            holes:       pHoles,
+            parHoles:    [],
+            joinId:      join.id,
+            submittedAt: joinTs,
+          });
+          scoreCount++;
+        }
+
+        // 참여 포인트 (아직 미지급인 조인만)
+        if (needParticipation) {
+          await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
+          await addDoc(collection(db, 'pointHistory'), {
+            uid: p.uid, name: p.name || '골퍼',
+            type: '조인참여', amount: 10,
+            ref: join.course || '라운드', date: now, joinId: join.id,
+          });
+          pointCount++;
+        }
+
+        // 스코어 보너스 (미지급 + 실제 스코어 있는 경우만)
+        if (needScoreBonus && hasScore) {
+          const pts   = pTotal < 0 ? 40 : pTotal <= 5 ? 30 : pTotal <= 9 ? 20 : pTotal <= 15 ? 15 : 10;
+          const label = pTotal < 0 ? '언더파' : pTotal <= 5 ? 'E~+5' : pTotal <= 9 ? '+6~+9' : pTotal <= 15 ? '+10~+15' : '+16이상';
+          await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) });
+          await addDoc(collection(db, 'pointHistory'), {
+            uid: p.uid, name: p.name || '골퍼',
+            type: '스코어', amount: pts,
+            ref: `${join.course || '라운드'} (${label})`, date: now, joinId: join.id,
+          });
+          pointCount++;
+        }
+      }
+
+      // 조인 플래그 업데이트
+      const flags = {};
+      if (needParticipation) flags.pointsAwarded    = true;
+      if (needScoreBonus)    flags.scoreBonusAwarded = true;
+      if (Object.keys(flags).length) await updateDoc(doc(db, 'joins', join.id), flags);
+    }
+
+    // ── Phase 2: 전체 핸디캡 재계산 ─────────────────
     const usersSnap = await getDocs(collection(db, 'users'));
     const total = usersSnap.size;
-    btn.textContent = `0/${total} 처리중...`;
+    let done = 0;
     for (const userDoc of usersSnap.docs) {
       const uid = userDoc.id;
+      done++;
+      btn.textContent = `[2/2] 핸디캡 ${done}/${total}`;
       try {
         const histSnap = await getDocs(
           query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
         );
-        if (!histSnap.empty) {
-          // 실제 홀 스코어가 없는 빈 제출(totalScore=0이고 holes 전부 null)은 제외
-          const allScores = histSnap.docs
-            .filter(d => { const h = d.data().holes || []; return h.some(v => v !== null); })
-            .map(d => d.data().totalScore ?? 0);
-          const recent10 = allScores.slice(0, 10);
+        // 실제 홀 입력이 있는 기록만 유효
+        const validScores = histSnap.docs
+          .filter(d => (d.data().holes || []).some(v => v !== null))
+          .map(d => d.data().totalScore ?? 0);
+
+        if (validScores.length > 0) {
+          const recent10 = validScores.slice(0, 10);
           const handicap = Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10;
-          const bestScore = Math.min(...allScores);
-          const roundCount = allScores.length;
-          const recent3 = allScores.slice(0, 3);
-          const prev3   = allScores.slice(3, 6);
-          const handicapTrend = (recent3.length === 3 && prev3.length === 3)
-            ? Math.round((recent3.reduce((a,b)=>a+b,0)/3 - prev3.reduce((a,b)=>a+b,0)/3) * 10) / 10
-            : null;
-          await updateDoc(doc(db, 'users', uid), { handicap, bestScore, roundCount, handicapTrend, statsUpdatedAt: serverTimestamp() });
-          updated++;
+          const r3 = validScores.slice(0, 3), p3 = validScores.slice(3, 6);
+          const handicapTrend = (r3.length === 3 && p3.length === 3)
+            ? Math.round((r3.reduce((a,b)=>a+b,0)/3 - p3.reduce((a,b)=>a+b,0)/3) * 10) / 10 : null;
+          await updateDoc(doc(db, 'users', uid), {
+            handicap, bestScore: Math.min(...validScores),
+            roundCount: validScores.length, handicapTrend, statsUpdatedAt: serverTimestamp(),
+          });
         } else {
-          // scoreHistory 없으면 랭킹에서 제거 (stale 데이터 정리)
-          const ud = userDoc.data();
-          if (ud.handicap !== null && ud.handicap !== undefined) {
-            await updateDoc(doc(db, 'users', uid), { handicap: null, roundCount: 0, bestScore: null, handicapTrend: null });
-          }
+          // 유효 스코어 없으면 랭킹에서 제거
+          await updateDoc(doc(db, 'users', uid), {
+            handicap: null, roundCount: 0, bestScore: null, handicapTrend: null,
+          });
         }
       } catch(_) {}
-      done++;
-      btn.textContent = `${done}/${total} 처리중...`;
     }
-    showToast(`완료! ${updated}명 핸디캡 재계산됨`);
+
+    showToast(`완료! 스코어 ${scoreCount}건 / 포인트 ${pointCount}건 처리됨`);
   } catch(e) {
     showToast('오류: ' + e.message);
   }
-  btn.textContent = '핸디캡 재계산';
-  btn.disabled = false;
-};
-
-// 마감된 조인의 스코어 데이터를 소급하여 scoreHistory·핸디캡에 반영
-window.resyncClosedJoinScores = async function() {
-  const btn = document.getElementById('btn-resync-scores');
-  btn.disabled = true;
-  btn.textContent = '처리중...';
-  let synced = 0;
-  try {
-    const joinsSnap = await getDocs(collection(db, 'joins'));
-    const closedJoins = joinsSnap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(j => j.status === 'closed' && j.scores && Object.keys(j.scores).length > 0);
-
-    for (const join of closedJoins) {
-      const participants = join.participants || [];
-      const scores = join.scores || {};
-      const now = new Date().toISOString();
-
-      for (const p of participants) {
-        if (!p.uid) continue;
-        const pHoles = (scores[p.uid] || {}).holes || Array(18).fill(null);
-        const hasScore = pHoles.some(v => v !== null);
-        if (!hasScore) continue;
-
-        // 이미 scoreHistory 있으면 스킵
-        const histRef = doc(db, 'users', p.uid, 'scoreHistory', join.id);
-        const histSnap = await getDoc(histRef);
-        if (histSnap.exists()) continue;
-
-        const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
-
-        // scoreHistory 저장
-        await setDoc(histRef, {
-          course:      join.course      || '',
-          frontCourse: join.frontCourse || '',
-          backCourse:  join.backCourse  || '',
-          date:        join.date        || '',
-          companions:  participants.filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
-          totalScore:  pTotal,
-          holes:       pHoles,
-          parHoles:    [],
-          joinId:      join.id,
-          submittedAt: serverTimestamp(),
-        });
-
-        // 핸디캡 재계산
-        try {
-          const allHistSnap = await getDocs(
-            query(collection(db, 'users', p.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
-          );
-          const validScores = allHistSnap.docs.filter(d => {
-            const h = d.data().holes || [];
-            return h.some(v => v !== null);
-          });
-          const allScores = validScores.map(d => d.data().totalScore ?? 0);
-          if (allScores.length > 0) {
-            const recent10 = allScores.slice(0, 10);
-            const handicap = Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10;
-            const recent3 = allScores.slice(0, 3), prev3 = allScores.slice(3, 6);
-            const handicapTrend = (recent3.length === 3 && prev3.length === 3)
-              ? Math.round((recent3.reduce((a,b)=>a+b,0)/3 - prev3.reduce((a,b)=>a+b,0)/3) * 10) / 10 : null;
-            await updateDoc(doc(db, 'users', p.uid), {
-              handicap, bestScore: Math.min(...allScores),
-              roundCount: allScores.length, handicapTrend, statsUpdatedAt: serverTimestamp(),
-            });
-          }
-        } catch(_) {}
-
-        synced++;
-      }
-    }
-    showToast(`완료! ${synced}명 스코어 소급 처리됨`);
-  } catch(e) {
-    showToast('오류: ' + e.message);
-  }
-  btn.textContent = '스코어 소급';
+  btn.textContent = 'GG 전체 재빌드';
   btn.disabled = false;
 };
 
