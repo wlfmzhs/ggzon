@@ -848,7 +848,7 @@
           window.location.href = 'login.html';
           return;
         }
-        const nick = data.nickname || ggzonUser.nickname;
+        const nick = data.name || data.nickname || ggzonUser.nickname;
         setNick(nick);
         localStorage.setItem('ggzon_user', JSON.stringify({ ...ggzonUser, nickname: nick }));
       }
@@ -1027,7 +1027,7 @@
       el.innerHTML = validDocs.map((d, i) => {
         const u = d.data();
         const rank = i + 1;
-        const nick = u.nickname || u.name || '멤버';
+        const nick = u.name || u.nickname || '멤버';
         const metaParts = [];
         if (u.birthYear2) metaParts.push(u.birthYear2 + '년생');
         if (u.region) metaParts.push(u.region);

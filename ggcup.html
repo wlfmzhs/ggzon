@@ -339,7 +339,7 @@
     if (myIdx >= 0) {
       const me = users[myIdx];
       document.getElementById('myPointCard').style.display = 'flex';
-      document.getElementById('myNick').textContent = me.nickname || me.name || '—';
+      document.getElementById('myNick').textContent = me.name || me.nickname || '—';
       document.getElementById('myPoints').textContent = me.totalPoints || 0;
       document.getElementById('myRankBadge').textContent = `${myIdx + 1}위`;
     } else {
@@ -348,7 +348,7 @@
       if (myDoc.exists()) {
         const me = myDoc.data();
         document.getElementById('myPointCard').style.display = 'flex';
-        document.getElementById('myNick').textContent = me.nickname || me.name || '—';
+        document.getElementById('myNick').textContent = me.name || me.nickname || '—';
         document.getElementById('myPoints').textContent = 0;
         document.getElementById('myRankBadge').textContent = '순위 없음';
       }
@@ -369,7 +369,7 @@
         <div class="rank-row ${rankCls(i)}${isMe ? ' me' : ''}">
           ${rankIcon(i)}
           <div class="rank-info">
-            <div class="rank-name">${u.nickname || u.name || '골퍼'}${isMe ? ' <span style="font-size:10px;color:var(--gold);">나</span>' : ''}</div>
+            <div class="rank-name">${u.name || u.nickname || '골퍼'}${isMe ? ' <span style="font-size:10px;color:var(--gold);">나</span>' : ''}</div>
             <div class="rank-detail">${u.region || ''} ${u.handicap ? '· ' + u.handicap : ''}</div>
           </div>
           <div class="rank-pts">${u.totalPoints || 0}<span> pts</span></div>

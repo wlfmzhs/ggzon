@@ -213,11 +213,6 @@
       <div class="form-hint">초대 코드가 없으면 가입이 불가합니다</div>
     </div>
     <div class="form-group">
-      <label class="form-label">닉네임 <span style="color:var(--green-light)">*</span></label>
-      <input class="form-input" id="prof-nick" type="text" placeholder="골갑킹" maxlength="12" />
-      <div class="form-hint">최대 12자 · 나중에 변경 가능</div>
-    </div>
-    <div class="form-group">
       <label class="form-label">전화번호 <span style="color:var(--green-light)">*</span></label>
       <input class="form-input" id="prof-phone" type="tel" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)" />
     </div>
@@ -456,7 +451,6 @@ async function handleKakaoReturn() {
       }
     } else {
       pendingKakaoUser = { uid, kakaoNick, kakaoId };
-      document.getElementById('prof-nick').value = kakaoNick;
       showStep('step-profile');
       document.getElementById('prof-nick').focus();
     }
@@ -522,8 +516,6 @@ window.saveProfile = async function() {
   if (!VALID_CODES[inviteCode]) { showMsg('prof-msg', '유효하지 않은 초대 코드입니다', 'error'); return; }
   if (new Date() > VALID_CODES[inviteCode]) { showMsg('prof-msg', '만료된 초대 코드입니다', 'error'); return; }
 
-  const nick = document.getElementById('prof-nick').value.trim();
-  if (!nick) { showMsg('prof-msg', '닉네임을 입력해주세요', 'error'); return; }
   const phone = document.getElementById('prof-phone').value.trim();
   if (!phone) { showMsg('prof-msg', '전화번호를 입력해주세요', 'error'); return; }
   if (!/^010-\d{4}-\d{4}$/.test(phone)) { showMsg('prof-msg', '전화번호를 올바르게 입력해주세요 (010-0000-0000)', 'error'); return; }
@@ -540,7 +532,7 @@ window.saveProfile = async function() {
     const profName = document.getElementById('prof-name').value.trim();
     if (!profName) { showMsg('prof-msg', '이름을 입력해주세요', 'error'); btn.disabled = false; btn.textContent = '가입 완료 →'; return; }
     await setDoc(doc(db, 'users', pendingKakaoUser.uid), {
-      nickname: nick,
+      nickname: profName,
       phone: phone,
       name: profName,
       birthYear2: birthRaw ? String(birthRaw).padStart(2, '0') : '',
@@ -554,7 +546,7 @@ window.saveProfile = async function() {
     await claimPendingScores(pendingKakaoUser.uid, profName);
     localStorage.setItem('ggzon_user', JSON.stringify({
       uid: pendingKakaoUser.uid,
-      nickname: nick,
+      nickname: profName,
       loginType: 'kakao'
     }));
     pendingKakaoUser = null;

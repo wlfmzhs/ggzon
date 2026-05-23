@@ -255,7 +255,7 @@
 
   function buildCard(u, rank) {
     const rc = rank <= 3 ? ['rank-1','rank-2','rank-3'][rank - 1] : '';
-    const nick = u.nickname || u.name || '멤버';
+    const nick = u.name || u.nickname || '멤버';
     const uid  = u.uid || '';
     const starCount = GOLCHELIN[u.name] || GOLCHELIN[u.nickname] || 0;
     const starHtml = starCount ? `<span class="golchelin-stars">${'★'.repeat(starCount)}</span>` : '';
