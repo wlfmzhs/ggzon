@@ -444,6 +444,57 @@ window.fullRebuildGG = async function() {
       if (Object.keys(flags).length) await updateDoc(doc(db, 'joins', join.id), flags);
     }
 
+    // ── Phase 1-B: 대회(tournaments) 스코어 소급 ────
+    btn.textContent = '대회 스코어 불러오는 중...';
+    const tournsSnap = await getDocs(collection(db, 'tournaments'));
+    for (let ti = 0; ti < tournsSnap.docs.length; ti++) {
+      const tDoc  = tournsSnap.docs[ti];
+      const tData = tDoc.data();
+      btn.textContent = `[1B] 대회 ${ti + 1}/${tournsSnap.size}: ${tData.name || ''}`;
+      const coursePar = tData.coursePar || 72;
+      const tTs = tData.date
+        ? Timestamp.fromDate(new Date(tData.date + 'T12:00:00'))
+        : serverTimestamp();
+      const tScoresSnap = await getDocs(collection(db, 'tournaments', tDoc.id, 'scores'));
+      for (const sDoc of tScoresSnap.docs) {
+        const uid = sDoc.id;
+        const s   = sDoc.data();
+        if (!s.totalStrokes) continue;
+        const totalScore = s.totalStrokes - coursePar;
+        // scoreHistory 없는 경우만 추가 (자발 제출한 경우 유지)
+        const histRef  = doc(db, 'users', uid, 'scoreHistory', tDoc.id);
+        const histSnap = await getDoc(histRef);
+        if (!histSnap.exists()) {
+          await setDoc(histRef, {
+            course:         tData.golfCourseName || tData.name || '',
+            date:           tData.date || '',
+            totalScore, totalStrokes: s.totalStrokes,
+            holes: [], parHoles: [], companions: [],
+            type: 'tournament',
+            tournamentName: tData.name || '',
+            submittedAt:    tTs,
+          });
+          // 포인트 미지급 → 지급
+          const now = new Date().toISOString();
+          const pName = s.name || '골퍼';
+          await updateDoc(doc(db, 'users', uid), { totalPoints: increment(10) });
+          await addDoc(collection(db, 'pointHistory'), {
+            uid, name: pName, type: '대회참여', amount: 10,
+            ref: tData.name || '대회', date: now, tournamentId: tDoc.id,
+          });
+          const pts   = totalScore < 0 ? 40 : totalScore <= 5 ? 30 : totalScore <= 9 ? 20 : totalScore <= 15 ? 15 : 10;
+          const label = totalScore < 0 ? '언더파' : totalScore <= 5 ? 'E~+5' : totalScore <= 9 ? '+6~+9' : totalScore <= 15 ? '+10~+15' : '+16이상';
+          await updateDoc(doc(db, 'users', uid), { totalPoints: increment(pts) });
+          await addDoc(collection(db, 'pointHistory'), {
+            uid, name: pName, type: '스코어', amount: pts,
+            ref: `${tData.name || '대회'} (${label})`, date: now, tournamentId: tDoc.id,
+          });
+          scoreCount++;
+          pointCount += 2;
+        }
+      }
+    }
+
     // ── Phase 2: 전체 핸디캡 재계산 ─────────────────
     const usersSnap = await getDocs(collection(db, 'users'));
     const total = usersSnap.size;
@@ -456,9 +507,12 @@ window.fullRebuildGG = async function() {
         const histSnap = await getDocs(
           query(collection(db, 'users', uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
         );
-        // 실제 홀 입력이 있는 기록만 유효
+        // 조인: 홀 입력 있는 기록만 / 대회: type=tournament이면 항상 유효
         const validScores = histSnap.docs
-          .filter(d => (d.data().holes || []).some(v => v !== null))
+          .filter(d => {
+            const r = d.data();
+            return r.type === 'tournament' || (r.holes || []).some(v => v !== null);
+          })
           .map(d => d.data().totalScore ?? 0);
 
         if (validScores.length > 0) {

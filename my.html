@@ -1716,15 +1716,16 @@ window.openScoreHistOverlay = async () => {
     allScoreHistory = records;
     document.getElementById('score-hist-desc').textContent = `${records.length}회 기록`;
 
-    // 핸디캡 계산 (최근 10경기)
-    const recent = records.slice(0, 10);
-    const avg = recent.reduce((a, r) => a + (r.totalScore ?? 0), 0) / recent.length;
+    // 핸디캡 계산 (최근 10경기) - 조인: 홀 입력 있는 것만 / 대회: 항상 유효
+    const validRecords = records.filter(r => r.type === 'tournament' || (r.holes || []).some(v => v !== null));
+    const recent = validRecords.slice(0, 10);
+    const avg = recent.length ? recent.reduce((a, r) => a + (r.totalScore ?? 0), 0) / recent.length : 0;
     const avgRounded = Math.round(avg * 10) / 10;
     const avgLabel = avgRounded === 0 ? 'E' : avgRounded > 0 ? `+${avgRounded}` : String(avgRounded);
     const handiCls = avgRounded < 0 ? 'under' : avgRounded <= 9 ? 'pink' : 'white';
 
     // GG PLAYER 랭킹과 동기화 (스코어 기록 열 때마다 최신값 반영)
-    const allScores = records.map(r => r.totalScore ?? 0);
+    const allScores = validRecords.map(r => r.totalScore ?? 0);
     const recent3 = allScores.slice(0, 3);
     const prev3   = allScores.slice(3, 6);
     const handicapTrend = (recent3.length === 3 && prev3.length === 3)
