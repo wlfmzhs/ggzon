@@ -172,6 +172,7 @@
       <div style="display:flex;gap:6px;">
         <button id="btn-all-paid" onclick="window.setAllPaid()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;cursor:pointer;font-family:inherit;">전체 유료 전환</button>
         <button id="btn-recalc-handicap" onclick="window.recalcAllHandicap()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(62,160,102,0.15);border:1px solid rgba(62,160,102,0.4);color:var(--green-light);cursor:pointer;font-family:inherit;">핸디캡 재계산</button>
+        <button id="btn-resync-scores" onclick="window.resyncClosedJoinScores()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(100,120,255,0.15);border:1px solid rgba(100,120,255,0.4);color:#8899ff;cursor:pointer;font-family:inherit;">스코어 소급</button>
       </div>
     </div>
     <div id="member-list"></div>
@@ -403,6 +404,84 @@ window.recalcAllHandicap = async function() {
     showToast('오류: ' + e.message);
   }
   btn.textContent = '핸디캡 재계산';
+  btn.disabled = false;
+};
+
+// 마감된 조인의 스코어 데이터를 소급하여 scoreHistory·핸디캡에 반영
+window.resyncClosedJoinScores = async function() {
+  const btn = document.getElementById('btn-resync-scores');
+  btn.disabled = true;
+  btn.textContent = '처리중...';
+  let synced = 0;
+  try {
+    const joinsSnap = await getDocs(collection(db, 'joins'));
+    const closedJoins = joinsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(j => j.status === 'closed' && j.scores && Object.keys(j.scores).length > 0);
+
+    for (const join of closedJoins) {
+      const participants = join.participants || [];
+      const scores = join.scores || {};
+      const now = new Date().toISOString();
+
+      for (const p of participants) {
+        if (!p.uid) continue;
+        const pHoles = (scores[p.uid] || {}).holes || Array(18).fill(null);
+        const hasScore = pHoles.some(v => v !== null);
+        if (!hasScore) continue;
+
+        // 이미 scoreHistory 있으면 스킵
+        const histRef = doc(db, 'users', p.uid, 'scoreHistory', join.id);
+        const histSnap = await getDoc(histRef);
+        if (histSnap.exists()) continue;
+
+        const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
+
+        // scoreHistory 저장
+        await setDoc(histRef, {
+          course:      join.course      || '',
+          frontCourse: join.frontCourse || '',
+          backCourse:  join.backCourse  || '',
+          date:        join.date        || '',
+          companions:  participants.filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
+          totalScore:  pTotal,
+          holes:       pHoles,
+          parHoles:    [],
+          joinId:      join.id,
+          submittedAt: serverTimestamp(),
+        });
+
+        // 핸디캡 재계산
+        try {
+          const allHistSnap = await getDocs(
+            query(collection(db, 'users', p.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+          );
+          const validScores = allHistSnap.docs.filter(d => {
+            const h = d.data().holes || [];
+            return h.some(v => v !== null);
+          });
+          const allScores = validScores.map(d => d.data().totalScore ?? 0);
+          if (allScores.length > 0) {
+            const recent10 = allScores.slice(0, 10);
+            const handicap = Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10;
+            const recent3 = allScores.slice(0, 3), prev3 = allScores.slice(3, 6);
+            const handicapTrend = (recent3.length === 3 && prev3.length === 3)
+              ? Math.round((recent3.reduce((a,b)=>a+b,0)/3 - prev3.reduce((a,b)=>a+b,0)/3) * 10) / 10 : null;
+            await updateDoc(doc(db, 'users', p.uid), {
+              handicap, bestScore: Math.min(...allScores),
+              roundCount: allScores.length, handicapTrend, statsUpdatedAt: serverTimestamp(),
+            });
+          }
+        } catch(_) {}
+
+        synced++;
+      }
+    }
+    showToast(`완료! ${synced}명 스코어 소급 처리됨`);
+  } catch(e) {
+    showToast('오류: ' + e.message);
+  }
+  btn.textContent = '스코어 소급';
   btn.disabled = false;
 };
 
