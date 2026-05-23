@@ -726,15 +726,9 @@ window.loadTournScores = async function() {
     const tSnap = await getDoc(doc(db, 'tournaments', tournId));
     if (!tSnap.exists()) { statusEl.innerHTML = '<div style="color:#ff6b6b;font-size:12px;">대회 없음</div>'; return; }
     _selectedTourn = { id: tournId, ...tSnap.data() };
-    const [scoresSnap, existingPending] = await Promise.all([
-      getDocs(collection(db, 'tournaments', tournId, 'scores')),
-      getDoc(doc(db, 'tournaments', tournId)),
-    ]);
-    // 스코어 서브컬렉션의 이름 + 이미 저장된 pendingPlayers 이름 모두 "등록됨"으로 간주
-    const existingNames = new Set([
-      ...scoresSnap.docs.map(d => d.data().name).filter(Boolean),
-      ...Object.keys((existingPending.data()?.pendingPlayers) || {}),
-    ]);
+    const scoresSnap = await getDocs(collection(db, 'tournaments', tournId, 'scores'));
+    // scores 서브컬렉션 기준으로만 등록 여부 판단
+    const existingNames = new Set(scoresSnap.docs.map(d => d.data().name).filter(Boolean));
     _pendingToImport = ALL_SCORES_64.filter(p => !existingNames.has(p.name));
     const regCount = ALL_SCORES_64.filter(p => existingNames.has(p.name)).length;
     statusEl.innerHTML = `<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px;">
@@ -749,10 +743,11 @@ window.loadTournScores = async function() {
         <span style="font-size:13px;font-weight:900;color:${done ? 'rgba(255,255,255,0.25)' : '#f0c040'};">${sc}</span>
       </div>`;
     }).join('');
-    if (_pendingToImport.length) {
-      importBtn.style.display = 'block';
-      importBtn.textContent = `미등록 ${_pendingToImport.length}명 재저장 (기존 초기화)`;
-    }
+    // 미등록이 있든 없든 항상 재저장 버튼 표시 (기존 잘못된 pendingPlayers 정리 목적)
+    importBtn.style.display = 'block';
+    importBtn.textContent = _pendingToImport.length
+      ? `미등록 ${_pendingToImport.length}명 재저장 (기존 초기화)`
+      : `pendingPlayers 초기화 (잘못된 항목 삭제)`;
   } catch(e) {
     statusEl.innerHTML = `<div style="color:#ff6b6b;font-size:12px;">오류: ${e.message}</div>`;
   }
