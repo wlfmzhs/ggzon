@@ -384,13 +384,11 @@
       border-radius: 14px; padding: 16px; margin-bottom: 8px;
       display: flex; align-items: center; gap: 14px;
     }
-    .past-icon {
-      width: 40px; height: 40px; flex-shrink: 0;
-      background: rgba(62,160,102,0.1); border-radius: 12px;
-      display: flex; align-items: center; justify-content: center; font-size: 18px;
-    }
     .past-info { flex: 1; min-width: 0; }
     .past-name { font-size: 15px; font-weight: 800; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .past-type { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; vertical-align: middle; margin-left: 5px; }
+    .type-field  { background: rgba(62,160,102,0.15); color: var(--green-light); }
+    .type-screen { background: rgba(90,140,255,0.15); color: #7aaeff; }
     .past-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
     .past-badge {
       background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4);
@@ -972,22 +970,30 @@ function renderActiveList() {
 // ── 마감 렌더 ─────────────────────────────────────────
 function renderClosedList() {
   const el = document.getElementById('closed-list');
-  const closed = joins.filter(j => j.status === 'closed');
+  const closed = joins
+    .filter(j => j.status === 'closed')
+    .sort((a, b) => {
+      const ta = a.date && a.time ? a.date + 'T' + a.time : '0000-00-00T00:00';
+      const tb = b.date && b.time ? b.date + 'T' + b.time : '0000-00-00T00:00';
+      return tb.localeCompare(ta);
+    });
   if (!closed.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div>마감된 조인이 없습니다</div>`;
+    el.innerHTML = `<div class="empty-state">마감된 조인이 없습니다</div>`;
     return;
   }
-  el.innerHTML = closed.map(j => `
+  el.innerHTML = closed.map(j => {
+    const typeLabel = j.joinType === 'screen' ? '스크린' : '필드';
+    const typeCls   = j.joinType === 'screen' ? 'type-screen' : 'type-field';
+    return `
     <div class="past-card">
-      <div class="past-icon">${j.timeType === 'night' ? '🌙' : '☀️'}</div>
       <div class="past-info">
-        <div class="past-name">${j.course}</div>
-        <div class="past-sub">${j.date}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
+        <div class="past-name">${j.course} <span class="past-type ${typeCls}">${typeLabel}</span></div>
+        <div class="past-sub">${j.date} · ${j.time || ''}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
       </div>
       <span class="past-badge">마감</span>
       ${isAdmin ? `<button class="past-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── 카드 빌드 ─────────────────────────────────────────
