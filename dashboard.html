@@ -854,6 +854,12 @@
     getDoc(doc(db, 'users', ggzonUser.uid)).then(snap => {
       if (snap.exists()) {
         const data = snap.data();
+        // 이름·연락처 미등록 → localStorage 초기화 후 재로그인 유도 (루프 없음)
+        if (!data.name || !data.phone) {
+          localStorage.removeItem('ggzon_user');
+          window.location.href = 'login.html';
+          return;
+        }
         const nick = data.name || data.nickname || ggzonUser.nickname;
         setNick(nick);
         localStorage.setItem('ggzon_user', JSON.stringify({ ...ggzonUser, nickname: nick }));
