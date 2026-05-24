@@ -132,6 +132,7 @@
     var u = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
     if (u && u.loginType === 'kakao') {
       var ret = localStorage.getItem('ggzon_return') || 'dashboard.html';
+      localStorage.removeItem('ggzon_return');
       window.location.replace(ret);
     }
   })();
@@ -330,7 +331,9 @@ if (!Kakao.isInitialized()) {
 }
 
 function getReturnUrl() {
-  return localStorage.getItem('ggzon_return') || 'dashboard.html';
+  const url = localStorage.getItem('ggzon_return') || 'dashboard.html';
+  localStorage.removeItem('ggzon_return');
+  return url;
 }
 
 // ?logout=1 파라미터로 강제 로그아웃
@@ -452,7 +455,7 @@ async function handleKakaoReturn() {
     } else {
       pendingKakaoUser = { uid, kakaoNick, kakaoId };
       showStep('step-profile');
-      document.getElementById('prof-nick').focus();
+      document.getElementById('prof-invite').focus();
     }
   } catch(e) {
     restoreBtn();
