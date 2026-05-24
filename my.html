@@ -294,6 +294,22 @@
     }
     .btn-scorecard-view:active { background: rgba(62,160,102,0.2); }
 
+    /* 스코어카드 이름 열 */
+    .sc2-table .tr-header th.th-name-col { text-align: left; padding-left: 6px; font-size: 10px; letter-spacing: 0.5px; }
+    /* 플레이어 행 */
+    .sc2-table .tr-player { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sc2-table .tr-player:last-child { border-bottom: none; }
+    .sc2-table .tr-player td { text-align: center; padding: 5px 0; vertical-align: middle; }
+    .sc2-table .tr-player td.td-name { text-align: left; padding-left: 6px; font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.85); white-space: nowrap; }
+    .sc2-me-tag { font-size: 9px; color: var(--green-light); margin-left: 3px; font-weight: 700; }
+    .sc2-table .tr-player td.td-t { font-size: 12px; font-weight: 900; color: #f0c040; background: #0f2a1a; width: 36px; min-width: 36px; }
+    /* 파 행 */
+    .sc2-table .tr-par td { text-align: center; padding: 3px 0; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sc2-table .tr-par td.par-label-cell { text-align: left; padding-left: 6px; font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3); }
+    .sc2-table .tr-par td.par-total-cell { font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.4); }
+    .sc2-par-chip { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.45); background: none; border: none; border-radius: 4px; font-family: inherit; }
+    .sc2-par-chip.unset { color: rgba(255,255,255,0.18); }
+
     /* 요약 바 */
     .sc2-summary { display: flex; gap: 8px; margin-bottom: 14px; }
     .sc2-summary-item { flex: 1; text-align: center; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 10px 6px; }
@@ -1593,6 +1609,7 @@ window.deleteAchievement = async (id) => {
 // ══════════════════════════════════════════════════════
 let allScoreHistory = [];
 let sc2Record = null;
+let sc2Players = [];
 let sc2HoleIdx = null;
 
 const SC2_OPTS = [
@@ -1788,7 +1805,7 @@ function chipLabel(v) {
   return v > 0 ? `+${v}` : String(v);
 }
 
-window.openScorecard = (recordId) => {
+window.openScorecard = async (recordId) => {
   const r = allScoreHistory.find(x => x.id === recordId);
   if (!r) return;
   sc2Record = r;
@@ -1797,94 +1814,137 @@ window.openScorecard = (recordId) => {
   document.getElementById('sc-appbar-title').textContent = r.course || '스코어카드';
   document.getElementById('sc-appbar-sub').textContent = r.date || '';
   document.getElementById('sc-admin-badge').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('scorecard-overlay').classList.add('show');
+
+  // 나 + 동반자 플레이어 배열 구성
+  const myEntry = { uid: currentUser?.uid, name: currentUser?.nickname || '나', holes: r.holes || Array(18).fill(null) };
+  let players = [myEntry];
+
+  const companions = r.companions || [];
+  if (companions.length > 0) {
+    const fetches = companions.map(async c => {
+      try {
+        const snap = await getDoc(doc(db, 'users', c.uid, 'scoreHistory', r.id));
+        const holes = snap.exists() ? (snap.data().holes || Array(18).fill(null)) : Array(18).fill(null);
+        return { uid: c.uid, name: c.name || '동반자', holes };
+      } catch {
+        return { uid: c.uid, name: c.name || '동반자', holes: Array(18).fill(null) };
+      }
+    });
+    const compPlayers = await Promise.all(fetches);
+    players = [...players, ...compPlayers];
+  }
+  sc2Players = players;
 
   // parHoles가 비어 있으면 courses 컬렉션에서 par 데이터 자동 로드
-  const needsPar = !r.parHoles || r.parHoles.length === 0;
-  if (needsPar && r.course && (r.frontCourse || r.backCourse)) {
-    getDoc(doc(db, 'courses', r.course)).then(snap => {
+  let parHoles = Array.isArray(r.parHoles) && r.parHoles.length > 0 ? r.parHoles : null;
+  if (!parHoles && r.course && (r.frontCourse || r.backCourse)) {
+    try {
+      const snap = await getDoc(doc(db, 'courses', r.course));
       if (snap.exists()) {
         const nh = snap.data().nineHoles || {};
         const pf = r.frontCourse && nh[r.frontCourse] ? [...nh[r.frontCourse]] : Array(9).fill(null);
         const pb = r.backCourse  && nh[r.backCourse]  ? [...nh[r.backCourse]]  : Array(9).fill(null);
-        sc2Record = { ...sc2Record, parHoles: [...pf, ...pb] };
+        parHoles = [...pf, ...pb];
       }
-      renderSc2Tables(isAdmin);
-    }).catch(() => renderSc2Tables(isAdmin));
-  } else {
-    renderSc2Tables(isAdmin);
+    } catch {}
   }
+  if (!parHoles) parHoles = Array(18).fill(null);
+  sc2Record = { ...sc2Record, parHoles };
 
-  document.getElementById('scorecard-overlay').classList.add('show');
+  renderSc2Tables(sc2Players, parHoles, isAdmin);
 };
 
-function renderSc2Tables(isAdmin) {
-  const holes    = sc2Record.holes    || Array(18).fill(null);
-  // parHoles가 빈 배열([])이면 null-filled 배열로 대체
-  const raw = sc2Record.parHoles;
-  const parHoles = (Array.isArray(raw) && raw.length > 0) ? raw : Array(18).fill(null);
-  const front = holes.slice(0, 9);
-  const back  = holes.slice(9, 18);
+function renderSc2Tables(players, parHoles, isAdmin) {
+  const myHoles  = (players && players[0] && players[0].holes) ? players[0].holes : Array(18).fill(null);
+  const phArr    = Array.isArray(parHoles) && parHoles.length > 0 ? parHoles : Array(18).fill(null);
+  const front    = myHoles.slice(0, 9);
+  const back     = myHoles.slice(9, 18);
   const frontTot = front.reduce((a, v) => a + (v ?? 0), 0);
   const backTot  = back.reduce((a, v) => a + (v ?? 0), 0);
   const total    = frontTot + backTot;
-  const hasAny   = holes.some(v => v !== null);
+  const hasAny   = myHoles.some(v => v !== null);
 
   const fc = sc2Record.frontCourse || '';
   const bc = sc2Record.backCourse  || '';
 
   const totLabel = !hasAny ? '-' : total === 0 ? 'E' : total > 0 ? `+${total}` : String(total);
   const totCls   = total < 0 ? 'under' : '';
+
+  // 코스명 서브라벨: 항상 같은 높이 유지를 위해 빈 span도 포함
   document.getElementById('sc2-summary').innerHTML = `
     <div class="sc2-summary-item">
-      <div class="sc2-summary-label">전반${fc ? `<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px;">${fc}</div>` : ''}</div>
+      <div class="sc2-summary-label">전반<span style="display:block;font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px;min-height:12px;">${fc}</span></div>
       <div class="sc2-summary-val">${front.some(v=>v!==null) ? (frontTot>0?'+'+frontTot:frontTot===0?'E':frontTot) : '-'}</div>
     </div>
     <div class="sc2-summary-item">
-      <div class="sc2-summary-label">후반${bc ? `<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px;">${bc}</div>` : ''}</div>
+      <div class="sc2-summary-label">후반<span style="display:block;font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px;min-height:12px;">${bc}</span></div>
       <div class="sc2-summary-val">${back.some(v=>v!==null) ? (backTot>0?'+'+backTot:backTot===0?'E':backTot) : '-'}</div>
     </div>
-    <div class="sc2-summary-item"><div class="sc2-summary-label">합계</div><div class="sc2-summary-val ${totCls}">${totLabel}</div></div>
+    <div class="sc2-summary-item">
+      <div class="sc2-summary-label">합계<span style="display:block;font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px;min-height:12px;"></span></div>
+      <div class="sc2-summary-val ${totCls}">${totLabel}</div>
+    </div>
   `;
 
-  document.getElementById('sc2-front').innerHTML = buildSc2Table(holes, parHoles, isAdmin, 0, 9);
-  document.getElementById('sc2-back').innerHTML  = buildSc2Table(holes, parHoles, isAdmin, 9, 18);
+  document.getElementById('sc2-front').innerHTML = buildSc2Table(players, phArr, isAdmin, 0, 9);
+  document.getElementById('sc2-back').innerHTML  = buildSc2Table(players, phArr, isAdmin, 9, 18);
 }
 
-function buildSc2Table(holes, parHoles, canEdit, from, to) {
-  const nums  = Array.from({length: to - from}, (_, i) => from + i + 1);
-  const slice = holes.slice(from, to);
-  const pars  = (parHoles || []).slice(from, to);
-  const sub   = slice.reduce((a, v) => a + (v ?? 0), 0);
-  const hasAny = slice.some(v => v !== null);
+function buildSc2Table(players, parHoles, canEdit, from, to) {
+  const count    = to - from;
+  const holeNums = Array.from({length: count}, (_, i) => from + i + 1);
+  const pars     = (parHoles || []).slice(from, to);
+  const parSum   = pars.some(p => p !== null) ? pars.reduce((a, v) => a + (v || 0), 0) : '';
 
-  const parCells = pars.map(p =>
-    `<td style="text-align:center;padding:2px 0;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);"><span style="font-size:10px;font-weight:900;color:rgba(255,255,255,0.35);">${p !== null ? p : ''}</span></td>`
-  ).join('');
-  const parSum = pars.some(p => p !== null) ? pars.reduce((a, v) => a + (v || 0), 0) : '';
-
-  const cells = slice.map((v, i) => {
-    const idx = from + i;
-    const cc = chipClass(v);
-    const cl = chipLabel(v);
+  const parCells = pars.map((p, i) => {
+    const globalIdx = from + i;
     if (canEdit) {
-      return `<td><button class="sc2-chip ${cc}" onclick="openSc2Picker(${idx})">${cl}</button></td>`;
+      return `<td><button class="sc2-chip sc2-par-chip${p === null ? ' unset' : ''}" onclick="openSc2Picker(${globalIdx})">${p !== null ? p : '?'}</button></td>`;
     }
-    return `<td><div class="sc2-chip ${cc}">${cl}</div></td>`;
+    return `<td><div class="sc2-par-chip${p === null ? ' unset' : ''}">${p !== null ? p : '?'}</div></td>`;
   }).join('');
 
-  const totStr = !hasAny ? '-' : sub === 0 ? 'E' : sub > 0 ? `+${sub}` : String(sub);
-
-  return `<thead><tr class="tr-header">
-    ${nums.map(n => `<th>${n}</th>`).join('')}
+  let html = `<thead><tr class="tr-header">
+    <th class="th-name-col">HOLE</th>
+    ${holeNums.map(n => `<th>${n}</th>`).join('')}
     <th class="th-t">T</th>
   </tr></thead><tbody>
-  <tr>
-    <td style="text-align:left;padding:2px 0 2px 4px;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);" colspan="1">Par</td>
+  <tr class="tr-par">
+    <td class="par-label-cell">Par</td>
     ${parCells}
-    <td style="text-align:center;padding:2px 0;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);font-size:10px;font-weight:900;color:rgba(255,255,255,0.35);">${parSum}</td>
-  </tr>
-  <tr class="tr-data">${cells}<td class="td-t">${totStr}</td></tr>
-  </tbody>`;
+    <td class="par-total-cell">${parSum}</td>
+  </tr>`;
+
+  players.forEach(p => {
+    const isMyRow = currentUser && p.uid === currentUser.uid;
+    const holes   = p.holes || Array(18).fill(null);
+    const slice   = holes.slice(from, to);
+    const hasAny  = slice.some(v => v !== null);
+    const sub     = slice.reduce((a, v) => a + (v ?? 0), 0);
+
+    const cells = slice.map((v, i) => {
+      const idx = from + i;
+      const cc = chipClass(v);
+      const cl = chipLabel(v);
+      if (canEdit && isMyRow) {
+        return `<td><button class="sc2-chip ${cc}" onclick="openSc2Picker(${idx})">${cl}</button></td>`;
+      }
+      return `<td><div class="sc2-chip ${cc}">${cl}</div></td>`;
+    }).join('');
+
+    const totStr = !hasAny ? '-' : sub === 0 ? 'E' : sub > 0 ? `+${sub}` : String(sub);
+    const totCls = sub < 0 && hasAny ? 'under' : '';
+
+    html += `<tr class="tr-player">
+      <td class="td-name">${p.name}${isMyRow ? '<span class="sc2-me-tag">나</span>' : ''}</td>
+      ${cells}
+      <td class="td-t ${totCls}">${totStr}</td>
+    </tr>`;
+  });
+
+  html += '</tbody>';
+  return html;
 }
 
 window.openSc2Picker = (idx) => {
@@ -1921,7 +1981,10 @@ window.selectSc2Score = async (val) => {
       holes,
       totalScore: sc2Record.totalScore,
     });
-    renderSc2Tables(true);
+    // sc2Players의 내 항목 holes도 동기화
+    const mi = sc2Players.findIndex(p => p.uid === currentUser?.uid);
+    if (mi !== -1) sc2Players[mi] = { ...sc2Players[mi], holes };
+    renderSc2Tables(sc2Players, sc2Record.parHoles || Array(18).fill(null), true);
     showToast('수정되었습니다');
   } catch (e) {
     showToast('저장 실패: ' + e.message);
