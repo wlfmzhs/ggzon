@@ -971,25 +971,8 @@ async function submitScore() {
         await updateDoc(doc(db, 'joins', joinId), { pointsAwarded: true });
 
       } else {
-        // ── 일반 참가자: 본인 포인트만 처리 ──
-        try {
-          await updateDoc(doc(db, 'users', currentUser.uid), { totalPoints: increment(10) });
-          await addDoc(collection(db, 'pointHistory'), {
-            uid: currentUser.uid, name: currentUser.nickname || '골퍼',
-            type: '조인참여', amount: 10,
-            ref: joinData.course || '라운드', date: now,
-          });
-          if (myHasScore && !alreadySubmitted) {
-            const pts   = myTotal < 0 ? 40 : myTotal <= 5 ? 30 : myTotal <= 9 ? 20 : myTotal <= 15 ? 15 : 10;
-            const label = myTotal < 0 ? '언더파' : myTotal <= 5 ? 'E~+5' : myTotal <= 9 ? '+6~+9' : myTotal <= 15 ? '+10~+15' : '+16이상';
-            await updateDoc(doc(db, 'users', currentUser.uid), { totalPoints: increment(pts) });
-            await addDoc(collection(db, 'pointHistory'), {
-              uid: currentUser.uid, name: currentUser.nickname || '골퍼',
-              type: '스코어', amount: pts,
-              ref: `${joinData.course || '라운드'} (${label})`, date: now,
-            });
-          }
-        } catch(_) {}
+        // ── 일반 참가자: 본인 scoreHistory + stats만 저장 (포인트는 관리자 제출 시 지급)
+        // pointHistory는 관리자 전용 규칙이므로 이 블록에서는 아무것도 하지 않음
       }
     }
 
@@ -999,7 +982,7 @@ async function submitScore() {
     }
 
     closeSubmitSheet();
-    showToast('스코어 기록이 저장되었습니다!');
+    showToast(isCreator ? '기록 저장 및 마감 완료!' : '내 스코어가 저장되었습니다');
   } catch (e) {
     showToast('저장 실패: ' + e.message);
   } finally {
