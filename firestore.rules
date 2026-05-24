@@ -27,15 +27,25 @@ service cloud.firestore {
 
     function onlyAllowedJoinFields() {
       return request.resource.data.diff(resource.data)
-        .affectedKeys().hasOnly(['participants', 'scores', 'partyId']);
+        .affectedKeys().hasOnly(['participants', 'scores', 'partyId', 'status', 'pointsAwarded']);
+    }
+
+    // 포인트/스탯 필드만 수정하는 경우 (조인 참가자가 타인 포인트 지급 시 사용)
+    function onlyStatsFields() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['totalPoints', 'handicap', 'bestScore', 'roundCount', 'handicapTrend', 'statsUpdatedAt']);
     }
 
     match /users/{userId} {
       allow read: if isAnyUser();
-      allow write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
+      allow create, delete: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
+        (isLoggedIn() && onlyStatsFields());
 
+      // 조인 참가자가 제출 시 동반자 scoreHistory 저장 가능 (joinId와 일치하는 joins 문서 존재 시)
       match /scoreHistory/{docId} {
-        allow read, write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
+          (isLoggedIn() && exists(/databases/$(database)/documents/joins/$(docId)));
       }
     }
 
@@ -77,7 +87,9 @@ service cloud.firestore {
 
     match /pointHistory/{histId} {
       allow read: if isAnyUser();
-      allow write: if isAdmin();
+      // 로그인한 참가자가 제출 시 포인트 내역 생성 가능
+      allow create: if isAdmin() || isLoggedIn();
+      allow update, delete: if isAdmin();
     }
 
     match /visits/{visitId} {
