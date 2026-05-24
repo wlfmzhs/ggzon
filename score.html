@@ -806,13 +806,18 @@ function openSubmitSheet() {
   const players  = joinData.participants || [];
   const scores   = joinData.scores || {};
   const myHoles  = (scores[currentUser.uid] || {}).holes || Array(18).fill(null);
-  const myTotal  = myHoles.reduce((a, v) => a + (v ?? 0), 0);
-  const hasAny   = myHoles.some(v => v !== null);
   const entered  = myHoles.filter(v => v !== null).length;
+
+  // 18홀 미완성이면 차단
+  if (entered < 18) {
+    showToast(`아직 ${18 - entered}홀 미입력 — 18홀 모두 입력 후 제출하세요`);
+    return;
+  }
+
+  const myTotal  = myHoles.reduce((a, v) => a + (v ?? 0), 0);
   const companions = players.filter(p => p.uid !== currentUser.uid).map(p => p.name);
 
-  const scoreLabel = !hasAny ? '미입력'
-    : myTotal === 0 ? 'E (파)'
+  const scoreLabel = myTotal === 0 ? 'E (파)'
     : myTotal > 0 ? `+${myTotal} (${myTotal}오버파)` : `${myTotal} (${Math.abs(myTotal)}언더파)`;
   const scoreClass = myTotal < 0 ? 'under' : 'over';
 
@@ -821,7 +826,7 @@ function openSubmitSheet() {
     <div class="submit-row"><span class="submit-row-label">날짜</span><span class="submit-row-val">${joinData.date || '-'}</span></div>
     <div class="submit-row"><span class="submit-row-label">동반자</span><span class="submit-row-val">${companions.length ? companions.join(', ') : '없음'}</span></div>
     <div class="submit-row"><span class="submit-row-label">최종 스코어</span><span class="submit-row-val ${scoreClass}">${scoreLabel}</span></div>
-    <div class="submit-row"><span class="submit-row-label">입력 홀 수</span><span class="submit-row-val">${entered} / 18홀</span></div>
+    <div class="submit-row"><span class="submit-row-label">입력 홀 수</span><span class="submit-row-val">18 / 18홀</span></div>
   `;
   document.getElementById('submit-sheet-overlay').classList.add('open');
 }
