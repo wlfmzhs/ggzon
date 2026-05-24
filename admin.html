@@ -161,6 +161,24 @@
         <div class="stat-value" id="stat-paid">-</div>
         <div class="stat-sub">명</div>
       </div>
+      <div class="stat-card" style="grid-column:1/-1;border-color:rgba(231,76,60,0.35);background:rgba(231,76,60,0.08);cursor:pointer;" onclick="toggleIncompleteList()">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div class="stat-label" style="color:rgba(255,120,100,0.7);">로그인 오류 가능 (이름/연락처 미등록)</div>
+            <div style="display:flex;align-items:baseline;gap:6px;">
+              <div class="stat-value" id="stat-incomplete" style="color:#ff6b6b;">-</div>
+              <div class="stat-sub">명 — 탭하면 목록 확인</div>
+            </div>
+          </div>
+          <svg id="incomplete-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,107,107,0.7)" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 불완전 가입자 목록 -->
+    <div id="incomplete-list" style="display:none;margin-bottom:16px;">
+      <div style="font-size:11px;color:rgba(255,107,107,0.7);font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">이름 또는 연락처가 없는 회원 — 아래 링크를 공유해 재로그인 안내</div>
+      <div id="incomplete-list-inner"></div>
     </div>
 
     <div class="search-box">
@@ -295,6 +313,24 @@ async function loadMembers() {
   document.getElementById('stat-phone').textContent = allMembers.filter(m => m.phone).length;
   document.getElementById('stat-paid').textContent = allMembers.filter(m => m.isPaid).length;
 
+  // 불완전 가입자 (이름 또는 연락처 없음)
+  const incomplete = allMembers.filter(m => !m.name || !m.phone);
+  document.getElementById('stat-incomplete').textContent = incomplete.length;
+  document.getElementById('incomplete-list-inner').innerHTML = incomplete.length === 0
+    ? '<div style="font-size:12px;color:rgba(255,255,255,0.3);padding:10px 0;">불완전 가입자 없음</div>'
+    : incomplete.map(m => {
+        const resetUrl = 'https://www.ggzon.co.kr/login.html?logout=1';
+        const missing = [!m.name && '이름 없음', !m.phone && '연락처 없음'].filter(Boolean).join(', ');
+        return `<div style="background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.25);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:14px;font-weight:700;">${m.name || m.nickname || '(이름없음)'}</span>
+            <span style="font-size:10px;color:#ff8888;background:rgba(231,76,60,0.15);padding:2px 7px;border-radius:6px;">${missing}</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;">가입: ${m.createdAt ? m.createdAt.slice(0,10) : '-'} · UID: ${m.id.slice(0,18)}...</div>
+          <button onclick="window.copyResetUrl('${resetUrl}','${m.name || m.nickname || '이분'}')" style="width:100%;padding:8px;border-radius:8px;background:rgba(231,76,60,0.2);border:1px solid rgba(231,76,60,0.4);color:#ff8888;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">재로그인 링크 복사</button>
+        </div>`;
+      }).join('');
+
   renderMembers(allMembers);
 }
 
@@ -314,6 +350,23 @@ function renderMembers(list) {
     </div>`;
   }).join('');
 }
+
+window.toggleIncompleteList = function() {
+  const el = document.getElementById('incomplete-list');
+  const chevron = document.getElementById('incomplete-chevron');
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+};
+
+window.copyResetUrl = function(url, name) {
+  navigator.clipboard.writeText(url).then(() => {
+    showToast(name + '님 재로그인 링크 복사됨');
+  }).catch(() => {
+    // clipboard API 실패 시 prompt로 fallback
+    window.prompt(name + '님께 아래 링크를 공유하세요:', url);
+  });
+};
 
 window.filterMembers = function() {
   const q = document.getElementById('member-search').value.toLowerCase();
