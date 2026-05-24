@@ -841,6 +841,16 @@
   const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
   if (ggzonUser && ggzonUser.loginType === 'kakao') {
     setNick(ggzonUser.nickname || '멤버');
+
+    // 8초 안에 응답 없으면 강제로 진입 (getDoc 무한 대기 방지)
+    let _loginDone = false;
+    function _doLogin() {
+      if (_loginDone) return;
+      _loginDone = true;
+      onLoginReady();
+    }
+    setTimeout(_doLogin, 8000);
+
     getDoc(doc(db, 'users', ggzonUser.uid)).then(snap => {
       if (snap.exists()) {
         const data = snap.data();
@@ -848,8 +858,8 @@
         setNick(nick);
         localStorage.setItem('ggzon_user', JSON.stringify({ ...ggzonUser, nickname: nick }));
       }
-      onLoginReady();
-    }).catch(() => { onLoginReady(); });
+      _doLogin();
+    }).catch(() => { _doLogin(); });
   } else {
     // 관리자(이메일) 로그인 확인
     onAuthStateChanged(auth, async (user) => {
