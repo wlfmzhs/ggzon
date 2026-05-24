@@ -42,9 +42,12 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
         (isLoggedIn() && onlyStatsFields());
 
-      // 조인 참가자가 제출 시 동반자 scoreHistory 저장 가능 (joinId와 일치하는 joins 문서 존재 시)
       match /scoreHistory/{docId} {
-        allow read, write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
+        // 읽기: 본인/관리자 또는 유효한 조인이 있으면 누구나 (Kakao 비인증 유저도 동반자 스코어 열람 가능)
+        allow read: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
+          exists(/databases/$(database)/documents/joins/$(docId));
+        // 쓰기: 본인/관리자 또는 로그인 유저가 유효한 조인에 저장하는 경우
+        allow write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
           (isLoggedIn() && exists(/databases/$(database)/documents/joins/$(docId)));
       }
     }
