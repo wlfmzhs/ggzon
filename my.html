@@ -989,25 +989,25 @@ onAuthStateChanged(auth, async (user) => {
 
   try {
     const [userSnap, joinsSnap, noticesSnap] = await Promise.all([
-      getDoc(doc(db, 'users', user.uid)),
+      getDoc(doc(db, 'users', effectiveUser.uid)),
       getDocs(collection(db, 'joins')),
       getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'))),
     ]);
 
     if (userSnap.exists()) {
       userData = userSnap.data();
-      document.getElementById('prof-nick').textContent = userData.name || userData.nickname || user.displayName || user.email?.split('@')[0] || '';
+      document.getElementById('prof-nick').textContent = userData.name || userData.nickname || effectiveUser.displayName || effectiveUser.email?.split('@')[0] || '';
       const sub = [userData.handicap != null ? `핸디 ${userData.handicap}` : '', userData.region].filter(Boolean).join(' · ');
       document.getElementById('prof-sub').textContent = sub;
     } else {
-      document.getElementById('prof-nick').textContent = user.displayName || user.email?.split('@')[0] || '';
+      document.getElementById('prof-nick').textContent = effectiveUser.displayName || effectiveUser.email?.split('@')[0] || '';
     }
 
     allJoins = joinsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     notices = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     try {
-      const achSnap = await getDocs(query(collection(db, 'achievements'), where('uid', '==', user.uid)));
+      const achSnap = await getDocs(query(collection(db, 'achievements'), where('uid', '==', effectiveUser.uid)));
       achievements = achSnap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -1017,7 +1017,7 @@ onAuthStateChanged(auth, async (user) => {
       if (hasEagle) update.hasEagle = true;
       if (hasHoleinone) update.hasHoleinone = true;
       if (Object.keys(update).length) {
-        try { await updateDoc(doc(db, 'users', user.uid), update); } catch(_) {}
+        try { await updateDoc(doc(db, 'users', effectiveUser.uid), update); } catch(_) {}
       }
     } catch (_) { achievements = []; }
 
@@ -1026,7 +1026,7 @@ onAuthStateChanged(auth, async (user) => {
 
     updateAchMenuDesc();
 
-    if (user.email === ADMIN_EMAIL || userData.isAdmin) {
+    if (effectiveUser.email === ADMIN_EMAIL || userData.isAdmin) {
       document.getElementById('admin-section').classList.remove('hidden');
     }
   } catch (e) {
