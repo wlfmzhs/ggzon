@@ -133,28 +133,54 @@ service cloud.firestore {
 
     match /usedItems/{itemId} {
       allow read: if isAnyUser();
-      allow create: if isLoggedIn();
+      // 카카오 유저도 등록 가능
+      allow create: if isLoggedIn() || isKakaoOwner(request.resource.data.sellerId);
       allow update: if isAdmin() ||
+        // 판매자(Firebase)가 조회수 갱신
         (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])) ||
+        // 판매자(Firebase)가 상품 수정
         (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
           resource.data.status == 'sale') ||
+        // 판매자(카카오)가 상품 수정
+        (isKakaoOwner(resource.data.sellerId) && resource.data.status == 'sale') ||
+        // 구매자가 상태 변경
         (isLoggedIn() && resource.data.status == 'sale' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','buyerId','buyerNick'])) ||
+        // 구매자가 수령 확인
         (isLoggedIn() && resource.data.buyerId == request.auth.uid &&
           resource.data.status == 'shipped' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        // 판매자(Firebase)가 발송 처리
         (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
           resource.data.status == 'confirmed' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
-        (isAnyUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']));
+        // 누구나 조회수 증가
+        (isAnyUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])) ||
+        // 입찰자가 경매 상태 업데이트 (일반 입찰)
+        (isAnyUser() && resource.data.isAuction == true && resource.data.auctionStatus == 'active' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'auctionCurrentBid','auctionHighestBidderUid','auctionHighestBidderNick','auctionBidCount'])) ||
+        // 입찰자가 즉시구매 또는 낙찰 처리
+        (isAnyUser() && resource.data.isAuction == true && resource.data.auctionStatus == 'active' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'auctionCurrentBid','auctionHighestBidderUid','auctionHighestBidderNick','auctionBidCount',
+            'auctionStatus','status','buyerId','buyerNick']));
       allow delete: if isAdmin() ||
-        (isLoggedIn() && resource.data.sellerId == request.auth.uid && resource.data.status == 'sale');
+        (isLoggedIn() && resource.data.sellerId == request.auth.uid && resource.data.status == 'sale') ||
+        // 카카오 판매자도 자기 상품 삭제 가능
+        (isKakaoOwner(resource.data.sellerId) && resource.data.status == 'sale');
+
+      match /bids/{bidId} {
+        allow read: if isAnyUser();
+        allow create: if isAnyUser();
+      }
 
       match /comments/{commentId} {
         allow read, create: if isAnyUser();
         allow delete: if isAdmin() ||
-          (isLoggedIn() && resource.data.authorId == request.auth.uid);
+          (isLoggedIn() && resource.data.authorId == request.auth.uid) ||
+          isKakaoOwner(resource.data.authorId);
       }
     }
   }

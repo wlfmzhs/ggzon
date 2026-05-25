@@ -431,10 +431,10 @@ function renderPage(data, comments) {
             </div>
             <div class="comment-text">${(c.text||'').replace(/</g,'&lt;')}</div>
           </div>
-          ${(isAdmin || (currentUser && currentUser.uid === c.authorId)) ? `<button class="comment-del" onclick="deleteComment('${c.id}')">삭제</button>` : ''}
+          ${(isAdmin || uid === c.authorId) ? `<button class="comment-del" onclick="deleteComment('${c.id}')">삭제</button>` : ''}
         </div>`).join('');
 
-  const commentInput = currentUser
+  const commentInput = isLoggedIn(currentUser)
     ? `<div class="comment-input-row">
         <input class="comment-input" id="comment-input" type="text" placeholder="댓글 입력..." maxlength="200" onkeydown="if(event.key==='Enter')submitComment()" />
         <button class="comment-submit" onclick="submitComment()">등록</button>
