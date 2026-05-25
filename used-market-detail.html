@@ -248,8 +248,20 @@
     #loading-overlay { border-radius: 0; }
     .modal-overlay { border-radius: 0; }
   }
+
+  .appbar-share {
+    background: #FEE500; border: none; border-radius: 8px;
+    width: 34px; height: 34px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+    flex-shrink: 0;
+  }
+  .appbar-share:active { opacity: 0.75; }
+  .appbar-right { display: flex; align-items: center; gap: 8px; }
 </style>
 </head>
+<!-- Kakao SDK -->
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
 <body>
 <div class="phone">
   <div id="loading-overlay">
@@ -261,7 +273,14 @@
 
   <div class="appbar">
     <button class="appbar-back" onclick="history.back()">← 뒤로</button>
-    <button class="appbar-del" id="del-btn" style="display:none;" onclick="deleteItem()">삭제</button>
+    <div class="appbar-right">
+      <button class="appbar-share" id="share-btn" onclick="shareKakao()" title="카카오톡 공유">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#000000">
+          <path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/>
+        </svg>
+      </button>
+      <button class="appbar-del" id="del-btn" style="display:none;" onclick="deleteItem()">삭제</button>
+    </div>
   </div>
 
   <div class="content" id="content">
@@ -305,6 +324,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { isLoggedIn, getUid, getNick, getKakaoUser, ADMIN_EMAIL } from '/ggzon-auth.js';
 const SHARED_ACCOUNT = '카카오뱅크 3333-09-6368315';
+const KAKAO_JS_KEY = 'a14a8368381df22cac7c0fd0841fd28e';
+if (typeof Kakao !== 'undefined' && !Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -326,6 +347,39 @@ let itemData = null;
 let photoIndex = 0;
 let auctionTimerInterval = null;
 let auctionBidUnsubscribe = null;
+
+function shareKakao() {
+  if (!itemData) return;
+  const pageUrl = `https://www.ggzon.co.kr/used-market-detail.html?id=${itemId}`;
+  const thumb = (itemData.photos && itemData.photos.length > 0)
+    ? itemData.photos[0]
+    : 'https://www.ggzon.co.kr/image/golgab-logo.png';
+  const priceStr = itemData.isAuction
+    ? `경매 시작가 ${fmtPrice(itemData.auctionStartPrice)}`
+    : fmtPrice(itemData.price);
+  const desc = `${priceStr} · 판매자: ${itemData.sellerNick || ''}`;
+
+  if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
+    Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: itemData.title || '중고득템 상품',
+        description: desc,
+        imageUrl: thumb,
+        link: { mobileWebUrl: pageUrl, webUrl: pageUrl },
+      },
+      buttons: [{
+        title: '상품 보러가기',
+        link: { mobileWebUrl: pageUrl, webUrl: pageUrl },
+      }],
+    });
+  } else {
+    // SDK 미로드 fallback: 링크 복사
+    navigator.clipboard?.writeText(pageUrl).then(() => {
+      showToast('링크가 복사되었습니다');
+    }).catch(() => showToast('공유 링크: ' + pageUrl));
+  }
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
