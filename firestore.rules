@@ -133,42 +133,49 @@ service cloud.firestore {
 
     match /usedItems/{itemId} {
       allow read: if isAnyUser();
-      // 카카오 유저도 등록 가능
+      // Firebase·카카오 모두 등록 가능
       allow create: if isLoggedIn() || isKakaoOwner(request.resource.data.sellerId);
       allow update: if isAdmin() ||
-        // 판매자(Firebase)가 조회수 갱신
-        (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])) ||
-        // 판매자(Firebase)가 상품 수정
-        (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
-          resource.data.status == 'sale') ||
-        // 판매자(카카오)가 상품 수정
+        // 누구나 조회수 증가
+        (isAnyUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])) ||
+        // ── 판매자 권한 ──
+        // Firebase 판매자: 판매중일 때 상품 수정
+        (isLoggedIn() && resource.data.sellerId == request.auth.uid && resource.data.status == 'sale') ||
+        // 카카오 판매자: 판매중일 때 상품 수정
         (isKakaoOwner(resource.data.sellerId) && resource.data.status == 'sale') ||
-        // 구매자가 상태 변경
-        (isLoggedIn() && resource.data.status == 'sale' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','buyerId','buyerNick'])) ||
-        // 구매자가 수령 확인
-        (isLoggedIn() && resource.data.buyerId == request.auth.uid &&
-          resource.data.status == 'shipped' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
-        // 판매자(Firebase)가 발송 처리
+        // Firebase 판매자: 발송준비 → 발송완료
         (isLoggedIn() && resource.data.sellerId == request.auth.uid &&
           resource.data.status == 'confirmed' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
-        // 누구나 조회수 증가
-        (isAnyUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])) ||
-        // 입찰자가 경매 상태 업데이트 (일반 입찰)
+        // 카카오 판매자: 발송준비 → 발송완료
+        (isKakaoOwner(resource.data.sellerId) && resource.data.status == 'confirmed' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        // ── 구매자 권한 ──
+        // Firebase 구매자: 구매 신청 (판매중 → 입금대기)
+        (isLoggedIn() && resource.data.status == 'sale' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','buyerId','buyerNick'])) ||
+        // 카카오 구매자: 구매 신청 (판매중 → 입금대기)
+        (isKakaoOwner(request.resource.data.buyerId) && resource.data.status == 'sale' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','buyerId','buyerNick'])) ||
+        // Firebase 구매자: 수령 확인 (발송완료 → 거래완료)
+        (isLoggedIn() && resource.data.buyerId == request.auth.uid &&
+          resource.data.status == 'shipped' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        // 카카오 구매자: 수령 확인 (발송완료 → 거래완료)
+        (isKakaoOwner(resource.data.buyerId) && resource.data.status == 'shipped' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        // ── 경매 입찰 ──
+        // 일반 입찰
         (isAnyUser() && resource.data.isAuction == true && resource.data.auctionStatus == 'active' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'auctionCurrentBid','auctionHighestBidderUid','auctionHighestBidderNick','auctionBidCount'])) ||
-        // 입찰자가 즉시구매 또는 낙찰 처리
+        // 즉시구매 / 낙찰
         (isAnyUser() && resource.data.isAuction == true && resource.data.auctionStatus == 'active' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'auctionCurrentBid','auctionHighestBidderUid','auctionHighestBidderNick','auctionBidCount',
             'auctionStatus','status','buyerId','buyerNick']));
       allow delete: if isAdmin() ||
         (isLoggedIn() && resource.data.sellerId == request.auth.uid && resource.data.status == 'sale') ||
-        // 카카오 판매자도 자기 상품 삭제 가능
         (isKakaoOwner(resource.data.sellerId) && resource.data.status == 'sale');
 
       match /bids/{bidId} {
