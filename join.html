@@ -952,6 +952,14 @@ async function loadJoins() {
   } catch (e) { joins = []; }
   renderActiveList();
   renderClosedList();
+  updateTabCounts();
+}
+
+function updateTabCounts() {
+  const activeCount = joins.filter(j => j.status !== 'closed').length;
+  const closedCount = joins.filter(j => j.status === 'closed').length;
+  document.getElementById('tab-active').textContent = `조인 진행중 (${activeCount})`;
+  document.getElementById('tab-closed').textContent = `마감 (${closedCount})`;
 }
 
 
