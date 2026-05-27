@@ -1013,6 +1013,64 @@ onAuthStateChanged(auth, async user => {
   await loadItem();
   document.getElementById('loading-overlay').classList.add('hidden');
 });
+
+// ── 인앱브라우저 감지 ──────────────────────────────────
+(function() {
+  const ua = navigator.userAgent;
+  const isInApp = /KAKAOTALK|Instagram|NAVER|Line|FB_IAB|Twitter/i.test(ua);
+  if (!isInApp) return;
+
+  window._inAppBrowser = true;
+
+  const currentUrl = location.href;
+  const isIos = /iPhone|iPad|iPod/i.test(ua);
+  const isKakao = /KAKAOTALK/i.test(ua);
+  const id = new URLSearchParams(location.search).get('id') || '';
+  const loginUrl = 'login.html?return=' + encodeURIComponent(id ? `used-market-detail.html?id=${id}` : 'used-market.html');
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:#1a0e00;z-index:99999;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:32px 24px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#fff;
+  `;
+  overlay.innerHTML = `
+    <img src="/image/icon-512.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:24px;" />
+    <div style="font-size:20px;font-weight:900;margin-bottom:10px;">GGZON 중고득템</div>
+    <div style="font-size:14px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.7;margin-bottom:28px;">
+      앱이 설치되어 있으면 아래 버튼으로<br>바로 상품을 확인할 수 있어요.
+    </div>
+    <button id="btn-open-external" style="
+      width:100%;max-width:320px;padding:16px;border-radius:14px;
+      background:#f5841f;color:#fff;font-size:16px;font-weight:900;
+      border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;
+    ">앱으로 열기 (로그인 유지)</button>
+    <button id="btn-login-here" style="
+      width:100%;max-width:320px;padding:14px;border-radius:14px;
+      background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);font-size:14px;font-weight:700;
+      border:1px solid rgba(255,255,255,0.15);cursor:pointer;font-family:inherit;margin-bottom:20px;
+    ">여기서 로그인하고 보기</button>
+    <div style="font-size:11px;color:rgba(255,255,255,0.25);text-align:center;line-height:1.8;">
+      앱이 없으면 아래 버튼으로 로그인 후 확인하세요
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('btn-open-external').addEventListener('click', () => {
+    if (isKakao && isIos) {
+      location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
+    } else if (isKakao && !isIos) {
+      location.href = 'intent://' + currentUrl.replace(/^https?:\/\//, '') +
+        '#Intent;scheme=https;package=com.android.chrome;end';
+    } else {
+      location.href = currentUrl;
+    }
+  });
+
+  document.getElementById('btn-login-here').addEventListener('click', () => {
+    location.href = loginUrl;
+  });
+})();
 </script>
 </body>
 </html>
