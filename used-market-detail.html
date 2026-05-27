@@ -251,12 +251,14 @@
 
   .appbar-right { display: flex; align-items: center; gap: 8px; }
   .btn-row { display: flex; gap: 8px; align-items: stretch; }
-  .btn-row .btn-buy { flex: 1; margin-bottom: 0; }
+  .btn-row .btn-buy { flex: 2; margin-bottom: 0; }
   .btn-kakao-share {
-    flex-shrink: 0; width: 54px;
+    flex: 1; min-width: 0;
     background: #FEE500; border: none; border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
     cursor: pointer; transition: opacity 0.15s;
+    font-size: 13px; font-weight: 900; color: #000; font-family: inherit;
+    padding: 15px 0;
   }
   .btn-kakao-share:active { opacity: 0.8; }
   .btn-kakao-share-full {
@@ -773,9 +775,9 @@ function renderActionButtons(status, isSeller, isBuyer, isAdmin, data) {
   let barHtml = '';
 
   const kakaoShareBtn = `<button class="btn-kakao-share" onclick="window.shareKakao()" title="카카오톡 공유">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="#000000">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#000000">
         <path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.74 1.6 5.14 4.05 6.7l-.78 2.87a.4.4 0 0 0 .59.46l3.52-2.34c.85.13 1.71.2 2.62.2 5.523 0 10-3.477 10-7.9S17.523 3 12 3z"/>
-      </svg>
+      </svg>공유하기
     </button>`;
 
   if (status === 'sale') {
