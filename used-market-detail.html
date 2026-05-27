@@ -356,8 +356,7 @@ let auctionBidUnsubscribe = null;
 
 window.shareKakao = function() {
   if (!itemData) return;
-  // 현재 페이지 URL을 그대로 사용 (하드코딩 URL 조합 오류 방지)
-  const pageUrl = window.location.href;
+  const pageUrl = `https://wlfmzhs.github.io/ggzon/used-market-detail.html?id=${itemId}`;
   const thumb = (itemData.photos && itemData.photos.length > 0)
     ? itemData.photos[0]
     : 'https://www.ggzon.co.kr/image/golgab-logo.png';
