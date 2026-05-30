@@ -1378,7 +1378,7 @@ window.saveJoin = async function() {
           if (userSnap.exists()) creatorName = userSnap.data().name || userSnap.data().nickname || creatorName;
         } catch (_) {}
         data.participants = [
-          { uid: currentUser.uid, name: creatorName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() },
+          { uid: currentUser.uid, name: creatorName || (currentUser.email || '').split('@')[0] || '골퍼', joinedAt: new Date().toISOString() },
           ...guestEntries,
         ];
       }
@@ -1571,7 +1571,7 @@ window.confirmConsent = async function() {
       getDoc(doc(db, 'users', currentUser.uid)),
       getDoc(doc(db, 'joins', id))
     ]);
-    let realName = currentUser.displayName || currentUser.email.split('@')[0];
+    let realName = currentUser.displayName || (currentUser.email || '').split('@')[0] || '골퍼';
     if (userSnap.exists()) {
       const d = userSnap.data();
       realName = d.name || d.nickname || realName;
