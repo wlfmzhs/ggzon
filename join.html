@@ -536,6 +536,31 @@
       font-size: 11px; font-weight: 700; color: var(--green-light); cursor: pointer;
     }
     .ac-chip:active { background: rgba(62,160,102,0.2); }
+
+    /* 게스트 */
+    .participant-name-chip.guest {
+      color: rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .guest-input-row { display: flex; gap: 8px; }
+    .guest-add-btn {
+      padding: 0 16px; border-radius: 10px; height: 46px;
+      background: rgba(62,160,102,0.15); border: 1px solid rgba(62,160,102,0.3);
+      color: var(--green-light); font-size: 13px; font-weight: 700;
+      font-family: inherit; cursor: pointer; white-space: nowrap;
+    }
+    .guest-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .guest-chip {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 10px; border-radius: 20px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6);
+    }
+    .guest-chip-remove {
+      background: none; border: none; color: rgba(255,255,255,0.3);
+      cursor: pointer; padding: 0; font-size: 15px; line-height: 1;
+    }
   </style>
 </head>
 <body>
@@ -666,6 +691,15 @@
         <input type="hidden" id="admin-empty-room" value="0" />
       </div>
 
+      <div class="admin-form-group">
+        <label class="admin-label">게스트 추가 (비회원)</label>
+        <div class="guest-input-row">
+          <input class="admin-input" id="admin-guest-input" placeholder="게스트 이름 입력" style="flex:1;" autocomplete="off" />
+          <button type="button" class="guest-add-btn" onclick="window.addGuest()">추가</button>
+        </div>
+        <div class="guest-chips" id="guest-chips"></div>
+      </div>
+
       <button class="admin-save-btn" onclick="saveJoin()">저장하기</button>
     </div>
   </div>
@@ -745,6 +779,7 @@ let currentJoinType = 'field';
 let currentFilter = 'all';
 let editingId = null;
 let isPaidUser = false;
+let guestList = [];
 
 // ── 아이콘 SVG ──────────────────────
 const icons = {
@@ -1088,10 +1123,13 @@ function buildCard(j) {
           ? `<span class="participant-empty">아직 없음</span>`
           : `<div class="participant-chips">${participants.map((p, i) => {
               const isMe = currentUser && p.uid === currentUser.uid;
-              const canView = isAdmin;
+              const isGuest = p.isGuest === true;
+              const canView = isAdmin && !isGuest;
               const click = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
               const style = canView ? 'cursor:pointer;' : '';
-              return `<span class="participant-name-chip${isMe ? ' me' : ''}" ${click} style="${style}">${p.name}${i===0?' ★':''}</span>`;
+              const chipClass = isMe ? ' me' : isGuest ? ' guest' : '';
+              const label = p.name + (i === 0 ? ' ★' : '') + (isGuest ? ' G' : '');
+              return `<span class="participant-name-chip${chipClass}" ${click} style="${style}">${label}</span>`;
             }).join('')}</div>`
         }
       </div>
@@ -1192,12 +1230,45 @@ window.openAdminModal = function(id) {
   emptyBtn.style.color = 'rgba(255,255,255,0.4)';
   // 수정 모드에선 빈방 옵션 숨김
   document.getElementById('empty-room-group').style.display = id ? 'none' : 'block';
+  // 게스트 초기화
+  document.getElementById('admin-guest-input').value = '';
+  if (id) {
+    const j = joins.find(x => x.id === id);
+    guestList = (j?.participants || []).filter(p => p.isGuest).map(p => p.name);
+  } else {
+    guestList = [];
+  }
+  renderGuestChips();
   document.getElementById('admin-overlay').classList.add('open');
 };
 
 window.closeAdminModal = function() {
   document.getElementById('admin-overlay').classList.remove('open');
 };
+
+window.addGuest = function() {
+  const input = document.getElementById('admin-guest-input');
+  const name = input.value.trim();
+  if (!name) { showToast('게스트 이름을 입력해주세요'); return; }
+  if (guestList.length >= 4) { showToast('게스트는 최대 4명까지 추가할 수 있습니다'); return; }
+  if (guestList.includes(name)) { showToast('이미 추가된 이름입니다'); return; }
+  guestList.push(name);
+  input.value = '';
+  renderGuestChips();
+};
+
+window.removeGuest = function(idx) {
+  guestList.splice(idx, 1);
+  renderGuestChips();
+};
+
+function renderGuestChips() {
+  const el = document.getElementById('guest-chips');
+  if (!guestList.length) { el.innerHTML = ''; return; }
+  el.innerHTML = guestList.map((name, i) =>
+    `<div class="guest-chip">${name}<button class="guest-chip-remove" onclick="window.removeGuest(${i})">×</button></div>`
+  ).join('');
+}
 
 window.toggleEmptyRoom = function() {
   const btn = document.getElementById('toggle-empty-room');
@@ -1278,22 +1349,38 @@ window.saveJoin = async function() {
   const data = { course, date, time, capacity: Number(capacity), kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp(), creatorUid: currentUser.uid };
   if (currentJoinType === 'field') { data.greenfee = greenfee; data.frontCourse = frontCourse; data.backCourse = backCourse; }
 
+  // 게스트 entries 생성
+  const guestEntries = guestList.map((name, i) => ({
+    uid: 'guest_' + Date.now() + '_' + i,
+    name,
+    isGuest: true,
+    joinedAt: new Date().toISOString(),
+  }));
+
   try {
     if (editingId) {
+      // 수정 시: 기존 일반 참여자 유지, 게스트만 교체
+      const joinSnap = await getDoc(doc(db, 'joins', editingId));
+      const existing = joinSnap.exists() ? (joinSnap.data().participants || []) : [];
+      const regularParticipants = existing.filter(p => !p.isGuest);
+      data.participants = [...regularParticipants, ...guestEntries];
       await updateDoc(doc(db, 'joins', editingId), data);
       showToast('조인이 수정되었습니다');
     } else {
       data.createdAt = serverTimestamp();
       const isEmptyRoom = document.getElementById('admin-empty-room').value === '1';
       if (isEmptyRoom) {
-        data.participants = [];
+        data.participants = [...guestEntries];
       } else {
         let creatorName = currentUser.displayName || '';
         try {
           const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
           if (userSnap.exists()) creatorName = userSnap.data().name || userSnap.data().nickname || creatorName;
         } catch (_) {}
-        data.participants = [{ uid: currentUser.uid, name: creatorName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() }];
+        data.participants = [
+          { uid: currentUser.uid, name: creatorName || currentUser.email.split('@')[0], joinedAt: new Date().toISOString() },
+          ...guestEntries,
+        ];
       }
       await addDoc(collection(db, 'joins'), data);
       showToast('조인이 만들어졌습니다!');
@@ -1318,7 +1405,7 @@ window.confirmClose = function(id, name) {
 
     if (!pointsAlreadyAwarded) {
       await Promise.all(participants.map(async (p) => {
-        if (!p.uid) return;
+        if (!p.uid || p.isGuest) return;
         const pHoles = (scores[p.uid] || {}).holes || Array(18).fill(null);
         const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
         const hasScore = pHoles.some(v => v !== null);
