@@ -611,92 +611,116 @@ window.fullRebuildGG = async function() {
   btn.disabled = false;
 };
 
-// ── 포인트 중복 정리 및 재계산 ───────────────────────────
+// ── 포인트 완전 초기화 및 재계산 ────────────────────────
 window.recalcPoints = async function() {
   const btn = document.getElementById('btn-point-recalc');
   if (!confirm(
-    '포인트 중복 정리를 실행합니다.\n\n' +
-    '- pointHistory에서 같은 조인/대회에 중복 지급된 항목 삭제\n' +
-    '- 전체 유저 totalPoints 재합산 반영\n' +
-    '- 기존 조인에 scoreBonusAwarded 플래그 설정\n\n' +
-    '원본 스코어·기록은 전혀 건드리지 않습니다. 계속할까요?'
+    '포인트를 완전히 초기화하고 원본 데이터로 재계산합니다.\n\n' +
+    '1. pointHistory 전체 삭제\n' +
+    '2. 전체 유저 totalPoints → 0 리셋\n' +
+    '3. 마감된 조인 스코어로 포인트 1회 재적립\n' +
+    '4. 대회 스코어로 포인트 1회 재적립\n\n' +
+    '원본 스코어·기록(joins, tournaments)은 전혀 건드리지 않습니다.\n계속할까요?'
   )) return;
 
   btn.disabled = true;
-  btn.textContent = '처리 중...';
 
   try {
-    // 1. pointHistory 전체 로드
-    btn.textContent = '이력 불러오는 중...';
+    // ── Step 1: pointHistory 전체 삭제 ──
+    btn.textContent = 'pointHistory 삭제 중...';
     const histSnap = await getDocs(collection(db, 'pointHistory'));
-    const allDocs = histSnap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    for (let i = 0; i < histSnap.docs.length; i += 400) {
+      await Promise.all(histSnap.docs.slice(i, i + 400).map(d => deleteDoc(d.ref)));
+    }
 
-    // 2. 중복 탐지: (uid + joinId + type) 또는 (uid + tournamentId + type) 기준 첫 번째만 유지
-    const seen = new Set();
-    const toDelete = [];
-    const toKeep = [];
+    // ── Step 2: 전체 유저 totalPoints → 0 ──
+    btn.textContent = '포인트 초기화 중...';
+    const usersSnap = await getDocs(collection(db, 'users'));
+    for (let i = 0; i < usersSnap.docs.length; i += 200) {
+      await Promise.all(usersSnap.docs.slice(i, i + 200).map(d =>
+        updateDoc(d.ref, { totalPoints: 0 }).catch(() => {})
+      ));
+    }
 
-    for (const d of allDocs) {
-      // 고유 키 생성
-      let key = null;
-      if (d.joinId)         key = `${d.uid}|join|${d.joinId}|${d.type}`;
-      else if (d.tournamentId) key = `${d.uid}|tourn|${d.tournamentId}|${d.type}`;
+    const pointsMap = {};   // uid → 누적 포인트
+    const newHistory = [];  // 새로 쌓을 pointHistory 항목들
+    const now = new Date().toISOString();
 
-      if (key) {
-        if (seen.has(key)) {
-          toDelete.push(d.docId);
-        } else {
-          seen.add(key);
-          toKeep.push(d);
+    // ── Step 3: 마감된 필드 조인에서 재계산 ──
+    btn.textContent = '조인 스코어 재계산 중...';
+    const joinsSnap = await getDocs(collection(db, 'joins'));
+    const closedJoins = joinsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(j => j.status === 'closed' && j.joinType !== 'screen');
+
+    for (const join of closedJoins) {
+      const participants = join.participants || [];
+      const scores = join.scores || {};
+
+      for (const p of participants) {
+        if (!p.uid || p.isGuest) continue;
+
+        const pHoles = (scores[p.uid] || {}).holes || Array(18).fill(null);
+        const hasScore = pHoles.some(v => v !== null);
+        const pTotal = hasScore ? pHoles.reduce((a, v) => a + (v ?? 0), 0) : null;
+
+        // 참여 +10
+        pointsMap[p.uid] = (pointsMap[p.uid] || 0) + 10;
+        newHistory.push({ uid: p.uid, name: p.name || '골퍼', type: '조인참여', amount: 10, ref: join.course || '라운드', date: now, joinId: join.id });
+
+        // 스코어 보너스
+        if (hasScore) {
+          const pts   = pTotal < 0 ? 40 : pTotal <= 5 ? 30 : pTotal <= 9 ? 20 : pTotal <= 15 ? 15 : 10;
+          const label = pTotal < 0 ? '언더파' : pTotal <= 5 ? 'E~+5' : pTotal <= 9 ? '+6~+9' : pTotal <= 15 ? '+10~+15' : '+16이상';
+          pointsMap[p.uid] = (pointsMap[p.uid] || 0) + pts;
+          newHistory.push({ uid: p.uid, name: p.name || '골퍼', type: '스코어', amount: pts, ref: `${join.course || '라운드'} (${label})`, date: now, joinId: join.id });
         }
-      } else {
-        // joinId도 tournamentId도 없는 기록은 그대로 유지
-        toKeep.push(d);
+      }
+      // 플래그 정리
+      await updateDoc(doc(db, 'joins', join.id), { pointsAwarded: true, scoreBonusAwarded: true }).catch(() => {});
+    }
+
+    // ── Step 4: 대회(tournaments) 스코어에서 재계산 ──
+    btn.textContent = '대회 스코어 재계산 중...';
+    const tournsSnap = await getDocs(collection(db, 'tournaments'));
+    for (const tDoc of tournsSnap.docs) {
+      const tData = tDoc.data();
+      const coursePar = tData.coursePar || 72;
+      const courseName = tData.golfCourseName || tData.name || '대회';
+      const tScoresSnap = await getDocs(collection(db, 'tournaments', tDoc.id, 'scores'));
+      for (const sDoc of tScoresSnap.docs) {
+        const uid = sDoc.id;
+        const s   = sDoc.data();
+        if (!s.totalStrokes || uid.startsWith('manual_')) continue;
+        const totalScore = s.totalStrokes - coursePar;
+        const pName = s.name || '골퍼';
+        // 참여 +10
+        pointsMap[uid] = (pointsMap[uid] || 0) + 10;
+        newHistory.push({ uid, name: pName, type: '대회참여', amount: 10, ref: courseName, date: now, tournamentId: tDoc.id });
+        // 스코어 보너스
+        const pts   = totalScore < 0 ? 40 : totalScore <= 5 ? 30 : totalScore <= 9 ? 20 : totalScore <= 15 ? 15 : 10;
+        const label = totalScore < 0 ? '언더파' : totalScore <= 5 ? 'E~+5' : totalScore <= 9 ? '+6~+9' : totalScore <= 15 ? '+10~+15' : '+16이상';
+        pointsMap[uid] = (pointsMap[uid] || 0) + pts;
+        newHistory.push({ uid, name: pName, type: '스코어', amount: pts, ref: `${courseName} (${label})`, date: now, tournamentId: tDoc.id });
       }
     }
 
-    btn.textContent = `중복 ${toDelete.length}건 삭제 중...`;
-
-    // 3. 중복 문서 삭제 (50개씩 배치)
-    for (let i = 0; i < toDelete.length; i += 50) {
-      await Promise.all(toDelete.slice(i, i + 50).map(id =>
-        deleteDoc(doc(db, 'pointHistory', id))
-      ));
+    // ── Step 5: 새 pointHistory 저장 ──
+    btn.textContent = `이력 저장 중 (${newHistory.length}건)...`;
+    for (let i = 0; i < newHistory.length; i += 200) {
+      await Promise.all(newHistory.slice(i, i + 200).map(entry => addDoc(collection(db, 'pointHistory'), entry)));
     }
 
-    // 4. uid별 포인트 합산
-    btn.textContent = '포인트 재합산 중...';
-    const pointsMap = {};
-    for (const d of toKeep) {
-      if (!d.uid) continue;
-      pointsMap[d.uid] = (pointsMap[d.uid] || 0) + (d.amount || 0);
-    }
-
-    // 5. 유저 totalPoints 업데이트
+    // ── Step 6: totalPoints 반영 ──
+    btn.textContent = '포인트 반영 중...';
     const uids = Object.keys(pointsMap);
-    for (let i = 0; i < uids.length; i++) {
-      const uid = uids[i];
-      btn.textContent = `유저 반영 ${i + 1}/${uids.length}...`;
-      await updateDoc(doc(db, 'users', uid), { totalPoints: pointsMap[uid] }).catch(() => {});
-    }
-
-    // 6. 기존 닫힌 조인에 scoreBonusAwarded: true 일괄 설정 (재빌드 중복 방지)
-    btn.textContent = '조인 플래그 정리 중...';
-    const joinsSnap = await getDocs(collection(db, 'joins'));
-    const flagJoins = joinsSnap.docs.filter(d => {
-      const j = d.data();
-      return j.status === 'closed' && j.pointsAwarded === true && !j.scoreBonusAwarded;
-    });
-    for (let i = 0; i < flagJoins.length; i += 20) {
-      await Promise.all(flagJoins.slice(i, i + 20).map(d =>
-        updateDoc(doc(db, 'joins', d.id), { scoreBonusAwarded: true })
+    for (let i = 0; i < uids.length; i += 100) {
+      await Promise.all(uids.slice(i, i + 100).map(uid =>
+        updateDoc(doc(db, 'users', uid), { totalPoints: pointsMap[uid] }).catch(() => {})
       ));
     }
 
-    const deletedCount = toDelete.length;
-    const affectedUsers = uids.length;
-    const flaggedJoins = flagJoins.length;
-    showToast(`완료! 중복 ${deletedCount}건 삭제 / ${affectedUsers}명 포인트 재계산 / 조인 ${flaggedJoins}건 플래그 설정`);
+    showToast(`완료! ${uids.length}명 포인트 재계산 / 이력 ${newHistory.length}건 재생성`);
     await loadMembers();
   } catch(e) {
     showToast('오류: ' + e.message);
