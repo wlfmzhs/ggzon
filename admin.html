@@ -191,6 +191,7 @@
       <div style="display:flex;gap:6px;">
         <button id="btn-all-paid" onclick="window.setAllPaid()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;cursor:pointer;font-family:inherit;">전체 유료 전환</button>
         <button id="btn-gg-rebuild" onclick="window.fullRebuildGG()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(100,120,255,0.18);border:1px solid rgba(100,120,255,0.5);color:#aabbff;cursor:pointer;font-family:inherit;">GG 전체 재빌드</button>
+        <button id="btn-point-recalc" onclick="window.recalcPoints()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,80,80,0.18);border:1px solid rgba(255,80,80,0.5);color:#ff9999;cursor:pointer;font-family:inherit;">포인트 중복 정리</button>
         <button onclick="window.unifyRealNames()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,160,60,0.18);border:1px solid rgba(255,160,60,0.5);color:#ffb060;cursor:pointer;font-family:inherit;">실명 통합</button>
         <button onclick="window.cleanBannedScores()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(220,50,50,0.18);border:1px solid rgba(220,50,50,0.4);color:#ff8888;cursor:pointer;font-family:inherit;">탈퇴 정리</button>
       </div>
@@ -607,6 +608,101 @@ window.fullRebuildGG = async function() {
     showToast('오류: ' + e.message);
   }
   btn.textContent = 'GG 전체 재빌드';
+  btn.disabled = false;
+};
+
+// ── 포인트 중복 정리 및 재계산 ───────────────────────────
+window.recalcPoints = async function() {
+  const btn = document.getElementById('btn-point-recalc');
+  if (!confirm(
+    '포인트 중복 정리를 실행합니다.\n\n' +
+    '- pointHistory에서 같은 조인/대회에 중복 지급된 항목 삭제\n' +
+    '- 전체 유저 totalPoints 재합산 반영\n' +
+    '- 기존 조인에 scoreBonusAwarded 플래그 설정\n\n' +
+    '원본 스코어·기록은 전혀 건드리지 않습니다. 계속할까요?'
+  )) return;
+
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+
+  try {
+    // 1. pointHistory 전체 로드
+    btn.textContent = '이력 불러오는 중...';
+    const histSnap = await getDocs(collection(db, 'pointHistory'));
+    const allDocs = histSnap.docs.map(d => ({ docId: d.id, ...d.data() }));
+
+    // 2. 중복 탐지: (uid + joinId + type) 또는 (uid + tournamentId + type) 기준 첫 번째만 유지
+    const seen = new Set();
+    const toDelete = [];
+    const toKeep = [];
+
+    for (const d of allDocs) {
+      // 고유 키 생성
+      let key = null;
+      if (d.joinId)         key = `${d.uid}|join|${d.joinId}|${d.type}`;
+      else if (d.tournamentId) key = `${d.uid}|tourn|${d.tournamentId}|${d.type}`;
+
+      if (key) {
+        if (seen.has(key)) {
+          toDelete.push(d.docId);
+        } else {
+          seen.add(key);
+          toKeep.push(d);
+        }
+      } else {
+        // joinId도 tournamentId도 없는 기록은 그대로 유지
+        toKeep.push(d);
+      }
+    }
+
+    btn.textContent = `중복 ${toDelete.length}건 삭제 중...`;
+
+    // 3. 중복 문서 삭제 (50개씩 배치)
+    for (let i = 0; i < toDelete.length; i += 50) {
+      await Promise.all(toDelete.slice(i, i + 50).map(id =>
+        deleteDoc(doc(db, 'pointHistory', id))
+      ));
+    }
+
+    // 4. uid별 포인트 합산
+    btn.textContent = '포인트 재합산 중...';
+    const pointsMap = {};
+    for (const d of toKeep) {
+      if (!d.uid) continue;
+      pointsMap[d.uid] = (pointsMap[d.uid] || 0) + (d.amount || 0);
+    }
+
+    // 5. 유저 totalPoints 업데이트
+    const uids = Object.keys(pointsMap);
+    for (let i = 0; i < uids.length; i++) {
+      const uid = uids[i];
+      btn.textContent = `유저 반영 ${i + 1}/${uids.length}...`;
+      await updateDoc(doc(db, 'users', uid), { totalPoints: pointsMap[uid] }).catch(() => {});
+    }
+
+    // 6. 기존 닫힌 조인에 scoreBonusAwarded: true 일괄 설정 (재빌드 중복 방지)
+    btn.textContent = '조인 플래그 정리 중...';
+    const joinsSnap = await getDocs(collection(db, 'joins'));
+    const flagJoins = joinsSnap.docs.filter(d => {
+      const j = d.data();
+      return j.status === 'closed' && j.pointsAwarded === true && !j.scoreBonusAwarded;
+    });
+    for (let i = 0; i < flagJoins.length; i += 20) {
+      await Promise.all(flagJoins.slice(i, i + 20).map(d =>
+        updateDoc(doc(db, 'joins', d.id), { scoreBonusAwarded: true })
+      ));
+    }
+
+    const deletedCount = toDelete.length;
+    const affectedUsers = uids.length;
+    const flaggedJoins = flagJoins.length;
+    showToast(`완료! 중복 ${deletedCount}건 삭제 / ${affectedUsers}명 포인트 재계산 / 조인 ${flaggedJoins}건 플래그 설정`);
+    await loadMembers();
+  } catch(e) {
+    showToast('오류: ' + e.message);
+  }
+
+  btn.textContent = '포인트 중복 정리';
   btn.disabled = false;
 };
 
