@@ -1468,7 +1468,7 @@ window.confirmClose = function(id, name) {
         }
       }));
 
-      await updateDoc(doc(db, 'joins', id), { pointsAwarded: true });
+      await updateDoc(doc(db, 'joins', id), { pointsAwarded: true, scoreBonusAwarded: true });
       showToast('마감 완료! 스코어·포인트·랭킹 자동 처리됨');
     } else {
       showToast('마감 완료! (이미 처리됨)');
