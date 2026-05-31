@@ -176,6 +176,19 @@
       background: rgba(255,255,255,0.04);
       border-radius: 14px; margin-bottom: 10px; overflow: hidden;
     }
+    .ph-group.tournament {
+      background: linear-gradient(135deg, rgba(240,192,64,0.1) 0%, rgba(255,160,40,0.06) 100%);
+      border: 1px solid rgba(240,192,64,0.28);
+    }
+    .ph-group.tournament .ph-group-course {
+      color: var(--gold);
+    }
+    .ph-group.tournament .ph-group-body {
+      border-top-color: rgba(240,192,64,0.15);
+    }
+    .ph-group.tournament .ph-group-foot {
+      border-top-color: rgba(240,192,64,0.15);
+    }
     .ph-group-head {
       display: flex; align-items: center; gap: 8px;
       padding: 12px 14px 10px;
@@ -523,11 +536,12 @@
       }
       return `<div class="ph-item"><span class="ph-item-label">${label}</span><span class="ph-item-pts">+${h.amount} pts</span></div>`;
     }).join('');
+    const isTournament = g.items.some(h => h.type === '대회참여');
     const headLeft = showName
       ? `<span class="ph-group-name">${g.name}</span><span class="ph-group-date">${g.course} · ${date}</span>`
       : `<span class="ph-group-course">${g.course}</span><span class="ph-group-date">${date}</span>`;
     return `
-      <div class="ph-group">
+      <div class="ph-group${isTournament ? ' tournament' : ''}">
         <div class="ph-group-head">${headLeft}</div>
         <div class="ph-group-body">${rows}</div>
         <div class="ph-group-foot">합계 <span>+${g.total} pts</span></div>
