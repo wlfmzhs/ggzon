@@ -149,6 +149,30 @@
       color: #8899ff; background: rgba(100,120,255,0.15); border-color: rgba(100,120,255,0.3);
     }
 
+    /* 스크린 카드 */
+    .join-card.screen {
+      background: linear-gradient(135deg, rgba(20,90,160,0.28) 0%, rgba(5,15,40,0.6) 100%);
+      border-color: rgba(80,160,255,0.38);
+    }
+    .join-card.screen::before {
+      background: radial-gradient(circle, rgba(80,160,255,0.15) 0%, transparent 70%);
+    }
+    .join-card.screen .card-meta-icon { color: #5ab4ff; }
+    .join-card.screen .card-progress-fill {
+      background: linear-gradient(90deg, #1a5ca8, #4da8ff);
+    }
+    .join-card.screen .card-join-btn {
+      background: linear-gradient(90deg, #1a5ca8, #4da8ff);
+    }
+    .join-card.screen .card-join-btn.joined {
+      background: rgba(77,168,255,0.15);
+      border: 1px solid rgba(77,168,255,0.4);
+      color: #5ab4ff;
+    }
+    .join-card.screen .participant-count-badge {
+      color: #5ab4ff; background: rgba(77,168,255,0.15); border-color: rgba(77,168,255,0.3);
+    }
+
     /* 주간/야간 뱃지 */
     .day-label {
       font-size: 11px; font-weight: 700;
@@ -1080,7 +1104,7 @@ function buildCard(j) {
   const memo = '';
 
   return `
-    <div class="join-card ${isNight && j.joinType !== 'screen' ? 'night' : ''}" id="card-${j.id}">
+    <div class="join-card ${j.joinType === 'screen' ? 'screen' : isNight ? 'night' : ''}" id="card-${j.id}">
       <div class="card-status-row">
         ${(isTeeingSoon || isFull)
           ? `<span class="badge-closed">모집 마감${daysLabel ? ` · ${daysLabel}` : ''}</span>`
