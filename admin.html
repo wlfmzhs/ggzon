@@ -192,6 +192,7 @@
         <button id="btn-all-paid" onclick="window.setAllPaid()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;cursor:pointer;font-family:inherit;">전체 유료 전환</button>
         <button id="btn-gg-rebuild" onclick="window.fullRebuildGG()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(100,120,255,0.18);border:1px solid rgba(100,120,255,0.5);color:#aabbff;cursor:pointer;font-family:inherit;">GG 전체 재빌드</button>
         <button id="btn-point-recalc" onclick="window.recalcPoints()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,80,80,0.18);border:1px solid rgba(255,80,80,0.5);color:#ff9999;cursor:pointer;font-family:inherit;">포인트 중복 정리</button>
+        <button onclick="window.awardTournamentPoints('UaucUzRt9IsG9SObkHV5','골갑 3차 흑백대전',72)" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(62,160,102,0.18);border:1px solid rgba(62,160,102,0.5);color:#6fdc9a;cursor:pointer;font-family:inherit;">흑백대전 포인트 지급</button>
         <button onclick="window.unifyRealNames()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,160,60,0.18);border:1px solid rgba(255,160,60,0.5);color:#ffb060;cursor:pointer;font-family:inherit;">실명 통합</button>
         <button onclick="window.cleanBannedScores()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(220,50,50,0.18);border:1px solid rgba(220,50,50,0.4);color:#ff8888;cursor:pointer;font-family:inherit;">탈퇴 정리</button>
         <button onclick="window.openMergeModal()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,160,220,0.18);border:1px solid rgba(255,160,220,0.5);color:#ffaae0;cursor:pointer;font-family:inherit;">계정 병합</button>
@@ -641,6 +642,52 @@ window.fullRebuildGG = async function() {
   }
   btn.textContent = 'GG 전체 재빌드';
   btn.disabled = false;
+};
+
+// ── 대회 포인트 일괄 지급 ────────────────────────────────
+window.awardTournamentPoints = async function(tournId, tournName, par) {
+  if (!confirm(`"${tournName}" 대회 포인트를 일괄 지급합니다.\n스코어 제출자 중 미지급자에게만 지급됩니다. 계속할까요?`)) return;
+
+  const now = new Date().toISOString();
+  const scoresSnap = await getDocs(collection(db, 'tournaments', tournId, 'scores'));
+  const submitters = scoresSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+
+  // 이미 이 대회로 대회참여 포인트 받은 uid 목록
+  const phSnap = await getDocs(query(
+    collection(db, 'pointHistory'),
+    where('type', '==', '대회참여'),
+    where('ref', '==', tournName)
+  ));
+  const alreadyAwarded = new Set(phSnap.docs.map(d => d.data().uid));
+
+  let awarded = 0, skipped = 0;
+  for (const s of submitters) {
+    const uid = s.uid;
+    if (!uid || alreadyAwarded.has(uid)) { skipped++; continue; }
+
+    const totalScore = (s.totalStrokes || 0) - par;
+    const pts   = totalScore < 0 ? 40 : totalScore <= 5 ? 30 : totalScore <= 9 ? 20 : totalScore <= 15 ? 15 : 10;
+    const label = totalScore < 0 ? '언더파' : totalScore <= 5 ? 'E~+5' : totalScore <= 9 ? '+6~+9' : totalScore <= 15 ? '+10~+15' : '+16이상';
+
+    try {
+      // setDoc merge:true → users 문서 없어도 생성됨
+      await setDoc(doc(db, 'users', uid), { totalPoints: increment(10 + pts) }, { merge: true });
+      await addDoc(collection(db, 'pointHistory'), {
+        uid, name: s.name || '골퍼',
+        type: '대회참여', amount: 10,
+        ref: tournName, date: now, roundDate: '',
+      });
+      await addDoc(collection(db, 'pointHistory'), {
+        uid, name: s.name || '골퍼',
+        type: '스코어', amount: pts,
+        ref: `${tournName} (${label})`, date: now, roundDate: '',
+      });
+      awarded++;
+    } catch(e) {
+      console.error('지급 실패', uid, e);
+    }
+  }
+  alert(`완료! 지급: ${awarded}명 / 이미지급: ${skipped}명`);
 };
 
 // ── 포인트 완전 초기화 및 재계산 ────────────────────────
