@@ -196,6 +196,54 @@
       font-size: 13px; color: rgba(255,255,255,0.25);
     }
 
+    .rank-row { cursor: pointer; }
+    .rank-row:active { opacity: 0.7; }
+
+    /* 사용자 상세 오버레이 */
+    .user-detail-overlay {
+      position: absolute; inset: 0;
+      background: var(--green-dark);
+      z-index: 200; display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+    }
+    .user-detail-overlay.open { transform: translateX(0); }
+    .ud-appbar {
+      flex-shrink: 0; padding: 28px 18px 14px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .ud-back-btn {
+      background: none; border: none; color: rgba(255,255,255,0.5);
+      font-size: 24px; cursor: pointer; line-height: 1; padding: 0 8px 0 0;
+    }
+    .ud-title { font-size: 15px; font-weight: 900; flex: 1; }
+    .ud-total { text-align: right; }
+    .ud-total-num { font-size: 22px; font-weight: 900; color: var(--gold); line-height: 1; }
+    .ud-total-unit { font-size: 10px; color: rgba(240,192,64,0.6); font-weight: 700; }
+    .ud-scroll {
+      flex: 1; overflow-y: auto; padding: 16px;
+      scrollbar-width: none;
+    }
+    .ud-scroll::-webkit-scrollbar { display: none; }
+    .ud-history-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 14px; margin-bottom: 8px;
+      background: rgba(255,255,255,0.04);
+    }
+    .ud-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900;
+      background: rgba(62,160,102,0.12); border: 1px solid rgba(62,160,102,0.25);
+      color: var(--green-light);
+    }
+    .ud-info { flex: 1; }
+    .ud-type { font-size: 13px; font-weight: 800; color: #fff; }
+    .ud-ref { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .ud-pts { font-size: 16px; font-weight: 900; color: var(--gold); white-space: nowrap; }
+    .ud-pts span { font-size: 10px; color: rgba(240,192,64,0.6); }
+
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); }
       body { align-items: flex-start; }
@@ -291,12 +339,28 @@
     </div>
 
   </div>
+
+  <!-- 사용자 포인트 상세 오버레이 -->
+  <div class="user-detail-overlay" id="user-detail-overlay">
+    <div class="ud-appbar">
+      <button class="ud-back-btn" onclick="window.closeUserDetail()">‹</button>
+      <div class="ud-title" id="ud-name">—</div>
+      <div class="ud-total">
+        <div class="ud-total-num" id="ud-total-pts">0</div>
+        <div class="ud-total-unit">pts</div>
+      </div>
+    </div>
+    <div class="ud-scroll" id="ud-scroll">
+      <div class="empty-state">로딩 중...</div>
+    </div>
+  </div>
+
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, query, orderBy, limit, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -365,8 +429,9 @@
 
     el.innerHTML = users.map((u, i) => {
       const isMe = u.uid === currentUser.uid;
+      const displayName = (u.name || u.nickname || '골퍼').replace(/'/g, "\\'");
       return `
-        <div class="rank-row ${rankCls(i)}${isMe ? ' me' : ''}">
+        <div class="rank-row ${rankCls(i)}${isMe ? ' me' : ''}" onclick="window.showUserDetail('${u.uid}','${displayName}',${u.totalPoints||0})">
           ${rankIcon(i)}
           <div class="rank-info">
             <div class="rank-name">${u.name || u.nickname || '골퍼'}${isMe ? ' <span style="font-size:10px;color:var(--gold);">나</span>' : ''}</div>
@@ -411,6 +476,50 @@
       `;
     }).join('');
   }
+
+  // 사용자 포인트 상세
+  window.showUserDetail = async function(uid, name, totalPts) {
+    document.getElementById('ud-name').textContent = name + '의 포인트 내역';
+    document.getElementById('ud-total-pts').textContent = totalPts;
+    document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">로딩 중...</div>';
+    document.getElementById('user-detail-overlay').classList.add('open');
+
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'pointHistory'),
+        where('uid', '==', uid),
+        orderBy('date', 'desc'),
+        limit(100)
+      ));
+
+      const typeIcon = (t) => t === '조인참여' ? 'J' : t === '대회참여' ? 'T' : t === '스코어' ? 'S' : t === '순위보너스' ? 'R' : 'P';
+
+      if (snap.empty) {
+        document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">포인트 내역이 없습니다</div>';
+        return;
+      }
+      document.getElementById('ud-scroll').innerHTML = snap.docs.map(d => {
+        const h = d.data();
+        const date = h.date ? new Date(h.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
+        return `
+          <div class="ud-history-row">
+            <div class="ud-icon">${typeIcon(h.type)}</div>
+            <div class="ud-info">
+              <div class="ud-type">${h.type}</div>
+              <div class="ud-ref">${h.ref || ''} · ${date}</div>
+            </div>
+            <div class="ud-pts">+${h.amount}<span> pts</span></div>
+          </div>
+        `;
+      }).join('');
+    } catch(e) {
+      document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">불러오기 실패</div>';
+    }
+  };
+
+  window.closeUserDetail = function() {
+    document.getElementById('user-detail-overlay').classList.remove('open');
+  };
 
   window.switchTab = function(tab) {
     ['rank','history','guide'].forEach(t => {
