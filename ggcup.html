@@ -513,7 +513,9 @@
 
   function renderGroup(g, showName) {
     const date = g.dateKey ? new Date(g.dateKey).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
-    const rows = g.items.map(h => {
+    const typeOrder = { '조인참여': 0, '대회참여': 0, '스코어': 1, '순위보너스': 2 };
+    const sorted = [...g.items].sort((a, b) => (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9));
+    const rows = sorted.map(h => {
       let label = h.type;
       if (h.type === '스코어') {
         const m = (h.ref || '').match(/\(([^)]+)\)/);
