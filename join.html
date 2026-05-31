@@ -1654,6 +1654,7 @@ window.confirmClose = function(id, name) {
           await addDoc(collection(db, 'pointHistory'), {
             uid: p.uid, name: p.name || '골퍼',
             type: '조인참여', amount: 10, ref: name, date: now,
+            roundDate: joinNow.date || '',
           });
 
           // 4. 스코어 보너스 포인트
@@ -1665,6 +1666,7 @@ window.confirmClose = function(id, name) {
               uid: p.uid, name: p.name || '골퍼',
               type: '스코어', amount: pts,
               ref: `${joinNow.course || '라운드'} (${label})`, date: now,
+              roundDate: joinNow.date || '',
             });
           }
         }
