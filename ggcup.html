@@ -471,39 +471,44 @@
     return _joinsCache;
   }
 
-  // pointHistory 항목에서 실제 티업 날짜 찾기
+  // pointHistory 항목에서 실제 티업 날짜 찾기 (처리 날짜 이전 라운드만)
   function resolveRoundDate(h, joins) {
     if (h.roundDate) return h.roundDate;
     const course = (h.ref || '').split(' (')[0].trim();
     const uid = h.uid;
+    const procDateStr = (h.date || '').slice(0, 10);
     const matches = joins.filter(j =>
       j.course === course &&
       j.status === 'closed' &&
+      (j.date || '') <= procDateStr &&
       (j.participants || []).some(p => p.uid === uid)
     );
-    if (!matches.length) return (h.date || '').slice(0, 10);
-    // 여러 개면 처리 날짜와 가장 가까운 라운드 날짜 선택
-    const proc = new Date(h.date || 0).getTime();
-    matches.sort((a, b) =>
-      Math.abs(new Date(a.date).getTime() - proc) - Math.abs(new Date(b.date).getTime() - proc)
-    );
+    if (!matches.length) return procDateStr;
+    // 처리 날짜에 가장 가까운 (직전) 라운드 선택
+    matches.sort((a, b) => b.date.localeCompare(a.date));
     return matches[0].date;
   }
 
   // 포인트 내역 그룹화 헬퍼
+  // 그룹 키는 처리 날짜(processing date) 기준으로 묶어 중복 방지
+  // 표시는 resolved 라운드 날짜로
   function groupHistory(items) {
     const groups = {};
     items.forEach(h => {
-      const dateKey = h._resolvedDate || (h.date || '').slice(0, 10);
+      const procDateKey = (h.date || '').slice(0, 10);
       const course = (h.ref || '').split(' (')[0].trim() || '라운드';
-      const key = (h.uid || '') + '_' + dateKey + '_' + course;
+      const key = (h.uid || '') + '_' + procDateKey + '_' + course;
       if (!groups[key]) {
-        groups[key] = { dateKey, course, name: h.name || '골퍼', items: [], total: 0 };
+        groups[key] = {
+          dateKey: h._resolvedDate || procDateKey,
+          sortKey: procDateKey,
+          course, name: h.name || '골퍼', items: [], total: 0
+        };
       }
       groups[key].items.push(h);
       groups[key].total += (h.amount || 0);
     });
-    return Object.values(groups).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+    return Object.values(groups).sort((a, b) => b.sortKey.localeCompare(a.sortKey));
   }
 
   function renderGroup(g, showName) {
