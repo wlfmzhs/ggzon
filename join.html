@@ -1637,11 +1637,12 @@ window.confirmClose = function(id, name) {
           }
         }
 
-        // 2. 이번 달 참여 횟수 확인 (이 조인 제외하고 같은 달 마감된 조인 수)
+        // 2. 이번 달 참여 횟수 확인 (이 조인 제외하고 같은 달 마감된 필드 조인 수, 스크린 제외)
         const joinMonth = (joinNow.date || '').slice(0, 7);
         const priorMonthlyCount = joins.filter(x =>
           x.id !== id &&
           x.status === 'closed' &&
+          x.joinType !== 'screen' &&
           (x.date || '').slice(0, 7) === joinMonth &&
           (x.participants || []).some(px => px.uid === p.uid)
         ).length;
@@ -1732,6 +1733,7 @@ window.participateJoin = async function(id) {
     const thisYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const monthlyCount = joins.filter(x =>
       x.id !== id &&
+      x.joinType !== 'screen' &&
       (x.participants || []).some(p => p.uid === currentUser.uid) &&
       (x.date || '').slice(0, 7) === thisYM
     ).length;
