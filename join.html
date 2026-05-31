@@ -405,9 +405,71 @@
     .past-card {
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px; padding: 16px; margin-bottom: 8px;
-      display: flex; align-items: center; gap: 14px;
+      border-radius: 14px; margin-bottom: 8px;
+      overflow: hidden;
     }
+    .past-card-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px; cursor: pointer;
+    }
+    .past-card-header:active { background: rgba(255,255,255,0.04); }
+    .past-card-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .past-chevron {
+      color: rgba(255,255,255,0.25); flex-shrink: 0;
+      transition: transform 0.3s ease;
+    }
+    .past-card.open .past-chevron { transform: rotate(90deg); }
+
+    /* 스코어 드롭다운 패널 */
+    .past-score-panel {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+    .past-score-panel.open {
+      max-height: 1200px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .ps-inner { padding: 14px 12px 16px; }
+    .ps-summary {
+      background: rgba(255,255,255,0.04); border-radius: 10px;
+      overflow: hidden; margin-bottom: 12px;
+    }
+    .ps-summary-row {
+      display: grid; grid-template-columns: 34px 1fr auto auto;
+      align-items: center; padding: 9px 12px; gap: 0 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .ps-summary-row:last-child { border-bottom: none; }
+    .ps-rank { font-size: 9px; font-weight: 900; letter-spacing: 0.04em; }
+    .ps-rank.r1 { color: #f0c040; }
+    .ps-rank.r2 { color: rgba(255,255,255,0.55); }
+    .ps-rank.r3 { color: #cd8c5a; }
+    .ps-rank.rn { color: rgba(255,255,255,0.25); }
+    .ps-pname { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); }
+    .ps-holes { font-size: 10px; color: rgba(255,255,255,0.25); text-align: right; }
+    .ps-score { font-size: 15px; font-weight: 900; color: #fff; text-align: right; min-width: 30px; }
+    .ps-score.under { color: #e74c3c; }
+    .ps-score.even  { color: rgba(255,255,255,0.8); }
+    .ps-table-wrap { overflow-x: auto; }
+    .ps-table-wrap + .ps-table-wrap { margin-top: 10px; }
+    .ps-table { width: 100%; border-collapse: collapse; }
+    .ps-table .ps-hdr { background: rgba(255,255,255,0.88); }
+    .ps-table .ps-hdr th { font-size: 9px; font-weight: 900; color: #111; text-align: center; padding: 6px 1px; }
+    .ps-table .ps-hdr th.ps-th-nm { text-align: left; padding-left: 4px; font-size: 8px; letter-spacing: 0.3px; }
+    .ps-table .ps-hdr th.ps-th-t  { color: #7a5c00; min-width: 26px; }
+    .ps-table .ps-row { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .ps-table .ps-row:last-child { border-bottom: none; }
+    .ps-table .ps-row td { text-align: center; padding: 4px 1px; vertical-align: middle; }
+    .ps-table .ps-row td.ps-nm { text-align: left; padding-left: 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.75); white-space: nowrap; }
+    .ps-table .ps-row td.ps-tt { font-size: 10px; font-weight: 900; color: #f0c040; background: rgba(10,36,6,0.7); min-width: 26px; }
+    .ps-chip { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; border-radius: 3px; }
+    .ps-chip.ps-under { background: #e74c3c; border-radius: 50%; color: #fff; }
+    .ps-chip.ps-zero  { color: rgba(255,255,255,0.9); }
+    .ps-chip.ps-over  { color: rgba(255,255,255,0.9); }
+    .ps-chip.ps-empty { border: 1px solid rgba(255,255,255,0.1); }
+    .ps-no-score { padding: 20px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.3); }
+    .ps-loading { padding: 20px; display: flex; align-items: center; justify-content: center; }
+
     .past-info { flex: 1; min-width: 0; }
     .past-name { font-size: 15px; font-weight: 800; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .past-type { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; vertical-align: middle; margin-left: 5px; }
@@ -424,7 +486,7 @@
       border: 1px solid rgba(180,0,0,0.25);
       font-size: 10px; font-weight: 700;
       padding: 4px 10px; border-radius: 8px;
-      cursor: pointer; font-family: inherit; margin-left: 6px;
+      cursor: pointer; font-family: inherit;
     }
 
     .empty-state {
@@ -1051,16 +1113,119 @@ function renderClosedList() {
   el.innerHTML = closed.map(j => {
     const typeLabel = j.joinType === 'screen' ? '스크린' : '필드';
     const typeCls   = j.joinType === 'screen' ? 'type-screen' : 'type-field';
+    const hasScore  = j.joinType !== 'screen';
+    const chevron   = hasScore ? `<svg class="past-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>` : '';
     return `
-    <div class="past-card">
-      <div class="past-info">
-        <div class="past-name">${j.course} <span class="past-type ${typeCls}">${typeLabel}</span></div>
-        <div class="past-sub">${j.date} · ${j.time || ''}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
+    <div class="past-card" id="past-${j.id}">
+      <div class="past-card-header" ${hasScore ? `onclick="window.toggleScorePanel('${j.id}')"` : ''}>
+        <div class="past-info">
+          <div class="past-name">${j.course} <span class="past-type ${typeCls}">${typeLabel}</span></div>
+          <div class="past-sub">${j.date} · ${j.time || ''}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
+        </div>
+        <div class="past-card-right">
+          ${chevron}
+          <span class="past-badge">마감</span>
+          ${isAdmin ? `<button class="past-delete-btn" onclick="event.stopPropagation();window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
+        </div>
       </div>
-      <span class="past-badge">마감</span>
-      ${isAdmin ? `<button class="past-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
+      ${hasScore ? `<div class="past-score-panel" id="score-panel-${j.id}"></div>` : ''}
     </div>`;
   }).join('');
+}
+
+// ── 마감 카드 스코어 드롭다운 ─────────────────────────
+const _scorePanelCache = {};
+
+window.toggleScorePanel = async function(id) {
+  const card  = document.getElementById(`past-${id}`);
+  const panel = document.getElementById(`score-panel-${id}`);
+  if (!panel || !card) return;
+
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  card.classList.toggle('open', !isOpen);
+
+  if (isOpen) return;
+
+  if (_scorePanelCache[id]) { panel.innerHTML = _scorePanelCache[id]; return; }
+
+  panel.innerHTML = `<div class="ps-loading"><div class="spinner"></div></div>`;
+  try {
+    const snap = await getDoc(doc(db, 'joins', id));
+    const html = snap.exists() ? buildScorePanel(snap.data()) : `<div class="ps-no-score">데이터 없음</div>`;
+    _scorePanelCache[id] = html;
+    panel.innerHTML = html;
+  } catch(_) {
+    panel.innerHTML = `<div class="ps-no-score">불러오기 실패</div>`;
+  }
+};
+
+function buildScorePanel(jData) {
+  const players = jData.participants || [];
+  const scores  = jData.scores || {};
+  const hasAnyScore = players.some(p => ((scores[p.uid] || {}).holes || []).some(v => v !== null));
+  if (!players.length || !hasAnyScore) {
+    return `<div class="ps-no-score">기록된 스코어가 없습니다</div>`;
+  }
+
+  const ranked = players.map(p => {
+    const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
+    const hasAny = holes.some(v => v !== null);
+    const tot    = hasAny ? holes.reduce((a, v) => a + (v ?? 0), 0) : null;
+    return { ...p, tot, hasAny, holes };
+  }).sort((a, b) => {
+    if (a.hasAny !== b.hasAny) return a.hasAny ? -1 : 1;
+    if (a.tot === null && b.tot === null) return 0;
+    return a.tot - b.tot;
+  });
+
+  const rLabels = ['1ST','2ND','3RD','4TH','5TH','6TH'];
+  const rCls    = ['r1','r2','r3','rn','rn','rn'];
+
+  const summaryHtml = ranked.map((p, i) => {
+    const lbl = p.tot === null ? '-' : p.tot === 0 ? 'E' : p.tot > 0 ? `+${p.tot}` : String(p.tot);
+    const cls = p.tot === null ? '' : p.tot < 0 ? 'under' : p.tot === 0 ? 'even' : '';
+    const entered = p.holes.filter(v => v !== null).length;
+    return `<div class="ps-summary-row">
+      <span class="ps-rank ${rCls[i]||'rn'}">${rLabels[i]||`${i+1}TH`}</span>
+      <span class="ps-pname">${p.name}</span>
+      <span class="ps-holes">${p.hasAny ? `${entered}H` : '-'}</span>
+      <span class="ps-score ${cls}">${lbl}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="ps-inner">
+    <div class="ps-summary">${summaryHtml}</div>
+    <div class="ps-table-wrap">${buildPanelTable(players, scores, 0, 9)}</div>
+    <div class="ps-table-wrap">${buildPanelTable(players, scores, 9, 18)}</div>
+  </div>`;
+}
+
+function buildPanelTable(players, scores, from, to) {
+  const nums = Array.from({length: to - from}, (_, i) => from + i + 1);
+  const rows = players.map(p => {
+    const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
+    const slice  = holes.slice(from, to);
+    const hasAny = slice.some(v => v !== null);
+    const sub    = slice.reduce((a, v) => a + (v ?? 0), 0);
+    const cells  = slice.map(v => {
+      if (v === null) return `<td><div class="ps-chip ps-empty"></div></td>`;
+      const cc  = v < 0 ? 'ps-under' : v === 0 ? 'ps-zero' : 'ps-over';
+      const lbl = v === 0 ? '0' : v > 0 ? `+${v}` : String(v);
+      return `<td><div class="ps-chip ${cc}">${lbl}</div></td>`;
+    }).join('');
+    const tot = !hasAny ? '-' : sub === 0 ? 'E' : sub > 0 ? `+${sub}` : String(sub);
+    return `<tr class="ps-row"><td class="ps-nm">${p.name}</td>${cells}<td class="ps-tt">${tot}</td></tr>`;
+  }).join('');
+
+  return `<table class="ps-table">
+    <thead><tr class="ps-hdr">
+      <th class="ps-th-nm">HOLE</th>
+      ${nums.map(n => `<th>${n}</th>`).join('')}
+      <th class="ps-th-t">T</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 // ── 카드 빌드 ─────────────────────────────────────────
