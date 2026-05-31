@@ -462,11 +462,39 @@
     }).join('');
   }
 
+  // joins 캐시 (한 번만 로드)
+  let _joinsCache = null;
+  async function getJoins() {
+    if (_joinsCache) return _joinsCache;
+    const snap = await getDocs(collection(db, 'joins'));
+    _joinsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return _joinsCache;
+  }
+
+  // pointHistory 항목에서 실제 티업 날짜 찾기
+  function resolveRoundDate(h, joins) {
+    if (h.roundDate) return h.roundDate;
+    const course = (h.ref || '').split(' (')[0].trim();
+    const uid = h.uid;
+    const matches = joins.filter(j =>
+      j.course === course &&
+      j.status === 'closed' &&
+      (j.participants || []).some(p => p.uid === uid)
+    );
+    if (!matches.length) return (h.date || '').slice(0, 10);
+    // 여러 개면 처리 날짜와 가장 가까운 라운드 날짜 선택
+    const proc = new Date(h.date || 0).getTime();
+    matches.sort((a, b) =>
+      Math.abs(new Date(a.date).getTime() - proc) - Math.abs(new Date(b.date).getTime() - proc)
+    );
+    return matches[0].date;
+  }
+
   // 포인트 내역 그룹화 헬퍼
   function groupHistory(items) {
     const groups = {};
     items.forEach(h => {
-      const dateKey = h.roundDate || (h.date || '').slice(0, 10);
+      const dateKey = h._resolvedDate || (h.date || '').slice(0, 10);
       const course = (h.ref || '').split(' (')[0].trim() || '라운드';
       const key = (h.uid || '') + '_' + dateKey + '_' + course;
       if (!groups[key]) {
@@ -502,9 +530,12 @@
   // 포인트 내역 로드
   async function loadHistory() {
     const el = document.getElementById('history-list');
-    let snap;
+    let snap, joins;
     try {
-      snap = await getDocs(query(collection(db, 'pointHistory'), orderBy('date', 'desc'), limit(100)));
+      [snap, joins] = await Promise.all([
+        getDocs(query(collection(db, 'pointHistory'), orderBy('date', 'desc'), limit(100))),
+        getJoins()
+      ]);
     } catch (e) {
       el.innerHTML = '<div class="empty-state">아직 포인트 내역이 없어요</div>';
       return;
@@ -513,7 +544,11 @@
       el.innerHTML = '<div class="empty-state">아직 포인트 내역이 없어요</div>';
       return;
     }
-    const groups = groupHistory(snap.docs.map(d => d.data()));
+    const items = snap.docs.map(d => {
+      const h = d.data();
+      return { ...h, _resolvedDate: resolveRoundDate(h, joins) };
+    });
+    const groups = groupHistory(items);
     el.innerHTML = groups.map(g => renderGroup(g, true)).join('');
   }
 
@@ -524,12 +559,19 @@
     document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">로딩 중...</div>';
     document.getElementById('user-detail-overlay').classList.add('open');
     try {
-      const snap = await getDocs(query(collection(db, 'pointHistory'), where('uid', '==', uid), limit(100)));
+      const [snap, joins] = await Promise.all([
+        getDocs(query(collection(db, 'pointHistory'), where('uid', '==', uid), limit(100))),
+        getJoins()
+      ]);
       if (snap.empty) {
         document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">포인트 내역이 없습니다</div>';
         return;
       }
-      const groups = groupHistory(snap.docs.map(d => d.data()));
+      const items = snap.docs.map(d => {
+        const h = d.data();
+        return { ...h, _resolvedDate: resolveRoundDate(h, joins) };
+      });
+      const groups = groupHistory(items);
       document.getElementById('ud-scroll').innerHTML = groups.map(g => renderGroup(g, false)).join('');
     } catch(e) {
       document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">불러오기 실패</div>';
