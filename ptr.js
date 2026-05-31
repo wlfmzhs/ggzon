@@ -1,6 +1,6 @@
 (function () {
-  const THRESHOLD = 70;
-  let startX = 0, startY = 0, pulling = false, refreshing = false, dirLocked = false;
+  const THRESHOLD = 110;
+  let startX = 0, startY = 0, startTime = 0, pulling = false, refreshing = false, dirLocked = false;
   let ind = null;
 
   const style = document.createElement('style');
@@ -43,6 +43,7 @@
       if (refreshing) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
+      startTime = Date.now();
       dirLocked = false;
       if (el.scrollTop <= 0) pulling = true;
     }, { passive: true });
@@ -75,7 +76,8 @@
       pulling = false;
       const dy = e.changedTouches[0].clientY - startY;
 
-      if (dy >= THRESHOLD && ind) {
+      const elapsed = Date.now() - startTime;
+      if (dy >= THRESHOLD && ind && elapsed > 200) {
         refreshing = true;
         const arc = document.getElementById('ptr-arc');
         if (arc) { arc.classList.add('spin'); arc.style.transform = ''; }
