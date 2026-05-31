@@ -489,7 +489,6 @@
       const snap = await getDocs(query(
         collection(db, 'pointHistory'),
         where('uid', '==', uid),
-        orderBy('date', 'desc'),
         limit(100)
       ));
 
@@ -499,8 +498,8 @@
         document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">포인트 내역이 없습니다</div>';
         return;
       }
-      document.getElementById('ud-scroll').innerHTML = snap.docs.map(d => {
-        const h = d.data();
+      const sorted = snap.docs.map(d => d.data()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      document.getElementById('ud-scroll').innerHTML = sorted.map(h => {
         const date = h.date ? new Date(h.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
         return `
           <div class="ud-history-row">
