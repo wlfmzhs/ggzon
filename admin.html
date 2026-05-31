@@ -194,6 +194,7 @@
         <button id="btn-point-recalc" onclick="window.recalcPoints()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,80,80,0.18);border:1px solid rgba(255,80,80,0.5);color:#ff9999;cursor:pointer;font-family:inherit;">포인트 중복 정리</button>
         <button onclick="window.unifyRealNames()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,160,60,0.18);border:1px solid rgba(255,160,60,0.5);color:#ffb060;cursor:pointer;font-family:inherit;">실명 통합</button>
         <button onclick="window.cleanBannedScores()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(220,50,50,0.18);border:1px solid rgba(220,50,50,0.4);color:#ff8888;cursor:pointer;font-family:inherit;">탈퇴 정리</button>
+        <button onclick="window.openMergeModal()" style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;background:rgba(255,160,220,0.18);border:1px solid rgba(255,160,220,0.5);color:#ffaae0;cursor:pointer;font-family:inherit;">계정 병합</button>
       </div>
     </div>
     <div id="member-list"></div>
@@ -245,6 +246,39 @@
     <div class="modal">
       <div class="modal-title">회원 상세 <button class="modal-close" onclick="closeModal()">×</button></div>
       <div id="member-detail"></div>
+    </div>
+  </div>
+
+  <!-- 계정 병합 모달 -->
+  <div class="modal-overlay" id="modal-merge">
+    <div class="modal" style="max-height:80vh;overflow-y:auto;">
+      <div class="modal-title">계정 병합 <button class="modal-close" onclick="window.closeMergeModal()">×</button></div>
+      <div style="font-size:11px;color:rgba(255,200,100,0.8);background:rgba(255,160,0,0.08);border:1px solid rgba(255,160,0,0.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.6;">
+        이전 계정의 포인트·스코어 이력을 신규 계정으로 이전하고 이전 계정을 삭제합니다.
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;font-weight:700;">이전 계정 (이메일 로그인, 삭제됨)</div>
+        <input id="merge-old-search" placeholder="이름·닉네임·이메일로 검색" oninput="window.filterMergeList('old')"
+          style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none;margin-bottom:6px;" />
+        <div id="merge-old-list" style="max-height:120px;overflow-y:auto;border-radius:8px;border:1px solid rgba(255,255,255,0.1);display:none;"></div>
+        <div id="merge-old-selected" style="display:none;background:rgba(255,100,100,0.12);border:1px solid rgba(255,100,100,0.3);border-radius:8px;padding:10px 12px;font-size:12px;"></div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;font-weight:700;">신규 계정 (카카오 로그인, 유지됨)</div>
+        <input id="merge-new-search" placeholder="이름·닉네임·이메일로 검색" oninput="window.filterMergeList('new')"
+          style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none;margin-bottom:6px;" />
+        <div id="merge-new-list" style="max-height:120px;overflow-y:auto;border-radius:8px;border:1px solid rgba(255,255,255,0.1);display:none;"></div>
+        <div id="merge-new-selected" style="display:none;background:rgba(100,200,100,0.1);border:1px solid rgba(100,200,100,0.3);border-radius:8px;padding:10px 12px;font-size:12px;"></div>
+      </div>
+
+      <div id="merge-preview" style="display:none;background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8;"></div>
+
+      <button id="btn-merge-exec" onclick="window.executeMerge()" disabled
+        style="width:100%;padding:13px;border-radius:12px;background:rgba(255,160,220,0.2);border:1px solid rgba(255,160,220,0.4);color:#ffaae0;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;">
+        병합 실행
+      </button>
     </div>
   </div>
 
@@ -745,6 +779,179 @@ window.forceWithdraw = async function(uid, nickname) {
     await loadMembers();
   } catch (e) {
     showToast('처리 중 오류가 발생했습니다.');
+  }
+};
+
+// ── 계정 병합 ─────────────────────────────────────────
+let _mergeOldUid = null;
+let _mergeNewUid = null;
+
+window.openMergeModal = function() {
+  _mergeOldUid = null;
+  _mergeNewUid = null;
+  document.getElementById('merge-old-search').value = '';
+  document.getElementById('merge-new-search').value = '';
+  document.getElementById('merge-old-list').style.display = 'none';
+  document.getElementById('merge-new-list').style.display = 'none';
+  document.getElementById('merge-old-selected').style.display = 'none';
+  document.getElementById('merge-new-selected').style.display = 'none';
+  document.getElementById('merge-preview').style.display = 'none';
+  document.getElementById('btn-merge-exec').disabled = true;
+  document.getElementById('btn-merge-exec').style.opacity = '0.4';
+  document.getElementById('modal-merge').classList.add('show');
+};
+
+window.closeMergeModal = function() {
+  document.getElementById('modal-merge').classList.remove('show');
+};
+
+window.filterMergeList = function(side) {
+  const q = document.getElementById(`merge-${side}-search`).value.toLowerCase().trim();
+  const listEl = document.getElementById(`merge-${side}-list`);
+  if (!q) { listEl.style.display = 'none'; return; }
+  const hits = allMembers.filter(m =>
+    (m.name||'').toLowerCase().includes(q) ||
+    (m.nickname||'').toLowerCase().includes(q) ||
+    (m.email||'').toLowerCase().includes(q)
+  ).slice(0, 8);
+  if (!hits.length) { listEl.style.display = 'none'; return; }
+  listEl.innerHTML = hits.map(m => `
+    <div onclick="window.selectMergeAccount('${side}','${m.id}')"
+      style="padding:10px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);font-size:12px;">
+      <div style="font-weight:700;">${m.name || m.nickname || '-'} <span style="color:rgba(255,255,255,0.35);font-weight:400;font-size:10px;">(${m.nickname || '-'})</span></div>
+      <div style="color:rgba(255,255,255,0.35);font-size:10px;">${m.email || 'kakao'} · 포인트 ${m.totalPoints || 0} · ${m.id.slice(0,14)}...</div>
+    </div>`).join('');
+  listEl.style.display = 'block';
+};
+
+window.selectMergeAccount = function(side, uid) {
+  const m = allMembers.find(x => x.id === uid);
+  if (!m) return;
+  if (side === 'old') _mergeOldUid = uid;
+  else _mergeNewUid = uid;
+
+  document.getElementById(`merge-${side}-list`).style.display = 'none';
+  document.getElementById(`merge-${side}-search`).value = '';
+
+  const color = side === 'old' ? '#ff9999' : '#99ee99';
+  document.getElementById(`merge-${side}-selected`).style.display = 'block';
+  document.getElementById(`merge-${side}-selected`).innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <span style="font-weight:800;color:${color};">${m.name || m.nickname || '-'}</span>
+        <span style="color:rgba(255,255,255,0.4);margin-left:6px;font-size:10px;">${m.nickname || '-'}</span>
+      </div>
+      <button onclick="window.clearMergeAccount('${side}')" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:16px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div style="color:rgba(255,255,255,0.4);margin-top:4px;">${m.email || '카카오 계정'} · GG포인트 ${m.totalPoints || 0}점 · 가입 ${m.createdAt ? m.createdAt.slice(0,10) : '-'}</div>
+  `;
+
+  updateMergePreview();
+};
+
+window.clearMergeAccount = function(side) {
+  if (side === 'old') _mergeOldUid = null;
+  else _mergeNewUid = null;
+  document.getElementById(`merge-${side}-selected`).style.display = 'none';
+  updateMergePreview();
+};
+
+function updateMergePreview() {
+  const prevEl  = document.getElementById('merge-preview');
+  const execBtn = document.getElementById('btn-merge-exec');
+  if (!_mergeOldUid || !_mergeNewUid) {
+    prevEl.style.display = 'none';
+    execBtn.disabled = true;
+    execBtn.style.opacity = '0.4';
+    return;
+  }
+  if (_mergeOldUid === _mergeNewUid) {
+    prevEl.style.display = 'block';
+    prevEl.innerHTML = '<span style="color:#ff8888;">이전 계정과 신규 계정이 동일합니다.</span>';
+    execBtn.disabled = true;
+    execBtn.style.opacity = '0.4';
+    return;
+  }
+  const oldM = allMembers.find(x => x.id === _mergeOldUid);
+  const newM = allMembers.find(x => x.id === _mergeNewUid);
+  prevEl.style.display = 'block';
+  prevEl.innerHTML = `
+    <div style="color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:700;font-size:11px;">병합 후 신규 계정에 반영되는 항목</div>
+    <div>GG포인트: <b style="color:#f0c040;">${newM.totalPoints||0} + ${oldM.totalPoints||0} = ${(newM.totalPoints||0)+(oldM.totalPoints||0)}점</b></div>
+    <div style="color:rgba(255,255,255,0.5);">스코어 이력 · 포인트 내역 · 조인 참석 이력 이전</div>
+    <div style="color:#ff9999;margin-top:6px;">이전 계정 (${oldM.name||oldM.nickname||'-'}) 은 삭제됩니다.</div>
+  `;
+  execBtn.disabled = false;
+  execBtn.style.opacity = '1';
+}
+
+window.executeMerge = async function() {
+  if (!_mergeOldUid || !_mergeNewUid || _mergeOldUid === _mergeNewUid) return;
+  const oldM = allMembers.find(x => x.id === _mergeOldUid);
+  const newM = allMembers.find(x => x.id === _mergeNewUid);
+  if (!confirm(`"${oldM?.name||oldM?.nickname||'?'}" → "${newM?.name||newM?.nickname||'?'}"으로 병합합니다.\n이전 계정은 삭제됩니다. 계속할까요?`)) return;
+
+  const btn = document.getElementById('btn-merge-exec');
+  btn.disabled = true;
+  btn.textContent = '병합 중...';
+
+  const oldUid = _mergeOldUid;
+  const newUid = _mergeNewUid;
+
+  try {
+    // 1. 이전 계정 데이터 조회
+    const oldSnap = await getDoc(doc(db, 'users', oldUid));
+    if (!oldSnap.exists()) throw new Error('이전 계정이 없습니다');
+    const oldData = oldSnap.data();
+    const oldPoints = oldData.totalPoints || 0;
+
+    // 2. 포인트 합산
+    if (oldPoints > 0) {
+      await updateDoc(doc(db, 'users', newUid), { totalPoints: increment(oldPoints) });
+    }
+
+    // 3. scoreHistory 서브컬렉션 복사 후 삭제
+    const histSnap = await getDocs(collection(db, 'users', oldUid, 'scoreHistory'));
+    for (const hDoc of histSnap.docs) {
+      await setDoc(doc(db, 'users', newUid, 'scoreHistory', hDoc.id), hDoc.data());
+      await deleteDoc(hDoc.ref);
+    }
+
+    // 4. pointHistory 컬렉션 uid 업데이트
+    const pHistSnap = await getDocs(query(collection(db, 'pointHistory'), where('uid', '==', oldUid)));
+    for (const pDoc of pHistSnap.docs) {
+      await updateDoc(pDoc.ref, { uid: newUid });
+    }
+
+    // 5. joins 참석자 배열 및 scores 맵 키 교체
+    const joinsSnap = await getDocs(collection(db, 'joins'));
+    for (const jDoc of joinsSnap.docs) {
+      const jData = jDoc.data();
+      const participants = jData.participants || [];
+      if (!participants.some(p => p.uid === oldUid)) continue;
+
+      const newParticipants = participants.map(p =>
+        p.uid === oldUid ? { ...p, uid: newUid } : p
+      );
+      const scoresObj = jData.scores || {};
+      const updates = { participants: newParticipants };
+      if (scoresObj[oldUid]) {
+        updates[`scores.${newUid}`] = scoresObj[oldUid];
+        updates[`scores.${oldUid}`] = deleteField();
+      }
+      await updateDoc(jDoc.ref, updates);
+    }
+
+    // 6. 이전 계정 삭제
+    await deleteDoc(doc(db, 'users', oldUid));
+
+    showToast(`병합 완료! 포인트 ${oldPoints}점 이전, 스코어 ${histSnap.size}건, 포인트내역 ${pHistSnap.size}건`);
+    window.closeMergeModal();
+    await loadMembers();
+  } catch(e) {
+    showToast('오류: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '병합 실행';
   }
 };
 
