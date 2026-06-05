@@ -903,7 +903,7 @@ async function submitScore() {
       const now = new Date().toISOString();
 
       await Promise.all(players.map(async (p) => {
-        if (!p.uid) return;
+        if (!p.uid || p.isGuest) return;
         const isMe     = p.uid === currentUser.uid;
         const pHoles   = (scores[p.uid] || {}).holes || Array(18).fill(null);
         const pTotal   = pHoles.reduce((a, v) => a + (v ?? 0), 0);
