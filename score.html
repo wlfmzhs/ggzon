@@ -976,9 +976,6 @@ async function submitScore() {
       await updateDoc(doc(db, 'joins', joinId), { pointsAwarded: true });
     }
 
-    // 4. 조인 마감
-    await updateDoc(doc(db, 'joins', joinId), { status: 'closed' });
-
     closeSubmitSheet();
     showToast('스코어 기록이 저장되었습니다!');
   } catch (e) {
