@@ -795,8 +795,10 @@ function render() {
     const frontHtml   = buildTable(g.players, g.scores, groupMyUids, 0, 9, par.parFront, 'front', groupCanEdit);
     const backHtml    = buildTable(g.players, g.scores, groupMyUids, 9, 18, par.parBack, 'back', groupCanEdit);
 
+    const courseDetail = (g.frontCourse && g.backCourse) ? ` · ${g.frontCourse} → ${g.backCourse}`
+      : (g.frontCourse || g.backCourse) ? ` · ${g.frontCourse || g.backCourse}` : '';
     return `<div class="course-group">
-      ${showLabels ? `<div class="course-group-label">${g.course || '코스 미정'}</div>` : ''}
+      ${showLabels ? `<div class="course-group-label">${g.course || '코스 미정'}${courseDetail}</div>` : ''}
       <div class="summary-bar">${summaryHtml}</div>
       <div class="score-section"><table class="sc-table">${frontHtml}</table></div>
       <div class="score-section"><table class="sc-table">${backHtml}</table></div>
