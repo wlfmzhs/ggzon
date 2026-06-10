@@ -339,7 +339,6 @@
       <div id="party-linked-view" style="display:none;">
         <div class="party-section-label">연결된 팀</div>
         <div id="party-linked-list"></div>
-        <button class="party-unlink-btn" id="btn-unlink-party" style="margin-bottom:14px;">전체 연결 해제</button>
         <div class="party-divider"></div>
       </div>
 
@@ -375,7 +374,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, where, orderBy, writeBatch, addDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, where, orderBy, writeBatch, addDoc, increment, deleteDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -461,7 +460,6 @@ document.getElementById('picker-overlay').addEventListener('click', e => {
 // 팀 연결 시트
 document.getElementById('btn-party').onclick        = openPartySheet;
 document.getElementById('btn-party-close').onclick  = closePartySheet;
-document.getElementById('btn-unlink-party').onclick = doUnlinkParty;
 document.getElementById('party-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('party-overlay')) closePartySheet();
 });
@@ -546,7 +544,8 @@ async function openPartySheet() {
     const members    = (pd?.participants || []).map(p => p.name).join(', ') || '-';
     return `<div class="party-linked-box">
       <div class="party-linked-course">${courseName}</div>
-      <div class="party-linked-members" style="margin-bottom:0;">${members}</div>
+      <div class="party-linked-members">${members}</div>
+      <button class="party-unlink-btn" onclick="window._unlinkParty('${id}')">연결 해제</button>
     </div>`;
   }).join('');
   const atMax = total >= MAX_PARTY_TEAMS;
@@ -604,19 +603,15 @@ async function loadPartyCandidates(pids) {
 }
 
 async function doLinkParty(code) {
-  const myGroup = [joinId, ...(joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []))];
-  if (!code || myGroup.includes(code)) { showToast('올바른 팀이 아닙니다'); return; }
+  const myPids = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
+  if (!code || code === joinId || myPids.includes(code)) { showToast('올바른 팀이 아닙니다'); return; }
+  if (1 + myPids.length >= MAX_PARTY_TEAMS) { showToast(`최대 ${MAX_PARTY_TEAMS}팀까지 연결할 수 있습니다`); return; }
   try {
     const targetSnap = await getDoc(doc(db, 'joins', code));
     if (!targetSnap.exists()) { showToast('팀을 찾을 수 없습니다'); return; }
-    const targetData  = targetSnap.data();
-    const targetGroup = [code, ...(targetData.partyIds || (targetData.partyId ? [targetData.partyId] : []))];
-    const combined = [...new Set([...myGroup, ...targetGroup])];
-    if (combined.length > MAX_PARTY_TEAMS) { showToast(`최대 ${MAX_PARTY_TEAMS}팀까지 연결할 수 있습니다`); return; }
     const batch = writeBatch(db);
-    for (const id of combined) {
-      batch.update(doc(db, 'joins', id), { partyIds: combined.filter(x => x !== id), partyId: null });
-    }
+    batch.update(doc(db, 'joins', joinId), { partyIds: arrayUnion(code), partyId: null });
+    batch.update(doc(db, 'joins', code), { partyIds: arrayUnion(joinId), partyId: null });
     await batch.commit();
     showToast('팀이 연결되었습니다!');
     closePartySheet();
@@ -624,20 +619,17 @@ async function doLinkParty(code) {
 }
 window._linkParty = doLinkParty;
 
-async function doUnlinkParty() {
+async function doUnlinkParty(targetId) {
   try {
-    const myGroup  = [joinId, ...(joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []))];
-    const remaining = myGroup.filter(id => id !== joinId);
     const batch = writeBatch(db);
-    batch.update(doc(db, 'joins', joinId), { partyIds: [], partyId: null });
-    for (const id of remaining) {
-      batch.update(doc(db, 'joins', id), { partyIds: remaining.filter(x => x !== id), partyId: null });
-    }
+    batch.update(doc(db, 'joins', joinId), { partyIds: arrayRemove(targetId) });
+    batch.update(doc(db, 'joins', targetId), { partyIds: arrayRemove(joinId) });
     await batch.commit();
     showToast('연결이 해제되었습니다');
     closePartySheet();
   } catch(e) { showToast('오류: ' + e.message); }
 }
+window._unlinkParty = doUnlinkParty;
 
 // ── 파 데이터 로드 / 저장 ─────────────────────────────
 async function loadCoursePar() {
