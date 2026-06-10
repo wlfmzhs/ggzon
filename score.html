@@ -60,6 +60,10 @@
     /* 비참석자 안내 */
     .notice-bar { display: none; align-items: center; gap: 8px; margin: 8px 14px; padding: 10px 14px; background: rgba(255,200,60,0.08); border: 1px solid rgba(255,200,60,0.25); border-radius: 10px; font-size: 12px; color: rgba(255,200,60,0.85); }
 
+    /* 코스 그룹 */
+    .course-group + .course-group { margin-top: 6px; padding-top: 14px; border-top: 1px solid rgba(62,160,102,0.15); }
+    .course-group-label { margin: 10px 14px 0; font-size: 12px; font-weight: 900; color: var(--green-light); letter-spacing: 0.02em; }
+
     /* 요약 바 */
     .summary-bar { display: flex; flex-direction: column; margin: 10px 14px 14px; background: rgba(255,255,255,0.05); border-radius: 14px; overflow: hidden; }
     .summary-player { display: grid; grid-template-columns: 42px 1fr auto auto; align-items: center; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); gap: 0 8px; }
@@ -292,18 +296,8 @@
       참석자만 스코어를 입력할 수 있습니다.
     </div>
 
-    <!-- 요약 바 -->
-    <div class="summary-bar" id="summary-bar"></div>
-
-    <!-- 전반 -->
-    <div class="score-section">
-      <table class="sc-table" id="table-front"></table>
-    </div>
-
-    <!-- 후반 -->
-    <div class="score-section">
-      <table class="sc-table" id="table-back"></table>
-    </div>
+    <!-- 코스 그룹별 순위/스코어 -->
+    <div id="groups-container"></div>
 
     <!-- 명언 -->
     <div style="margin:8px 14px 24px;padding:20px 4px 8px;text-align:center;border-top:1px solid rgba(62,160,102,0.12);">
@@ -703,26 +697,52 @@ function closeParPicker() {
   parPickerIdx  = null;
 }
 
-function render() {
-  const myPlayers = joinData.participants || [];
+// 연결된 팀들을 코스(전반/후반 코스 포함) 기준으로 그룹핑
+function groupTeams() {
   const pids      = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
   const partyDocs = pids.map(id => partyJoinDataMap.get(id)).filter(Boolean);
-  const players   = [...myPlayers];
-  const scores    = { ...(joinData.scores || {}) };
-  for (const pd of partyDocs) {
-    for (const p of (pd.participants || [])) {
-      if (!players.find(x => x.uid === p.uid)) players.push(p);
+  const allDocs   = [{ ...joinData, _isMine: true }, ...partyDocs];
+  const groups = [];
+  const groupMap = new Map();
+  for (const d of allDocs) {
+    const key = `${d.course || ''}|${d.frontCourse || ''}|${d.backCourse || ''}`;
+    let g = groupMap.get(key);
+    if (!g) {
+      g = { key, course: d.course, frontCourse: d.frontCourse, backCourse: d.backCourse, players: [], scores: {}, isMine: false };
+      groupMap.set(key, g);
+      groups.push(g);
     }
-    Object.assign(scores, pd.scores || {});
+    if (d._isMine) g.isMine = true;
+    for (const p of (d.participants || [])) {
+      if (!g.players.find(x => x.uid === p.uid)) g.players.push(p);
+    }
+    Object.assign(g.scores, d.scores || {});
   }
-  const myUids       = new Set(myPlayers.map(p => p.uid));
-  const isParticipant = myPlayers.some(p => p.uid === currentUser.uid);
-  const canEdit = isParticipant || isAdmin;
+  groups.sort((a, b) => (b.isMine ? 1 : 0) - (a.isMine ? 1 : 0));
+  return groups;
+}
 
-  if (!canEdit) document.getElementById('notice-bar').style.display = 'flex';
-  if (isParticipant) document.getElementById('submit-bar').classList.add('show');
+// 내 코스가 아닌 그룹의 파 데이터 캐시 (코스명|전반|후반 → {parFront, parBack})
+const groupParCache = new Map();
+function getGroupPar(g) {
+  if (groupParCache.has(g.key)) return groupParCache.get(g.key);
+  const empty = { parFront: null, parBack: null };
+  groupParCache.set(g.key, empty);
+  if (!g.course) return empty;
+  getDoc(doc(db, 'courses', g.course)).then(snap => {
+    let result = { parFront: null, parBack: null };
+    if (snap.exists()) {
+      const nh = snap.data().nineHoles || {};
+      result.parFront = g.frontCourse && nh[g.frontCourse] ? [...nh[g.frontCourse]] : null;
+      result.parBack  = g.backCourse  && nh[g.backCourse]  ? [...nh[g.backCourse]]  : null;
+    }
+    groupParCache.set(g.key, result);
+    render();
+  }).catch(() => {});
+  return empty;
+}
 
-  // 요약 바 (실시간 순위)
+function buildSummary(players, scores) {
   const playerStats = players.map(p => {
     const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const hasAny = holes.some(v => v !== null);
@@ -737,7 +757,7 @@ function render() {
   });
   const rankLabels = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH'];
   const rankCls    = ['r1', 'r2', 'r3', 'rn', 'rn', 'rn'];
-  document.getElementById('summary-bar').innerHTML = ranked.map((p, i) => {
+  return ranked.map((p, i) => {
     const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const entered = holes.filter(v => v !== null).length;
     const label  = p.tot === null ? '-' : p.tot === 0 ? 'E' : p.tot > 0 ? `+${p.tot}` : String(p.tot);
@@ -752,11 +772,36 @@ function render() {
       <div class="summary-score ${cls}">${label}</div>
     </div>`;
   }).join('');
+}
 
-  // 전반 테이블
-  document.getElementById('table-front').innerHTML = buildTable(players, scores, myUids, 0, 9, parFront, 'front', canEdit);
-  // 후반 테이블
-  document.getElementById('table-back').innerHTML  = buildTable(players, scores, myUids, 9, 18, parBack, 'back', canEdit);
+function render() {
+  const myPlayers = joinData.participants || [];
+  const myUids    = new Set(myPlayers.map(p => p.uid));
+  const isParticipant = myPlayers.some(p => p.uid === currentUser.uid);
+  const canEdit = isParticipant || isAdmin;
+
+  if (!canEdit) document.getElementById('notice-bar').style.display = 'flex';
+  if (isParticipant) document.getElementById('submit-bar').classList.add('show');
+
+  const groups = groupTeams();
+  const showLabels = groups.length > 1;
+
+  document.getElementById('groups-container').innerHTML = groups.map(g => {
+    const par = g.isMine ? { parFront, parBack } : getGroupPar(g);
+    const groupCanEdit = g.isMine && canEdit;
+    const groupMyUids  = g.isMine ? myUids : new Set();
+
+    const summaryHtml = buildSummary(g.players, g.scores);
+    const frontHtml   = buildTable(g.players, g.scores, groupMyUids, 0, 9, par.parFront, 'front', groupCanEdit);
+    const backHtml    = buildTable(g.players, g.scores, groupMyUids, 9, 18, par.parBack, 'back', groupCanEdit);
+
+    return `<div class="course-group">
+      ${showLabels ? `<div class="course-group-label">${g.course || '코스 미정'}</div>` : ''}
+      <div class="summary-bar">${summaryHtml}</div>
+      <div class="score-section"><table class="sc-table">${frontHtml}</table></div>
+      <div class="score-section"><table class="sc-table">${backHtml}</table></div>
+    </div>`;
+  }).join('');
 }
 
 function buildTable(players, scores, myUids, from, to, parArray, side, canEditPar) {

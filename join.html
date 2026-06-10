@@ -1581,99 +1581,19 @@ window.saveJoin = async function() {
 
 // ── 마감 ─────────────────────────────────────────────
 window.confirmClose = function(id, name) {
-  showConfirm('조인 마감', `"${name}" 조인을 마감합니다.\n입력된 스코어·포인트·랭킹이 자동 처리됩니다.`, async () => {
+  showConfirm('조인 마감', `"${name}" 조인을 마감합니다.\n연결된 팀이 있다면 함께 마감되며, 입력된 스코어·포인트·랭킹이 자동 처리됩니다.`, async () => {
     const joinSnap = await getDoc(doc(db, 'joins', id));
     if (!joinSnap.exists()) return;
     const joinNow = joinSnap.data();
-    const pointsAlreadyAwarded = joinNow.pointsAwarded === true;
-    const participants = joinNow.participants || [];
-    const scores = joinNow.scores || {};
-    const now = new Date().toISOString();
+    const pids = joinNow.partyIds || (joinNow.partyId ? [joinNow.partyId] : []);
+    const allIds = [id, ...pids];
 
-    await updateDoc(doc(db, 'joins', id), { status: 'closed' });
+    const results = await Promise.all(allIds.map(closeJoinAndAward));
 
-    if (!pointsAlreadyAwarded) {
-      await Promise.all(participants.map(async (p) => {
-        if (!p.uid || p.isGuest) return;
-        const pHoles = (scores[p.uid] || {}).holes || Array(18).fill(null);
-        const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
-        const hasScore = pHoles.some(v => v !== null);
-
-        // 1. scoreHistory 저장 + 핸디캡 갱신
-        if (hasScore) {
-          const histRef = doc(db, 'users', p.uid, 'scoreHistory', id);
-          const histSnap = await getDoc(histRef);
-          if (!histSnap.exists()) {
-            await setDoc(histRef, {
-              course:      joinNow.course      || '',
-              frontCourse: joinNow.frontCourse || '',
-              backCourse:  joinNow.backCourse  || '',
-              date:        joinNow.date        || '',
-              companions:  participants.filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
-              totalScore:  pTotal,
-              holes:       pHoles,
-              parHoles:    [],
-              joinId:      id,
-              submittedAt: serverTimestamp(),
-            });
-            try {
-              const allHistSnap = await getDocs(
-                query(collection(db, 'users', p.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
-              );
-              const allScores = allHistSnap.docs.map(d => d.data().totalScore ?? 0);
-              const recent10  = allScores.slice(0, 10);
-              const handicap  = recent10.length
-                ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
-                : null;
-              const recent3 = allScores.slice(0, 3), prev3 = allScores.slice(3, 6);
-              const handicapTrend = (recent3.length === 3 && prev3.length === 3)
-                ? Math.round((recent3.reduce((a,b)=>a+b,0)/3 - prev3.reduce((a,b)=>a+b,0)/3) * 10) / 10
-                : null;
-              await updateDoc(doc(db, 'users', p.uid), {
-                handicap, bestScore: allScores.length ? Math.min(...allScores) : null,
-                roundCount: allScores.length, handicapTrend, statsUpdatedAt: serverTimestamp(),
-              });
-            } catch(_) {}
-          }
-        }
-
-        // 2. 이번 달 참여 횟수 확인 (이 조인 제외하고 같은 달 마감된 필드 조인 수, 스크린 제외)
-        const joinMonth = (joinNow.date || '').slice(0, 7);
-        const priorMonthlyCount = joins.filter(x =>
-          x.id !== id &&
-          x.status === 'closed' &&
-          x.joinType !== 'screen' &&
-          (x.date || '').slice(0, 7) === joinMonth &&
-          (x.participants || []).some(px => px.uid === p.uid)
-        ).length;
-        const eligibleForPoints = priorMonthlyCount < 4;
-
-        // 3. 조인참여 포인트 +10 (월 4회 이하만)
-        if (eligibleForPoints) {
-          await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
-          await addDoc(collection(db, 'pointHistory'), {
-            uid: p.uid, name: p.name || '골퍼',
-            type: '조인참여', amount: 10, ref: name, date: now,
-            roundDate: joinNow.date || '',
-          });
-
-          // 4. 스코어 보너스 포인트
-          if (hasScore) {
-            const pts = pTotal < 0 ? 40 : pTotal <= 5 ? 30 : pTotal <= 9 ? 20 : pTotal <= 15 ? 15 : 10;
-            const label = pTotal < 0 ? '언더파' : pTotal <= 5 ? 'E~+5' : pTotal <= 9 ? '+6~+9' : pTotal <= 15 ? '+10~+15' : '+16이상';
-            await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) });
-            await addDoc(collection(db, 'pointHistory'), {
-              uid: p.uid, name: p.name || '골퍼',
-              type: '스코어', amount: pts,
-              ref: `${joinNow.course || '라운드'} (${label})`, date: now,
-              roundDate: joinNow.date || '',
-            });
-          }
-        }
-      }));
-
-      await updateDoc(doc(db, 'joins', id), { pointsAwarded: true, scoreBonusAwarded: true });
-      showToast('마감 완료! 스코어·포인트·랭킹 자동 처리됨');
+    if (results.some(Boolean)) {
+      showToast(allIds.length > 1
+        ? `마감 완료! 연결된 ${allIds.length}개 조인 스코어·포인트·랭킹 자동 처리됨`
+        : '마감 완료! 스코어·포인트·랭킹 자동 처리됨');
     } else {
       showToast('마감 완료! (이미 처리됨)');
     }
@@ -1681,6 +1601,104 @@ window.confirmClose = function(id, name) {
     await loadJoins();
   });
 };
+
+// 조인 1개를 마감 처리하고 참가자 포인트/스코어 기록/핸디캡을 정리한다.
+// 반환값: 새로 포인트 처리를 했으면 true, 이미 처리된 적이 있으면 false
+async function closeJoinAndAward(id) {
+  const joinSnap = await getDoc(doc(db, 'joins', id));
+  if (!joinSnap.exists()) return false;
+  const joinNow = joinSnap.data();
+  const pointsAlreadyAwarded = joinNow.pointsAwarded === true;
+  const participants = joinNow.participants || [];
+  const scores = joinNow.scores || {};
+  const now = new Date().toISOString();
+
+  await updateDoc(doc(db, 'joins', id), { status: 'closed' });
+
+  if (pointsAlreadyAwarded) return false;
+
+  await Promise.all(participants.map(async (p) => {
+    if (!p.uid || p.isGuest) return;
+    const pHoles = (scores[p.uid] || {}).holes || Array(18).fill(null);
+    const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
+    const hasScore = pHoles.some(v => v !== null);
+
+    // 1. scoreHistory 저장 + 핸디캡 갱신
+    if (hasScore) {
+      const histRef = doc(db, 'users', p.uid, 'scoreHistory', id);
+      const histSnap = await getDoc(histRef);
+      if (!histSnap.exists()) {
+        await setDoc(histRef, {
+          course:      joinNow.course      || '',
+          frontCourse: joinNow.frontCourse || '',
+          backCourse:  joinNow.backCourse  || '',
+          date:        joinNow.date        || '',
+          companions:  participants.filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
+          totalScore:  pTotal,
+          holes:       pHoles,
+          parHoles:    [],
+          joinId:      id,
+          submittedAt: serverTimestamp(),
+        });
+        try {
+          const allHistSnap = await getDocs(
+            query(collection(db, 'users', p.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
+          );
+          const allScores = allHistSnap.docs.map(d => d.data().totalScore ?? 0);
+          const recent10  = allScores.slice(0, 10);
+          const handicap  = recent10.length
+            ? Math.round(recent10.reduce((a, b) => a + b, 0) / recent10.length * 10) / 10
+            : null;
+          const recent3 = allScores.slice(0, 3), prev3 = allScores.slice(3, 6);
+          const handicapTrend = (recent3.length === 3 && prev3.length === 3)
+            ? Math.round((recent3.reduce((a,b)=>a+b,0)/3 - prev3.reduce((a,b)=>a+b,0)/3) * 10) / 10
+            : null;
+          await updateDoc(doc(db, 'users', p.uid), {
+            handicap, bestScore: allScores.length ? Math.min(...allScores) : null,
+            roundCount: allScores.length, handicapTrend, statsUpdatedAt: serverTimestamp(),
+          });
+        } catch(_) {}
+      }
+    }
+
+    // 2. 이번 달 참여 횟수 확인 (이 조인 제외하고 같은 달 마감된 필드 조인 수, 스크린 제외)
+    const joinMonth = (joinNow.date || '').slice(0, 7);
+    const priorMonthlyCount = joins.filter(x =>
+      x.id !== id &&
+      x.status === 'closed' &&
+      x.joinType !== 'screen' &&
+      (x.date || '').slice(0, 7) === joinMonth &&
+      (x.participants || []).some(px => px.uid === p.uid)
+    ).length;
+    const eligibleForPoints = priorMonthlyCount < 4;
+
+    // 3. 조인참여 포인트 +10 (월 4회 이하만)
+    if (eligibleForPoints) {
+      await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
+      await addDoc(collection(db, 'pointHistory'), {
+        uid: p.uid, name: p.name || '골퍼',
+        type: '조인참여', amount: 10, ref: joinNow.course || '', date: now,
+        roundDate: joinNow.date || '',
+      });
+
+      // 4. 스코어 보너스 포인트
+      if (hasScore) {
+        const pts = pTotal < 0 ? 40 : pTotal <= 5 ? 30 : pTotal <= 9 ? 20 : pTotal <= 15 ? 15 : 10;
+        const label = pTotal < 0 ? '언더파' : pTotal <= 5 ? 'E~+5' : pTotal <= 9 ? '+6~+9' : pTotal <= 15 ? '+10~+15' : '+16이상';
+        await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) });
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: p.uid, name: p.name || '골퍼',
+          type: '스코어', amount: pts,
+          ref: `${joinNow.course || '라운드'} (${label})`, date: now,
+          roundDate: joinNow.date || '',
+        });
+      }
+    }
+  }));
+
+  await updateDoc(doc(db, 'joins', id), { pointsAwarded: true, scoreBonusAwarded: true });
+  return true;
+}
 
 // ── 삭제 ─────────────────────────────────────────────
 window.confirmDelete = function(id, name) {
