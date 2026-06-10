@@ -27,7 +27,7 @@ service cloud.firestore {
 
     function onlyAllowedJoinFields() {
       return request.resource.data.diff(resource.data)
-        .affectedKeys().hasOnly(['participants', 'scores', 'partyId', 'status', 'pointsAwarded']);
+        .affectedKeys().hasOnly(['participants', 'scores', 'partyId', 'partyIds', 'status', 'pointsAwarded']);
     }
 
     // 포인트/스탯 필드만 수정하는 경우 (조인 참가자가 타인 포인트 지급 시 사용)
