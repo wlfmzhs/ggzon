@@ -414,6 +414,8 @@ let parBack        = null;
 let parPickerSide  = null;
 let parPickerIdx   = null;
 let loadedCourse   = null;
+let partyCandidatesCache = null;
+let partyCandidatesPromise = null;
 
 const OPTS = [
   { v: -3, label: '알바', cls: 'po-under' },
@@ -504,6 +506,7 @@ onAuthStateChanged(auth, user => {
       if (!partyUnsubs.has(id)) loadParty(id);
     }
     updatePartyIndicator();
+    if (!partyCandidatesPromise) prefetchPartyCandidates();
     // 코스 파 데이터 로드 (골프장 변경시만)
     if (newCourse !== loadedCourse) {
       loadedCourse = newCourse;
@@ -563,26 +566,44 @@ function closePartySheet() {
   document.getElementById('party-overlay').classList.remove('open');
 }
 
+function prefetchPartyCandidates() {
+  partyCandidatesPromise = getDocs(query(collection(db, 'joins'), where('date', '==', joinData.date)))
+    .then(snap => {
+      partyCandidatesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      return partyCandidatesCache;
+    })
+    .catch(() => { partyCandidatesPromise = null; return null; });
+  return partyCandidatesPromise;
+}
+
+function renderPartyCandidates(all, pids) {
+  const listEl = document.getElementById('party-candidate-list');
+  const excludeIds = new Set([joinId, ...pids]);
+  const candidates = all.filter(j => !excludeIds.has(j.id) && j.status !== 'closed' && j.joinType !== 'screen');
+  if (!candidates.length) {
+    listEl.innerHTML = `<div class="party-candidate-empty">연결할 수 있는 조인이 없습니다</div>`;
+    return;
+  }
+  listEl.innerHTML = candidates.map(j => {
+    const members = (j.participants || []).map(p => p.name).join(', ') || '-';
+    return `<button class="party-candidate" onclick="window._linkParty('${j.id}')">
+      <div class="party-candidate-course">${j.course || '조인'} · ${j.time || ''}</div>
+      <div class="party-candidate-meta">${members}</div>
+    </button>`;
+  }).join('');
+}
+
 async function loadPartyCandidates(pids) {
   const listEl = document.getElementById('party-candidate-list');
+  if (partyCandidatesCache) {
+    renderPartyCandidates(partyCandidatesCache, pids);
+    return;
+  }
   listEl.innerHTML = `<div class="party-candidate-empty">불러오는 중...</div>`;
   try {
-    const excludeIds = new Set([joinId, ...pids]);
-    const snap = await getDocs(query(collection(db, 'joins'), where('date', '==', joinData.date)));
-    const candidates = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(j => !excludeIds.has(j.id) && j.status !== 'closed' && j.joinType !== 'screen');
-    if (!candidates.length) {
-      listEl.innerHTML = `<div class="party-candidate-empty">연결할 수 있는 조인이 없습니다</div>`;
-      return;
-    }
-    listEl.innerHTML = candidates.map(j => {
-      const members = (j.participants || []).map(p => p.name).join(', ') || '-';
-      return `<button class="party-candidate" onclick="window._linkParty('${j.id}')">
-        <div class="party-candidate-course">${j.course || '조인'} · ${j.time || ''}</div>
-        <div class="party-candidate-meta">${members}</div>
-      </button>`;
-    }).join('');
+    const all = await (partyCandidatesPromise || prefetchPartyCandidates());
+    if (!all) throw new Error('load failed');
+    renderPartyCandidates(all, pids);
   } catch(e) {
     listEl.innerHTML = `<div class="party-candidate-empty">목록을 불러오지 못했습니다</div>`;
   }
