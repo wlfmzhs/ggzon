@@ -56,7 +56,12 @@ service cloud.firestore {
       allow read: if isAnyUser();
       allow create: if isAnyUser();
       allow delete: if isAdmin();
-      allow update: if isAdmin() || (isAnyUser() && onlyAllowedJoinFields());
+      allow update: if isAdmin()
+        || (isAnyUser() && onlyAllowedJoinFields())
+        || (isLoggedIn() && resource.data.creatorUid == request.auth.uid)
+        || (isLoggedIn() && resource.data.participants.size() > 0 && resource.data.participants[0].uid == request.auth.uid)
+        || (isKakaoOwner(resource.data.creatorUid))
+        || (request.auth == null && resource.data.participants.size() > 0 && resource.data.participants[0].uid.matches('kakao_.+'));
 
       match /viewers/{viewerId} {
         allow read, write: if isAnyUser();

@@ -200,10 +200,11 @@
     .party-input:focus { border-color: var(--green-light); }
     .party-input::placeholder { color: rgba(255,255,255,0.2); font-family: inherit; font-size: 12px; }
     .party-link-btn { width: 100%; padding: 13px; background: var(--green); border: none; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
-    .party-linked-box { background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.3); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    .party-linked-box { background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.3); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
     .party-linked-course { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-    .party-linked-members { font-size: 12px; color: rgba(255,255,255,0.5); }
-    .party-unlink-btn { width: 100%; padding: 12px; background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 12px; color: #e74c3c; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+    .party-linked-members { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 10px; }
+    .party-unlink-btn { width: 100%; padding: 10px; background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 10px; color: #e74c3c; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .party-max-msg { font-size: 12px; color: rgba(255,255,255,0.4); text-align: center; margin-bottom: 14px; }
     .party-close-btn { width: 100%; padding: 12px; background: rgba(255,255,255,0.07); border: none; border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .party-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 16px 0; }
 
@@ -345,11 +346,8 @@
 
       <div id="party-linked-view" style="display:none;">
         <div class="party-section-label">연결된 팀</div>
-        <div class="party-linked-box">
-          <div class="party-linked-course" id="party-linked-course"></div>
-          <div class="party-linked-members" id="party-linked-members"></div>
-        </div>
-        <button class="party-unlink-btn" id="btn-unlink-party">연결 해제</button>
+        <div id="party-linked-list"></div>
+        <button class="party-unlink-btn" id="btn-unlink-party" style="margin-bottom:14px;">전체 연결 해제</button>
         <div class="party-divider"></div>
       </div>
 
@@ -367,6 +365,7 @@
           <button class="party-link-btn" id="btn-link-party">연결하기</button>
         </div>
       </div>
+      <div class="party-max-msg" id="party-max-msg" style="display:none;">최대 5팀까지 연결할 수 있습니다</div>
 
       <button class="party-close-btn" id="btn-party-close">닫기</button>
     </div>
@@ -417,8 +416,9 @@ let viewerStarted  = false;
 const sessionId    = Math.random().toString(36).slice(2);
 let pickerHole     = null;
 let pickerUid      = null;
-let partyJoinData  = null;
-let partyUnsub     = null;
+const partyJoinDataMap = new Map();
+const partyUnsubs      = new Map();
+const MAX_PARTY_TEAMS  = 5;
 let parFront       = null;
 let parBack        = null;
 let parPickerSide  = null;
@@ -510,12 +510,12 @@ onAuthStateChanged(auth, user => {
       return;
     }
     // 파티 동기화
-    const pid = joinData.partyId;
-    if (pid) {
-      if (!partyJoinData || partyJoinData.id !== pid) loadParty(pid);
-    } else if (!pid && partyJoinData) {
-      if (partyUnsub) { partyUnsub(); partyUnsub = null; }
-      partyJoinData = null;
+    const pids = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
+    for (const [id, unsub] of partyUnsubs) {
+      if (!pids.includes(id)) { unsub(); partyUnsubs.delete(id); partyJoinDataMap.delete(id); }
+    }
+    for (const id of pids) {
+      if (!partyUnsubs.has(id)) loadParty(id);
     }
     updatePartyIndicator();
     // 코스 파 데이터 로드 (골프장 변경시만)
@@ -534,30 +534,42 @@ onAuthStateChanged(auth, user => {
 
 // 팀 연결 함수들
 function loadParty(partyId) {
-  if (partyUnsub) { partyUnsub(); partyUnsub = null; }
-  partyUnsub = onSnapshot(doc(db, 'joins', partyId), snap => {
-    if (!snap.exists()) return;
-    partyJoinData = { id: snap.id, ...snap.data() };
+  const unsub = onSnapshot(doc(db, 'joins', partyId), snap => {
+    if (!snap.exists()) { partyJoinDataMap.delete(partyId); return; }
+    partyJoinDataMap.set(partyId, { id: snap.id, ...snap.data() });
     updatePartyIndicator();
     render();
   });
+  partyUnsubs.set(partyId, unsub);
 }
 
 function updatePartyIndicator() {
-  const linked = !!partyJoinData;
-  document.getElementById('party-indicator').style.display = linked ? 'inline' : 'none';
+  const total = 1 + (joinData.partyIds || (joinData.partyId ? [joinData.partyId] : [])).length;
+  const linked = total > 1;
+  const indicator = document.getElementById('party-indicator');
+  indicator.style.display = linked ? 'inline' : 'none';
+  indicator.textContent = `· ${total}팀 연결`;
   document.getElementById('btn-party').classList.toggle('linked', linked);
 }
 
 function openPartySheet() {
   document.getElementById('party-my-code').textContent = joinId;
-  const linked = !!partyJoinData;
-  document.getElementById('party-linked-view').style.display   = linked ? 'block' : 'none';
-  document.getElementById('party-unlinked-view').style.display = linked ? 'none'  : 'block';
-  if (linked) {
-    document.getElementById('party-linked-course').textContent  = partyJoinData.course || '상대 팀';
-    document.getElementById('party-linked-members').textContent = (partyJoinData.participants || []).map(p => p.name).join(', ') || '-';
-  }
+  const pids  = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
+  const total = 1 + pids.length;
+  const linked = pids.length > 0;
+  document.getElementById('party-linked-view').style.display = linked ? 'block' : 'none';
+  document.getElementById('party-linked-list').innerHTML = pids.map(id => {
+    const pd = partyJoinDataMap.get(id);
+    const courseName = pd?.course || '상대 팀';
+    const members    = (pd?.participants || []).map(p => p.name).join(', ') || '-';
+    return `<div class="party-linked-box">
+      <div class="party-linked-course">${courseName}</div>
+      <div class="party-linked-members" style="margin-bottom:0;">${members}</div>
+    </div>`;
+  }).join('');
+  const atMax = total >= MAX_PARTY_TEAMS;
+  document.getElementById('party-unlinked-view').style.display = atMax ? 'none' : 'block';
+  document.getElementById('party-max-msg').style.display = atMax ? 'block' : 'none';
   document.getElementById('party-input').value = '';
   document.getElementById('party-overlay').classList.add('open');
 }
@@ -568,15 +580,21 @@ function closePartySheet() {
 
 async function doLinkParty() {
   const code = document.getElementById('party-input').value.trim();
-  if (!code || code === joinId) { showToast('올바른 코드를 입력해주세요'); return; }
+  const myGroup = [joinId, ...(joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []))];
+  if (!code || myGroup.includes(code)) { showToast('올바른 코드를 입력해주세요'); return; }
   const btn = document.getElementById('btn-link-party');
   btn.disabled = true; btn.textContent = '연결 중...';
   try {
     const targetSnap = await getDoc(doc(db, 'joins', code));
     if (!targetSnap.exists()) { showToast('팀을 찾을 수 없습니다'); return; }
+    const targetData  = targetSnap.data();
+    const targetGroup = [code, ...(targetData.partyIds || (targetData.partyId ? [targetData.partyId] : []))];
+    const combined = [...new Set([...myGroup, ...targetGroup])];
+    if (combined.length > MAX_PARTY_TEAMS) { showToast(`최대 ${MAX_PARTY_TEAMS}팀까지 연결할 수 있습니다`); return; }
     const batch = writeBatch(db);
-    batch.update(doc(db, 'joins', joinId), { partyId: code });
-    batch.update(doc(db, 'joins', code),   { partyId: joinId });
+    for (const id of combined) {
+      batch.update(doc(db, 'joins', id), { partyIds: combined.filter(x => x !== id), partyId: null });
+    }
     await batch.commit();
     showToast('팀이 연결되었습니다!');
     closePartySheet();
@@ -586,16 +604,16 @@ async function doLinkParty() {
 
 async function doUnlinkParty() {
   try {
+    const myGroup  = [joinId, ...(joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []))];
+    const remaining = myGroup.filter(id => id !== joinId);
     const batch = writeBatch(db);
-    batch.update(doc(db, 'joins', joinId), { partyId: null });
-    if (partyJoinData) batch.update(doc(db, 'joins', partyJoinData.id), { partyId: null });
+    batch.update(doc(db, 'joins', joinId), { partyIds: [], partyId: null });
+    for (const id of remaining) {
+      batch.update(doc(db, 'joins', id), { partyIds: remaining.filter(x => x !== id), partyId: null });
+    }
     await batch.commit();
-    if (partyUnsub) { partyUnsub(); partyUnsub = null; }
-    partyJoinData = null;
-    updatePartyIndicator();
     showToast('연결이 해제되었습니다');
     closePartySheet();
-    render();
   } catch(e) { showToast('오류: ' + e.message); }
 }
 
@@ -658,10 +676,17 @@ function closeParPicker() {
 }
 
 function render() {
-  const myPlayers    = joinData.participants || [];
-  const partyPlayers = partyJoinData ? (partyJoinData.participants || []) : [];
-  const players      = [...myPlayers, ...partyPlayers.filter(p => !myPlayers.find(x => x.uid === p.uid))];
-  const scores       = { ...(joinData.scores || {}), ...(partyJoinData ? (partyJoinData.scores || {}) : {}) };
+  const myPlayers = joinData.participants || [];
+  const pids      = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
+  const partyDocs = pids.map(id => partyJoinDataMap.get(id)).filter(Boolean);
+  const players   = [...myPlayers];
+  const scores    = { ...(joinData.scores || {}) };
+  for (const pd of partyDocs) {
+    for (const p of (pd.participants || [])) {
+      if (!players.find(x => x.uid === p.uid)) players.push(p);
+    }
+    Object.assign(scores, pd.scores || {});
+  }
   const myUids       = new Set(myPlayers.map(p => p.uid));
   const isParticipant = myPlayers.some(p => p.uid === currentUser.uid);
   const canEdit = isParticipant || isAdmin;
