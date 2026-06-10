@@ -193,13 +193,11 @@
     .party-sheet-title { font-size: 16px; font-weight: 900; margin-bottom: 20px; }
     .party-section { margin-bottom: 16px; }
     .party-section-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.05em; margin-bottom: 8px; }
-    .party-code-box { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(62,160,102,0.25); border-radius: 12px; padding: 12px 14px; }
-    .party-code-val { flex: 1; font-size: 12px; font-weight: 700; color: var(--green-light); font-family: monospace; word-break: break-all; }
-    .party-copy-btn { background: rgba(62,160,102,0.2); border: none; border-radius: 8px; padding: 6px 12px; color: var(--green-light); font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; }
-    .party-input { width: 100%; padding: 12px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(62,160,102,0.2); border-radius: 12px; color: #fff; font-size: 12px; font-family: monospace; outline: none; margin-bottom: 8px; }
-    .party-input:focus { border-color: var(--green-light); }
-    .party-input::placeholder { color: rgba(255,255,255,0.2); font-family: inherit; font-size: 12px; }
-    .party-link-btn { width: 100%; padding: 13px; background: var(--green); border: none; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .party-candidate { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; font-family: inherit; text-align: left; }
+    .party-candidate:active { opacity: 0.7; }
+    .party-candidate-course { font-size: 13px; font-weight: 700; color: #fff; }
+    .party-candidate-meta { font-size: 11px; color: rgba(255,255,255,0.45); }
+    .party-candidate-empty { font-size: 12px; color: rgba(255,255,255,0.35); text-align: center; padding: 20px 0; }
     .party-linked-box { background: rgba(62,160,102,0.1); border: 1px solid rgba(62,160,102,0.3); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
     .party-linked-course { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
     .party-linked-members { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 10px; }
@@ -353,16 +351,8 @@
 
       <div id="party-unlinked-view">
         <div class="party-section">
-          <div class="party-section-label">내 팀 코드 — 상대에게 공유하세요</div>
-          <div class="party-code-box">
-            <div class="party-code-val" id="party-my-code"></div>
-            <button class="party-copy-btn" id="btn-copy-code">복사</button>
-          </div>
-        </div>
-        <div class="party-section">
-          <div class="party-section-label">상대 팀 코드 입력</div>
-          <input class="party-input" id="party-input" type="text" placeholder="상대팀 코드를 붙여넣기 해주세요" autocomplete="off" />
-          <button class="party-link-btn" id="btn-link-party">연결하기</button>
+          <div class="party-section-label">연결할 팀 선택 — 같은 날짜의 진행중인 조인</div>
+          <div id="party-candidate-list"></div>
         </div>
       </div>
       <div class="party-max-msg" id="party-max-msg" style="display:none;">최대 5팀까지 연결할 수 있습니다</div>
@@ -391,7 +381,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, orderBy, writeBatch, addDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, where, orderBy, writeBatch, addDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -475,11 +465,7 @@ document.getElementById('picker-overlay').addEventListener('click', e => {
 // 팀 연결 시트
 document.getElementById('btn-party').onclick        = openPartySheet;
 document.getElementById('btn-party-close').onclick  = closePartySheet;
-document.getElementById('btn-link-party').onclick   = doLinkParty;
 document.getElementById('btn-unlink-party').onclick = doUnlinkParty;
-document.getElementById('btn-copy-code').onclick    = () => {
-  navigator.clipboard.writeText(joinId).then(() => showToast('코드가 복사되었습니다'));
-};
 document.getElementById('party-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('party-overlay')) closePartySheet();
 });
@@ -552,8 +538,7 @@ function updatePartyIndicator() {
   document.getElementById('btn-party').classList.toggle('linked', linked);
 }
 
-function openPartySheet() {
-  document.getElementById('party-my-code').textContent = joinId;
+async function openPartySheet() {
   const pids  = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
   const total = 1 + pids.length;
   const linked = pids.length > 0;
@@ -570,20 +555,42 @@ function openPartySheet() {
   const atMax = total >= MAX_PARTY_TEAMS;
   document.getElementById('party-unlinked-view').style.display = atMax ? 'none' : 'block';
   document.getElementById('party-max-msg').style.display = atMax ? 'block' : 'none';
-  document.getElementById('party-input').value = '';
   document.getElementById('party-overlay').classList.add('open');
+  if (!atMax) loadPartyCandidates(pids);
 }
 
 function closePartySheet() {
   document.getElementById('party-overlay').classList.remove('open');
 }
 
-async function doLinkParty() {
-  const code = document.getElementById('party-input').value.trim();
+async function loadPartyCandidates(pids) {
+  const listEl = document.getElementById('party-candidate-list');
+  listEl.innerHTML = `<div class="party-candidate-empty">불러오는 중...</div>`;
+  try {
+    const excludeIds = new Set([joinId, ...pids]);
+    const snap = await getDocs(query(collection(db, 'joins'), where('date', '==', joinData.date)));
+    const candidates = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(j => !excludeIds.has(j.id) && j.status !== 'closed' && j.joinType !== 'screen');
+    if (!candidates.length) {
+      listEl.innerHTML = `<div class="party-candidate-empty">연결할 수 있는 조인이 없습니다</div>`;
+      return;
+    }
+    listEl.innerHTML = candidates.map(j => {
+      const members = (j.participants || []).map(p => p.name).join(', ') || '-';
+      return `<button class="party-candidate" onclick="window._linkParty('${j.id}')">
+        <div class="party-candidate-course">${j.course || '조인'} · ${j.time || ''}</div>
+        <div class="party-candidate-meta">${members}</div>
+      </button>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = `<div class="party-candidate-empty">목록을 불러오지 못했습니다</div>`;
+  }
+}
+
+async function doLinkParty(code) {
   const myGroup = [joinId, ...(joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []))];
-  if (!code || myGroup.includes(code)) { showToast('올바른 코드를 입력해주세요'); return; }
-  const btn = document.getElementById('btn-link-party');
-  btn.disabled = true; btn.textContent = '연결 중...';
+  if (!code || myGroup.includes(code)) { showToast('올바른 팀이 아닙니다'); return; }
   try {
     const targetSnap = await getDoc(doc(db, 'joins', code));
     if (!targetSnap.exists()) { showToast('팀을 찾을 수 없습니다'); return; }
@@ -599,8 +606,8 @@ async function doLinkParty() {
     showToast('팀이 연결되었습니다!');
     closePartySheet();
   } catch(e) { showToast('연결 실패: ' + e.message); }
-  finally { btn.disabled = false; btn.textContent = '연결하기'; }
 }
+window._linkParty = doLinkParty;
 
 async function doUnlinkParty() {
   try {
