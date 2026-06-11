@@ -140,7 +140,7 @@ if (!tournId) {
   onAuthStateChanged(auth, (user) => {
     const effectiveUser = user || _kakaoFbUser;
     if (!effectiveUser) {
-      location.href = 'login.html?return=' + encodeURIComponent('tournament-score.html?id=' + tournId);
+      location.href = 'login.html?auto=1&return=' + encodeURIComponent('tournament-score.html?id=' + tournId);
       return;
     }
     currentUid = effectiveUser.uid;

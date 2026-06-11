@@ -353,6 +353,17 @@ if (savedUser && savedUser.loginType === 'kakao') {
   window.location.href = getReturnUrl();
 }
 
+// localStorage가 비어있어도(예: iOS 7일 데이터 삭제) 카카오 세션이 살아있으면
+// 조용히 재로그인 시도 (auto=1로 진입했을 때만, 1회 한정)
+const _loginParams = new URLSearchParams(window.location.search);
+if (_loginParams.get('auto') === '1'
+    && !_loginParams.get('code') && !_loginParams.get('error')
+    && !savedUser
+    && !sessionStorage.getItem('ggzon_auto_tried')) {
+  sessionStorage.setItem('ggzon_auto_tried', '1');
+  Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT_URI });
+}
+
 // 관리자(이메일) 로그인 상태 확인
 onAuthStateChanged(auth, (user) => {
   if (user && user.email === ADMIN_EMAIL) {

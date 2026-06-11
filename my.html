@@ -979,7 +979,7 @@ const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
 
 onAuthStateChanged(auth, async (user) => {
   const effectiveUser = user || _kakaoFbUser;
-  if (!effectiveUser) { window.location.href = 'login.html'; return; }
+  if (!effectiveUser) { window.location.href = 'login.html?auto=1&return=my.html'; return; }
   currentUser = effectiveUser;
   // 카카오/전화번호 유저는 비밀번호 변경 메뉴 숨김
   if (_kakaoFbUser || (effectiveUser.phoneNumber && !effectiveUser.email)) {
@@ -988,9 +988,8 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   try {
-    const [userSnap, joinsSnap, noticesSnap] = await Promise.all([
+    const [userSnap, noticesSnap] = await Promise.all([
       getDoc(doc(db, 'users', effectiveUser.uid)),
-      getDocs(collection(db, 'joins')),
       getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'))),
     ]);
 
@@ -1003,7 +1002,6 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById('prof-nick').textContent = effectiveUser.displayName || effectiveUser.email?.split('@')[0] || '';
     }
 
-    allJoins = joinsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     notices = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     try {
@@ -1197,9 +1195,22 @@ window.savePw = async () => {
   }
 };
 
-window.openJoinModal = () => {
-  const myJoins = allJoins.filter(j => (j.participants || []).some(p => p.uid === currentUser.uid));
+window.openJoinModal = async () => {
   const el = document.getElementById('join-list-content');
+  document.getElementById('modal-join').classList.add('show');
+  el.innerHTML = '<div class="empty-msg">불러오는 중...</div>';
+
+  if (!allJoins.length) {
+    try {
+      const joinsSnap = await getDocs(collection(db, 'joins'));
+      allJoins = joinsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      el.innerHTML = '<div class="empty-msg">불러오기 실패</div>';
+      return;
+    }
+  }
+
+  const myJoins = allJoins.filter(j => (j.participants || []).some(p => p.uid === currentUser.uid));
   if (myJoins.length === 0) {
     el.innerHTML = '<div class="empty-msg">조인 내역이 없습니다</div>';
   } else {
@@ -1213,7 +1224,6 @@ window.openJoinModal = () => {
       </div>`;
     }).join('');
   }
-  document.getElementById('modal-join').classList.add('show');
 };
 
 window.openNoticeModal = () => {

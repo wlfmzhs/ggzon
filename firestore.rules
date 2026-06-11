@@ -125,6 +125,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /partnerInquiries/{inquiryId} {
+      allow create: if isAnyUser();
+      allow read, update, delete: if isAdmin();
+    }
+
     match /posts/{postId} {
       allow read: if isAnyUser();
       allow create: if isAnyUser();

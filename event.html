@@ -1468,7 +1468,7 @@ const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
 onAuthStateChanged(auth, async (user) => {
   const effectiveUser = user || _kakaoFbUser;
   if (!effectiveUser) {
-    window.location.href = 'login.html?return=event.html';
+    window.location.href = 'login.html?auto=1&return=event.html';
     return;
   }
   currentUser = effectiveUser;

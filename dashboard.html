@@ -291,6 +291,30 @@
     .ad-bg-2 { background: linear-gradient(135deg, #1a2a4a 0%, #0d3320 100%); }
     .ad-bg-3 { background: linear-gradient(135deg, #2a1a0d 0%, #4a3010 100%); }
 
+    /* GG ZON Partner 유입 배너 */
+    .partner-banner {
+      margin: 0 16px 24px; padding: 14px 16px; border-radius: 14px;
+      background: rgba(62,160,102,0.08); border: 1px solid rgba(62,160,102,0.25);
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .partner-banner:active { background: rgba(62,160,102,0.14); }
+    .partner-banner .pb-ico {
+      flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(62,160,102,0.18); color: var(--green-light);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 15px;
+    }
+    .partner-banner .pb-text { flex: 1; min-width: 0; }
+    .partner-banner .pb-title {
+      font-size: 13px; font-weight: 900; color: #fff; letter-spacing: -0.2px;
+    }
+    .partner-banner .pb-title span { color: var(--green-light); }
+    .partner-banner .pb-sub {
+      font-size: 11.5px; color: rgba(255,255,255,0.45); margin-top: 2px;
+    }
+    .partner-banner .pb-arrow { flex-shrink: 0; color: rgba(255,255,255,0.3); }
+
     /* 섹션 공통 */
     .section-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -597,6 +621,16 @@
       </div>
     </div>
 
+    <!-- GG ZON Partner 유입 배너 -->
+    <div class="partner-banner" onclick="location.href='partner.html'">
+      <div class="pb-ico">P</div>
+      <div class="pb-text">
+        <div class="pb-title"><span>GG ZON Partner</span></div>
+        <div class="pb-sub">우리 브랜드를 골퍼들에게 알려보세요 — 제휴·협찬 안내</div>
+      </div>
+      <svg class="pb-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+
     <div class="content-inner-pad">
 
       <!-- 공지사항 -->
@@ -870,7 +904,7 @@
     // 관리자(이메일) 로그인 확인
     onAuthStateChanged(auth, async (user) => {
       document.getElementById('loading-overlay').classList.add('hidden');
-      if (!user) { window.location.href = 'login.html'; return; }
+      if (!user) { window.location.href = 'login.html?auto=1&return=dashboard.html'; return; }
       _isAdmin = user.email === 'wlfmzhs@naver.com';
       onLoginReady();
       const fallbackName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '멤버';
