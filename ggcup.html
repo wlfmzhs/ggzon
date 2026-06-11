@@ -416,7 +416,7 @@
 
   onAuthStateChanged(auth, async (user) => {
     const effectiveUser = user || _kakaoFbUser;
-    if (!effectiveUser) { window.location.href = 'login.html?return=ggcup.html'; return; }
+    if (!effectiveUser) { window.location.href = 'login.html?auto=1&return=ggcup.html'; return; }
     currentUser = effectiveUser;
     if (false) {
     }

@@ -471,7 +471,7 @@ const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
 
 onAuthStateChanged(auth, user => {
   const effectiveUser = user || _kakaoFbUser;
-  if (!effectiveUser) { location.href = 'login.html'; return; }
+  if (!effectiveUser) { location.href = 'login.html?auto=1&return=' + encodeURIComponent(location.pathname.split('/').pop() + location.search); return; }
   currentUser = effectiveUser;
   isAdmin = currentUser.email === 'wlfmzhs@naver.com';
   document.getElementById('loading-overlay').classList.add('hidden');
@@ -1142,20 +1142,24 @@ window.shareScore = async function() {
     canvas.toBlob(async (blob) => {
       if (!blob) { showToast('이미지 생성 실패'); return; }
       const file = new File([blob], fileName, { type: 'image/png' });
+      const downloadFallback = () => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('이미지 저장 완료');
+      };
       try {
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
           await navigator.share({ files: [file], title: `${courseName} 라이브 스코어` });
         } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = fileName;
-          document.body.appendChild(a); a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          showToast('이미지 저장 완료');
+          downloadFallback();
         }
       } catch(e) {
-        if (e.name !== 'AbortError') showToast('공유 실패');
+        // 공유 시트가 막혀도(Safari 등) 실패 토스트 대신 이미지 저장으로 폴백
+        if (e.name !== 'AbortError') downloadFallback();
       } finally {
         if (label) label.textContent = '공유';
         if (btn) btn.disabled = false;

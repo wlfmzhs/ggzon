@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d7a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>제휴 및 스폰서 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f;
+      --green-light: #3ea066;
+      --green-dark: #0A2406;
+      --border: rgba(62,160,102,0.15);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: #fff;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .phone {
+      width: 390px; height: 844px;
+      background: var(--green-dark);
+      border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100;
+    }
+    @media (max-width: 768px) {
+      html, body { background: var(--green-dark); }
+      body { align-items: flex-start; }
+      .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+
+    .appbar {
+      flex-shrink: 0; padding: 28px 18px 10px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .appbar-back {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.7); padding: 4px; line-height: 0;
+      visibility: hidden;
+    }
+    .appbar-back.show { visibility: visible; }
+    .appbar-title { flex: 1; font-size: 17px; font-weight: 900; color: #fff; letter-spacing: -0.3px; }
+
+    .content {
+      flex: 1; overflow-y: auto; scrollbar-width: none;
+      padding: 0 0 32px;
+    }
+    .content::-webkit-scrollbar { display: none; }
+
+    .view { display: none; flex-direction: column; }
+    .view.active { display: flex; }
+
+    /* ── 커버 ───────────────────────────── */
+    .cover { padding: 8px 24px 28px; text-align: center; }
+    .cover .logo { margin: 12px 0 22px; }
+    .cover .logo img { height: 56px; width: auto; }
+    .badge {
+      display: inline-block; padding: 7px 16px; border-radius: 20px;
+      background: rgba(62,160,102,0.13); border: 1px solid rgba(62,160,102,0.4);
+      color: var(--green-light); font-size: 12px; font-weight: 800;
+      letter-spacing: 0.5px; margin-bottom: 18px;
+    }
+    .cover h1 {
+      font-size: 24px; font-weight: 900; line-height: 1.4; letter-spacing: -0.5px;
+      margin-bottom: 14px;
+    }
+    .cover h1 span { color: var(--green-light); }
+    .cover p {
+      font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.55);
+      margin-bottom: 28px;
+    }
+
+    .feature-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 30px; text-align: left;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px;
+    }
+    .feature-card .ico {
+      width: 30px; height: 30px; border-radius: 9px;
+      background: rgba(62,160,102,0.15); color: var(--green-light);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 13px; margin-bottom: 8px;
+    }
+    .feature-card .t { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+    .feature-card .d { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+
+    .cta-btn {
+      display: block; width: 100%; padding: 17px;
+      background: linear-gradient(135deg, var(--green), var(--green-light));
+      color: #fff; font-size: 16px; font-weight: 900;
+      border: none; border-radius: 16px; cursor: pointer; font-family: inherit;
+      letter-spacing: -0.3px;
+    }
+    .cta-btn:active { opacity: 0.85; }
+
+    /* ── 상세 ───────────────────────────── */
+    .section { padding: 4px 22px 28px; }
+    .section-title {
+      font-size: 17px; font-weight: 900; margin-bottom: 4px; letter-spacing: -0.3px;
+    }
+    .section-sub {
+      font-size: 12.5px; color: rgba(255,255,255,0.4); margin-bottom: 16px; line-height: 1.6;
+    }
+    .benefit-list { display: flex; flex-direction: column; gap: 10px; }
+    .benefit-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: rgba(255,255,255,0.035); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px;
+    }
+    .benefit-item .num {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(62,160,102,0.18); color: var(--green-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900;
+    }
+    .benefit-item .tt { font-size: 13.5px; font-weight: 800; margin-bottom: 4px; }
+    .benefit-item .dd { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+    .divider-line { height: 1px; background: var(--border); margin: 0 22px; }
+
+    /* ── 문의 폼 ─────────────────────────── */
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .form-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.5); padding-left: 2px; }
+    .form-input, .form-textarea {
+      width: 100%; padding: 14px 16px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(62,160,102,0.3);
+      border-radius: 12px; color: #fff; font-size: 14px;
+      font-family: inherit; outline: none;
+      -webkit-appearance: none; appearance: none;
+    }
+    .form-input:focus, .form-textarea:focus { border-color: var(--green-light); }
+    .form-input::placeholder, .form-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .form-textarea { resize: none; height: 96px; line-height: 1.6; }
+
+    .msg {
+      width: 100%; padding: 12px 14px; border-radius: 10px; margin-bottom: 12px;
+      font-size: 13px; font-weight: 600; text-align: center; display: none;
+    }
+    .msg.error { background: rgba(220,50,50,0.15); color: #ff6b6b; border: 1px solid rgba(220,50,50,0.3); display: block; }
+    .msg.success { background: rgba(46,160,80,0.15); color: #3ea066; border: 1px solid rgba(46,160,80,0.3); display: block; }
+
+    .submit-btn {
+      width: 100%; padding: 16px; margin-top: 4px;
+      background: var(--green); color: #fff;
+      font-size: 15px; font-weight: 900; letter-spacing: -0.3px;
+      border-radius: 14px; border: none; cursor: pointer;
+      font-family: inherit; transition: opacity 0.2s;
+    }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .contact-info {
+      font-size: 12px; color: rgba(255,255,255,0.35); line-height: 1.8;
+      text-align: center; margin-top: 18px;
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="appbar">
+    <button class="appbar-back" id="btn-back" onclick="showView('cover')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <span class="appbar-title" id="appbar-title">&nbsp;</span>
+  </div>
+
+  <div class="content">
+
+    <!-- 커버 -->
+    <div class="view active" id="view-cover">
+      <div class="cover">
+        <div class="logo"><img src="Logo &amp; Banner image/GGZON_LOGO.png" alt="GOLGAB ZONE" /></div>
+        <div class="badge">PARTNERSHIP &amp; SPONSORS</div>
+        <h1>골프를 즐기는 사람들과<br>가장 가까운 곳,<br><span>GGZON</span>과 함께하세요</h1>
+        <p>조인 매칭부터 단체 대회, 골프장 리뷰, 스코어 기록까지 — 골프를 사랑하는 활동적인 회원들이 매일 모이는 공간입니다. GGZON과의 제휴로 우리 브랜드를 골퍼들에게 자연스럽게 알려보세요.</p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="ico">G</div>
+            <div class="t">GGLOG</div>
+            <div class="d">라운드 사진 피드</div>
+          </div>
+          <div class="feature-card">
+            <div class="ico">조</div>
+            <div class="t">조인 모집</div>
+            <div class="d">스크린·필드 매칭</div>
+          </div>
+          <div class="feature-card">
+            <div class="ico">대</div>
+            <div class="t">단체라운드</div>
+            <div class="d">GG CUP·GPGA 대회</div>
+          </div>
+          <div class="feature-card">
+            <div class="ico">★</div>
+            <div class="t">골슐랭스타</div>
+            <div class="d">골프장 별점 리뷰</div>
+          </div>
+        </div>
+
+        <button class="cta-btn" onclick="showView('detail')">제휴 안내 자세히 보기 →</button>
+      </div>
+    </div>
+
+    <!-- 상세 -->
+    <div class="view" id="view-detail">
+
+      <div class="section" style="padding-top:0;">
+        <div class="section-title">GGZON 회원에게 주어지는 혜택</div>
+        <div class="section-sub">GGZON 회원들은 아래와 같은 서비스를 활발히 이용하고 있습니다. 제휴사의 메시지가 이 흐름 속에서 자연스럽게 노출됩니다.</div>
+        <div class="benefit-list">
+          <div class="benefit-item">
+            <div class="num">1</div>
+            <div>
+              <div class="tt">조인 모집 · 매칭</div>
+              <div class="dd">스크린·필드 골프 동반자를 실시간으로 모집하고 참여하는 핵심 기능</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="num">2</div>
+            <div>
+              <div class="tt">GG CUP · GPGA 단체 대회</div>
+              <div class="dd">정기적으로 열리는 단체 라운드·대회에서 라이브 스코어, 순위, 시상 콘텐츠 제공</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="num">3</div>
+            <div>
+              <div class="tt">골슐랭스타</div>
+              <div class="dd">회원들이 직접 남기는 골프장 별점·리뷰 콘텐츠</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="num">4</div>
+            <div>
+              <div class="tt">스코어카드 · 핸디캡 관리</div>
+              <div class="dd">라운드마다 타수를 기록하고 핸디캡 추이를 확인하는 꾸준한 재방문 기능</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="num">5</div>
+            <div>
+              <div class="tt">GGLOG 피드 · GG PLAYER</div>
+              <div class="dd">라운드 사진·후기를 공유하는 피드와 핸디캡 랭킹 기반 멤버 페이지</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-title">제휴사가 얻을 수 있는 노출</div>
+        <div class="section-sub">제휴 형태는 협의를 통해 자유롭게 구성할 수 있습니다.</div>
+        <div class="benefit-list">
+          <div class="benefit-item">
+            <div class="num">①</div>
+            <div>
+              <div class="tt">앱 메인 화면 배너 노출</div>
+              <div class="dd">대시보드·조인 페이지 등 회원들이 가장 많이 보는 화면에 브랜드 배너 게재</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="num">②</div>
+            <div>
+              <div class="tt">GG CUP 등 대회 타이틀·현장 협찬</div>
+              <div class="dd">대회명에 브랜드를 노출하거나 현장 부스·경품 협찬으로 참가자에게 직접 어필</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="num">③</div>
+            <div>
+              <div class="tt">회원 전용 할인·이벤트 제휴</div>
+              <div class="dd">GGZON 회원에게 제공하는 할인·혜택을 통해 자연스러운 브랜드 체험 유도</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="num">④</div>
+            <div>
+              <div class="tt">GGLOG 피드 콘텐츠 노출</div>
+              <div class="dd">라운드 후기 피드에 브랜드 콘텐츠·체험단 후기 형태로 자연스럽게 노출</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 문의 폼 -->
+      <div class="section">
+        <div class="section-title">제휴 문의</div>
+        <div class="section-sub">아래 정보를 남겨주시면 담당자가 빠르게 연락드리겠습니다.</div>
+
+        <div id="form-msg" class="msg"></div>
+
+        <div class="form-group">
+          <label class="form-label">업체명 <span style="color:var(--green-light)">*</span></label>
+          <input class="form-input" id="p-company" type="text" placeholder="예) (주)골프브랜드" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">담당자명 <span style="color:var(--green-light)">*</span></label>
+          <input class="form-input" id="p-name" type="text" placeholder="홍길동" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">연락처 <span style="color:var(--green-light)">*</span></label>
+          <input class="form-input" id="p-phone" type="tel" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">이메일</label>
+          <input class="form-input" id="p-email" type="email" placeholder="email@company.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">문의 내용</label>
+          <textarea class="form-textarea" id="p-message" placeholder="제안하고 싶은 협찬·제휴 내용을 자유롭게 적어주세요"></textarea>
+        </div>
+
+        <button class="submit-btn" id="btn-submit" onclick="submitInquiry()">문의 보내기</button>
+
+        <div class="contact-info">
+          GOLGAB ZONE · www.ggzon.co.kr<br>
+          문의 이메일: wlfmzhs@naver.com
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const db = getFirestore(app);
+
+window.showView = function(view) {
+  document.getElementById('view-cover').classList.toggle('active', view === 'cover');
+  document.getElementById('view-detail').classList.toggle('active', view === 'detail');
+  document.getElementById('btn-back').classList.toggle('show', view === 'detail');
+  document.getElementById('appbar-title').textContent = view === 'detail' ? '제휴 안내' : '';
+  document.querySelector('.content').scrollTop = 0;
+};
+
+window.formatPhone = function(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.length <= 3) input.value = v;
+  else if (v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
+  else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+};
+
+function showMsg(text, type) {
+  const el = document.getElementById('form-msg');
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+window.submitInquiry = async function() {
+  const company = document.getElementById('p-company').value.trim();
+  const name    = document.getElementById('p-name').value.trim();
+  const phone   = document.getElementById('p-phone').value.trim();
+  const email   = document.getElementById('p-email').value.trim();
+  const message = document.getElementById('p-message').value.trim();
+
+  if (!company) { showMsg('업체명을 입력해주세요', 'error'); return; }
+  if (!name)    { showMsg('담당자명을 입력해주세요', 'error'); return; }
+  if (!phone)   { showMsg('연락처를 입력해주세요', 'error'); return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; btn.textContent = '전송 중...';
+
+  try {
+    await addDoc(collection(db, 'partnerInquiries'), {
+      company, name, phone, email, message,
+      createdAt: serverTimestamp()
+    });
+    showMsg('문의가 접수되었습니다. 빠른 시일 내 연락드리겠습니다 :)', 'success');
+    document.getElementById('p-company').value = '';
+    document.getElementById('p-name').value = '';
+    document.getElementById('p-phone').value = '';
+    document.getElementById('p-email').value = '';
+    document.getElementById('p-message').value = '';
+  } catch (e) {
+    showMsg('전송 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '문의 보내기';
+  }
+};
+</script>
+</body>
+</html>

@@ -239,7 +239,7 @@
 
   onAuthStateChanged(auth, (user) => {
     document.getElementById('loading-overlay').classList.add('hidden');
-    if (!user && !_kakaoFbUser) { window.location.href = 'login.html'; return; }
+    if (!user && !_kakaoFbUser) { window.location.href = 'login.html?auto=1&return=members.html'; return; }
     loadPlayers();
   });
 
