@@ -489,6 +489,9 @@ onAuthStateChanged(auth, user => {
       setTimeout(() => history.back(), 1500);
       return;
     }
+    // 단체 라운드 연결은 주최자만 가능
+    const isHost = (joinData.participants || [])[0]?.uid === currentUser.uid;
+    document.getElementById('btn-party').style.display = isHost ? '' : 'none';
     // 파티 동기화
     const pids = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
     for (const [id, unsub] of partyUnsubs) {
