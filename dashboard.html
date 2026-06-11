@@ -293,11 +293,13 @@
 
     /* GG ZON Partner 유입 배너 */
     .partner-banner {
+      display: none;
       margin: 0 16px 24px; padding: 14px 16px; border-radius: 14px;
       background: rgba(62,160,102,0.08); border: 1px solid rgba(62,160,102,0.25);
-      display: flex; align-items: center; gap: 12px; cursor: pointer;
+      align-items: center; gap: 12px; cursor: pointer;
       transition: background 0.15s;
     }
+    .partner-banner.show { display: flex; }
     .partner-banner:active { background: rgba(62,160,102,0.14); }
     .partner-banner .pb-ico {
       flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px;
@@ -818,6 +820,7 @@
 
   function onLoginReady() {
     document.getElementById('loading-overlay').classList.add('hidden');
+    if (_isAdmin) document.querySelector('.partner-banner')?.classList.add('show');
     loadNotices();
     loadLiveList();
     loadTournamentList();
@@ -896,6 +899,7 @@
         }
         const nick = data.name || data.nickname || ggzonUser.nickname;
         setNick(nick);
+        _isAdmin = !!data.isAdmin;
         localStorage.setItem('ggzon_user', JSON.stringify({ ...ggzonUser, nickname: nick }));
       }
       _doLogin();
