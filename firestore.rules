@@ -27,7 +27,13 @@ service cloud.firestore {
 
     function onlyAllowedJoinFields() {
       return request.resource.data.diff(resource.data)
-        .affectedKeys().hasOnly(['participants', 'scores', 'partyId', 'partyIds', 'status', 'pointsAwarded']);
+        .affectedKeys().hasOnly(['participants', 'scores', 'partyId', 'partyIds', 'status', 'pointsAwarded', 'scoreBonusAwarded']);
+    }
+
+    // 마감 처리(status를 closed로 변경)는 관리자만 가능
+    function isClosingJoin() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) &&
+        request.resource.data.status == 'closed';
     }
 
     // 포인트/스탯 필드만 수정하는 경우 (조인 참가자가 타인 포인트 지급 시 사용)
@@ -57,11 +63,13 @@ service cloud.firestore {
       allow create: if isAnyUser();
       allow delete: if isAdmin();
       allow update: if isAdmin()
-        || (isAnyUser() && onlyAllowedJoinFields())
-        || (isLoggedIn() && resource.data.creatorUid == request.auth.uid)
-        || (isLoggedIn() && resource.data.participants.size() > 0 && resource.data.participants[0].uid == request.auth.uid)
-        || (isKakaoOwner(resource.data.creatorUid))
-        || (request.auth == null && resource.data.participants.size() > 0 && resource.data.participants[0].uid.matches('kakao_.+'));
+        || (!isClosingJoin() && (
+          (isAnyUser() && onlyAllowedJoinFields())
+          || (isLoggedIn() && resource.data.creatorUid == request.auth.uid)
+          || (isLoggedIn() && resource.data.participants.size() > 0 && resource.data.participants[0].uid == request.auth.uid)
+          || (isKakaoOwner(resource.data.creatorUid))
+          || (request.auth == null && resource.data.participants.size() > 0 && resource.data.participants[0].uid.matches('kakao_.+'))
+        ));
 
       match /viewers/{viewerId} {
         allow read, write: if isAnyUser();
