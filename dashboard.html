@@ -967,13 +967,19 @@
   }
 
   // 조인 모집 로드
+  function todayStr() {
+    const d = new Date();
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tz).toISOString().slice(0, 10);
+  }
   async function loadLiveList() {
     const el = document.getElementById('live-list');
     try {
       const snap = await getDocs(query(collection(db, 'joins'), orderBy('createdAt', 'desc'), limit(10)));
       const joinIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+      const today = todayStr();
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .filter(j => j.status !== 'closed' && (j.participants || []).length < (j.capacity || 999))
+        .filter(j => j.status !== 'closed' && (!j.date || j.date >= today) && (j.participants || []).length < (j.capacity || 999))
         .slice(0, 5);
       if (items.length === 0) { el.innerHTML = '<div class="live-empty">현재 모집 중인 조인이 없습니다</div>'; return; }
       el.innerHTML = items.map(j => {
