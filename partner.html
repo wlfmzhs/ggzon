@@ -149,36 +149,6 @@
 
     .divider-line { height: 1px; background: var(--border); margin: 0 22px; }
 
-    /* ── 문의 폼 ─────────────────────────── */
-    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-    .form-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.5); padding-left: 2px; }
-    .form-input, .form-textarea {
-      width: 100%; padding: 14px 16px;
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(62,160,102,0.3);
-      border-radius: 12px; color: #fff; font-size: 14px;
-      font-family: inherit; outline: none;
-      -webkit-appearance: none; appearance: none;
-    }
-    .form-input:focus, .form-textarea:focus { border-color: var(--green-light); }
-    .form-input::placeholder, .form-textarea::placeholder { color: rgba(255,255,255,0.2); }
-    .form-textarea { resize: none; height: 96px; line-height: 1.6; }
-
-    .msg {
-      width: 100%; padding: 12px 14px; border-radius: 10px; margin-bottom: 12px;
-      font-size: 13px; font-weight: 600; text-align: center; display: none;
-    }
-    .msg.error { background: rgba(220,50,50,0.15); color: #ff6b6b; border: 1px solid rgba(220,50,50,0.3); display: block; }
-    .msg.success { background: rgba(46,160,80,0.15); color: #3ea066; border: 1px solid rgba(46,160,80,0.3); display: block; }
-
-    .submit-btn {
-      width: 100%; padding: 16px; margin-top: 4px;
-      background: var(--green); color: #fff;
-      font-size: 15px; font-weight: 900; letter-spacing: -0.3px;
-      border-radius: 14px; border: none; cursor: pointer;
-      font-family: inherit; transition: opacity 0.2s;
-    }
-    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
     .contact-info {
       font-size: 12px; color: rgba(255,255,255,0.35); line-height: 1.8;
       text-align: center; margin-top: 18px;
@@ -362,39 +332,6 @@
           · 모든 비용은 선금 지불 시 진행되며 스케줄은 협의 후 진행됩니다.<br>
           · 상식의 선에서 동종 업계는 중복 계약이 되지 않습니다.
         </div>
-      </div>
-
-      <div class="divider-line"></div>
-
-      <!-- 문의 폼 -->
-      <div class="section">
-        <div class="section-title">제휴 문의</div>
-        <div class="section-sub">아래 정보를 남겨주시면 담당자가 빠르게 연락드리겠습니다.</div>
-
-        <div id="form-msg" class="msg"></div>
-
-        <div class="form-group">
-          <label class="form-label">업체명 <span style="color:var(--green-light)">*</span></label>
-          <input class="form-input" id="p-company" type="text" placeholder="예) (주)골프브랜드" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">담당자명 <span style="color:var(--green-light)">*</span></label>
-          <input class="form-input" id="p-name" type="text" placeholder="홍길동" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">연락처 <span style="color:var(--green-light)">*</span></label>
-          <input class="form-input" id="p-phone" type="tel" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">이메일</label>
-          <input class="form-input" id="p-email" type="email" placeholder="email@company.com" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">문의 내용</label>
-          <textarea class="form-textarea" id="p-message" placeholder="제안하고 싶은 협찬·제휴 내용을 자유롭게 적어주세요"></textarea>
-        </div>
-
-        <button class="submit-btn" id="btn-submit" onclick="submitInquiry()">문의 보내기</button>
 
         <div class="contact-info">
           GOLGAB ZONE · www.ggzon.co.kr<br>
@@ -410,7 +347,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -460,50 +397,6 @@ window.goBack = function() {
   }
 };
 
-window.formatPhone = function(input) {
-  let v = input.value.replace(/\D/g, '');
-  if (v.length <= 3) input.value = v;
-  else if (v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
-  else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
-};
-
-function showMsg(text, type) {
-  const el = document.getElementById('form-msg');
-  el.textContent = text;
-  el.className = 'msg ' + type;
-}
-
-window.submitInquiry = async function() {
-  const company = document.getElementById('p-company').value.trim();
-  const name    = document.getElementById('p-name').value.trim();
-  const phone   = document.getElementById('p-phone').value.trim();
-  const email   = document.getElementById('p-email').value.trim();
-  const message = document.getElementById('p-message').value.trim();
-
-  if (!company) { showMsg('업체명을 입력해주세요', 'error'); return; }
-  if (!name)    { showMsg('담당자명을 입력해주세요', 'error'); return; }
-  if (!phone)   { showMsg('연락처를 입력해주세요', 'error'); return; }
-
-  const btn = document.getElementById('btn-submit');
-  btn.disabled = true; btn.textContent = '전송 중...';
-
-  try {
-    await addDoc(collection(db, 'partnerInquiries'), {
-      company, name, phone, email, message,
-      createdAt: serverTimestamp()
-    });
-    showMsg('문의가 접수되었습니다. 빠른 시일 내 연락드리겠습니다 :)', 'success');
-    document.getElementById('p-company').value = '';
-    document.getElementById('p-name').value = '';
-    document.getElementById('p-phone').value = '';
-    document.getElementById('p-email').value = '';
-    document.getElementById('p-message').value = '';
-  } catch (e) {
-    showMsg('전송 실패: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '문의 보내기';
-  }
-};
 </script>
 </body>
 </html>
