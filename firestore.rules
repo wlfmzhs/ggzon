@@ -95,8 +95,9 @@ service cloud.firestore {
 
     match /pointHistory/{histId} {
       allow read: if isAnyUser();
-      // 로그인한 참가자가 제출 시 포인트 내역 생성 가능
-      allow create: if isAdmin() || isLoggedIn();
+      // 로그인한 참가자(Firebase) 또는 카카오 로그인 참가자가 제출 시 포인트 내역 생성 가능
+      allow create: if isAdmin() || isLoggedIn() ||
+        (request.auth == null && request.resource.data.uid.matches('kakao_.+'));
       allow update, delete: if isAdmin();
     }
 
