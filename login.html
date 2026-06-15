@@ -303,7 +303,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  collection, getDocs, query, orderBy, serverTimestamp, deleteField
+  collection, getDocs, query, orderBy, serverTimestamp, deleteField,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ★ 카카오 JavaScript 앱 키를 여기에 입력하세요 ★
@@ -522,13 +523,26 @@ window.saveProfile = async function() {
   if (!pendingKakaoUser) return;
 
   const inviteCode = document.getElementById('prof-invite').value.trim().toUpperCase();
-  const VALID_CODES = {
-    'GGZON0513': new Date('2026-05-14T00:00:00+09:00'),
-    'GGZON2026': new Date('2026-06-15T00:00:00+09:00'),
-  };
   if (!inviteCode) { showMsg('prof-msg', '초대 코드를 입력해주세요', 'error'); return; }
-  if (!VALID_CODES[inviteCode]) { showMsg('prof-msg', '유효하지 않은 초대 코드입니다', 'error'); return; }
-  if (new Date() > VALID_CODES[inviteCode]) { showMsg('prof-msg', '만료된 초대 코드입니다', 'error'); return; }
+
+  const inviteRef = doc(db, 'inviteCodes', inviteCode);
+  try {
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(inviteRef);
+      if (!snap.exists()) throw new Error('INVALID');
+      if (snap.data().used) throw new Error('USED');
+      tx.update(inviteRef, {
+        used: true,
+        usedAt: serverTimestamp(),
+        usedBy: pendingKakaoUser.uid
+      });
+    });
+  } catch (e) {
+    if (e.message === 'INVALID') showMsg('prof-msg', '유효하지 않은 초대 코드입니다', 'error');
+    else if (e.message === 'USED') showMsg('prof-msg', '이미 사용된 초대 코드입니다', 'error');
+    else showMsg('prof-msg', '초대 코드 확인 중 오류가 발생했습니다', 'error');
+    return;
+  }
 
   const phone = document.getElementById('prof-phone').value.trim();
   if (!phone) { showMsg('prof-msg', '전화번호를 입력해주세요', 'error'); return; }

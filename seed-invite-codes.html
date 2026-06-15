@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>초대 코드 생성</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #fff; padding: 20px; max-width: 480px; margin: 0 auto; }
+    h2 { color: #3ea066; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 20px; }
+    .code-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .code-chip { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 12px; font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #3ea066; }
+    button { width: 100%; padding: 14px; border-radius: 12px; background: #3ea066; color: #fff; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
+    button:disabled { background: #555; cursor: default; }
+    #log { margin-top: 20px; font-size: 13px; line-height: 1.8; color: #aaa; }
+    .ok  { color: #3ea066; }
+    .err { color: #e74c3c; }
+  </style>
+</head>
+<body>
+  <h2>1회용 초대 코드 생성</h2>
+  <div class="sub">아래 코드 10개를 Firestore <b>inviteCodes</b> 컬렉션에 등록합니다.<br>각 코드는 가입 1회 사용 후 자동으로 폐기(used: true)됩니다.</div>
+
+  <div class="code-list" id="code-list"></div>
+
+  <button id="btn-import" onclick="runImport()">Firestore에 등록</button>
+  <div id="log"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const db = getFirestore(app);
+
+const CODES = [
+  'GGG2JFTR',
+  'GG6GC822',
+  'GGDGH2XA',
+  'GGFHDSSV',
+  'GGR4F8XT',
+  'GGQY3CRL',
+  'GGA647GZ',
+  'GG62HFGB',
+  'GGTR8DTZ',
+  'GG47QESC',
+];
+
+const listEl = document.getElementById('code-list');
+CODES.forEach(c => {
+  const chip = document.createElement('div');
+  chip.className = 'code-chip';
+  chip.textContent = c;
+  listEl.appendChild(chip);
+});
+
+window.runImport = async function() {
+  const btn = document.getElementById('btn-import');
+  const log = document.getElementById('log');
+  btn.disabled = true;
+  btn.textContent = '등록 중...';
+  log.innerHTML = '';
+
+  for (const code of CODES) {
+    try {
+      await setDoc(doc(db, 'inviteCodes', code), {
+        used: false,
+        createdAt: serverTimestamp()
+      });
+      log.innerHTML += `<div class="ok">✔ ${code} 등록 완료</div>`;
+    } catch (e) {
+      log.innerHTML += `<div class="err">✘ ${code} 실패: ${e.message}</div>`;
+    }
+  }
+
+  btn.textContent = '완료';
+};
+</script>
+</body>
+</html>
