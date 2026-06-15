@@ -673,7 +673,7 @@
 
       <!-- GG PLAYER -->
       <div class="section-header section-gap" style="margin-top:20px;">
-        <span class="section-title">GG PLAYER</span>
+        <span class="section-title">GG PLAYER TOP 10</span>
         <span class="section-more" onclick="location.href='members.html'">전체보기 ›</span>
       </div>
       <div id="ggplayer-list">
@@ -1073,11 +1073,11 @@
   async function loadGGPlayerList() {
     const el = document.getElementById('ggplayer-list');
     try {
-      const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(30)));
+      const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(50)));
       const validDocs = snap.docs.filter(d => {
         const u = d.data();
         return (u.roundCount > 0) && typeof u.handicap === 'number';
-      }).slice(0, 3);
+      }).slice(0, 10);
       if (validDocs.length === 0) { el.innerHTML = '<div class="live-empty">아직 등록된 플레이어가 없습니다</div>'; return; }
       const rankCls = ['r1','r2','r3'];
       el.innerHTML = validDocs.map((d, i) => {
@@ -1098,7 +1098,7 @@
           else if (t > 0.5) { tClass = 't-up'; tText = '&#9650; ' + t.toFixed(1) + ' 상승'; }
         }
         return `<div class="gp-row" onclick="location.href='members.html'">
-  <div class="gp-rank ${rankCls[i]}">${rank}</div>
+  <div class="gp-rank ${rankCls[i] || ''}">${rank}</div>
   <div class="gp-nick">${nick}</div>
   <div class="gp-meta">${metaParts.join(' · ')}</div>
   <div class="gp-handi ${hCls}">${hLabel}</div>
