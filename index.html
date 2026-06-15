@@ -221,8 +221,14 @@
       transition: background 0.2s;
     }
     .cta-btn:active { background: var(--green-light); }
-    .cta-login { font-size: 13px; color: rgba(255,255,255,0.4); text-decoration: none; }
-    .cta-login span { color: var(--green-light); text-decoration: underline; }
+    .cta-login {
+      font-size: 16px; color: rgba(255,255,255,0.6); text-decoration: none;
+      display: block; width: 100%; padding: 14px;
+      text-align: center; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.15);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cta-login span { color: var(--green-light); font-weight: 900; text-decoration: underline; margin-left: 4px; }
 
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); padding: 0; }
