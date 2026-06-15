@@ -129,6 +129,16 @@ service cloud.firestore {
       }
     }
 
+    match /inviteCodes/{code} {
+      allow read: if isAnyUser();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isAnyUser() &&
+          resource.data.used == false &&
+          request.resource.data.used == true &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedAt', 'usedBy']));
+    }
+
     match /banned/{uid} {
       allow read: if isAnyUser();
       allow write: if isAdmin();
