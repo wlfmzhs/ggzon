@@ -889,6 +889,13 @@ window._selectScore = async function(val) {
   const scores = joinData.scores || {};
   const holes  = [...((scores[targetUid] || {}).holes || Array(18).fill(null))];
   holes[holeIdx] = val;
+
+  // 연속 입력 시 onSnapshot 응답 전에 다음 선택이 낡은 상태를 읽는 race condition 방지
+  if (!joinData.scores) joinData.scores = {};
+  if (!joinData.scores[targetUid]) joinData.scores[targetUid] = {};
+  joinData.scores[targetUid].holes = holes;
+  render();
+
   try {
     await updateDoc(doc(db, 'joins', joinId), {
       [`scores.${targetUid}.holes`]: holes
