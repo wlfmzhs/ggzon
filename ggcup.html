@@ -596,7 +596,7 @@
       document.getElementById('ud-scroll').innerHTML = groups.map(g => renderGroup(g, false)).join('');
     } catch(e) {
       console.error('showUserDetail 실패', e);
-      document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">불러오기 실패</div>';
+      document.getElementById('ud-scroll').innerHTML = `<div class="empty-state">불러오기 실패<br><span style="font-size:11px;color:rgba(255,100,100,0.8);">${e.code || ''} ${(e.message || '').slice(0,200)}</span></div>`;
     }
   };
 
