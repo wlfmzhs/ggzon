@@ -850,7 +850,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -874,6 +874,7 @@ let joins = [];
 let closedJoins = [];
 let closedLastDoc = null;
 let closedHasMore = false;
+let closedTotal = null; // 전체 마감 조인 개수 (서버 count)
 const CLOSED_PAGE_SIZE = 10;
 let currentTimeType = 'day';
 let currentJoinType = 'field';
@@ -1117,8 +1118,19 @@ async function loadJoins() {
     closedHasMore = closedSnap.docs.length === CLOSED_PAGE_SIZE;
 
     closedJoins = sortByDateDesc([...closedToday, ...pastClosed]);
+
+    // 전체 마감 조인 개수 (오늘 이전 전체 + 오늘 이후 마감) — 데이터를 모두 불러오지 않고 count만 조회
+    try {
+      const pastCountSnap = await getCountFromServer(query(
+        collection(db, 'joins'),
+        where('date', '<', today)
+      ));
+      closedTotal = pastCountSnap.data().count + closedToday.length;
+    } catch (e) {
+      closedTotal = null;
+    }
   } catch (e) {
-    joins = []; closedJoins = []; closedHasMore = false;
+    joins = []; closedJoins = []; closedHasMore = false; closedTotal = null;
   }
   renderActiveList();
   renderClosedList();
@@ -1151,7 +1163,8 @@ window.loadMoreClosed = async function() {
 
 function updateTabCounts() {
   const activeCount = joins.filter(j => j.status !== 'closed').length;
-  const closedCount = closedJoins.length + (closedHasMore ? '+' : '');
+  // 전체 마감 개수를 우선 사용, 조회 실패 시 로드된 개수(+)로 폴백
+  const closedCount = closedTotal !== null ? closedTotal : (closedJoins.length + (closedHasMore ? '+' : ''));
   document.getElementById('tab-active').textContent = `조인 진행중 (${activeCount})`;
   document.getElementById('tab-closed').textContent = `마감 (${closedCount})`;
 }
