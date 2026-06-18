@@ -498,8 +498,8 @@
     );
     if (!matches.length) return procDateStr;
     // 처리 날짜에 가장 가까운 (직전) 라운드 선택
-    matches.sort((a, b) => b.date.localeCompare(a.date));
-    return matches[0].date;
+    matches.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    return matches[0].date || procDateStr;
   }
 
   // 포인트 내역 그룹화 헬퍼
@@ -595,6 +595,7 @@
       const groups = groupHistory(items);
       document.getElementById('ud-scroll').innerHTML = groups.map(g => renderGroup(g, false)).join('');
     } catch(e) {
+      console.error('showUserDetail 실패', e);
       document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">불러오기 실패</div>';
     }
   };
