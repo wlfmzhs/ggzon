@@ -484,22 +484,35 @@
     return _joinsCache;
   }
 
+  // 날짜 값을 'YYYY-MM-DD' 문자열로 정규화 (문자열 / Firestore Timestamp / Date 모두 처리)
+  function toDateStr(v) {
+    if (!v) return '';
+    if (typeof v === 'string') return v.slice(0, 10);
+    if (typeof v.toDate === 'function') v = v.toDate();      // Firestore Timestamp
+    else if (typeof v.seconds === 'number') v = new Date(v.seconds * 1000);
+    if (v instanceof Date && !isNaN(v)) {
+      const y = v.getFullYear(), m = String(v.getMonth() + 1).padStart(2, '0'), d = String(v.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return '';
+  }
+
   // pointHistory 항목에서 실제 티업 날짜 찾기 (처리 날짜 이전 라운드만)
   function resolveRoundDate(h, joins) {
-    if (h.roundDate) return h.roundDate;
+    if (h.roundDate) return toDateStr(h.roundDate);
     const course = (h.ref || '').split(' (')[0].trim();
     const uid = h.uid;
-    const procDateStr = (h.date || '').slice(0, 10);
+    const procDateStr = toDateStr(h.date);
     const matches = joins.filter(j =>
       j.course === course &&
       j.status === 'closed' &&
-      (j.date || '') <= procDateStr &&
+      toDateStr(j.date) <= procDateStr &&
       (j.participants || []).some(p => p.uid === uid)
     );
     if (!matches.length) return procDateStr;
     // 처리 날짜에 가장 가까운 (직전) 라운드 선택
-    matches.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    return matches[0].date || procDateStr;
+    matches.sort((a, b) => toDateStr(b.date).localeCompare(toDateStr(a.date)));
+    return toDateStr(matches[0].date) || procDateStr;
   }
 
   // 포인트 내역 그룹화 헬퍼
@@ -508,7 +521,7 @@
   function groupHistory(items) {
     const groups = {};
     items.forEach(h => {
-      const procDateKey = (h.date || '').slice(0, 10);
+      const procDateKey = toDateStr(h.date);
       const course = (h.ref || '').split(' (')[0].trim() || '라운드';
       const key = (h.uid || '') + '_' + procDateKey + '_' + course;
       if (!groups[key]) {
@@ -596,7 +609,7 @@
       document.getElementById('ud-scroll').innerHTML = groups.map(g => renderGroup(g, false)).join('');
     } catch(e) {
       console.error('showUserDetail 실패', e);
-      document.getElementById('ud-scroll').innerHTML = `<div class="empty-state">불러오기 실패<br><span style="font-size:11px;color:rgba(255,100,100,0.8);">${e.code || ''} ${(e.message || '').slice(0,200)}</span></div>`;
+      document.getElementById('ud-scroll').innerHTML = '<div class="empty-state">불러오기 실패</div>';
     }
   };
 
