@@ -1162,6 +1162,7 @@
           <button class="tt-btn active" id="tt-general" onclick="setTournamentType('general')">일반</button>
           <button class="tt-btn" id="tt-bw" onclick="setTournamentType('black-white')">흑백대전</button>
           <button class="tt-btn" id="tt-gpga" onclick="setTournamentType('gpga')">GPGA OPEN</button>
+          <button class="tt-btn" id="tt-screen" onclick="setTournamentType('screen')">스크린</button>
         </div>
       </div>
       <div class="admin-form-group">
@@ -1440,10 +1441,24 @@ let currentTournamentType = 'general';
 
 window.setTournamentType = function(type) {
   currentTournamentType = type;
-  ['general','bw','gpga'].forEach(k => document.getElementById('tt-' + k)?.classList.remove('active'));
-  const map = { 'general': 'tt-general', 'black-white': 'tt-bw', 'gpga': 'tt-gpga' };
+  ['general','bw','gpga','screen'].forEach(k => document.getElementById('tt-' + k)?.classList.remove('active'));
+  const map = { 'general': 'tt-general', 'black-white': 'tt-bw', 'gpga': 'tt-gpga', 'screen': 'tt-screen' };
   document.getElementById(map[type])?.classList.add('active');
+  applyScreenModeUI();
 };
+
+// 스크린 대회면 코스별 시작 시간 입력을 숨김 (코스 시작시간 불필요)
+function applyScreenModeUI() {
+  const isScreen = currentTournamentType === 'screen';
+  document.querySelectorAll('.course-time-input').forEach(el => {
+    el.style.display = isScreen ? 'none' : '';
+  });
+  const hint = document.getElementById('course-time-hint');
+  if (hint) hint.style.display = isScreen ? 'none' : '';
+  const label = document.getElementById('course-name-label');
+  if (label) label.textContent = isScreen ? '코스명' : '코스명 / 시작 시간';
+}
+window.applyScreenModeUI = applyScreenModeUI;
 let currentView = 'list'; // list | detail
 let activeTournaments = [];
 let seatMapListener = null;
@@ -2363,7 +2378,7 @@ window.renderCourseNameInputs = function(existingNames, existingTimes) {
   const defaults = ['아웃코스', '인코스', '레이크코스'];
   const el = document.getElementById('course-name-inputs');
   el.innerHTML = `<div class="admin-form-group" style="margin-bottom:4px;">
-    <label class="admin-label">코스명 / 시작 시간</label>
+    <label class="admin-label" id="course-name-label">코스명 / 시작 시간</label>
     ${Array.from({length: count}, (_, i) => `
       <div class="course-name-row" style="gap:6px;">
         <div class="course-name-badge">${String.fromCharCode(65+i)}</div>
@@ -2371,12 +2386,13 @@ window.renderCourseNameInputs = function(existingNames, existingTimes) {
           placeholder="예) ${defaults[i] || i+1+'코스'}"
           value="${existingNames ? (existingNames[i] || '') : ''}"
           style="margin-bottom:0;flex:1;" />
-        <input type="time" id="admin-course-time-${i}"
+        <input type="time" id="admin-course-time-${i}" class="course-time-input"
           value="${existingTimes ? (existingTimes[i] || '') : ''}"
           style="margin-bottom:0;width:110px;flex-shrink:0;padding:10px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
       </div>`).join('')}
-    <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">시작 시간을 코스별로 다르게 설정할 수 있습니다</div>
+    <div id="course-time-hint" style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">시작 시간을 코스별로 다르게 설정할 수 있습니다</div>
   </div>`;
+  applyScreenModeUI();
 };
 
 function getCourseNames() {
