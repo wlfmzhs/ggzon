@@ -1327,11 +1327,11 @@
       <div class="admin-section-title">비용</div>
       <div class="admin-row">
         <div class="admin-form-group">
-          <label class="admin-label">그린피</label>
+          <label class="admin-label" id="label-green-fee">그린피</label>
           <input class="admin-input" id="admin-green-fee" placeholder="예) 150,000" oninput="formatMoney(this)" inputmode="numeric" />
         </div>
         <div class="admin-form-group">
-          <label class="admin-label">참가비(캐디피포함)</label>
+          <label class="admin-label" id="label-caddy-fee">참가비(캐디피포함)</label>
           <input class="admin-input" id="admin-caddy-fee" placeholder="예) 50,000" oninput="formatMoney(this)" inputmode="numeric" />
         </div>
       </div>
@@ -1503,6 +1503,11 @@ function applyScreenModeUI() {
     const el = document.getElementById(id);
     if (el) el.style.display = isScreen ? 'none' : '';
   });
+  // 스크린은 비용 라벨 변경: 그린피→게임비, 참가비(캐디피포함)→참가비
+  const greenLabel = document.getElementById('label-green-fee');
+  if (greenLabel) greenLabel.textContent = isScreen ? '게임비' : '그린피';
+  const caddyLabel = document.getElementById('label-caddy-fee');
+  if (caddyLabel) caddyLabel.textContent = isScreen ? '참가비' : '참가비(캐디피포함)';
 }
 window.applyScreenModeUI = applyScreenModeUI;
 let currentView = 'list'; // list | detail
@@ -1918,11 +1923,11 @@ function renderDetailHeader(t) {
         <div class="info-cell-value">${t.gatherInfo || '-'}</div>
       </div>
       <div class="info-cell">
-        <div class="info-cell-label">그린피</div>
+        <div class="info-cell-label">${t.tournamentType === 'screen' ? '게임비' : '그린피'}</div>
         <div class="info-cell-value">${t.greenFee ? commaNum(t.greenFee) + '원' : '-'}</div>
       </div>
       <div class="info-cell">
-        <div class="info-cell-label">참가비(캐디피포함)</div>
+        <div class="info-cell-label">${t.tournamentType === 'screen' ? '참가비' : '참가비(캐디피포함)'}</div>
         <div class="info-cell-value">${t.caddyFee ? commaNum(t.caddyFee) + '원' : '-'}</div>
       </div>
       <div class="info-cell">
