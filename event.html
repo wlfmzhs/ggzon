@@ -786,6 +786,31 @@
     }
     .sponsor-input::placeholder { color: rgba(255,255,255,0.2); }
     .sponsor-input:focus { border-color: var(--green-light); }
+    .sponsor-check {
+      display: flex; align-items: center; gap: 3px; margin-bottom: 4px;
+      font-size: 10px; color: var(--green-light); cursor: pointer; user-select: none;
+    }
+    .sponsor-check input { width: 13px; height: 13px; accent-color: var(--green-light); cursor: pointer; }
+    .sponsor-item.off { opacity: 0.35; }
+    .sponsor-item.off .sponsor-check { color: rgba(255,255,255,0.4); }
+
+    /* ── Screen tournament slots ── */
+    .screen-slot-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;
+    }
+    .screen-slot {
+      display: flex; align-items: center; gap: 8px; padding: 11px 12px;
+      border-radius: 12px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); font-size: 13px; min-width: 0;
+    }
+    .screen-slot .slot-num { font-weight: 800; color: rgba(255,255,255,0.5); font-size: 12px; flex-shrink: 0; }
+    .screen-slot .slot-body { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+    .screen-slot .seat-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .screen-slot.available { border-color: rgba(62,160,102,0.4); cursor: pointer; }
+    .screen-slot.available:active { background: rgba(62,160,102,0.12); }
+    .screen-slot.taken { opacity: 0.85; }
+    .screen-slot.mine { border-color: #f0c040; background: rgba(240,192,64,0.1); }
+    .screen-slot.selected { border-color: var(--gold); background: rgba(240,192,64,0.08); }
 
     .admin-save-btn {
       width: 100%; padding: 14px;
@@ -1229,7 +1254,7 @@
         </div>
         <input type="hidden" id="admin-tee-time" />
       </div>
-      <div class="admin-form-group">
+      <div class="admin-form-group" id="grp-tee-interval">
         <label class="admin-label">조 간격 (분) *</label>
         <div style="display:flex; align-items:center; gap:10px;">
           <input class="admin-input" id="admin-tee-interval" type="number" min="1" max="30"
@@ -1282,7 +1307,7 @@
           <label class="admin-label">총 인원 *</label>
           <input class="admin-input" id="admin-total" type="number" placeholder="예) 40" min="4" max="200" oninput="recalcCarts()" />
         </div>
-        <div class="admin-form-group">
+        <div class="admin-form-group" id="grp-course-count">
           <label class="admin-label">코스 수 *
             <span class="auto-calc-badge">18홀=2 / 27홀=3</span>
           </label>
@@ -1293,7 +1318,7 @@
         </div>
       </div>
       <div id="course-name-inputs"></div>
-      <div class="admin-form-group">
+      <div class="admin-form-group" id="grp-carts">
         <label class="admin-label">카트 수 (자동 계산)</label>
         <input class="admin-input" id="admin-carts" readonly placeholder="인원 입력 시 자동 계산" style="opacity:0.6;" />
         <div class="admin-hint" id="admin-cart-hint">총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다</div>
@@ -1329,20 +1354,25 @@
       </div>
 
       <div class="admin-section-title">스폰서</div>
+      <div class="admin-hint" style="margin:-4px 0 8px;">대회에 노출할 스폰서를 선택하세요</div>
       <div class="sponsor-strip">
-        <div class="sponsor-item">
+        <div class="sponsor-item" id="sponsor-item-0">
+          <label class="sponsor-check"><input type="checkbox" id="sponsor-on-0" checked onchange="toggleSponsor(0)" /><span>선택</span></label>
           <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/Ayserleather.png" class="sponsor-logo" alt="Ayser Leather" /></div>
           <input class="sponsor-input" id="sponsor-text-0" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
-        <div class="sponsor-item">
+        <div class="sponsor-item" id="sponsor-item-1">
+          <label class="sponsor-check"><input type="checkbox" id="sponsor-on-1" checked onchange="toggleSponsor(1)" /><span>선택</span></label>
           <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/Drun.png" class="sponsor-logo" alt="Drun" /></div>
           <input class="sponsor-input" id="sponsor-text-1" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
-        <div class="sponsor-item">
+        <div class="sponsor-item" id="sponsor-item-2">
+          <label class="sponsor-check"><input type="checkbox" id="sponsor-on-2" checked onchange="toggleSponsor(2)" /><span>선택</span></label>
           <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/swingpod.png" class="sponsor-logo" alt="Swingpod" /></div>
           <input class="sponsor-input" id="sponsor-text-2" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
-        <div class="sponsor-item">
+        <div class="sponsor-item" id="sponsor-item-3">
+          <label class="sponsor-check"><input type="checkbox" id="sponsor-on-3" checked onchange="toggleSponsor(3)" /><span>선택</span></label>
           <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/ytour.png" class="sponsor-logo" alt="ytour" /></div>
           <input class="sponsor-input" id="sponsor-text-3" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
@@ -1427,6 +1457,16 @@ function getCourseNamesFor(t) {
   return Array.from({length: count}, (_, i) => `${String.fromCharCode(65+i)}코스`);
 }
 
+// 자리 라벨 — 스크린 대회는 순번(N번), 그 외는 코스/조/번
+function seatLabelFor(t, courseIdx, cartIdx, seatIdx) {
+  if (t && t.tournamentType === 'screen') {
+    return `${cartIdx * 4 + seatIdx + 1}번`;
+  }
+  const seatLetters = ['A', 'B', 'C', 'D'];
+  const courseNames = getCourseNamesFor(t);
+  return `${courseNames[courseIdx]} ${cartIdx + 1}조 ${seatLetters[seatIdx]}번`;
+}
+
 // 코스별 카트 수 배분 (나머지는 앞 코스에 1개씩 추가)
 function getCourseCarts(totalCarts, courseCount) {
   const base = Math.floor(totalCarts / courseCount);
@@ -1447,9 +1487,10 @@ window.setTournamentType = function(type) {
   applyScreenModeUI();
 };
 
-// 스크린 대회면 코스별 시작 시간 입력을 숨김 (코스 시작시간 불필요)
+// 스크린 대회: 조 간격 / 코스 수 / 코스명 / 카트 수 숨김 (티업시간만 사용, 인원수만큼 자리 생성)
 function applyScreenModeUI() {
   const isScreen = currentTournamentType === 'screen';
+  // 코스별 시작 시간 입력 (일반 대회용)
   document.querySelectorAll('.course-time-input').forEach(el => {
     el.style.display = isScreen ? 'none' : '';
   });
@@ -1457,6 +1498,11 @@ function applyScreenModeUI() {
   if (hint) hint.style.display = isScreen ? 'none' : '';
   const label = document.getElementById('course-name-label');
   if (label) label.textContent = isScreen ? '코스명' : '코스명 / 시작 시간';
+  // 스크린은 불필요한 항목 전체 숨김
+  ['grp-tee-interval', 'grp-course-count', 'course-name-inputs', 'grp-carts'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isScreen ? 'none' : '';
+  });
 }
 window.applyScreenModeUI = applyScreenModeUI;
 let currentView = 'list'; // list | detail
@@ -1919,23 +1965,28 @@ function renderDetailHeader(t) {
     })()}
 
     ${(() => {
-      const names = ['Ayserleather','Drun','swingpod','ytour'];
+      const allNames = ['Ayserleather','Drun','swingpod','ytour'];
       const texts = t.sponsorTexts || [];
+      // sponsorOn 없으면 기존 대회 호환 위해 전부 노출
+      const items = allNames
+        .map((n, i) => ({ n, text: texts[i], on: t.sponsorOn ? t.sponsorOn[i] !== false : true }))
+        .filter(s => s.on);
+      if (!items.length) return '';
       return `<div class="detail-sponsor-wrap">
         <div class="detail-sponsor-headline">${escHtml(t.name)}은 아래 스폰서와 함께 합니다.</div>
         <div class="detail-sponsor-strip">
-          ${names.map((n,i) => `<div class="detail-sponsor-item">
+          ${items.map(s => `<div class="detail-sponsor-item">
             <div class="detail-sponsor-logo-box">
-              <img src="Logo &amp; Banner image/${n}.png" class="detail-sponsor-logo" alt="${n}" />
+              <img src="Logo &amp; Banner image/${s.n}.png" class="detail-sponsor-logo" alt="${s.n}" />
             </div>
-            <div class="detail-sponsor-text">${texts[i] ? escHtml(texts[i]) : ''}</div>
+            <div class="detail-sponsor-text">${s.text ? escHtml(s.text) : ''}</div>
           </div>`).join('')}
         </div>
       </div>`;
     })()}
 
     <div class="seat-map-section">
-      <div class="seat-map-title">좌석 선택 <span>— 조를 선택해 신청하세요</span></div>
+      <div class="seat-map-title">${t.tournamentType === 'screen' ? '참가 신청' : '좌석 선택'} <span>— 자리를 선택해 신청하세요</span></div>
 
       <div class="seat-legend">
         <div class="legend-item"><div class="legend-dot available"></div>신청 가능</div>
@@ -1978,6 +2029,49 @@ function renderSeatGrid(t, registrations, _courseIdx) {
     const key = `${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`;
     regMap[key] = r;
   });
+
+  // ── 스크린 대회: 코스/조/카트 없이 인원수만큼 참가 자리 ──
+  if (t.tournamentType === 'screen') {
+    const total = t.totalParticipants || 0;
+    let html = '<div class="screen-slot-grid">';
+    for (let i = 0; i < total; i++) {
+      const ci = 0, cartIdx = Math.floor(i / 4), seatIdx = i % 4;
+      const key = `${ci}-${cartIdx}-${seatIdx}`;
+      const reg = regMap[key];
+      const isSelected = selectedSeat &&
+        selectedSeat.courseIdx === ci && selectedSeat.cartIdx === cartIdx && selectedSeat.seatIdx === seatIdx;
+      const isMine = myRegistration && myRegistration.courseIndex === ci &&
+        myRegistration.cartIndex === cartIdx && myRegistration.seatIndex === seatIdx;
+
+      let cls, content;
+      if (isMine) {
+        cls = 'mine';
+        content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="seat-name" style="color:#f0c040; font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? '나ㆍ' + reg.lotteryNum : '나'}</span>`;
+      } else if (reg) {
+        cls = 'taken';
+        content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="seat-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</span>`;
+      } else if (isSelected) {
+        cls = 'selected';
+        content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span class="seat-name" style="color:var(--gold);">선택됨</span>`;
+      } else {
+        cls = 'available';
+        content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(62,160,102,0.8)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="seat-name" style="color:rgba(62,160,102,0.85);">신청 가능</span>`;
+      }
+
+      const clickable = !reg && !isMine && t.status === 'recruiting';
+      const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
+      html += `<div class="screen-slot ${cls}" ${onclick ? `onclick="${onclick}"` : ''}>
+        <span class="slot-num">${i + 1}번</span>
+        <span class="slot-body">${content}</span>
+      </div>`;
+    }
+    html += '</div>';
+    el.innerHTML = html;
+    updateRegisterButton();
+    return;
+  }
 
   let allHtml = '';
 
@@ -2061,9 +2155,7 @@ window.selectSeat = function(courseIdx, cartIdx, seatIdx) {
   const t = currentTournament;
   renderSeatGrid(t, allRegistrations, 0);
 
-  const courseNames = getCourseNamesFor(currentTournament);
-  const seatLetters = ['A', 'B', 'C', 'D'];
-  const label = `${courseNames[courseIdx]} ${cartIdx + 1}조 ${seatLetters[seatIdx]}번`;
+  const label = seatLabelFor(currentTournament, courseIdx, cartIdx, seatIdx);
 
   const bar = document.getElementById('selected-info-bar');
   const text = document.getElementById('selected-info-text');
@@ -2079,9 +2171,7 @@ function updateRegisterButton() {
   if (!btn) return;
 
   if (myRegistration) {
-    const courseNames = getCourseNamesFor(currentTournament);
-    const seatLetters = ['A', 'B', 'C', 'D'];
-    const label = `${courseNames[myRegistration.courseIndex]} ${myRegistration.cartIndex + 1}조 ${seatLetters[myRegistration.seatIndex]}번`;
+    const label = seatLabelFor(currentTournament, myRegistration.courseIndex, myRegistration.cartIndex, myRegistration.seatIndex);
     btn.textContent = `신청 완료 (${label})`;
     btn.className = 'detail-register-btn my-seat';
     return;
@@ -2101,9 +2191,7 @@ window.openRegisterSheet = async function() {
   if (!selectedSeat) return;
   if (myRegistration) return;
 
-  const courseNames = getCourseNamesFor(currentTournament);
-  const seatLetters = ['A', 'B', 'C', 'D'];
-  const label = `${courseNames[selectedSeat.courseIdx]} ${selectedSeat.cartIdx + 1}조 ${seatLetters[selectedSeat.seatIdx]}번`;
+  const label = seatLabelFor(currentTournament, selectedSeat.courseIdx, selectedSeat.cartIdx, selectedSeat.seatIdx);
 
   document.getElementById('sheet-seat-label').textContent = label;
   document.getElementById('sheet-seat-name-preview').textContent = label + ' 선택됨';
@@ -2338,9 +2426,19 @@ function clearAdminForm() {
   document.getElementById('admin-tee-interval').value = '7';
   document.getElementById('admin-cart-hint').textContent = '총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다';
   document.getElementById('tee-interval-preview').textContent = '';
-  [0,1,2,3].forEach(i => { const el = document.getElementById(`sponsor-text-${i}`); if (el) el.value = ''; });
+  [0,1,2,3].forEach(i => {
+    const el = document.getElementById(`sponsor-text-${i}`); if (el) el.value = '';
+    const chk = document.getElementById(`sponsor-on-${i}`); if (chk) chk.checked = true;
+    document.getElementById(`sponsor-item-${i}`)?.classList.remove('off');
+  });
   renderCourseNameInputs();
 }
+
+// 스폰서 선택 토글 — 미선택 시 항목 흐리게
+window.toggleSponsor = function(i) {
+  const on = document.getElementById(`sponsor-on-${i}`)?.checked;
+  document.getElementById(`sponsor-item-${i}`)?.classList.toggle('off', !on);
+};
 
 function fillAdminForm(t) {
   window.setTournamentType(t.tournamentType || 'general');
@@ -2367,6 +2465,13 @@ function fillAdminForm(t) {
   (t.sponsorTexts || []).forEach((text, i) => {
     const el = document.getElementById(`sponsor-text-${i}`);
     if (el) el.value = text || '';
+  });
+  // 스폰서 선택 상태 복원 (sponsorOn 없으면 기존 대회 호환 위해 전부 선택)
+  [0,1,2,3].forEach(i => {
+    const on = t.sponsorOn ? t.sponsorOn[i] !== false : true;
+    const chk = document.getElementById(`sponsor-on-${i}`);
+    if (chk) chk.checked = on;
+    document.getElementById(`sponsor-item-${i}`)?.classList.toggle('off', !on);
   });
   recalcCarts();
   updateIntervalPreview();
@@ -2512,6 +2617,8 @@ window.saveTournament = async function() {
   const fmt = t => { if (!t) return ''; const [h,m] = t.split(':'); const hh=parseInt(h); return `${hh<12?'AM':'PM'} ${hh===0?12:hh>12?hh-12:hh}:${m}`; };
   const gatherInfo = [fmt(gatherTime), gatherPlace].filter(Boolean).join(' / ');
 
+  const isScreen = currentTournamentType === 'screen';
+
   const data = {
     name,
     tournamentType: currentTournamentType,
@@ -2527,14 +2634,16 @@ window.saveTournament = async function() {
     gatherPlace,
     gatherInfo,
     totalParticipants: total,
-    courseCount: parseInt(document.getElementById('admin-courses').value) || 2,
-    courseNames: getCourseNames(),
-    courseTimes: getCourseTimes(),
+    // 스크린은 코스/조/카트 개념이 없음 — 인원수만큼 자리만 생성
+    courseCount: isScreen ? 1 : (parseInt(document.getElementById('admin-courses').value) || 2),
+    courseNames: isScreen ? [] : getCourseNames(),
+    courseTimes: isScreen ? [] : getCourseTimes(),
     greenFee: document.getElementById('admin-green-fee').value.trim(),
     caddyFee: document.getElementById('admin-caddy-fee').value.trim(),
     prizesData: getPrizesData(),
-    teeInterval: parseInt(document.getElementById('admin-tee-interval').value) || 7,
+    teeInterval: isScreen ? 0 : (parseInt(document.getElementById('admin-tee-interval').value) || 7),
     sponsorTexts: [0,1,2,3].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
+    sponsorOn: [0,1,2,3].map(i => document.getElementById(`sponsor-on-${i}`)?.checked !== false),
   };
 
   const editingId = document.getElementById('admin-editing-id').value;
@@ -2880,10 +2989,8 @@ let _manualTarget = null;
 window._openManualSheet = function(ci, cartIdx, si) {
   if (!isAdmin) return;
   _manualTarget = { ci, cartIdx, si };
-  const seatLetters = ['A', 'B', 'C', 'D'];
-  const courseNames = getCourseNamesFor(currentTournament);
   document.getElementById('manual-seat-label').textContent =
-    `${courseNames[ci]} ${cartIdx + 1}조 ${seatLetters[si]}번`;
+    seatLabelFor(currentTournament, ci, cartIdx, si);
   document.getElementById('manual-name-input').value = '';
   document.getElementById('manual-name-sheet').style.display = 'flex';
   setTimeout(() => document.getElementById('manual-name-input').focus(), 100);
