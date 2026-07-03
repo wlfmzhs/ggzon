@@ -1000,8 +1000,17 @@ async function submitScore() {
       });
     } catch(_) {}
 
-    // 3. 전원 포인트 + 동반자 scoreHistory 일괄 처리 (최초 제출자 1회만)
-    if (!pointsAlreadyAwarded) {
+    // 3. 전원 포인트 + 동반자 scoreHistory 일괄 처리 (참가자별 지급 원장으로 멱등)
+    //    - pointAwardedUids/scoreAwardedUids 원장에 없는 참가자만 지급 → 나중에 스코어가
+    //      들어와 다시 제출/마감해도 누락분만 안전하게 채워지고 이중지급되지 않는다.
+    {
+      const freshData = freshJoinSnap.exists() ? freshJoinSnap.data() : {};
+      const hasLedger = Array.isArray(freshData.pointAwardedUids) || Array.isArray(freshData.scoreAwardedUids);
+      // 레거시(원장 없음 + 이미 지급됨)는 전원 지급된 것으로 간주해 이중지급 방지
+      const legacyAwarded = !hasLedger && freshData.pointsAwarded === true;
+      const seed = legacyAwarded ? players.filter(p => p.uid && !p.isGuest).map(p => p.uid) : [];
+      const pointAwardedUids = new Set(freshData.pointAwardedUids || seed);
+      const scoreAwardedUids = new Set(freshData.scoreAwardedUids || seed);
       const now = new Date().toISOString();
 
       await Promise.all(players.map(async (p) => {
@@ -1011,12 +1020,10 @@ async function submitScore() {
         const pTotal   = pHoles.reduce((a, v) => a + (v ?? 0), 0);
         const hasScore = pHoles.some(v => v !== null);
 
-        // 동반자 scoreHistory 저장 (스코어 있고 미제출 시)
-        let pAlreadySubmitted = isMe ? alreadySubmitted : false;
+        // 동반자 scoreHistory 저장 (스코어 있고 미제출 시) — 본인 기록은 위에서 이미 저장
         if (!isMe && hasScore) {
           const pHistSnap = await getDoc(doc(db, 'users', p.uid, 'scoreHistory', joinId));
-          pAlreadySubmitted = pHistSnap.exists();
-          if (!pAlreadySubmitted) {
+          if (!pHistSnap.exists()) {
             await setDoc(doc(db, 'users', p.uid, 'scoreHistory', joinId), {
               course:      joinData.course      || '',
               frontCourse: joinData.frontCourse || '',
@@ -1053,16 +1060,20 @@ async function submitScore() {
           }
         }
 
-        // 조인참여 포인트 +10 (전원)
-        await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
-        await addDoc(collection(db, 'pointHistory'), {
-          uid: p.uid, name: p.name || '골퍼',
-          type: '조인참여', amount: 10,
-          ref: joinData.course || '라운드', date: now,
-        });
+        // 조인참여 포인트 +10 (미지급 참가자만)
+        if (!pointAwardedUids.has(p.uid)) {
+          await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
+          await addDoc(collection(db, 'pointHistory'), {
+            uid: p.uid, name: p.name || '골퍼',
+            type: '조인참여', amount: 10,
+            ref: joinData.course || '라운드', date: now,
+            roundDate: joinData.date || '', joinId,
+          });
+          pointAwardedUids.add(p.uid);
+        }
 
-        // 스코어 포인트 (최초 제출 + 스코어 있는 경우만)
-        if (hasScore && !pAlreadySubmitted) {
+        // 스코어 포인트 (스코어 있고 미지급 참가자만)
+        if (hasScore && !scoreAwardedUids.has(p.uid)) {
           const pts   = pTotal < 0 ? 40 : pTotal <= 5 ? 30 : pTotal <= 9 ? 20 : pTotal <= 15 ? 15 : 10;
           const label = pTotal < 0 ? '언더파' : pTotal <= 5 ? 'E~+5' : pTotal <= 9 ? '+6~+9' : pTotal <= 15 ? '+10~+15' : '+16이상';
           await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) });
@@ -1070,12 +1081,17 @@ async function submitScore() {
             uid: p.uid, name: p.name || '골퍼',
             type: '스코어', amount: pts,
             ref: `${joinData.course || '라운드'} (${label})`, date: now,
+            roundDate: joinData.date || '', joinId,
           });
+          scoreAwardedUids.add(p.uid);
         }
       }));
 
-      // 포인트 지급 완료 플래그
-      await updateDoc(doc(db, 'joins', joinId), { pointsAwarded: true });
+      // 지급 완료 플래그 + 원장 저장 (arrayUnion으로 동시 제출 경합에도 누락 없이 누적)
+      const joinUpdate = { pointsAwarded: true };
+      if (pointAwardedUids.size) joinUpdate.pointAwardedUids = arrayUnion(...pointAwardedUids);
+      if (scoreAwardedUids.size) joinUpdate.scoreAwardedUids = arrayUnion(...scoreAwardedUids);
+      await updateDoc(doc(db, 'joins', joinId), joinUpdate);
     }
 
     closeSubmitSheet();

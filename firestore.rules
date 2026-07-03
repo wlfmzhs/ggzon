@@ -27,7 +27,7 @@ service cloud.firestore {
 
     function onlyAllowedJoinFields() {
       return request.resource.data.diff(resource.data)
-        .affectedKeys().hasOnly(['participants', 'scores', 'partyId', 'partyIds', 'status', 'pointsAwarded', 'scoreBonusAwarded']);
+        .affectedKeys().hasOnly(['participants', 'scores', 'partyId', 'partyIds', 'status', 'pointsAwarded', 'scoreBonusAwarded', 'pointAwardedUids', 'scoreAwardedUids']);
     }
 
     // 마감 처리(status를 closed로 변경)는 관리자만 가능
