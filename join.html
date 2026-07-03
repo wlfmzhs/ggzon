@@ -1213,7 +1213,10 @@ function renderClosedList() {
         </div>
         <div class="past-card-right">
           ${chevron}
-          <span class="past-badge">마감</span>
+          ${j.status === 'closed'
+            ? `<span class="past-badge">마감</span>`
+            : `<span class="past-badge" style="background:rgba(230,164,30,0.22);color:#e6a41e;">미정산</span>`}
+          ${isAdmin && j.status !== 'closed' ? `<button class="past-delete-btn" style="background:rgba(62,160,102,0.22);color:var(--green-light);border-color:rgba(62,160,102,0.4);" onclick="event.stopPropagation();window.confirmClose('${j.id}','${j.course}')">마감</button>` : ''}
           ${isAdmin ? `<button class="past-delete-btn" onclick="event.stopPropagation();window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
         </div>
       </div>
@@ -1858,8 +1861,15 @@ window.repairClosedJoins = async function() {
     return !e.roundDate || e.roundDate === (j.date || '');
   });
 
-  const closed = allJoins.filter(j => j.status === 'closed');
-  lines[0] = `📋 마감 조인 ${closed.length}건 점검 시작`;
+  // 대상: 이미 마감된 조인 + 날짜가 지났는데 스코어가 들어와 있는데도 마감 안 된 조인
+  const today = todayStr();
+  const hasAnyScore = j => Object.values(j.scores || {}).some(s => ((s && s.holes) || []).some(v => v !== null && v !== undefined));
+  const closed = allJoins.filter(j =>
+    j.status === 'closed' ||
+    ((j.date || '') < today && hasAnyScore(j))
+  );
+  const nUnclosed = closed.filter(j => j.status !== 'closed').length;
+  lines[0] = `📋 대상 조인 ${closed.length}건 점검 시작` + (nUnclosed ? ` (미마감 ${nUnclosed}건 포함)` : '');
   setLog();
 
   let nHist = 0, nPart = 0, nScore = 0, nJoins = 0, nErr = 0;
@@ -1922,9 +1932,10 @@ window.repairClosedJoins = async function() {
       } else if (scoreDone && has) { ledgerScore.add(p.uid); }
     }
 
-    // 원장 저장 (이후 마감/제출 경로가 이중지급하지 않도록 씨딩)
+    // 원장 저장 + 미마감이었으면 status를 closed로 확정 (이후 이중지급 방지)
     try {
       await updateDoc(doc(db, 'joins', j.id), {
+        status: 'closed',
         pointsAwarded: true, scoreBonusAwarded: true,
         pointAwardedUids: Array.from(ledgerPoint),
         scoreAwardedUids: Array.from(ledgerScore),
