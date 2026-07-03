@@ -694,7 +694,8 @@
     </div>
     <div id="tab-content-closed" class="list-content hidden">
       <div id="admin-repair-bar" style="display:none;padding:6px 4px 12px;">
-        <button onclick="window.confirmRepairClosedJoins()" style="width:100%;background:rgba(62,160,102,0.15);color:var(--green-light);border:1px solid rgba(62,160,102,0.4);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🔧 마감 조인 스코어·포인트 재반영 (누락분 복구)</button>
+        <button id="repair-btn" onclick="window.confirmRepairClosedJoins()" style="width:100%;background:rgba(62,160,102,0.15);color:var(--green-light);border:1px solid rgba(62,160,102,0.4);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🔧 마감 조인 스코어·포인트 재반영 (누락분 복구)</button>
+        <div id="repair-log" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:10px;font-size:12px;line-height:1.6;color:var(--text-2);white-space:pre-wrap;max-height:280px;overflow:auto;"></div>
       </div>
       <div id="closed-list"></div>
     </div>
@@ -1821,7 +1822,17 @@ window.confirmRepairClosedJoins = function() {
 };
 window.repairClosedJoins = async function() {
   if (!isAdmin) return;
-  showToast('마감 조인 점검 중...');
+  const btn = document.getElementById('repair-btn');
+  const logEl = document.getElementById('repair-log');
+  const lines = [];
+  const setLog = (extra) => {
+    logEl.style.display = 'block';
+    logEl.innerHTML = (lines.join('\n') + (extra ? '\n' + extra : '')).replace(/</g, '&lt;');
+  };
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  lines.push('⏳ 데이터 불러오는 중...');
+  setLog();
+
   let allJoins, ph;
   try {
     const [jSnap, phSnap] = await Promise.all([
@@ -1831,7 +1842,11 @@ window.repairClosedJoins = async function() {
     allJoins = jSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     ph = {};
     phSnap.docs.forEach(d => { const x = d.data(); (ph[x.uid] = ph[x.uid] || []).push(x); });
-  } catch (e) { showToast('점검 실패: ' + e.message); return; }
+  } catch (e) {
+    lines.push('❌ 불러오기 실패: ' + e.message); setLog();
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    return;
+  }
 
   // 특정 참가자가 이 조인에 대해 해당 유형 포인트를 이미 받았는지 판정 (보수적: 매칭되면 지급됨으로 간주)
   const wasAwarded = (uid, type, j) => (ph[uid] || []).some(e => {
@@ -1844,14 +1859,19 @@ window.repairClosedJoins = async function() {
   });
 
   const closed = allJoins.filter(j => j.status === 'closed');
-  let nHist = 0, nPart = 0, nScore = 0, nJoins = 0;
+  lines[0] = `📋 마감 조인 ${closed.length}건 점검 시작`;
+  setLog();
 
-  for (const j of closed) {
+  let nHist = 0, nPart = 0, nScore = 0, nJoins = 0, nErr = 0;
+
+  for (let i = 0; i < closed.length; i++) {
+    const j = closed[i];
     const scores = j.scores || {};
     const parts  = (j.participants || []).filter(p => p.uid && !p.isGuest);
     const ledgerPoint = new Set(j.pointAwardedUids || []);
     const ledgerScore = new Set(j.scoreAwardedUids || []);
-    let touched = false;
+    let jHist = 0, jPart = 0, jScore = 0;
+    setLog(`⏳ 점검 중... (${i + 1}/${closed.length}) ${j.date || ''} ${j.course || ''}`);
 
     for (const p of parts) {
       const holes = (scores[p.uid] || {}).holes || Array(18).fill(null);
@@ -1860,7 +1880,7 @@ window.repairClosedJoins = async function() {
 
       // 1. scoreHistory 보강 (존재하면 skip → 안전)
       if (has) {
-        try { if (await ensureScoreHistory(j, j.id, p, holes, total)) { nHist++; touched = true; } } catch(_) {}
+        try { if (await ensureScoreHistory(j, j.id, p, holes, total)) jHist++; } catch(_) { nErr++; }
       }
 
       // 월 4회 캡 (스크린 제외, 이 조인 제외)
@@ -1883,8 +1903,8 @@ window.repairClosedJoins = async function() {
             uid: p.uid, name: p.name || '골퍼', type: '조인참여', amount: 10,
             ref: j.course || '', date: new Date().toISOString(), roundDate: j.date || '', joinId: j.id,
           });
-          ledgerPoint.add(p.uid); nPart++; touched = true;
-        } catch(_) {}
+          ledgerPoint.add(p.uid); jPart++;
+        } catch(_) { nErr++; }
       } else if (partDone) { ledgerPoint.add(p.uid); }
 
       // 3. 스코어 보너스 (스코어 있고 미지급 + 캡 이내)
@@ -1897,8 +1917,8 @@ window.repairClosedJoins = async function() {
             ref: `${j.course || '라운드'} (${scoreBonusLabel(total)})`,
             date: new Date().toISOString(), roundDate: j.date || '', joinId: j.id,
           });
-          ledgerScore.add(p.uid); nScore++; touched = true;
-        } catch(_) {}
+          ledgerScore.add(p.uid); jScore++;
+        } catch(_) { nErr++; }
       } else if (scoreDone && has) { ledgerScore.add(p.uid); }
     }
 
@@ -1909,12 +1929,28 @@ window.repairClosedJoins = async function() {
         pointAwardedUids: Array.from(ledgerPoint),
         scoreAwardedUids: Array.from(ledgerScore),
       });
-    } catch(_) {}
-    if (touched) nJoins++;
+    } catch(_) { nErr++; }
+
+    nHist += jHist; nPart += jPart; nScore += jScore;
+    if (jHist || jPart || jScore) {
+      nJoins++;
+      lines.push(`✔ ${j.date || '?'} ${j.course || '라운드'} — 기록 ${jHist} · 참여 ${jPart} · 보너스 ${jScore}`);
+      setLog();
+    }
   }
 
-  showToast(`복구 완료! 조인 ${nJoins}건 · 스코어기록 ${nHist} · 참여 ${nPart} · 보너스 ${nScore} 반영`);
+  lines.push('─────────────');
+  lines.push(nJoins
+    ? `✅ 완료! 조인 ${nJoins}건에 반영 (스코어기록 ${nHist} · 참여 ${nPart} · 보너스 ${nScore})`
+    : `✅ 완료! 누락분 없음 — 모든 마감 조인이 이미 정상 반영되어 있습니다`);
+  if (nErr) lines.push(`⚠️ 실패 ${nErr}건 (권한/네트워크 확인 필요)`);
+  setLog();
+
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
   await loadJoins();
+  alert(nJoins
+    ? `누락분 복구 완료\n\n조인 ${nJoins}건에 반영\n· 스코어기록 ${nHist}건\n· 참여 포인트 ${nPart}건\n· 스코어 보너스 ${nScore}건${nErr ? `\n\n⚠️ 실패 ${nErr}건` : ''}`
+    : `점검 완료\n\n누락된 항목이 없습니다.\n모든 마감 조인이 이미 정상 반영되어 있습니다.${nErr ? `\n\n⚠️ 실패 ${nErr}건` : ''}`);
 };
 
 // ── 삭제 ─────────────────────────────────────────────
