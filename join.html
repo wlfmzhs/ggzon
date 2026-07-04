@@ -856,6 +856,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { PAYWALL_ENABLED } from "/ggzon-config.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -1071,7 +1072,15 @@ onAuthStateChanged(auth, async (user) => {
   }
   currentUser = effectiveUser;
   isAdmin = effectiveUser.email === 'wlfmzhs@naver.com';
-  isPaidUser = true;
+  // 유료화가 꺼져 있으면 모두 통과(현재 동작). 켜지면 관리자/유료회원만.
+  isPaidUser = !PAYWALL_ENABLED || isAdmin;
+  if (PAYWALL_ENABLED && !isAdmin) {
+    try {
+      const uSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      const ud = uSnap.exists() ? uSnap.data() : {};
+      isPaidUser = !!(ud.isPaid || ud.grandfathered);
+    } catch (_) {}
+  }
   document.getElementById('btn-new-join').style.display = 'block';
   document.getElementById('loading-overlay').classList.add('hidden');
   await loadCourseDocs();

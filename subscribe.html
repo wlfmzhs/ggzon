@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>골갑존 프리미엄 구독</title>
+<style>
+  :root { --green:#2e7d4f; --green-light:#3ea066; --gold:#f0c040; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+    background:#0d1912; color:#eaf2ec; min-height:100svh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .card { width:100%; max-width:420px; background:#14251b; border:1px solid rgba(62,160,102,0.25);
+    border-radius:20px; padding:28px 24px; box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+  .badge { display:inline-block; background:rgba(240,192,64,0.15); color:var(--gold);
+    font-size:12px; font-weight:800; padding:5px 12px; border-radius:999px; letter-spacing:0.5px; }
+  h1 { font-size:22px; margin:14px 0 6px; }
+  .desc { color:#9fb5a6; font-size:14px; line-height:1.6; margin-bottom:20px; }
+  .price { display:flex; align-items:baseline; gap:6px; margin:18px 0; }
+  .price .amt { font-size:34px; font-weight:900; color:#fff; }
+  .price .unit { color:#9fb5a6; font-size:15px; }
+  ul.feat { list-style:none; padding:0; margin:0 0 22px; }
+  ul.feat li { padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:14px; display:flex; gap:10px; align-items:center; }
+  ul.feat li::before { content:'✓'; color:var(--green-light); font-weight:900; }
+  .btn { width:100%; padding:16px; border:none; border-radius:14px; background:var(--green-light);
+    color:#fff; font-size:16px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .btn:disabled { opacity:0.5; cursor:default; }
+  .note { text-align:center; color:#7d9184; font-size:12px; margin-top:14px; line-height:1.6; }
+  .msg { text-align:center; font-size:13px; margin-top:12px; min-height:18px; }
+  .msg.error { color:#ff8080; }
+  .agree { display:flex; gap:9px; align-items:flex-start; font-size:12.5px; color:#9fb5a6; margin:6px 0 18px; line-height:1.5; }
+  .agree input { margin-top:2px; width:17px; height:17px; accent-color:var(--green-light); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">GG ZON PREMIUM</span>
+    <h1>골갑존 프리미엄 구독</h1>
+    <p class="desc">골갑존의 모든 프리미엄 기능을 매달 자유롭게 이용하세요. 카드는 한 번만 등록하면 매월 자동으로 결제됩니다.</p>
+
+    <div class="price">
+      <span class="amt" id="price">-</span>
+      <span class="unit">/ 월</span>
+    </div>
+
+    <ul class="feat">
+      <li>조인(라운드) 개설 및 참여</li>
+      <li>대회·이벤트 참가</li>
+      <li>전체 랭킹 · 상세 통계</li>
+      <li>중고마켓 글쓰기</li>
+    </ul>
+
+    <label class="agree">
+      <input type="checkbox" id="agree">
+      <span>매월 <b id="price2">-</b>이 등록한 카드로 자동 결제되는 것에 동의합니다. 언제든 마이페이지에서 해지할 수 있습니다.</span>
+    </label>
+
+    <button class="btn" id="subBtn" disabled>카드 등록하고 구독 시작</button>
+    <div class="msg" id="msg"></div>
+    <p class="note">결제는 토스페이먼츠를 통해 안전하게 처리됩니다.<br>실제 카드번호는 골갑존에 저장되지 않습니다.</p>
+  </div>
+
+  <!-- 토스페이먼츠 SDK -->
+  <script src="https://js.tosspayments.com/v1/payment"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { PLAN, TOSS } from '/ggzon-config.js';
+    import { getKakaoUser, getUid } from '/ggzon-auth.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+      authDomain: "ggzon-b33cb.firebaseapp.com",
+      projectId: "ggzon-b33cb",
+      storageBucket: "ggzon-b33cb.firebasestorage.app",
+      messagingSenderId: "774722580869",
+      appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const won = n => n.toLocaleString('ko-KR') + '원';
+    document.getElementById('price').textContent = won(PLAN.price);
+    document.getElementById('price2').textContent = won(PLAN.price);
+
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('subBtn');
+    const agree = document.getElementById('agree');
+
+    let currentUid = null;
+    onAuthStateChanged(auth, (user) => {
+      currentUid = getUid(user);          // Firebase 또는 카카오 uid
+      if (!currentUid) {
+        msg.textContent = '로그인이 필요합니다.';
+        setTimeout(() => location.href = '/login.html?return=' + encodeURIComponent('subscribe.html'), 1200);
+      }
+    });
+
+    agree.addEventListener('change', () => { btn.disabled = !agree.checked; });
+
+    btn.addEventListener('click', async () => {
+      if (!currentUid) { msg.textContent = '로그인이 필요합니다.'; return; }
+      if (!agree.checked) return;
+      if (!window.TossPayments) { msg.className = 'msg error'; msg.textContent = '결제 모듈 로드 실패. 새로고침 해주세요.'; return; }
+      btn.disabled = true; msg.textContent = '결제창을 여는 중...';
+      try {
+        const tossPayments = window.TossPayments(TOSS.clientKey);
+        // customerKey = 회원 uid (서버에서 이 값으로 회원을 식별)
+        await tossPayments.requestBillingAuth('카드', {
+          customerKey: currentUid,
+          successUrl: TOSS.successUrl,
+          failUrl: TOSS.failUrl,
+        });
+        // 성공 시 successUrl(subscribe-complete.html)로 리다이렉트됨
+      } catch (e) {
+        btn.disabled = false;
+        msg.className = 'msg error';
+        msg.textContent = (e && e.message) ? e.message : '결제창을 열지 못했습니다.';
+      }
+    });
+
+    // 실패 리다이렉트로 돌아온 경우
+    if (new URLSearchParams(location.search).get('fail')) {
+      msg.className = 'msg error';
+      msg.textContent = '카드 등록이 취소되었거나 실패했습니다.';
+    }
+  </script>
+</body>
+</html>

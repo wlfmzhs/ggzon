@@ -42,10 +42,23 @@ service cloud.firestore {
         .affectedKeys().hasOnly(['totalPoints', 'handicap', 'bestScore', 'roundCount', 'handicapTrend', 'statsUpdatedAt']);
     }
 
+    // 결제 상태 필드는 서버(Cloud Function)만 기록 가능 — 회원이 스스로 못 바꿈
+    function noBillingFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['isPaid', 'plan', 'subscriptionStatus', 'nextBillingDate', 'subscribedAt', 'canceledAt', 'lastBillingRunDate', 'grandfathered']);
+    }
+
     match /users/{userId} {
       allow read: if isAnyUser();
-      allow create, delete: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
-      allow update: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
+      // 가입 시엔 isPaid:false 만 허용, plan/구독 필드는 넣을 수 없음 (관리자는 예외)
+      allow create: if isAdmin() ||
+        ((isOwner(userId) || isKakaoOwner(userId)) &&
+          (!('isPaid' in request.resource.data) || request.resource.data.isPaid == false) &&
+          !request.resource.data.keys().hasAny(['plan', 'subscriptionStatus', 'nextBillingDate', 'billingKey', 'grandfathered']));
+      allow delete: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
+      // 본인 문서는 수정 가능하되 결제 필드는 건드릴 수 없음 (관리자는 예외)
+      allow update: if isAdmin() ||
+        ((isOwner(userId) || isKakaoOwner(userId)) && noBillingFields()) ||
         (isLoggedIn() && onlyStatsFields());
 
       match /scoreHistory/{docId} {
@@ -142,6 +155,19 @@ service cloud.firestore {
     match /banned/{uid} {
       allow read: if isAnyUser();
       allow write: if isAdmin();
+    }
+
+    // 빌링키 등 결제 비밀정보 — 서버(Admin SDK)만 접근, 클라이언트 전면 차단
+    match /billing/{uid} {
+      allow read, write: if false;
+    }
+
+    // 결제 내역 — 본인/관리자만 열람, 기록은 서버만
+    match /paymentHistory/{docId} {
+      allow read: if isAdmin() ||
+        (isLoggedIn() && resource.data.uid == request.auth.uid) ||
+        (request.auth == null && resource.data.uid.matches('kakao_.+'));
+      allow write: if false;
     }
 
     match /partnerInquiries/{inquiryId} {

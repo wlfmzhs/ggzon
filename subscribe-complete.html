@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>구독 처리 중…</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+    background:#0d1912; color:#eaf2ec; min-height:100svh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .box { width:100%; max-width:400px; background:#14251b; border:1px solid rgba(62,160,102,0.25);
+    border-radius:20px; padding:36px 26px; text-align:center; }
+  .spin { width:44px; height:44px; border:4px solid rgba(255,255,255,0.15); border-top-color:#3ea066;
+    border-radius:50%; margin:0 auto 20px; animation:spin 0.9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  h1 { font-size:19px; margin:8px 0; }
+  p { color:#9fb5a6; font-size:14px; line-height:1.6; }
+  .ico { font-size:46px; margin-bottom:10px; }
+  .btn { display:inline-block; margin-top:20px; padding:13px 26px; border-radius:12px;
+    background:#3ea066; color:#fff; text-decoration:none; font-weight:800; font-size:15px; }
+</style>
+</head>
+<body>
+  <div class="box" id="box">
+    <div class="spin"></div>
+    <h1>구독을 처리하고 있어요</h1>
+    <p>잠시만 기다려 주세요…</p>
+  </div>
+
+  <script type="module">
+    import { FUNCTIONS } from '/ggzon-config.js';
+
+    const box = document.getElementById('box');
+    const p = new URLSearchParams(location.search);
+    const authKey = p.get('authKey');
+    const customerKey = p.get('customerKey');   // = 회원 uid
+
+    function show(icon, title, desc, btn) {
+      box.innerHTML = `<div class="ico">${icon}</div><h1>${title}</h1><p>${desc}</p>` +
+        (btn ? `<a class="btn" href="${btn.href}">${btn.label}</a>` : '');
+    }
+
+    (async () => {
+      if (!authKey || !customerKey) {
+        show('⚠️', '잘못된 접근', '결제 정보가 없습니다.', { href:'/subscribe.html', label:'다시 시도' });
+        return;
+      }
+      try {
+        const res = await fetch(`${FUNCTIONS.baseUrl}/issueBilling`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: customerKey, authKey, customerKey }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          show('🎉', '구독이 시작되었습니다!', '골갑존 프리미엄 기능을 지금부터 이용하실 수 있어요.',
+            { href:'/dashboard.html', label:'홈으로 가기' });
+        } else {
+          show('❌', '결제에 실패했습니다', data.error || '카드사 승인이 거절되었습니다.',
+            { href:'/subscribe.html', label:'다시 시도' });
+        }
+      } catch (e) {
+        show('❌', '처리 중 오류', '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+          { href:'/subscribe.html', label:'다시 시도' });
+      }
+    })();
+  </script>
+</body>
+</html>

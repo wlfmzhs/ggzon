@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기존 회원 평생무료 처리 (관리자)</title>
+<style>
+  body { margin:0; font-family:'Pretendard','Apple SD Gothic Neo',sans-serif; background:#0d1912; color:#eaf2ec;
+    min-height:100svh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .card { width:100%; max-width:460px; background:#14251b; border:1px solid rgba(62,160,102,0.25);
+    border-radius:20px; padding:28px 24px; }
+  h1 { font-size:20px; margin:0 0 8px; }
+  p { color:#9fb5a6; font-size:14px; line-height:1.6; }
+  .warn { background:rgba(240,192,64,0.1); border:1px solid rgba(240,192,64,0.3); border-radius:12px;
+    padding:14px; font-size:13px; color:#f0c040; margin:16px 0; line-height:1.6; }
+  .btn { width:100%; padding:15px; border:none; border-radius:13px; background:#3ea066; color:#fff;
+    font-size:15px; font-weight:800; cursor:pointer; font-family:inherit; margin-top:8px; }
+  .btn:disabled { opacity:0.5; cursor:default; }
+  .log { background:#0d1912; border-radius:10px; padding:12px; font-size:13px; margin-top:16px;
+    max-height:220px; overflow:auto; white-space:pre-wrap; line-height:1.6; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>기존 회원 → 평생 무료 처리</h1>
+    <p>현재 가입된 <b>모든 회원</b>에게 <code>plan: free_forever</code>, <code>isPaid: true</code>, <code>grandfathered: true</code>를 부여합니다. 유료화를 켜도 기존 회원은 계속 무료로 이용합니다.</p>
+    <div class="warn">⚠️ 유료화 오픈 <b>직전에 딱 한 번</b> 실행하세요. 여러 번 실행해도 안전하지만, 이 시점 이후 가입자는 유료 대상이 됩니다.<br>관리자(wlfmzhs@naver.com) 로그인 상태에서만 동작합니다.</div>
+    <button class="btn" id="runBtn" disabled>회원 정보 불러오는 중…</button>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getFirestore, collection, getDocs, writeBatch, doc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { PLAN_FREE_FOREVER } from '/ggzon-config.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+      authDomain: "ggzon-b33cb.firebaseapp.com",
+      projectId: "ggzon-b33cb",
+      storageBucket: "ggzon-b33cb.firebasestorage.app",
+      messagingSenderId: "774722580869",
+      appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const ADMIN = 'wlfmzhs@naver.com';
+
+    const btn = document.getElementById('runBtn');
+    const log = document.getElementById('log');
+    const write = (s) => { log.textContent += s + '\n'; log.scrollTop = log.scrollHeight; };
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user || user.email !== ADMIN) {
+        btn.textContent = '관리자 로그인 필요';
+        write('관리자(' + ADMIN + ') 계정으로 로그인 후 다시 접속하세요.');
+        return;
+      }
+      btn.disabled = false;
+      btn.textContent = '기존 회원 전체 평생무료 처리 실행';
+      write('관리자 확인됨: ' + user.email);
+    });
+
+    btn.addEventListener('click', async () => {
+      if (!confirm('현재 가입된 모든 회원을 평생 무료로 처리합니다. 진행할까요?')) return;
+      btn.disabled = true; btn.textContent = '처리 중…';
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        write('회원 ' + snap.size + '명 발견. 처리 시작…');
+        let batch = writeBatch(db), count = 0, total = 0;
+        for (const d of snap.docs) {
+          batch.set(doc(db, 'users', d.id), {
+            plan: PLAN_FREE_FOREVER, isPaid: true, grandfathered: true,
+          }, { merge: true });
+          count++; total++;
+          if (count === 400) { await batch.commit(); write('  ' + total + '명 처리…'); batch = writeBatch(db); count = 0; }
+        }
+        if (count > 0) await batch.commit();
+        write('✅ 완료! 총 ' + total + '명을 평생 무료로 처리했습니다.');
+        btn.textContent = '완료됨';
+      } catch (e) {
+        write('❌ 오류: ' + e.message);
+        btn.disabled = false; btn.textContent = '다시 시도';
+      }
+    });
+  </script>
+</body>
+</html>

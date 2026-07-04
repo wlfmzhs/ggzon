@@ -798,6 +798,7 @@
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { PAYWALL_ENABLED } from "/ggzon-config.js";
 
   const app = initializeApp({
     apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -828,7 +829,8 @@
     loadGGPlayerList();
     loadLatestTournamentChart();
     loadTabBadges();
-    window._isPaidUser = true;
+    // 유료화가 꺼져 있으면 모두 통과(현재 동작). 켜지면 관리자/유료회원만.
+    window._isPaidUser = !PAYWALL_ENABLED || _isAdmin;
   }
 
   window.markSeen = function(key) {
@@ -900,6 +902,7 @@
         const nick = data.name || data.nickname || ggzonUser.nickname;
         setNick(nick);
         _isAdmin = !!data.isAdmin;
+        window._isPaidUser = !PAYWALL_ENABLED || _isAdmin || !!(data.isPaid || data.grandfathered);
         localStorage.setItem('ggzon_user', JSON.stringify({ ...ggzonUser, nickname: nick }));
       }
       _doLogin();

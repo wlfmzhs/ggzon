@@ -1,0 +1,14 @@
+{
+  "name": "ggzon-functions",
+  "description": "골갑존 정기결제(토스페이먼츠 빌링) Cloud Functions",
+  "type": "module",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.1.0"
+  },
+  "private": true
+}
