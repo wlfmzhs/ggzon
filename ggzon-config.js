@@ -27,9 +27,9 @@ export const PLAN_NONE = 'none';
 //   clientKey: 브라우저에 노출되어도 되는 공개키 (test_ck_... / live_ck_...)
 //   ⚠️ secretKey(test_sk_.../live_sk_...)는 절대 여기 넣지 마세요! → Cloud Functions 서버에만.
 export const TOSS = {
-  // 토스페이먼츠 대시보드 > 개발정보 에서 발급받은 "클라이언트 키"로 교체하세요.
-  // 처음엔 테스트키(test_ck_...)로 넣고, 실결제 오픈 때 라이브키(live_ck_...)로 바꿉니다.
-  clientKey: 'test_ck_REPLACE_ME',
+  // 토스페이먼츠 대시보드 > 개발정보 에서 발급받은 "클라이언트 키".
+  // 현재 테스트키(test_ck_). 실결제 오픈 때 라이브키(live_ck_)로 바꿉니다.
+  clientKey: 'test_ck_vZnjEJeQVxKZwyX2nZRY3PmOoBN0',
 
   // 카드 등록 성공/실패 후 돌아올 페이지 (같은 도메인)
   successUrl: location.origin + '/subscribe-complete.html',
