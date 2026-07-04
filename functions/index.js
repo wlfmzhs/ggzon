@@ -71,7 +71,7 @@ export const issueBilling = onRequest(
       const billingKey = issued.billingKey;
 
       // (2) 첫 달 즉시 결제
-      const orderId = `${uid}_${Date.now()}`;
+      const orderId = `GGZON_${uid}_${Date.now()}`;
       const payRes = await fetch(`${TOSS_API}/billing/${billingKey}`, {
         method: 'POST',
         headers: { 'Authorization': tossAuthHeader(secret), 'Content-Type': 'application/json' },
@@ -161,7 +161,7 @@ export const chargeSubscriptions = onSchedule(
         const customerKey = billDoc.exists ? billDoc.data().customerKey : null;
         if (!billingKey) { logger.warn(`빌링키 없음: ${uid}`); continue; }
 
-        const orderId = `${uid}_${Date.now()}`;
+        const orderId = `GGZON_${uid}_${Date.now()}`;
         const payRes = await fetch(`${TOSS_API}/billing/${billingKey}`, {
           method: 'POST',
           headers: { 'Authorization': tossAuthHeader(secret), 'Content-Type': 'application/json' },
