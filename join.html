@@ -634,6 +634,13 @@
     }
     .ac-chip:active { background: rgba(62,160,102,0.2); }
 
+    /* 코스 선택 상태 안내 */
+    .course-status { margin-top: 7px; font-size: 11.5px; font-weight: 700; line-height: 1.4; }
+    .course-status.ok   { color: var(--green-light); }
+    .course-status.warn { color: #f0c040; }
+    .course-status.new  { color: rgba(255,255,255,0.4); }
+    .course-status .cs-pick { text-decoration: underline; cursor: pointer; }
+
     /* 게스트 */
     .participant-name-chip.guest {
       color: rgba(255,255,255,0.45);
@@ -734,6 +741,7 @@
           <input class="admin-input" id="admin-course" placeholder="예) 블루원 용인CC" autocomplete="off" />
           <div class="ac-list" id="ac-course" style="display:none;"></div>
         </div>
+        <div class="course-status" id="course-status" style="display:none;"></div>
       </div>
 
       <div class="admin-form-group" id="front-course-group" style="display:none;">
@@ -977,6 +985,52 @@ const LOCAL_COURSES = [
 
 let allCoursesDocs = [...LOCAL_COURSES];
 
+// ── 코스 선택 강제 (기존 코스는 반드시 선택) ──────────────
+let courseConfirmed = false;               // 목록에서 선택했거나 기존 조인 값 그대로면 true
+const normCourse = s => (s || '').replace(/\s+/g, '').toLowerCase();
+
+// 입력값과 정규화 기준 정확히 일치하는 기존 코스
+function findKnownCourse(text) {
+  const q = normCourse(text);
+  if (!q) return null;
+  return allCoursesDocs.find(c => normCourse(c.name || c.id) === q) || null;
+}
+
+// 입력값과 부분 겹치는(오타/축약 의심) 기존 코스
+function findPartialCourse(text) {
+  const q = normCourse(text);
+  if (!q) return null;
+  return allCoursesDocs.find(c => {
+    const n = normCourse(c.name || c.id);
+    return n && (n.includes(q) || q.includes(n));
+  }) || null;
+}
+
+function updateCourseStatus() {
+  const el = document.getElementById('course-status');
+  if (!el) return;
+  const val = document.getElementById('admin-course').value.trim();
+  if (!val) { el.style.display = 'none'; return; }
+  const exact = findKnownCourse(val);
+  if (exact || courseConfirmed) {
+    el.className = 'course-status ok';
+    el.textContent = '✓ 등록된 코스 — Par 정보가 자동 연동됩니다';
+    el.style.display = 'block';
+    return;
+  }
+  const partial = findPartialCourse(val);
+  if (partial) {
+    const nm = partial.name || partial.id;
+    el.className = 'course-status warn';
+    el.innerHTML = `⚠ 이미 등록된 <b>${nm}</b> 코스인가요? <span class="cs-pick" onmousedown="window._selectCourse('${partial.id}')">이 코스로 선택</span>`;
+    el.style.display = 'block';
+    return;
+  }
+  el.className = 'course-status new';
+  el.textContent = '＋ 목록에 없는 새 골프장으로 등록됩니다';
+  el.style.display = 'block';
+}
+
 async function loadCourseDocs() {
   // 로컬 목록 기본값으로 시작 후 Firestore에서 nineHoles 등 추가 데이터 병합
   try {
@@ -997,6 +1051,8 @@ function setupCourseAC() {
   const inp  = document.getElementById('admin-course');
   const list = document.getElementById('ac-course');
   inp.addEventListener('input', () => {
+    courseConfirmed = false;      // 직접 타이핑하면 선택 확정 해제
+    updateCourseStatus();
     const q = inp.value.trim();
     if (!q) { list.style.display = 'none'; return; }
     const hits = allCoursesDocs.filter(c => (c.name || c.id).includes(q)).slice(0, 7);
@@ -1021,6 +1077,8 @@ window._selectCourse = function(courseId) {
   if (!cd) return;
   document.getElementById('admin-course').value = cd.name || cd.id;
   document.getElementById('ac-course').style.display = 'none';
+  courseConfirmed = true;
+  updateCourseStatus();
   updateSubCourseChips(cd.name || cd.id);
 };
 
@@ -1498,8 +1556,11 @@ window.openAdminModal = function(id) {
       window.setJoinType(j.joinType || 'field');
       window.setTimeType(j.timeType || 'day');
       if (j.course) updateSubCourseChips(j.course);
+      courseConfirmed = true;   // 기존 조인의 코스명은 그대로 인정
+      updateCourseStatus();
     }
   } else {
+    courseConfirmed = false;
     document.getElementById('admin-course').value = '';
     document.getElementById('admin-date').value = '';
     document.getElementById('admin-time').value = '';
@@ -1511,6 +1572,7 @@ window.openAdminModal = function(id) {
     document.getElementById('admin-back-course').value = '';
     window.setJoinType('field');
     window.setTimeType('day');
+    updateCourseStatus();
   }
   // 빈방 토글 초기화
   document.getElementById('admin-empty-room').value = '0';
@@ -1619,7 +1681,7 @@ window.toggleEmptyRoom = function() {
 
 // ── 저장 ─────────────────────────────────────────────
 window.saveJoin = async function() {
-  const course      = document.getElementById('admin-course').value.trim();
+  let   course      = document.getElementById('admin-course').value.trim();
   const date        = document.getElementById('admin-date').value;
   const time        = document.getElementById('admin-time').value;
   const capacity    = document.getElementById('admin-capacity').value;
@@ -1632,6 +1694,23 @@ window.saveJoin = async function() {
   if (!course || !date || !time || !capacity || !kakaoUrl) {
     showToast('필수 항목을 모두 입력해주세요'); return;
   }
+
+  // 기존에 등록된 코스는 반드시 선택하도록 강제 (par 연동 + 이름 분산 방지)
+  const knownExact = findKnownCourse(course);
+  if (knownExact) {
+    course = knownExact.name || knownExact.id;   // 정식 코스명으로 자동 보정 (대소문자/띄어쓰기 통일)
+    courseConfirmed = true;
+  } else if (!courseConfirmed) {
+    const partial = findPartialCourse(course);
+    if (partial) {
+      showToast(`이미 등록된 '${partial.name || partial.id}' 코스예요. 목록에서 선택해주세요`);
+      document.getElementById('admin-course').focus();
+      updateCourseStatus();
+      return;
+    }
+    // 어떤 기존 코스와도 겹치지 않으면 진짜 새 골프장 → 통과
+  }
+
   if (currentJoinType === 'field' && (!greenfee || !frontCourse || !backCourse)) {
     showToast('필드 조인은 그린피·전반·후반 코스를 모두 입력해주세요'); return;
   }
