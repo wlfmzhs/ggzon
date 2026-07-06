@@ -140,6 +140,19 @@
     .po-delete { background: rgba(231,76,60,0.08) !important; border-color: rgba(231,76,60,0.3) !important; } .po-delete .pv { color: rgba(231,76,60,0.75); font-size: 20px !important; } .po-delete .pl { color: rgba(231,76,60,0.5); }
     .picker-cancel { width: 100%; padding: 13px; background: rgba(255,255,255,0.07); border: none; border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
+    /* 홀 스코어 시트 — 동반자 전원 × (-3~+5) 칸 */
+    .hs-list { max-height: 52vh; overflow-y: auto; margin-bottom: 14px; scrollbar-width: none; }
+    .hs-list::-webkit-scrollbar { display: none; }
+    .hs-row { display: grid; grid-template-columns: 46px repeat(9, minmax(0,1fr)) 22px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .hs-row:last-child { border-bottom: none; }
+    .hs-name { font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hs-name .me-tag { margin-left: 1px; }
+    .hs-cell { min-width: 0; text-align: center; padding: 14px 0; font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.85); background: none; border: none; border-left: 1px solid rgba(255,255,255,0.08); cursor: pointer; font-family: inherit; }
+    .hs-cell:active { background: rgba(255,255,255,0.06); }
+    .hs-cell.sel { background: #fff; color: #0f2e1a; }
+    .hs-clear { min-width: 0; text-align: center; padding: 14px 0; font-size: 14px; color: rgba(255,255,255,0.3); background: none; border: none; border-left: 1px solid rgba(255,255,255,0.08); cursor: pointer; font-family: inherit; }
+    .hs-clear:active { background: rgba(255,255,255,0.06); }
+
     /* 제출 버튼 영역 */
     .submit-bar { flex-shrink: 0; padding: 10px 14px 24px; display: none; }
     .submit-bar.show { display: block; }
@@ -247,81 +260,12 @@
       padding-bottom: 24px;
     }
 
-    /* 홀별 빠른 입력 진입 버튼 */
-    .hole-input-bar { flex-shrink: 0; padding: 10px 14px 4px; display: none; }
-    .hole-input-bar.show { display: block; }
-    .btn-hole-input {
-      width: 100%; padding: 13px; border-radius: 14px;
-      background: rgba(62,160,102,0.15); border: 1px solid rgba(62,160,102,0.5);
-      color: var(--green-light); font-size: 14px; font-weight: 900;
-      cursor: pointer; font-family: inherit; display: flex; align-items: center;
-      justify-content: center; gap: 7px; transition: opacity 0.15s;
-    }
-    .btn-hole-input:active { opacity: 0.75; }
-
-    /* 홀별 빠른 입력 화면 */
-    .hole-input-overlay {
-      position: absolute; inset: 0; background: var(--green-dark);
-      z-index: 450; display: flex; flex-direction: column;
-      border-radius: 40px; transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
-    }
-    .hole-input-overlay.open { transform: translateY(0); }
-    .hi-header { flex-shrink: 0; padding: 30px 14px 12px; border-bottom: 1px solid rgba(62,160,102,0.18); }
-    .hi-top { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-    .hi-back { background: none; border: none; cursor: pointer; color: var(--green-light); font-size: 26px; line-height: 1; padding: 0 6px 0 0; flex-shrink: 0; }
-    .hi-course { flex: 1; min-width: 0; font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hi-allpar { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 18px; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 800; padding: 7px 12px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
-    .hi-allpar:active { opacity: 0.7; }
-    .hi-holeinfo { display: flex; align-items: baseline; gap: 12px; }
-    .hi-hole-big { font-size: 34px; font-weight: 900; color: #fff; line-height: 1; }
-    .hi-hole-big .hi-hole-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4); margin-right: 6px; }
-    .hi-half { font-size: 12px; font-weight: 700; color: var(--green-light); }
-    .hi-par { margin-left: auto; background: var(--header-bg); border: 1px solid rgba(240,192,64,0.35); border-radius: 10px; color: var(--gold); font-size: 13px; font-weight: 900; padding: 8px 14px; cursor: pointer; font-family: inherit; }
-    .hi-par.unset { color: rgba(255,255,255,0.35); border-color: rgba(255,255,255,0.2); }
-
-    .hi-rows { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 6px 0 12px; }
-    .hi-rows::-webkit-scrollbar { display: none; }
-    .hi-row { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .hi-row:last-child { border-bottom: none; }
-    .hi-player { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
-    .hi-name { font-size: 15px; font-weight: 800; color: #fff; }
-    .hi-tot { font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.4); }
-    .hi-tot.under { color: #e74c3c; }
-    .hi-strip { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; -webkit-overflow-scrolling: touch; }
-    .hi-strip::-webkit-scrollbar { display: none; }
-    .hi-opt {
-      flex: 0 0 auto; width: 48px; height: 50px; border-radius: 12px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-      border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
-      cursor: pointer; font-family: inherit; transition: transform 0.08s;
-    }
-    .hi-opt:active { transform: scale(0.9); }
-    .hi-opt .pv { font-size: 17px; font-weight: 900; color: #fff; line-height: 1; }
-    .hi-opt .pl { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.4); line-height: 1; }
-    .hi-opt.po-under { background: rgba(231,76,60,0.15); border-color: rgba(231,76,60,0.4); }
-    .hi-opt.po-under .pv { color: #ff7b6b; }
-    .hi-opt.sel { background: var(--green-light) !important; border-color: #fff !important; box-shadow: 0 0 0 2px var(--gold); }
-    .hi-opt.sel .pv, .hi-opt.sel .pl { color: #fff !important; }
-    .hi-clear { background: rgba(231,76,60,0.07); border-color: rgba(231,76,60,0.25); }
-    .hi-clear .pv { color: rgba(231,76,60,0.8); }
-    .hi-clear .pl { color: rgba(231,76,60,0.55); }
-
-    .hi-nav { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 12px 14px 26px; border-top: 1px solid rgba(62,160,102,0.18); }
-    .hi-nav-btn { flex: 1; padding: 15px; border-radius: 14px; font-size: 15px; font-weight: 900; border: none; cursor: pointer; font-family: inherit; }
-    .hi-nav-prev { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
-    .hi-nav-prev:disabled { opacity: 0.3; }
-    .hi-nav-next { background: var(--green-light); color: #fff; }
-    .hi-nav-btn:active { opacity: 0.8; }
-    .hi-progress { flex-shrink: 0; font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.5); min-width: 46px; text-align: center; }
-
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); }
       body { align-items: flex-start; }
       .phone { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
       .phone::before { display: none; }
       #loading-overlay { border-radius: 0; }
-      .hole-input-overlay { border-radius: 0; }
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -357,14 +301,6 @@
         </div>
       </button>
     </div>
-  </div>
-
-  <!-- 홀별 빠른 입력 진입 -->
-  <div class="hole-input-bar" id="hole-input-bar">
-    <button class="btn-hole-input" id="btn-hole-input">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
-      홀별 빠른 입력
-    </button>
   </div>
 
   <div class="scroll-area">
@@ -403,8 +339,8 @@
   <div class="picker-overlay" id="picker-overlay">
     <div class="picker-sheet">
       <div class="picker-title" id="picker-title">1번 홀</div>
-      <div class="picker-grid" id="picker-grid"></div>
-      <button class="picker-cancel" id="picker-cancel">취소</button>
+      <div class="hs-list" id="hs-list"></div>
+      <button class="picker-cancel" id="picker-cancel">닫기</button>
     </div>
   </div>
 
@@ -442,28 +378,6 @@
         <button class="par-opt" onclick="window._selectPar(6)">Par 6</button>
       </div>
       <button class="picker-cancel" onclick="closeParPicker()">취소</button>
-    </div>
-  </div>
-
-  <!-- 홀별 빠른 입력 화면 -->
-  <div class="hole-input-overlay" id="hole-input-overlay">
-    <div class="hi-header">
-      <div class="hi-top">
-        <button class="hi-back" id="hi-back">‹</button>
-        <div class="hi-course" id="hi-course">코스</div>
-        <button class="hi-allpar" id="hi-allpar">전원 파</button>
-      </div>
-      <div class="hi-holeinfo">
-        <div class="hi-hole-big"><span class="hi-hole-label">HOLE</span><span id="hi-hole-num">1</span></div>
-        <div class="hi-half" id="hi-half">전반</div>
-        <button class="hi-par" id="hi-par">Par ?</button>
-      </div>
-    </div>
-    <div class="hi-rows" id="hi-rows"></div>
-    <div class="hi-nav">
-      <button class="hi-nav-btn hi-nav-prev" id="hi-prev">‹ 이전</button>
-      <div class="hi-progress" id="hi-progress">1 / 18</div>
-      <button class="hi-nav-btn hi-nav-next" id="hi-next">다음 홀 ›</button>
     </div>
   </div>
 
@@ -782,7 +696,6 @@ window._selectPar = async function(val) {
     parBack[idx] = val;
   }
   render();
-  if (holeInputOpen) renderHoleInput();
   await savePar(side);
 };
 
@@ -877,8 +790,6 @@ function render() {
 
   if (!canEdit) document.getElementById('notice-bar').style.display = 'flex';
   if (isParticipant) document.getElementById('submit-bar').classList.add('show');
-  document.getElementById('hole-input-bar').classList.toggle('show', canEdit);
-  if (holeInputOpen) renderHoleInput();
 
   const groups = groupTeams();
   const showLabels = groups.length > 1;
@@ -901,6 +812,8 @@ function render() {
       <div class="score-section"><table class="sc-table">${backHtml}</table></div>
     </div>`;
   }).join('');
+
+  if (pickerHole !== null) renderHoleSheet();   // 시트 열려 있으면 실시간 반영
 }
 
 function buildTable(players, scores, myUids, from, to, parArray, side, canEditPar) {
@@ -959,23 +872,40 @@ function buildTable(players, scores, myUids, from, to, parArray, side, canEditPa
   return html;
 }
 
+// 홀 스코어 셀을 탭하면 그 홀에 대해 동반자 전원을 한 시트에서 입력
+const HS_VALS = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
+
 window._openPicker = function(uid, holeIdx) {
   pickerHole = holeIdx;
   pickerUid  = uid;
-  document.getElementById('picker-title').textContent = `${holeIdx + 1}번 홀`;
-  const optsHtml = OPTS.map(o =>
-    `<button class="picker-opt ${o.cls}" onclick="window._selectScore(${o.v})">
-      <span class="pv">${o.v === 0 ? '0' : o.v > 0 ? '+'+o.v : o.v}</span>
-      <span class="pl">${o.label}</span>
-    </button>`
-  ).join('');
-  const deleteHtml = `<button class="picker-opt po-delete" onclick="window._selectScore(null)">
-    <span class="pv">×</span>
-    <span class="pl">삭제</span>
-  </button>`;
-  document.getElementById('picker-grid').innerHTML = optsHtml + deleteHtml;
+  const side  = holeIdx < 9 ? 'front' : 'back';
+  const local = holeIdx < 9 ? holeIdx : holeIdx - 9;
+  const parArr = side === 'front' ? parFront : parBack;
+  const par   = parArr ? parArr[local] : null;
+  document.getElementById('picker-title').textContent = `${holeIdx + 1}번 홀${par !== null ? ` · Par ${par}` : ''}`;
+  renderHoleSheet();
   document.getElementById('picker-overlay').classList.add('open');
 };
+
+function renderHoleSheet() {
+  if (pickerHole === null || !joinData) return;
+  const gi = pickerHole;
+  const players = joinData.participants || [];
+  document.getElementById('hs-list').innerHTML = players.map(p => {
+    const holes = (joinData.scores?.[p.uid]?.holes) || Array(18).fill(null);
+    const cur   = holes[gi];
+    const isMe  = currentUser && p.uid === currentUser.uid;
+    const cells = HS_VALS.map(v => {
+      const lbl = v === 0 ? '0' : v > 0 ? `+${v}` : `${v}`;
+      return `<button class="hs-cell ${cur === v ? 'sel' : ''}" onclick="window._hsSet('${p.uid}',${v})">${lbl}</button>`;
+    }).join('');
+    return `<div class="hs-row">
+      <div class="hs-name">${p.name}${isMe ? '<span class="me-tag">나</span>' : ''}</div>
+      ${cells}
+      <button class="hs-clear" onclick="window._hsSet('${p.uid}',null)">×</button>
+    </div>`;
+  }).join('');
+}
 
 function closePicker() {
   document.getElementById('picker-overlay').classList.remove('open');
@@ -983,136 +913,25 @@ function closePicker() {
   pickerUid  = null;
 }
 
-// 한 명의 한 홀 점수를 저장 (셀 픽커 / 홀별 입력 공용)
-async function commitScore(targetUid, holeIdx, val) {
-  if (!joinData || !targetUid || holeIdx === null) return;
-  const scores = joinData.scores || {};
-  const holes  = [...((scores[targetUid] || {}).holes || Array(18).fill(null))];
+// 시트는 닫지 않고 유지 — 동반자별로 연속 입력 후 '닫기'
+window._hsSet = async function(uid, val) {
+  if (pickerHole === null || !uid || !joinData) return;
+  const holeIdx = pickerHole;
+  const scores  = joinData.scores || {};
+  const holes   = [...((scores[uid] || {}).holes || Array(18).fill(null))];
   holes[holeIdx] = val;
 
-  // 연속 입력 시 onSnapshot 응답 전에 다음 선택이 낡은 상태를 읽는 race condition 방지
+  // 낙관적 업데이트 (onSnapshot 응답 전 연속 입력 대비)
   if (!joinData.scores) joinData.scores = {};
-  if (!joinData.scores[targetUid]) joinData.scores[targetUid] = {};
-  joinData.scores[targetUid].holes = holes;
-  render();
-  if (holeInputOpen) renderHoleInput();
+  if (!joinData.scores[uid]) joinData.scores[uid] = {};
+  joinData.scores[uid].holes = holes;
+  render();   // 표 + 시트(열려 있으면) 동시 갱신
 
   try {
     await updateDoc(doc(db, 'joins', joinId), {
-      [`scores.${targetUid}.holes`]: holes
+      [`scores.${uid}.holes`]: holes
     });
   } catch (e) { showToast('저장 오류: ' + e.message); }
-}
-
-window._selectScore = function(val) {
-  if (pickerHole === null || !pickerUid || !joinData) return;
-  const targetUid = pickerUid;
-  const holeIdx   = pickerHole;
-  closePicker();
-  commitScore(targetUid, holeIdx, val);
-};
-
-// ── 홀별 빠른 입력 ────────────────────────────────────
-let holeInputOpen = false;
-let inputHole     = 0;
-
-function openHoleInput() {
-  const players = joinData.participants || [];
-  if (!players.some(p => p.uid === currentUser.uid) && !isAdmin) return;
-  // 내가 아직 입력하지 않은 첫 홀부터 시작 (없으면 1번홀)
-  const myHoles = (joinData.scores?.[currentUser.uid]?.holes) || Array(18).fill(null);
-  const firstEmpty = myHoles.findIndex(v => v === null);
-  inputHole = firstEmpty === -1 ? 0 : firstEmpty;
-  holeInputOpen = true;
-  document.getElementById('hole-input-overlay').classList.add('open');
-  renderHoleInput();
-}
-
-function closeHoleInput() {
-  holeInputOpen = false;
-  document.getElementById('hole-input-overlay').classList.remove('open');
-}
-
-function renderHoleInput() {
-  if (!holeInputOpen || !joinData) return;
-  const gi    = inputHole;
-  const side  = gi < 9 ? 'front' : 'back';
-  const local = gi < 9 ? gi : gi - 9;
-  const nineName  = side === 'front' ? (joinData.frontCourse || '') : (joinData.backCourse || '');
-  const halfLabel = side === 'front' ? '전반' : '후반';
-  const parArr = side === 'front' ? parFront : parBack;
-  const par    = parArr ? parArr[local] : null;
-  const players = joinData.participants || [];
-  const canEdit = players.some(p => p.uid === currentUser.uid) || isAdmin;
-
-  document.getElementById('hi-course').textContent = joinData.course || '코스';
-  document.getElementById('hi-hole-num').textContent = local + 1;
-  document.getElementById('hi-half').textContent = halfLabel + (nineName ? ' · ' + nineName : '');
-  document.getElementById('hi-progress').textContent = `${gi + 1} / 18`;
-
-  const parBtn = document.getElementById('hi-par');
-  parBtn.textContent = par !== null ? 'Par ' + par : 'Par ?';
-  parBtn.classList.toggle('unset', par === null);
-  parBtn.onclick = canEdit ? () => window._openParPicker(side, gi) : null;
-
-  document.getElementById('hi-allpar').style.display = canEdit ? '' : 'none';
-
-  document.getElementById('hi-rows').innerHTML = players.map(p => {
-    const holes  = (joinData.scores?.[p.uid]?.holes) || Array(18).fill(null);
-    const cur    = holes[gi];
-    const hasAny = holes.some(v => v !== null);
-    const tot    = holes.reduce((a, v) => a + (v ?? 0), 0);
-    const totLbl = !hasAny ? '-' : tot === 0 ? 'E' : tot > 0 ? `+${tot}` : String(tot);
-    const totCls = hasAny && tot < 0 ? 'under' : '';
-    const isMe   = p.uid === currentUser.uid;
-
-    const strip = OPTS.map(o => {
-      const sel = cur === o.v ? 'sel' : '';
-      const vLbl = o.v === 0 ? '0' : o.v > 0 ? '+' + o.v : String(o.v);
-      return `<button class="hi-opt ${o.cls} ${sel}" onclick="window._hiSet('${p.uid}',${o.v})">
-        <span class="pv">${vLbl}</span><span class="pl">${o.label}</span></button>`;
-    }).join('');
-
-    return `<div class="hi-row">
-      <div class="hi-player">
-        <div class="hi-name">${p.name}${isMe ? '<span class="me-tag">나</span>' : ''}</div>
-        <div class="hi-tot ${totCls}">${totLbl}</div>
-      </div>
-      <div class="hi-strip">${strip}
-        <button class="hi-opt hi-clear" onclick="window._hiClear('${p.uid}')"><span class="pv">×</span><span class="pl">지움</span></button>
-      </div>
-    </div>`;
-  }).join('');
-
-  // 각 줄 점수띠를 선택값(없으면 파) 기준으로 가운데 스크롤
-  document.querySelectorAll('#hi-rows .hi-strip').forEach(strip => {
-    const target = strip.querySelector('.hi-opt.sel') || strip.querySelectorAll('.hi-opt')[3];
-    if (target) strip.scrollLeft = target.offsetLeft - strip.clientWidth / 2 + target.clientWidth / 2;
-  });
-
-  document.getElementById('hi-prev').disabled = gi <= 0;
-  document.getElementById('hi-next').textContent = gi >= 17 ? '완료' : '다음 홀 ›';
-}
-
-window._hiSet   = (uid, val) => commitScore(uid, inputHole, val);
-window._hiClear = (uid)      => commitScore(uid, inputHole, null);
-
-window._hiAllPar = async function() {
-  const players = joinData.participants || [];
-  for (const p of players) {
-    const holes = (joinData.scores?.[p.uid]?.holes) || Array(18).fill(null);
-    if (holes[inputHole] === null) await commitScore(p.uid, inputHole, 0);
-  }
-};
-
-document.getElementById('btn-hole-input').onclick = openHoleInput;
-document.getElementById('hi-back').onclick   = closeHoleInput;
-document.getElementById('hi-allpar').onclick = () => window._hiAllPar();
-document.getElementById('hi-prev').onclick   = () => { inputHole = Math.max(0, inputHole - 1); renderHoleInput(); };
-document.getElementById('hi-next').onclick   = () => {
-  if (inputHole >= 17) { closeHoleInput(); return; }
-  inputHole = Math.min(17, inputHole + 1);
-  renderHoleInput();
 };
 
 function openSubmitSheet() {
