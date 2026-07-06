@@ -988,6 +988,8 @@ let allCoursesDocs = [...LOCAL_COURSES];
 // ── 코스 선택 강제 (기존 코스는 반드시 선택) ──────────────
 let courseConfirmed = false;               // 목록에서 선택했거나 기존 조인 값 그대로면 true
 const normCourse = s => (s || '').replace(/\s+/g, '').toLowerCase();
+// 골프장 접미사 CC / GC 는 항상 대문자로 통일
+const upperCourseSuffix = s => (s || '').replace(/cc/gi, 'CC').replace(/gc/gi, 'GC');
 
 // 입력값과 정규화 기준 정확히 일치하는 기존 코스
 function findKnownCourse(text) {
@@ -1051,6 +1053,10 @@ function setupCourseAC() {
   const inp  = document.getElementById('admin-course');
   const list = document.getElementById('ac-course');
   inp.addEventListener('input', () => {
+    // CC / GC 는 항상 대문자로 (소문자로 치면 par 문서와 안 맞아 새 구장으로 갈리는 문제 방지)
+    const caret = inp.selectionStart;
+    const upper = upperCourseSuffix(inp.value);
+    if (upper !== inp.value) { inp.value = upper; try { inp.setSelectionRange(caret, caret); } catch(_) {} }
     courseConfirmed = false;      // 직접 타이핑하면 선택 확정 해제
     updateCourseStatus();
     const q = inp.value.trim();
@@ -1695,6 +1701,7 @@ window.saveJoin = async function() {
     showToast('필수 항목을 모두 입력해주세요'); return;
   }
 
+  course = upperCourseSuffix(course);   // CC/GC 대문자 통일 (붙여넣기·수정 포함)
   // 기존에 등록된 코스는 반드시 선택하도록 강제 (par 연동 + 이름 분산 방지)
   const knownExact = findKnownCourse(course);
   if (knownExact) {
