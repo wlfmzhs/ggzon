@@ -137,6 +137,7 @@
     <button class="tab-btn" onclick="switchTab('joins')">조인 현황</button>
     <button class="tab-btn" onclick="switchTab('analytics')">통계</button>
     <button class="tab-btn" onclick="switchTab('pending')">미등록</button>
+    <button class="tab-btn" onclick="switchTab('invites')">참여코드</button>
   </div>
 
   <div class="scroll-area" id="tab-members">
@@ -229,6 +230,30 @@
     <div id="pending-status"></div>
     <button id="btn-import-pending" onclick="window.importPending()" style="width:100%;padding:13px;border-radius:12px;background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);color:#f0c040;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:12px;">pendingPlayers 초기화</button>
     <div id="pending-list"></div>
+  </div>
+
+  <!-- 참여코드 탭 -->
+  <div class="scroll-area" id="tab-invites" style="display:none;">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">미사용 코드</div>
+        <div class="stat-value" id="stat-invite-unused">-</div>
+        <div class="stat-sub">개</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">사용 완료</div>
+        <div class="stat-value" id="stat-invite-used">-</div>
+        <div class="stat-sub">개</div>
+      </div>
+    </div>
+
+    <button id="btn-gen-invite" onclick="window.generateInvite()" style="width:100%;padding:15px;border-radius:12px;background:var(--green-light);border:none;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px;">＋ 새 참여코드 1개 생성</button>
+
+    <!-- 방금 생성된 코드 -->
+    <div id="new-invite-box"></div>
+
+    <div class="section-title" style="margin-top:20px;margin-bottom:10px;">미사용 코드 <span style="color:rgba(255,255,255,0.25);font-weight:400;">— 탭하면 복사</span></div>
+    <div id="invite-list"><div class="empty-msg">불러오는 중...</div></div>
   </div>
 
   <!-- 회원 상세 모달 -->
@@ -454,16 +479,110 @@ async function loadJoins() {
 
 // ── 탭 전환 ──────────────────────────────────────────
 let _pendingTabInited = false;
+let _invitesTabInited = false;
 window.switchTab = function(tab) {
-  ['members', 'joins', 'analytics', 'pending'].forEach(t => {
+  ['members', 'joins', 'analytics', 'pending', 'invites'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['members','joins','analytics','pending'][i] === tab);
+    btn.classList.toggle('active', ['members','joins','analytics','pending','invites'][i] === tab);
   });
   if (tab === 'pending' && !_pendingTabInited) {
     _pendingTabInited = true;
     initPendingTab();
+  }
+  if (tab === 'invites' && !_invitesTabInited) {
+    _invitesTabInited = true;
+    loadInvites();
+  }
+};
+
+// ── 참여코드 발급 ─────────────────────────────────────
+// 혼동되는 문자 제외 (0/O, 1/I/L)
+const INVITE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function makeInviteCode() {
+  let s = '';
+  for (let i = 0; i < 6; i++) s += INVITE_CHARS[Math.floor(Math.random() * INVITE_CHARS.length)];
+  return s;
+}
+
+let _inviteCodes = [];
+
+async function loadInvites() {
+  const listEl = document.getElementById('invite-list');
+  try {
+    const snap = await getDocs(collection(db, 'inviteCodes'));
+    _inviteCodes = snap.docs.map(d => ({ code: d.id, ...d.data() }));
+    const unused = _inviteCodes.filter(c => !c.used);
+    const used   = _inviteCodes.filter(c => c.used);
+    document.getElementById('stat-invite-unused').textContent = unused.length;
+    document.getElementById('stat-invite-used').textContent   = used.length;
+    renderInviteList(unused);
+  } catch(e) {
+    listEl.innerHTML = `<div class="empty-msg">불러오기 실패: ${e.message}</div>`;
+  }
+}
+
+function renderInviteList(unused) {
+  const listEl = document.getElementById('invite-list');
+  if (!unused.length) {
+    listEl.innerHTML = '<div class="empty-msg">미사용 코드가 없습니다. 위 버튼으로 생성하세요.</div>';
+    return;
+  }
+  // 최근 생성 순
+  unused.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  listEl.innerHTML = unused.map(c => `
+    <div onclick="window.copyInvite('${c.code}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;margin-bottom:6px;background:rgba(255,255,255,0.04);border:1px solid var(--border);cursor:pointer;">
+      <span style="font-size:18px;font-weight:800;letter-spacing:2px;font-family:monospace;">${c.code}</span>
+      <span style="font-size:11px;color:var(--green-light);font-weight:700;">복사 ⧉</span>
+    </div>`).join('');
+}
+
+window.copyInvite = function(code) {
+  navigator.clipboard.writeText(code).then(() => {
+    showToast(code + ' 복사됨');
+  }).catch(() => {
+    window.prompt('아래 코드를 복사해 전달하세요:', code);
+  });
+};
+
+window.generateInvite = async function() {
+  const btn = document.getElementById('btn-gen-invite');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '생성 중...';
+  try {
+    // 중복 방지: 이미 존재하지 않는 코드가 나올 때까지
+    let code = '';
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const candidate = makeInviteCode();
+      const exists = await getDoc(doc(db, 'inviteCodes', candidate));
+      if (!exists.exists()) { code = candidate; break; }
+    }
+    if (!code) throw new Error('코드 생성 실패, 다시 시도하세요');
+
+    await setDoc(doc(db, 'inviteCodes', code), {
+      used: false,
+      createdAt: serverTimestamp()
+    });
+
+    // 방금 만든 코드를 크게 보여주고 자동 복사
+    const box = document.getElementById('new-invite-box');
+    box.innerHTML = `
+      <div style="background:rgba(62,160,102,0.12);border:1.5px solid var(--green-light);border-radius:14px;padding:18px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px;">새 참여코드 (자동 복사됨)</div>
+        <div style="font-size:32px;font-weight:900;letter-spacing:4px;font-family:monospace;color:var(--green-light);margin-bottom:12px;">${code}</div>
+        <button onclick="window.copyInvite('${code}')" style="width:100%;padding:11px;border-radius:10px;background:var(--green-light);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">코드 복사 ⧉</button>
+      </div>`;
+    try { await navigator.clipboard.writeText(code); showToast(code + ' 생성·복사됨'); }
+    catch(_) { showToast(code + ' 생성됨'); }
+
+    await loadInvites();
+  } catch(e) {
+    showToast('오류: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
   }
 };
 
