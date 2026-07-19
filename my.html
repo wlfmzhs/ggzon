@@ -24,6 +24,10 @@
   <meta name="apple-mobile-web-app-title" content="GGZON" />
   <link rel="apple-touch-icon" href="/image/icon-512.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="preconnect" href="https://firestore.googleapis.com" />
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+  <link rel="preconnect" href="https://www.gstatic.com" />
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
   <title>MY - GOLGAB ZONE</title>
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -945,7 +949,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
+  initializeFirestore, persistentLocalCache, persistentSingleTabManager, doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
   query, serverTimestamp, orderBy, where, arrayRemove, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -959,7 +963,9 @@ const app = initializeApp({
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+});
 
 let currentUser = null;
 let userData = {};

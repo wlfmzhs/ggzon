@@ -24,6 +24,10 @@
   <meta name="apple-mobile-web-app-title" content="GGZON" />
   <link rel="apple-touch-icon" href="/image/icon-512.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="preconnect" href="https://firestore.googleapis.com" />
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+  <link rel="preconnect" href="https://www.gstatic.com" />
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
   <title>GOLGAB ZONE</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -358,7 +362,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, getCountFromServer, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, getCountFromServer, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -368,7 +372,9 @@ const app = initializeApp({
   messagingSenderId: "774722580869",
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+});
 
 try {
   const snap = await getCountFromServer(collection(db, 'users'));
