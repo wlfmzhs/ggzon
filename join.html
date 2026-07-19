@@ -356,6 +356,12 @@
       animation: pulse-red 1.8s ease-in-out infinite;
     }
     .card-score-btn:active { opacity: 0.8; }
+    /* 진행 전(티업 15분 전 이전): 깜빡임 없이 회색 */
+    .card-score-btn.pre-live {
+      background: #6b7280;
+      animation: none;
+      box-shadow: none;
+    }
     @keyframes pulse-red { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.5); } 50% { box-shadow: 0 0 0 5px rgba(231,76,60,0); } }
 
     /* 하단 보조 버튼 행 */
@@ -1412,6 +1418,8 @@ function buildCard(j) {
 
   const teeTime = j.date && j.time ? new Date(j.date + 'T' + j.time) : null;
   const isTeeingSoon = teeTime && (teeTime.getTime() - Date.now()) <= 5 * 60 * 60 * 1000;
+  // 진행중 기준: 티업 15분 전부터 라이브(빨간 깜빡임), 그 이전은 회색(진행 전)
+  const isLiveNow = !teeTime || Date.now() >= (teeTime.getTime() - 15 * 60 * 1000);
 
   const participants = j.participants || [];
   const currentCount = participants.length;
@@ -1446,7 +1454,7 @@ function buildCard(j) {
       <div class="card-title-row">
         <div class="card-title" style="margin-bottom:0">${j.course}</div>
         ${j.joinType !== 'screen' ? `
-        <button class="card-score-btn" onclick="event.stopPropagation();location.href='score.html?id=${j.id}'">
+        <button class="card-score-btn ${isLiveNow ? '' : 'pre-live'}" onclick="event.stopPropagation();location.href='score.html?id=${j.id}'">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" style="flex-shrink:0;"><circle cx="4" cy="4" r="4"/></svg>
           LIVE 스코어
         </button>` : ''}
