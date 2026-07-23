@@ -1792,8 +1792,12 @@ window.confirmClose = function(id, name) {
     const allIds = [id, ...pids];
 
     const results = await Promise.all(allIds.map(x => closeJoinAndAward(x)));
+    const didAny = results.some(r => r.didAward);
+    const nFail  = results.reduce((a, r) => a + r.nFail, 0);
 
-    if (results.some(Boolean)) {
+    if (nFail) {
+      showToast(`마감 완료 (일부 실패 ${nFail}건 — 콘솔 확인). 나머지는 정상 처리됨`);
+    } else if (didAny) {
       showToast(allIds.length > 1
         ? `마감 완료! 연결된 ${allIds.length}개 조인 스코어·포인트·랭킹 자동 처리됨`
         : '마감 완료! 스코어·포인트·랭킹 자동 처리됨');
@@ -1820,9 +1824,13 @@ window.confirmReflect = function(id, name) {
       const allIds = [id, ...pids];
 
       const results = await Promise.all(allIds.map(x => closeJoinAndAward(x)));
-      showToast(results.some(Boolean)
-        ? '재반영 완료! 누락된 스코어·포인트·랭킹이 채워졌습니다'
-        : '재반영 완료! (이미 모두 반영됨)');
+      const didAny = results.some(r => r.didAward);
+      const nFail  = results.reduce((a, r) => a + r.nFail, 0);
+      showToast(nFail
+        ? `재반영 일부 실패 ${nFail}건 (콘솔 확인) — 나머지는 반영됨`
+        : didAny
+          ? '재반영 완료! 누락된 스코어·포인트·랭킹이 채워졌습니다'
+          : '재반영 완료! (이미 모두 반영됨)');
 
       await loadJoins();
     });
@@ -1891,60 +1899,70 @@ async function closeJoinAndAward(id, monthlyPool = joins) {
   const scoreAwardedUids = new Set(joinNow.scoreAwardedUids || (legacyAwarded ? participants.map(p => p.uid) : []));
 
   let didAward = false;
+  let nFail = 0;
 
+  // 참가자별로 오류를 격리한다. 한 명(예: users 문서 없는 탈퇴/게스트 참가자)의 쓰기가
+  // 실패해도 나머지 처리와 원장 저장이 진행되도록 각자 try/catch로 감싼다.
   await Promise.all(participants.map(async (p) => {
     if (!p.uid || p.isGuest) return;
     const pHoles = (scores[p.uid] || {}).holes || Array(18).fill(null);
     const pTotal = pHoles.reduce((a, v) => a + (v ?? 0), 0);
     const hasScore = pHoles.some(v => v !== null);
 
-    // 1. scoreHistory 저장 + 핸디캡 갱신 (스코어 있으면 항상 멱등 보강)
-    if (hasScore) await ensureScoreHistory(joinNow, id, p, pHoles, pTotal);
+    try {
+      // 1. scoreHistory 저장 + 핸디캡 갱신 (스코어 있으면 항상 멱등 보강)
+      if (hasScore) await ensureScoreHistory(joinNow, id, p, pHoles, pTotal);
 
-    // 2. 이번 달 참여 횟수 확인 (이 조인 제외하고 같은 달 마감된 필드 조인 수, 스크린 제외)
-    const joinMonth = (joinNow.date || '').slice(0, 7);
-    const priorMonthlyCount = monthlyPool.filter(x =>
-      x.id !== id &&
-      x.status === 'closed' &&
-      x.joinType !== 'screen' &&
-      (x.date || '').slice(0, 7) === joinMonth &&
-      (x.participants || []).some(px => px.uid === p.uid)
-    ).length;
-    const eligibleForPoints = priorMonthlyCount < 4;
+      // 2. 이번 달 참여 횟수 확인 (이 조인 제외하고 같은 달 마감된 필드 조인 수, 스크린 제외)
+      const joinMonth = (joinNow.date || '').slice(0, 7);
+      const priorMonthlyCount = monthlyPool.filter(x =>
+        x.id !== id &&
+        x.status === 'closed' &&
+        x.joinType !== 'screen' &&
+        (x.date || '').slice(0, 7) === joinMonth &&
+        (x.participants || []).some(px => px.uid === p.uid)
+      ).length;
+      const eligibleForPoints = priorMonthlyCount < 4;
 
-    // 3. 조인참여 포인트 +10 (월 4회 이하 + 미지급 참가자만)
-    if (eligibleForPoints && !pointAwardedUids.has(p.uid)) {
-      await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
-      await addDoc(collection(db, 'pointHistory'), {
-        uid: p.uid, name: p.name || '골퍼',
-        type: '조인참여', amount: 10, ref: joinNow.course || '', date: now,
-        roundDate: joinNow.date || '', joinId: id,
-      });
-      pointAwardedUids.add(p.uid);
-      didAward = true;
-    }
+      // 3. 조인참여 포인트 +10 (월 4회 이하 + 미지급 참가자만)
+      //    지급(increment) 성공 즉시 원장에 기록 → addDoc이 실패해도 재시도 시 이중지급 방지.
+      if (eligibleForPoints && !pointAwardedUids.has(p.uid)) {
+        await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
+        pointAwardedUids.add(p.uid);
+        didAward = true;
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: p.uid, name: p.name || '골퍼',
+          type: '조인참여', amount: 10, ref: joinNow.course || '', date: now,
+          roundDate: joinNow.date || '', joinId: id,
+        });
+      }
 
-    // 4. 스코어 보너스 포인트 (미지급 참가자만)
-    if (eligibleForPoints && hasScore && !scoreAwardedUids.has(p.uid)) {
-      const pts = scoreBonusPts(pTotal);
-      await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) });
-      await addDoc(collection(db, 'pointHistory'), {
-        uid: p.uid, name: p.name || '골퍼',
-        type: '스코어', amount: pts,
-        ref: `${joinNow.course || '라운드'} (${scoreBonusLabel(pTotal)})`, date: now,
-        roundDate: joinNow.date || '', joinId: id,
-      });
-      scoreAwardedUids.add(p.uid);
-      didAward = true;
+      // 4. 스코어 보너스 포인트 (미지급 참가자만)
+      if (eligibleForPoints && hasScore && !scoreAwardedUids.has(p.uid)) {
+        const pts = scoreBonusPts(pTotal);
+        await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) });
+        scoreAwardedUids.add(p.uid);
+        didAward = true;
+        await addDoc(collection(db, 'pointHistory'), {
+          uid: p.uid, name: p.name || '골퍼',
+          type: '스코어', amount: pts,
+          ref: `${joinNow.course || '라운드'} (${scoreBonusLabel(pTotal)})`, date: now,
+          roundDate: joinNow.date || '', joinId: id,
+        });
+      }
+    } catch (e) {
+      nFail++;
+      console.error(`[재반영] 참가자 처리 실패 uid=${p.uid} (${p.name || ''}):`, e);
     }
   }));
 
+  // 성공한 지급분은 반드시 원장에 저장 (일부 참가자가 실패했어도 진행)
   await updateDoc(doc(db, 'joins', id), {
     pointsAwarded: true, scoreBonusAwarded: true,
     pointAwardedUids: Array.from(pointAwardedUids),
     scoreAwardedUids: Array.from(scoreAwardedUids),
   });
-  return didAward;
+  return { didAward, nFail };
 }
 
 // ── 마감 조인 누락분 복구 (관리자) ─────────────────────
