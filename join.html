@@ -1302,6 +1302,7 @@ function renderClosedList() {
             ? `<span class="past-badge">마감</span>`
             : `<span class="past-badge" style="background:rgba(230,164,30,0.22);color:#e6a41e;">미정산</span>`}
           ${isAdmin && j.status !== 'closed' ? `<button class="past-delete-btn" style="background:rgba(62,160,102,0.22);color:var(--green-light);border-color:rgba(62,160,102,0.4);" onclick="event.stopPropagation();window.confirmClose('${j.id}','${j.course}')">마감</button>` : ''}
+          ${isAdmin && hasScore ? `<button class="past-delete-btn" style="background:rgba(52,152,219,0.2);color:#5dade2;border-color:rgba(52,152,219,0.4);" onclick="event.stopPropagation();location.href='score.html?id=${j.id}'">스코어</button>` : ''}
           ${isAdmin ? `<button class="past-delete-btn" onclick="event.stopPropagation();window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
         </div>
       </div>
