@@ -2094,9 +2094,28 @@ window.closeConfirm = function() {
   document.getElementById('confirm-overlay').classList.remove('open');
   confirmCallback = null;
 };
+let confirmRunning = false;
 document.getElementById('confirm-ok-btn').onclick = async () => {
-  if (confirmCallback) { await confirmCallback(); }
-  window.closeConfirm();
+  if (confirmRunning) return;            // 중복 클릭(더블 탭) 차단 → 마감 중복 실행 방지
+  const btn = document.getElementById('confirm-ok-btn');
+  const cancelBtn = document.querySelector('#confirm-overlay .confirm-cancel');
+  const cb = confirmCallback;
+  if (!cb) { window.closeConfirm(); return; }
+  confirmRunning = true;
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '처리 중…'; btn.style.opacity = '0.6'; btn.style.cursor = 'wait';
+  if (cancelBtn) cancelBtn.disabled = true;
+  try {
+    await cb();                          // 실제 마감/처리 작업
+  } catch (e) {
+    console.error(e);
+    showToast('처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+  } finally {
+    confirmRunning = false;
+    btn.disabled = false; btn.textContent = orig; btn.style.opacity = ''; btn.style.cursor = '';
+    if (cancelBtn) cancelBtn.disabled = false;
+    window.closeConfirm();
+  }
 };
 
 // ── 참여하기 ──────────────────────────────────────────
