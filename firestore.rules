@@ -146,9 +146,16 @@ service cloud.firestore {
       allow read: if isAnyUser();
       allow create, delete: if isAdmin();
       allow update: if isAdmin() ||
+        // 코드 소진: 미사용 → 사용
         (isAnyUser() &&
           resource.data.used == false &&
           request.resource.data.used == true &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedAt', 'usedBy'])) ||
+        // 롤백: 방금 소진한 본인이 가입 저장 실패 시 되돌리기 (사용 → 미사용)
+        (isAnyUser() &&
+          resource.data.used == true &&
+          resource.data.usedBy == request.auth.uid &&
+          request.resource.data.used == false &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedAt', 'usedBy']));
     }
 

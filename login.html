@@ -525,6 +525,24 @@ window.saveProfile = async function() {
   const inviteCode = document.getElementById('prof-invite').value.trim().toUpperCase();
   if (!inviteCode) { showMsg('prof-msg', '초대 코드를 입력해주세요', 'error'); return; }
 
+  // ── 폼 검증을 모두 먼저 수행한다 (초대코드는 아직 소진하지 않음) ──
+  // 이유: 코드를 먼저 소진하면, 아래 검증 중 하나라도 실패했을 때
+  //       멀쩡한 코드가 이미 '사용됨'으로 태워져 재시도가 막힌다.
+  const profName = document.getElementById('prof-name').value.trim();
+  if (!profName) { showMsg('prof-msg', '이름을 입력해주세요', 'error'); return; }
+  const phone = document.getElementById('prof-phone').value.trim();
+  if (!phone) { showMsg('prof-msg', '전화번호를 입력해주세요', 'error'); return; }
+  if (!/^010-\d{4}-\d{4}$/.test(phone)) { showMsg('prof-msg', '전화번호를 올바르게 입력해주세요 (010-0000-0000)', 'error'); return; }
+  const handi = document.getElementById('prof-handi').value;
+  if (!handi) { showMsg('prof-msg', '골프 핸디를 선택해주세요', 'error'); return; }
+  if (!document.getElementById('prof-terms').checked) { showMsg('prof-msg', '이용약관에 동의해 주세요', 'error'); return; }
+  if (!document.getElementById('prof-privacy').checked) { showMsg('prof-msg', '개인정보처리방침에 동의해 주세요', 'error'); return; }
+
+  const btn = document.getElementById('prof-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  const birthRaw = document.getElementById('prof-birth').value.trim();
+
+  // ── 초대코드 소진: 모든 검증을 통과한 뒤에만 실행 ──
   const inviteRef = doc(db, 'inviteCodes', inviteCode);
   try {
     await runTransaction(db, async (tx) => {
@@ -541,24 +559,11 @@ window.saveProfile = async function() {
     if (e.message === 'INVALID') showMsg('prof-msg', '유효하지 않은 초대 코드입니다', 'error');
     else if (e.message === 'USED') showMsg('prof-msg', '이미 사용된 초대 코드입니다', 'error');
     else showMsg('prof-msg', '초대 코드 확인 중 오류가 발생했습니다', 'error');
+    btn.disabled = false; btn.textContent = '가입 완료 →';
     return;
   }
 
-  const phone = document.getElementById('prof-phone').value.trim();
-  if (!phone) { showMsg('prof-msg', '전화번호를 입력해주세요', 'error'); return; }
-  if (!/^010-\d{4}-\d{4}$/.test(phone)) { showMsg('prof-msg', '전화번호를 올바르게 입력해주세요 (010-0000-0000)', 'error'); return; }
-  const handi = document.getElementById('prof-handi').value;
-  if (!handi) { showMsg('prof-msg', '골프 핸디를 선택해주세요', 'error'); return; }
-  if (!document.getElementById('prof-terms').checked) { showMsg('prof-msg', '이용약관에 동의해 주세요', 'error'); return; }
-  if (!document.getElementById('prof-privacy').checked) { showMsg('prof-msg', '개인정보처리방침에 동의해 주세요', 'error'); return; }
-
-  const btn = document.getElementById('prof-btn');
-  btn.disabled = true; btn.textContent = '저장 중...';
-  const birthRaw = document.getElementById('prof-birth').value.trim();
-
   try {
-    const profName = document.getElementById('prof-name').value.trim();
-    if (!profName) { showMsg('prof-msg', '이름을 입력해주세요', 'error'); btn.disabled = false; btn.textContent = '가입 완료 →'; return; }
     await setDoc(doc(db, 'users', pendingKakaoUser.uid), {
       nickname: profName,
       phone: phone,
@@ -580,6 +585,15 @@ window.saveProfile = async function() {
     pendingKakaoUser = null;
     showPwaPrompt(getReturnUrl());
   } catch (e) {
+    // 가입 저장이 실패하면 방금 소진한 코드를 되돌려 다시 쓸 수 있게 한다
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(inviteRef);
+        if (snap.exists() && snap.data().usedBy === pendingKakaoUser.uid) {
+          tx.update(inviteRef, { used: false, usedAt: null, usedBy: null });
+        }
+      });
+    } catch(_) {}
     showMsg('prof-msg', '저장 실패: ' + e.message, 'error');
     btn.disabled = false; btn.textContent = '가입 완료 →';
   }
