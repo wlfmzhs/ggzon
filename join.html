@@ -1148,6 +1148,17 @@ onAuthStateChanged(auth, async (user) => {
   }
   currentUser = effectiveUser;
   isAdmin = effectiveUser.email === 'wlfmzhs@naver.com';
+  // 관리자 버튼(마감/삭제)은 서버 토큰이 유효해야 실제로 동작한다. 저장된 세션만 살아있고
+  // 토큰 갱신이 안 되는 상태면 버튼은 보이는데 쓰기만 거부되므로, 로드 시 한 번 검증한다.
+  if (isAdmin && user) {
+    try {
+      await user.getIdToken(true);
+    } catch (e) {
+      isAdmin = false;
+      console.error('[관리자] 토큰 갱신 실패 — 세션 만료:', e);
+      showToast('관리자 세션이 만료됐습니다. 다시 로그인해 주세요.');
+    }
+  }
   // 유료화가 꺼져 있으면 모두 통과(현재 동작). 켜지면 관리자/유료회원만.
   isPaidUser = !PAYWALL_ENABLED || isAdmin;
   if (PAYWALL_ENABLED && !isAdmin) {
@@ -1795,6 +1806,10 @@ window.confirmClose = function(id, name) {
     const didAny = results.some(r => r.didAward);
     const nFail  = results.reduce((a, r) => a + r.nFail, 0);
 
+    // 상태 변경(마감) 자체가 막힌 경우 — 원인을 그대로 보여준다 (권한/네트워크 구분)
+    const statusErr = results.map(r => r.statusError).find(Boolean);
+    if (statusErr) { showToast(closeErrorMessage(statusErr)); await loadJoins(); return; }
+
     if (nFail) {
       showToast(`마감 완료 (일부 실패 ${nFail}건 — 콘솔 확인). 나머지는 정상 처리됨`);
     } else if (didAny) {
@@ -1826,6 +1841,8 @@ window.confirmReflect = function(id, name) {
       const results = await Promise.all(allIds.map(x => closeJoinAndAward(x)));
       const didAny = results.some(r => r.didAward);
       const nFail  = results.reduce((a, r) => a + r.nFail, 0);
+      const statusErr = results.map(r => r.statusError).find(Boolean);
+      if (statusErr) { showToast(closeErrorMessage(statusErr)); await loadJoins(); return; }
       showToast(nFail
         ? `재반영 일부 실패 ${nFail}건 (콘솔 확인) — 나머지는 반영됨`
         : didAny
@@ -1874,6 +1891,18 @@ async function ensureScoreHistory(joinData, joinId, p, pHoles, pTotal) {
   return true;
 }
 
+// 마감(status 변경) 실패 원인을 사용자가 바로 알아볼 수 있는 문구로 바꾼다.
+function closeErrorMessage(e) {
+  const code = e?.code || '';
+  if (code === 'permission-denied')
+    return '마감 실패: 관리자 권한이 확인되지 않습니다. 로그아웃 후 관리자 이메일로 다시 로그인해 주세요.';
+  if (code === 'unavailable' || code === 'deadline-exceeded')
+    return '마감 실패: 서버에 연결하지 못했습니다. 네트워크 확인 후 다시 시도해 주세요.';
+  if (code === 'unauthenticated')
+    return '마감 실패: 로그인 세션이 만료됐습니다. 다시 로그인해 주세요.';
+  return `마감 실패: ${code || e?.message || '알 수 없는 오류'}`;
+}
+
 const scoreBonusPts = t => t < 0 ? 40 : t <= 5 ? 30 : t <= 9 ? 20 : t <= 15 ? 15 : 10;
 const scoreBonusLabel = t => t < 0 ? '언더파' : t <= 5 ? 'E~+5' : t <= 9 ? '+6~+9' : t <= 15 ? '+10~+15' : '+16이상';
 
@@ -1883,13 +1912,22 @@ const scoreBonusLabel = t => t < 0 ? '언더파' : t <= 5 ? 'E~+5' : t <= 9 ? '+
 // 반환값: 새로 포인트 처리를 했으면 true, 없으면 false
 async function closeJoinAndAward(id, monthlyPool = joins) {
   const joinSnap = await getDoc(doc(db, 'joins', id));
-  if (!joinSnap.exists()) return false;
+  if (!joinSnap.exists()) return { didAward: false, nFail: 0, statusError: null };
   const joinNow = joinSnap.data();
   const participants = joinNow.participants || [];
   const scores = joinNow.scores || {};
   const now = new Date().toISOString();
 
-  if (joinNow.status !== 'closed') await updateDoc(doc(db, 'joins', id), { status: 'closed' });
+  // status 변경은 관리자만 가능(firestore.rules). 실패해도 예외를 던져 전체를 중단시키지 말고
+  // 원인을 그대로 올려보내 사용자에게 보여준다. 상태가 안 바뀌면 지급도 하지 않는다.
+  if (joinNow.status !== 'closed') {
+    try {
+      await updateDoc(doc(db, 'joins', id), { status: 'closed' });
+    } catch (e) {
+      console.error(`[마감] 상태 변경 실패 joinId=${id}:`, e.code || '', e);
+      return { didAward: false, nFail: 0, statusError: e };
+    }
+  }
 
   // 레거시 안전장치: 원장이 없는데 예전 방식으로 이미 지급(pointsAwarded)된 조인은
   // 전원 지급된 것으로 간주해 포인트 재지급을 막고(이중지급 방지), scoreHistory만 보강한다.
@@ -1957,12 +1995,17 @@ async function closeJoinAndAward(id, monthlyPool = joins) {
   }));
 
   // 성공한 지급분은 반드시 원장에 저장 (일부 참가자가 실패했어도 진행)
-  await updateDoc(doc(db, 'joins', id), {
-    pointsAwarded: true, scoreBonusAwarded: true,
-    pointAwardedUids: Array.from(pointAwardedUids),
-    scoreAwardedUids: Array.from(scoreAwardedUids),
-  });
-  return { didAward, nFail };
+  try {
+    await updateDoc(doc(db, 'joins', id), {
+      pointsAwarded: true, scoreBonusAwarded: true,
+      pointAwardedUids: Array.from(pointAwardedUids),
+      scoreAwardedUids: Array.from(scoreAwardedUids),
+    });
+  } catch (e) {
+    nFail++;
+    console.error(`[마감] 지급 원장 저장 실패 joinId=${id}:`, e.code || '', e);
+  }
+  return { didAward, nFail, statusError: null };
 }
 
 // ── 마감 조인 누락분 복구 (관리자) ─────────────────────
