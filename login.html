@@ -223,8 +223,8 @@
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">출생연도 뒤 2자리</label>
-        <input class="form-input" id="prof-birth" type="number" placeholder="예) 83" min="0" max="99" />
+        <label class="form-label">출생연도</label>
+        <input class="form-input" id="prof-birth" type="number" placeholder="예) 1983 또는 83" min="0" max="9999" />
       </div>
       <div class="form-group">
         <label class="form-label">거주지</label>
@@ -540,7 +540,8 @@ window.saveProfile = async function() {
 
   const btn = document.getElementById('prof-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
-  const birthRaw = document.getElementById('prof-birth').value.trim();
+  // 출생연도: 1970 같은 4자리로 적어도, 70처럼 2자리로 적어도 모두 뒤 2자리로 저장
+  const birthRaw = document.getElementById('prof-birth').value.trim().slice(-2);
 
   // ── 초대코드 소진: 모든 검증을 통과한 뒤에만 실행 ──
   const inviteRef = doc(db, 'inviteCodes', inviteCode);
