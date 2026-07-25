@@ -549,7 +549,7 @@
 
         <!-- 카드 1: 조인 -->
         <div class="banner-card" onclick="checkPaidAndGo('join.html')">
-          <img class="banner-card-img" src="image/조인.jpg" alt="조인" style="object-position: 60% center;" />
+          <img class="banner-card-img" src="image/조인.webp" alt="조인" fetchpriority="high" decoding="async" />
           <div class="banner-card-overlay"></div>
           <div class="banner-card-body">
             <div class="banner-card-title">조인<br>JOIN</div>
@@ -561,7 +561,7 @@
         <!-- 카드 2: 골슐랭스타 (빨간 빛 테두리) -->
         <div class="glow-card-wrapper" onclick="location.href='golchelin-star.html'">
           <div class="banner-card">
-            <img class="banner-card-img" src="image/골슐랭스타메인.webp" alt="골슐랭스타" />
+            <img class="banner-card-img" src="image/골슐랭스타메인-opt.webp" alt="골슐랭스타" loading="lazy" decoding="async" />
             <div class="banner-card-overlay"></div>
             <div class="banner-card-body">
               <div class="banner-card-title">골슐랭스타<br>GOLCHELIN STAR</div>
@@ -573,7 +573,7 @@
 
         <!-- 카드 3: 단체라운드 대회 -->
         <div class="banner-card" onclick="checkPaidAndGo('event.html')">
-          <img class="banner-card-img" src="image/대회.webp" alt="단체라운드 대회" />
+          <img class="banner-card-img" src="image/대회-opt.webp" alt="단체라운드 대회" loading="lazy" decoding="async" />
           <div class="banner-card-overlay"></div>
           <div class="banner-card-body">
             <div class="banner-card-title">단체라운드<br>대회</div>
@@ -584,7 +584,7 @@
 
         <!-- 카드 4: 골갑 라운드 지도 -->
         <div class="banner-card" onclick="location.href='round-map.html'">
-          <img class="banner-card-img" src="image/골갑라운드지도.webp" alt="골갑 라운드 지도" />
+          <img class="banner-card-img" src="image/골갑라운드지도-opt.webp" alt="골갑 라운드 지도" loading="lazy" decoding="async" />
           <div class="banner-card-overlay"></div>
           <div class="banner-card-body">
             <div class="banner-card-title">골갑<br>라운드 지도</div>
@@ -602,7 +602,7 @@
 
         <!-- 슬라이드 1 -->
         <div class="ad-banner-slide ad-bg-1 active" onclick="window.open('http://dreamfactorygolf.com/','_blank')" style="cursor:pointer;">
-          <img src="AD/ad1.jpg" alt="" onerror="this.style.display='none'" />
+          <img src="AD/ad1.webp" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'" />
           <div class="ad-banner-overlay"></div>
           <div class="ad-banner-text">
             <div class="ad-sub">AD</div>
@@ -612,7 +612,7 @@
 
         <!-- 슬라이드 2 -->
         <div class="ad-banner-slide ad-bg-2" onclick="window.open('https://mkt.shopping.naver.com/link/69de10998404dd427b11768d','_blank')" style="cursor:pointer;">
-          <img src="AD/ad2.jpg" alt="" onerror="this.style.display='none'" />
+          <img src="AD/ad2.webp" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'" />
           <div class="ad-banner-overlay"></div>
           <div class="ad-banner-text">
             <div class="ad-sub">AD</div>
@@ -819,6 +819,13 @@
   const storage = getStorage(app);
 
   let _isAdmin = false;
+
+  // Cloudinary 이미지는 URL에 옵션만 넣으면 서버가 알아서 크기·포맷(WebP/AVIF)을 줄여 보내준다.
+  // 원본 312KB → w_600 기준 약 40KB. Cloudinary가 아닌 주소는 그대로 둔다.
+  const cdnImg = (url, w) =>
+    (typeof url === 'string' && url.includes('/image/upload/'))
+      ? url.replace('/image/upload/', `/image/upload/w_${w},f_auto,q_auto/`)
+      : url;
 
   function setNick(nick) {
     document.getElementById('user-nick').textContent = nick;
@@ -1060,7 +1067,7 @@
       if (n === 1) {
         el.style.cssText = 'grid-template-columns:1fr;grid-template-rows:1fr;';
         el.innerHTML = `<div class="gglog-cell" style="grid-column:1;grid-row:1;" onclick="location.href='feed.html?post=${posts[0].id}'">
-          <img src="${posts[0].photoURL}" loading="eager"/>
+          <img src="${cdnImg(posts[0].photoURL, 600)}" loading="lazy" decoding="async"/>
           <div class="gglog-cell-nick">${posts[0].nickname || '멤버'}</div>
         </div>`;
       } else {
@@ -1073,7 +1080,7 @@
         ];
         el.innerHTML = posts.slice(0, 3).map((p, i) => `
           <div class="gglog-cell" style="${positions[i]}" onclick="location.href='feed.html?post=${p.id}'">
-            <img src="${p.photoURL}" loading="eager"/>
+            <img src="${cdnImg(p.photoURL, i === 0 ? 600 : 400)}" loading="lazy" decoding="async"/>
             ${i === 0 ? `<div class="gglog-cell-nick">${p.nickname || '멤버'}</div>` : ''}
           </div>`).join('');
       }

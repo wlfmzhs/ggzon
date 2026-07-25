@@ -267,6 +267,13 @@ function formatDate(ts) {
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
 
+// Cloudinary 이미지는 URL에 옵션만 넣으면 서버가 알아서 크기·포맷(WebP/AVIF)을 줄여 보내준다.
+// 원본 312KB → w_800 기준 약 75KB. Cloudinary가 아닌 주소는 그대로 둔다.
+const cdnImg = (url, w) =>
+  (typeof url === 'string' && url.includes('/image/upload/'))
+    ? url.replace('/image/upload/', `/image/upload/w_${w},f_auto,q_auto/`)
+    : url;
+
 function showFeedNow() {
   document.getElementById('loading-overlay').classList.add('hidden');
 }
@@ -280,15 +287,18 @@ async function loadFeed() {
       el.innerHTML = '<div class="feed-empty">아직 올라온 사진이 없습니다.<br>첫 번째 사진을 올려보세요!</div>';
       return;
     }
-    el.innerHTML = snap.docs.map((d) => {
+    el.innerHTML = snap.docs.map((d, idx) => {
       const p = d.data();
       const canDelete = (currentUid && currentUid === p.uid) || isAdmin;
+      // 처음 2장만 즉시 받고 나머지는 스크롤해서 보일 때 받는다 (20장 × 200KB 동시 수신 방지)
+      const eager = idx < 2;
       const delBtn = canDelete
         ? `<button onclick="deletePost('${d.id}')" style="background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;padding:0 12px;height:24px;line-height:24px;border-radius:20px;letter-spacing:0.2px;">삭제</button>`
         : '';
       return `<div class="feed-card" id="post-${d.id}">
         <div class="feed-img-wrap">
-          <img class="feed-photo" src="${p.photoURL}" loading="eager" />
+          <img class="feed-photo" src="${cdnImg(p.photoURL, 800)}" decoding="async"
+               loading="${eager ? 'eager' : 'lazy'}"${eager && idx === 0 ? ' fetchpriority="high"' : ''} />
           <div class="feed-overlay">
             <div style="flex:1;">
               <div class="feed-nick">${p.nickname || '멤버'}</div>
@@ -336,24 +346,18 @@ async function loadFeed() {
     // 각 카드 IntersectionObserver 등록 (화면 진입시 풍선)
     el.querySelectorAll('.feed-card').forEach(card => cardObserver.observe(card));
 
-    // 모든 이미지가 로드될 때까지 오버레이 유지 후 한번에 표시
-    const imgs = Array.from(el.querySelectorAll('.feed-photo'));
-    let loaded = 0;
+    // 첫 화면에 보이는 사진만 기다렸다가 바로 표시한다.
+    // (예전엔 20장 전부 로드될 때까지 기다려서 항상 3초 타임아웃까지 멈춰 있었다.
+    //  나머지는 lazy 로딩이라 애초에 다 기다릴 수도 없다.)
     let shown = false;
     const reveal = () => { if (!shown) { shown = true; showFeedNow(); } };
-    // 최대 3초 타임아웃 (네트워크 느린 경우 대비)
-    const timeout = setTimeout(reveal, 3000);
-    imgs.forEach(img => {
-      if (img.complete && img.naturalWidth > 0) {
-        loaded++;
-        if (loaded === imgs.length) { clearTimeout(timeout); reveal(); }
-      } else {
-        img.onload = img.onerror = () => {
-          loaded++;
-          if (loaded === imgs.length) { clearTimeout(timeout); reveal(); }
-        };
-      }
-    });
+    const firstImg = el.querySelector('.feed-photo');
+    const timeout = setTimeout(reveal, 1500);
+    if (!firstImg || (firstImg.complete && firstImg.naturalWidth > 0)) {
+      clearTimeout(timeout); reveal();
+    } else {
+      firstImg.onload = firstImg.onerror = () => { clearTimeout(timeout); reveal(); };
+    }
     // 대시보드 그리드에서 특정 포스트로 진입 시 스크롤
     const targetId = new URLSearchParams(location.search).get('post');
     if (targetId) {
