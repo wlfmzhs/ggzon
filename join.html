@@ -872,7 +872,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  initializeFirestore, persistentLocalCache, persistentSingleTabManager, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { PAYWALL_ENABLED } from "/ggzon-config.js";
 
@@ -886,7 +886,7 @@ const app = initializeApp({
 });
 const auth = getAuth(app);
 const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 if (window.Kakao && !Kakao.isInitialized()) {
@@ -1793,12 +1793,44 @@ window.saveJoin = async function() {
   } catch (e) { showToast('저장 실패: ' + e.message); }
 };
 
+// ── Firestore 일시 오류 재시도 ────────────────────────
+// 네트워크가 잠깐 끊기거나 로그인 토큰이 오래돼 거부되면 예전엔 그 자리에서 실패했다.
+// (그래서 "새로고침 후 다시 하면 되는" 증상이 났다.) 이제는 토큰을 강제로 새로 받아
+// 최대 3번까지 다시 시도하므로 페이지를 새로고침하지 않아도 그대로 진행된다.
+const RETRYABLE = ['unavailable', 'deadline-exceeded', 'internal', 'aborted', 'cancelled',
+                   'resource-exhausted', 'unauthenticated', 'permission-denied', 'failed-precondition'];
+async function withRetry(fn, tries = 3) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); }
+    catch (e) {
+      lastErr = e;
+      if (!RETRYABLE.includes(e?.code || '')) throw e;
+      if (i === tries - 1) break;
+      try { if (auth.currentUser) await auth.currentUser.getIdToken(true); } catch (_) {}
+      await new Promise(r => setTimeout(r, 500 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+// 조인 문서를 다시 읽는다. 실패해도 예외를 던지지 않고 원인을 함께 돌려준다.
+async function readJoin(id) {
+  try {
+    const snap = await withRetry(() => getDoc(doc(db, 'joins', id)));
+    return { data: snap.exists() ? snap.data() : null, error: null };
+  } catch (e) {
+    console.error(`[마감] 조인 정보 읽기 실패 joinId=${id}:`, e.code || '', e);
+    return { data: null, error: e };
+  }
+}
+
 // ── 마감 ─────────────────────────────────────────────
 window.confirmClose = function(id, name) {
   showConfirm('조인 마감', `"${name}" 조인을 마감합니다.\n연결된 팀이 있다면 함께 마감되며, 입력된 스코어·포인트·랭킹이 자동 처리됩니다.`, async () => {
-    const joinSnap = await getDoc(doc(db, 'joins', id));
-    if (!joinSnap.exists()) return;
-    const joinNow = joinSnap.data();
+    const { data: joinNow, error: readErr } = await readJoin(id);
+    if (readErr) { showToast(closeErrorMessage(readErr)); return; }
+    if (!joinNow) { showToast('이미 삭제된 조인입니다'); await loadJoins(); return; }
     const pids = joinNow.partyIds || (joinNow.partyId ? [joinNow.partyId] : []);
     const allIds = [id, ...pids];
 
@@ -1832,9 +1864,9 @@ window.confirmReflect = function(id, name) {
   showConfirm('스코어 재반영',
     `"${name}" 조인의 스코어·포인트·랭킹을 다시 반영합니다.\n마감 후 늦게 입력된 스코어의 누락분만 채워지며, 이미 지급된 항목은 건너뜁니다(이중지급 없음).`,
     async () => {
-      const joinSnap = await getDoc(doc(db, 'joins', id));
-      if (!joinSnap.exists()) return;
-      const joinNow = joinSnap.data();
+      const { data: joinNow, error: readErr } = await readJoin(id);
+      if (readErr) { showToast(closeErrorMessage(readErr)); return; }
+      if (!joinNow) { showToast('이미 삭제된 조인입니다'); await loadJoins(); return; }
       const pids = joinNow.partyIds || (joinNow.partyId ? [joinNow.partyId] : []);
       const allIds = [id, ...pids];
 
@@ -1900,6 +1932,10 @@ function closeErrorMessage(e) {
     return '마감 실패: 서버에 연결하지 못했습니다. 네트워크 확인 후 다시 시도해 주세요.';
   if (code === 'unauthenticated')
     return '마감 실패: 로그인 세션이 만료됐습니다. 다시 로그인해 주세요.';
+  if (code === 'resource-exhausted')
+    return '마감 실패: 오늘 서버 사용량 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.';
+  if (code === 'failed-precondition')
+    return '마감 실패: 앱을 여러 탭에 열어두면 발생할 수 있습니다. 다른 탭을 닫고 다시 시도해 주세요.';
   return `마감 실패: ${code || e?.message || '알 수 없는 오류'}`;
 }
 
@@ -1911,9 +1947,9 @@ const scoreBonusLabel = t => t < 0 ? '언더파' : t <= 5 ? 'E~+5' : t <= 9 ? '+
 // 스코어가 나중에 들어와도 재마감/복구 시 누락분만 안전하게 채워진다.
 // 반환값: 새로 포인트 처리를 했으면 true, 없으면 false
 async function closeJoinAndAward(id, monthlyPool = joins) {
-  const joinSnap = await getDoc(doc(db, 'joins', id));
-  if (!joinSnap.exists()) return { didAward: false, nFail: 0, statusError: null };
-  const joinNow = joinSnap.data();
+  const { data: joinNow, error: readErr } = await readJoin(id);
+  if (readErr) return { didAward: false, nFail: 0, statusError: readErr };
+  if (!joinNow) return { didAward: false, nFail: 0, statusError: null };
   const participants = joinNow.participants || [];
   const scores = joinNow.scores || {};
   const now = new Date().toISOString();
@@ -1922,7 +1958,7 @@ async function closeJoinAndAward(id, monthlyPool = joins) {
   // 원인을 그대로 올려보내 사용자에게 보여준다. 상태가 안 바뀌면 지급도 하지 않는다.
   if (joinNow.status !== 'closed') {
     try {
-      await updateDoc(doc(db, 'joins', id), { status: 'closed' });
+      await withRetry(() => updateDoc(doc(db, 'joins', id), { status: 'closed' }));
     } catch (e) {
       console.error(`[마감] 상태 변경 실패 joinId=${id}:`, e.code || '', e);
       return { didAward: false, nFail: 0, statusError: e };
@@ -1996,11 +2032,11 @@ async function closeJoinAndAward(id, monthlyPool = joins) {
 
   // 성공한 지급분은 반드시 원장에 저장 (일부 참가자가 실패했어도 진행)
   try {
-    await updateDoc(doc(db, 'joins', id), {
+    await withRetry(() => updateDoc(doc(db, 'joins', id), {
       pointsAwarded: true, scoreBonusAwarded: true,
       pointAwardedUids: Array.from(pointAwardedUids),
       scoreAwardedUids: Array.from(scoreAwardedUids),
-    });
+    }));
   } catch (e) {
     nFail++;
     console.error(`[마감] 지급 원장 저장 실패 joinId=${id}:`, e.code || '', e);
@@ -2194,8 +2230,9 @@ document.getElementById('confirm-ok-btn').onclick = async () => {
   try {
     await cb();                          // 실제 마감/처리 작업
   } catch (e) {
-    console.error(e);
-    showToast('처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    // 원인 없이 "처리 중 오류"만 뜨면 손을 쓸 수 없다. 실제 오류 코드를 함께 보여준다.
+    console.error('[처리 실패]', e?.code || '', e);
+    showToast(`처리 중 오류가 발생했습니다 (${e?.code || e?.name || e?.message || '원인불명'}). 다시 시도해 주세요.`);
   } finally {
     confirmRunning = false;
     btn.disabled = false; btn.textContent = orig; btn.style.opacity = ''; btn.style.cursor = '';

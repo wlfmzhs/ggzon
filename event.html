@@ -1439,7 +1439,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  initializeFirestore, persistentLocalCache, persistentSingleTabManager, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
   onSnapshot, serverTimestamp, writeBatch, deleteField, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -1453,7 +1453,7 @@ const app = initializeApp({
 });
 const auth = getAuth(app);
 const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 // ── 코스명 헬퍼 (tournament 객체에서 가져오거나 기본값 사용) ──
