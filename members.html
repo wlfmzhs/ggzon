@@ -81,7 +81,7 @@
 
     .rank-note {
       text-align: center; font-size: 10px; color: rgba(255,255,255,0.2);
-      padding: 0 16px 16px; line-height: 1.6;
+      padding: 0 16px 16px; line-height: 1.6; white-space: pre-line;
     }
 
     .member-card {
@@ -101,6 +101,21 @@
     .member-card.rank-1 { background: rgba(240,192,64,0.08); border-color: rgba(240,192,64,0.32); }
     .member-card.rank-2 { background: rgba(192,192,192,0.06); border-color: rgba(192,192,192,0.22); }
     .member-card.rank-3 { background: rgba(205,127,50,0.07); border-color: rgba(205,127,50,0.26); }
+
+    /* 5경기 미만 — 순위 번호 없이 자리만 유지하고 흐리게 (opacity는 등장 애니메이션이
+       덮어쓰므로 filter로 흐리게 한다) */
+    .member-card.unranked {
+      filter: opacity(0.55);
+      background: rgba(255,255,255,0.025);
+      border-color: rgba(255,255,255,0.08);
+    }
+    .member-card.unranked .rank-num { font-size: 15px; color: rgba(255,255,255,0.16); }
+    .pending-note {
+      margin-left: 6px; font-size: 9.5px; font-weight: 800; letter-spacing: -0.01em;
+      color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 2px 7px;
+      vertical-align: 1px;
+    }
 
     .rank-num {
       font-size: 22px; font-weight: 900; width: 28px; text-align: center; flex-shrink: 0;
@@ -253,8 +268,13 @@
   let allPlayers = [];
   const PAGE = 10;
 
-  function buildCard(u, rank) {
-    const rc = rank <= 3 ? ['rank-1','rank-2','rank-3'][rank - 1] : '';
+  // 랭킹 반영 최소 경기 수. 이보다 적게 친 멤버는 순위 번호 없이(흐리게) 자리만 지키고,
+  // 순위 번호는 5경기 이상인 멤버끼리만 1위부터 순서대로 매긴다.
+  const MIN_ROUNDS = 5;
+
+  // rank: 숫자면 랭킹 반영, null이면 경기 수 미달(번호 없음)
+  function buildCard(u, rank, index) {
+    const rc = (rank && rank <= 3) ? ['rank-1','rank-2','rank-3'][rank - 1] : '';
     const nick = u.name || u.nickname || '멤버';
     const uid  = u.uid || '';
     const starCount = GOLCHELIN[u.name] || GOLCHELIN[u.nickname] || 0;
@@ -285,11 +305,13 @@
     if (u.hasHoleinone) badges.push('<span class="badge badge-holeinone">홀인원</span>');
     const dropId = `drop-${uid}`;
     const cardId = `card-${uid}`;
+    const remain = Math.max(MIN_ROUNDS - (u.roundCount || 0), 1);
+    const pendingHtml = rank ? '' : `<span class="pending-note">${remain}경기 완료 시 랭킹 반영</span>`;
     return `
-<div class="member-card ${rc}" id="${cardId}" style="animation-delay:${Math.min(rank-1,9)*0.07}s;" onclick="window.toggleDrop('${uid}','${dropId}','${cardId}')">
-  <div class="rank-num">${rank}</div>
+<div class="member-card ${rc}${rank ? '' : ' unranked'}" id="${cardId}" style="animation-delay:${Math.min(index,9)*0.07}s;" onclick="window.toggleDrop('${uid}','${dropId}','${cardId}')">
+  <div class="rank-num">${rank ?? '-'}</div>
   <div class="member-info">
-    <div class="member-nick">${nick}${arrowHtml}${starHtml}</div>
+    <div class="member-nick">${nick}${arrowHtml}${starHtml}${pendingHtml}</div>
     <div class="member-meta">${metaParts.join(' · ')}${bestStr}</div>
     ${badges.length ? `<div class="member-badges">${badges.join('')}</div>` : ''}
   </div>
@@ -303,7 +325,7 @@
   }
 
   function renderList(players, el) {
-    el.innerHTML = players.map((u, i) => buildCard(u, i + 1)).join('');
+    el.innerHTML = players.map((u, i) => buildCard(u, u._rank, i)).join('');
   }
 
   const _dropCache = {};
@@ -373,6 +395,11 @@
         .map(d => ({ uid: d.id, ...d.data() }))
         .filter(u => u.roundCount > 0 && typeof u.handicap === 'number');
 
+      // 순위는 5경기 이상인 멤버끼리만 1위부터 연속으로 매긴다.
+      // 미달 멤버는 핸디캡 순서상 제자리에 그대로 두되 번호를 주지 않는다(_rank = null).
+      let placed = 0;
+      allPlayers.forEach(u => { u._rank = (u.roundCount || 0) >= MIN_ROUNDS ? ++placed : null; });
+
       if (!allPlayers.length) {
         el.innerHTML = '<div class="empty-msg">아직 스코어를 제출한 멤버가 없습니다<br>라운드 후 스코어를 제출하면 자동 등록됩니다</div>';
         note.textContent = '';
@@ -382,8 +409,9 @@
       renderList(allPlayers.slice(0, PAGE), el);
 
       // 1위 자동 드롭다운 힌트 (1~2초 후 펼쳐서 클릭 유도)
-      if (allPlayers.length > 0) {
-        const first = allPlayers[0];
+      const topRanked = allPlayers.find(u => u._rank === 1) || allPlayers[0];
+      if (topRanked) {
+        const first = topRanked;
         setTimeout(() => {
           window.toggleDrop(first.uid, `drop-${first.uid}`, `card-${first.uid}`);
         }, 1500);
@@ -398,7 +426,7 @@
         moreBtn.style.display = 'none';
       }
 
-      note.textContent = '스코어 제출 시 자동 업데이트 · 최근 10경기 평균 기준';
+      note.textContent = `스코어 제출 시 자동 업데이트 · 최근 10경기 평균 기준\n${MIN_ROUNDS}경기 이상부터 순위가 매겨집니다 (미만은 번호 없이 표시)`;
     } catch(e) {
       el.innerHTML = '<div class="empty-msg">불러오기 실패<br>잠시 후 다시 시도해주세요</div>';
       note.textContent = '';
