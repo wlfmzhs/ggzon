@@ -872,7 +872,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
+  initializeFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { PAYWALL_ENABLED } from "/ggzon-config.js";
 
@@ -885,9 +885,12 @@ const app = initializeApp({
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
 const auth = getAuth(app);
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
+// 로컬 캐시(IndexedDB)를 쓰지 않는다.
+// 사생활 보호 모드·카톡 등 인앱 브라우저·오래된 탭이 열려 있을 때 IndexedDB가 열리지 않는데,
+// 한 번 실패하면 그 뒤 모든 읽기/쓰기가 failed-precondition으로 막힌다.
+// (= "마감 실패" 후 새로고침해야 되던 증상의 원인) 관리자 마감·포인트 지급이 걸린
+// 페이지라 캐시로 몇백 ms 아끼는 것보다 어떤 브라우저에서도 확실히 되는 쪽이 낫다.
+const db = initializeFirestore(app, {});
 
 if (window.Kakao && !Kakao.isInitialized()) {
   Kakao.init('a14a8368381df22cac7c0fd0841fd28e');
@@ -1814,10 +1817,100 @@ async function withRetry(fn, tries = 3) {
   throw lastErr;
 }
 
+// ── REST 우회 (SDK가 막혔을 때의 안전망) ───────────────
+// SDK는 브라우저 저장소·실시간 연결(WebChannel)에 의존해서, 그 계층이 한 번 망가지면
+// 네트워크가 멀쩡해도 모든 요청이 failed-precondition/unavailable로 막힌다.
+// 그럴 때 같은 로그인 토큰으로 Firestore REST에 직접 요청해 마감·지급을 끝까지 진행한다.
+const REST_ROOT = 'projects/ggzon-b33cb/databases/(default)/documents';
+const REST_BASE = `https://firestore.googleapis.com/v1/${REST_ROOT}`;
+
+function restValue(v) {
+  if (v === null || v === undefined)  return { nullValue: null };
+  if (typeof v === 'string')          return { stringValue: v };
+  if (typeof v === 'boolean')         return { booleanValue: v };
+  if (typeof v === 'number')          return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (v instanceof Date)              return { timestampValue: v.toISOString() };
+  if (Array.isArray(v))               return { arrayValue: { values: v.map(restValue) } };
+  return { mapValue: { fields: restFields(v) } };
+}
+const restFields = obj => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, restValue(v)]));
+
+function restDecode(v) {
+  if (!v || typeof v !== 'object') return null;
+  if ('nullValue'      in v) return null;
+  if ('stringValue'    in v) return v.stringValue;
+  if ('booleanValue'   in v) return v.booleanValue;
+  if ('integerValue'   in v) return Number(v.integerValue);
+  if ('doubleValue'    in v) return v.doubleValue;
+  if ('timestampValue' in v) return new Date(v.timestampValue);
+  if ('arrayValue'     in v) return (v.arrayValue.values || []).map(restDecode);
+  if ('mapValue'       in v) return restDecodeFields(v.mapValue.fields || {});
+  return null;
+}
+const restDecodeFields = f => Object.fromEntries(Object.entries(f).map(([k, x]) => [k, restDecode(x)]));
+
+async function restCall(url, method, body) {
+  if (!auth.currentUser) throw Object.assign(new Error('로그인이 필요합니다'), { code: 'unauthenticated' });
+  const token = await auth.currentUser.getIdToken(true);
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    const code = res.status === 403 ? 'permission-denied'
+      : res.status === 404 ? 'not-found'
+      : res.status === 401 ? 'unauthenticated'
+      : (detail?.error?.status || `http-${res.status}`).toLowerCase().replace(/_/g, '-');
+    throw Object.assign(new Error(detail?.error?.message || `REST ${res.status}`), { code });
+  }
+  return res.status === 204 ? {} : res.json();
+}
+// SDK 스냅샷과 같은 모양(exists()/data())으로 돌려줘 호출부가 구분 없이 쓰게 한다.
+async function restGet(path) {
+  try {
+    const d = await restCall(`${REST_BASE}/${path}`, 'GET');
+    const data = restDecodeFields(d.fields || {});
+    return { exists: () => true, data: () => data };
+  } catch (e) {
+    if (e.code === 'not-found') return { exists: () => false, data: () => null };
+    throw e;
+  }
+}
+// 지정한 필드만 덮어쓴다(문서가 없으면 생성). updateDoc / setDoc(merge)와 같은 효과.
+const restPatch = (path, fields) => restCall(
+  `${REST_BASE}/${path}?` + Object.keys(fields).map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&'),
+  'PATCH', { fields: restFields(fields) });
+const restAdd = (col, fields) => restCall(`${REST_BASE}/${col}`, 'POST', { fields: restFields(fields) });
+const restIncrement = (path, field, n) => restCall(`${REST_BASE}:commit`, 'POST', {
+  writes: [{ transform: {
+    document: `${REST_ROOT}/${path}`,
+    fieldTransforms: [{ fieldPath: field, increment: { integerValue: String(n) } }],
+  } }],
+});
+
+// SDK로 먼저 시도하고, 막히면 REST로 한 번 더. 둘 중 하나만 되면 성공이다.
+// 권한 거부는 REST에서도 똑같이 거부되므로 그 원인을 그대로 올려보낸다.
+async function viaSdkOrRest(sdkFn, restFn, label) {
+  try { return await withRetry(sdkFn); }
+  catch (e) {
+    console.warn(`[${label}] SDK 실패(${e?.code || ''}) → REST 우회 시도`, e);
+    try { return await restFn(); }
+    catch (e2) {
+      console.error(`[${label}] REST 우회도 실패:`, e2?.code || '', e2);
+      throw (e2?.code === 'permission-denied' || e2?.code === 'unauthenticated') ? e2 : e;
+    }
+  }
+}
+
 // 조인 문서를 다시 읽는다. 실패해도 예외를 던지지 않고 원인을 함께 돌려준다.
 async function readJoin(id) {
   try {
-    const snap = await withRetry(() => getDoc(doc(db, 'joins', id)));
+    const snap = await viaSdkOrRest(
+      () => getDoc(doc(db, 'joins', id)),
+      () => restGet(`joins/${id}`),
+      '마감/조인읽기');
     return { data: snap.exists() ? snap.data() : null, error: null };
   } catch (e) {
     console.error(`[마감] 조인 정보 읽기 실패 joinId=${id}:`, e.code || '', e);
@@ -1887,10 +1980,11 @@ window.confirmReflect = function(id, name) {
 
 // 참가자 1명의 scoreHistory 문서를 없을 때만 생성하고 핸디캡/통계를 재계산한다. (멱등)
 async function ensureScoreHistory(joinData, joinId, p, pHoles, pTotal) {
-  const histRef = doc(db, 'users', p.uid, 'scoreHistory', joinId);
-  const histSnap = await getDoc(histRef);
+  const histPath = `users/${p.uid}/scoreHistory/${joinId}`;
+  const histRef  = doc(db, 'users', p.uid, 'scoreHistory', joinId);
+  const histSnap = await viaSdkOrRest(() => getDoc(histRef), () => restGet(histPath), '마감/스코어기록읽기');
   if (histSnap.exists()) return false;
-  await setDoc(histRef, {
+  const hist = {
     course:      joinData.course      || '',
     frontCourse: joinData.frontCourse || '',
     backCourse:  joinData.backCourse  || '',
@@ -1900,8 +1994,11 @@ async function ensureScoreHistory(joinData, joinId, p, pHoles, pTotal) {
     holes:       pHoles,
     parHoles:    [],
     joinId,
-    submittedAt: serverTimestamp(),
-  });
+  };
+  await viaSdkOrRest(
+    () => setDoc(histRef, { ...hist, submittedAt: serverTimestamp() }),
+    () => restPatch(histPath, { ...hist, submittedAt: new Date() }),
+    '마감/스코어기록');
   try {
     const allHistSnap = await getDocs(
       query(collection(db, 'users', p.uid, 'scoreHistory'), orderBy('submittedAt', 'desc'))
@@ -1935,7 +2032,9 @@ function closeErrorMessage(e) {
   if (code === 'resource-exhausted')
     return '마감 실패: 오늘 서버 사용량 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.';
   if (code === 'failed-precondition')
-    return '마감 실패: 앱을 여러 탭에 열어두면 발생할 수 있습니다. 다른 탭을 닫고 다시 시도해 주세요.';
+    return '마감 실패: 브라우저 저장소가 잠겨 있습니다. 브라우저를 완전히 껐다 켠 뒤(또는 다른 브라우저에서) 다시 시도해 주세요.';
+  if (code === 'not-found')
+    return '마감 실패: 참가자 정보가 없는 조인입니다. 관리자에게 문의해 주세요.';
   return `마감 실패: ${code || e?.message || '알 수 없는 오류'}`;
 }
 
@@ -1958,7 +2057,10 @@ async function closeJoinAndAward(id, monthlyPool = joins) {
   // 원인을 그대로 올려보내 사용자에게 보여준다. 상태가 안 바뀌면 지급도 하지 않는다.
   if (joinNow.status !== 'closed') {
     try {
-      await withRetry(() => updateDoc(doc(db, 'joins', id), { status: 'closed' }));
+      await viaSdkOrRest(
+        () => updateDoc(doc(db, 'joins', id), { status: 'closed' }),
+        () => restPatch(`joins/${id}`, { status: 'closed' }),
+        '마감/상태변경');
     } catch (e) {
       console.error(`[마감] 상태 변경 실패 joinId=${id}:`, e.code || '', e);
       return { didAward: false, nFail: 0, statusError: e };
@@ -2001,28 +2103,42 @@ async function closeJoinAndAward(id, monthlyPool = joins) {
       // 3. 조인참여 포인트 +10 (월 4회 이하 + 미지급 참가자만)
       //    지급(increment) 성공 즉시 원장에 기록 → addDoc이 실패해도 재시도 시 이중지급 방지.
       if (eligibleForPoints && !pointAwardedUids.has(p.uid)) {
-        await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) });
+        await viaSdkOrRest(
+          () => updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(10) }),
+          () => restIncrement(`users/${p.uid}`, 'totalPoints', 10),
+          '마감/참여포인트');
         pointAwardedUids.add(p.uid);
         didAward = true;
-        await addDoc(collection(db, 'pointHistory'), {
+        const hist = {
           uid: p.uid, name: p.name || '골퍼',
           type: '조인참여', amount: 10, ref: joinNow.course || '', date: now,
           roundDate: joinNow.date || '', joinId: id,
-        });
+        };
+        await viaSdkOrRest(
+          () => addDoc(collection(db, 'pointHistory'), hist),
+          () => restAdd('pointHistory', hist),
+          '마감/포인트내역');
       }
 
       // 4. 스코어 보너스 포인트 (미지급 참가자만)
       if (eligibleForPoints && hasScore && !scoreAwardedUids.has(p.uid)) {
         const pts = scoreBonusPts(pTotal);
-        await updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) });
+        await viaSdkOrRest(
+          () => updateDoc(doc(db, 'users', p.uid), { totalPoints: increment(pts) }),
+          () => restIncrement(`users/${p.uid}`, 'totalPoints', pts),
+          '마감/스코어보너스');
         scoreAwardedUids.add(p.uid);
         didAward = true;
-        await addDoc(collection(db, 'pointHistory'), {
+        const hist = {
           uid: p.uid, name: p.name || '골퍼',
           type: '스코어', amount: pts,
           ref: `${joinNow.course || '라운드'} (${scoreBonusLabel(pTotal)})`, date: now,
           roundDate: joinNow.date || '', joinId: id,
-        });
+        };
+        await viaSdkOrRest(
+          () => addDoc(collection(db, 'pointHistory'), hist),
+          () => restAdd('pointHistory', hist),
+          '마감/포인트내역');
       }
     } catch (e) {
       nFail++;
@@ -2031,12 +2147,16 @@ async function closeJoinAndAward(id, monthlyPool = joins) {
   }));
 
   // 성공한 지급분은 반드시 원장에 저장 (일부 참가자가 실패했어도 진행)
+  const ledger = {
+    pointsAwarded: true, scoreBonusAwarded: true,
+    pointAwardedUids: Array.from(pointAwardedUids),
+    scoreAwardedUids: Array.from(scoreAwardedUids),
+  };
   try {
-    await withRetry(() => updateDoc(doc(db, 'joins', id), {
-      pointsAwarded: true, scoreBonusAwarded: true,
-      pointAwardedUids: Array.from(pointAwardedUids),
-      scoreAwardedUids: Array.from(scoreAwardedUids),
-    }));
+    await viaSdkOrRest(
+      () => updateDoc(doc(db, 'joins', id), ledger),
+      () => restPatch(`joins/${id}`, ledger),
+      '마감/원장저장');
   } catch (e) {
     nFail++;
     console.error(`[마감] 지급 원장 저장 실패 joinId=${id}:`, e.code || '', e);
