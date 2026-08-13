@@ -222,7 +222,8 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { makeDb } from "/fs-cache.js";
 const CLOUDINARY_CLOUD = 'da9tzfmg0';
 const CLOUDINARY_PRESET = 'GG ZON';
 
@@ -235,9 +236,7 @@ const app = initializeApp({
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
 const auth = getAuth(app);
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
+const db = makeDb(app);
 
 // 로그인 확인 (카카오 OR 관리자)
 const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');

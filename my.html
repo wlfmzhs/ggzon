@@ -949,9 +949,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
+  doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
   query, serverTimestamp, orderBy, where, arrayRemove, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { makeDb } from "/fs-cache.js";
 
 
 const app = initializeApp({
@@ -963,9 +964,7 @@ const app = initializeApp({
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
 const auth = getAuth(app);
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
+const db = makeDb(app);
 
 let currentUser = null;
 let userData = {};
