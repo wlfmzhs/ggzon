@@ -495,16 +495,7 @@
     .gp-trend.t-down { color: #3ea066; }
     .gp-trend.t-up   { color: #e74c3c; }
     .gp-trend.t-flat { color: rgba(255,255,255,0.22); }
-    /* 5경기 미만 — 순위 번호 없이, 줄 높이도 줄여 정식 랭커와 구분 */
-    .gp-row.gp-unranked { opacity: 0.5; padding: 2px 2px; }
-    .gp-row.gp-unranked .gp-nick { font-size: 11px; }
-    /* 오른쪽 열 위치가 어긋나지 않게 자리는 남기고 감춘다 */
-    .gp-row.gp-unranked .gp-trend { visibility: hidden; }
-    .gp-pending {
-      margin-left: 5px; font-size: 8.5px; font-weight: 800;
-      color: rgba(255,255,255,0.38); background: rgba(255,255,255,0.06);
-      border-radius: 20px; padding: 1px 5px; vertical-align: 1px;
-    }
+    /* 미니 랭킹은 5경기 이상 정식 랭커만 표시한다 (미달 멤버는 전체 랭킹에만 노출) */
   </style>
 </head>
 <body>
@@ -1103,20 +1094,18 @@ import { makeDb } from "/fs-cache.js";
     const el = document.getElementById('ggplayer-list');
     try {
       const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(50)));
-      // 순위는 5경기 이상인 멤버끼리만 매긴다(members.html과 동일 규칙).
-      // 미달 멤버도 핸디캡 순서대로 자리는 지키되 번호 없이 흐리게 보여준다.
+      // 미니 랭킹은 정식 랭커(5경기 이상)만 보여준다.
+      // 5경기 미만 멤버는 전체 랭킹(members.html)에서만 번호 없이 표시된다.
       const MIN_ROUNDS = 5;
       const validDocs = snap.docs.filter(d => {
         const u = d.data();
-        return (u.roundCount > 0) && typeof u.handicap === 'number';
+        return (u.roundCount >= MIN_ROUNDS) && typeof u.handicap === 'number';
       }).slice(0, 10);
       if (validDocs.length === 0) { el.innerHTML = '<div class="live-empty">아직 등록된 플레이어가 없습니다</div>'; return; }
       const rankCls = ['r1','r2','r3'];
-      let placed = 0;
-      const ranks = validDocs.map(d => ((d.data().roundCount || 0) >= MIN_ROUNDS) ? ++placed : null);
       el.innerHTML = validDocs.map((d, i) => {
         const u = d.data();
-        const rank = ranks[i];
+        const rank = i + 1;
         const nick = u.name || u.nickname || '멤버';
         const metaParts = [];
         if (u.birthYear2) metaParts.push(u.birthYear2 + '년생');
@@ -1131,10 +1120,9 @@ import { makeDb } from "/fs-cache.js";
           if (t < -0.5) { tClass = 't-down'; tText = '&#9660; ' + Math.abs(t).toFixed(1) + ' 개선'; }
           else if (t > 0.5) { tClass = 't-up'; tText = '&#9650; ' + t.toFixed(1) + ' 상승'; }
         }
-        const remain = Math.max(MIN_ROUNDS - (u.roundCount || 0), 1);
-        return `<div class="gp-row${rank ? '' : ' gp-unranked'}" onclick="location.href='members.html'">
-  <div class="gp-rank ${rank ? (rankCls[rank - 1] || '') : ''}">${rank ?? '-'}</div>
-  <div class="gp-nick">${nick}${rank ? '' : `<span class="gp-pending">${remain}경기 완료 시 반영</span>`}</div>
+        return `<div class="gp-row" onclick="location.href='members.html'">
+  <div class="gp-rank ${rankCls[i] || ''}">${rank}</div>
+  <div class="gp-nick">${nick}</div>
   <div class="gp-meta">${metaParts.join(' · ')}</div>
   <div class="gp-handi ${hCls}">${hLabel}</div>
   <div class="gp-trend ${tClass}">${tText}</div>
