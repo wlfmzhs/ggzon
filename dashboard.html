@@ -495,8 +495,11 @@
     .gp-trend.t-down { color: #3ea066; }
     .gp-trend.t-up   { color: #e74c3c; }
     .gp-trend.t-flat { color: rgba(255,255,255,0.22); }
-    /* 5경기 미만 — 순위 번호 없이 흐리게 */
-    .gp-row.gp-unranked { opacity: 0.5; }
+    /* 5경기 미만 — 순위 번호 없이, 줄 높이도 줄여 정식 랭커와 구분 */
+    .gp-row.gp-unranked { opacity: 0.5; padding: 2px 2px; }
+    .gp-row.gp-unranked .gp-nick { font-size: 11px; }
+    /* 오른쪽 열 위치가 어긋나지 않게 자리는 남기고 감춘다 */
+    .gp-row.gp-unranked .gp-trend { visibility: hidden; }
     .gp-pending {
       margin-left: 5px; font-size: 8.5px; font-weight: 800;
       color: rgba(255,255,255,0.38); background: rgba(255,255,255,0.06);

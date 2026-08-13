@@ -102,14 +102,26 @@
     .member-card.rank-2 { background: rgba(192,192,192,0.06); border-color: rgba(192,192,192,0.22); }
     .member-card.rank-3 { background: rgba(205,127,50,0.07); border-color: rgba(205,127,50,0.26); }
 
-    /* 5경기 미만 — 순위 번호 없이 자리만 유지하고 흐리게 (opacity는 등장 애니메이션이
-       덮어쓰므로 filter로 흐리게 한다) */
+    /* 5경기 미만 — 순위 번호 없이 자리만 유지. 정식 랭커와 섞여 보이지 않도록
+       높이를 1/3로 줄인 슬림 행으로 표시한다. (opacity는 등장 애니메이션이 덮어쓰므로
+       filter로 흐리게 한다) */
     .member-card.unranked {
-      filter: opacity(0.55);
-      background: rgba(255,255,255,0.025);
-      border-color: rgba(255,255,255,0.08);
+      filter: opacity(0.62);
+      padding: 6px 16px;
+      margin-bottom: 5px;
+      border-radius: 12px;
+      border-style: dashed;
+      background: rgba(255,255,255,0.02);
+      border-color: rgba(255,255,255,0.09);
     }
-    .member-card.unranked .rank-num { font-size: 15px; color: rgba(255,255,255,0.16); }
+    .member-card.unranked .rank-num { font-size: 11px; color: rgba(255,255,255,0.14); }
+    .member-card.unranked .member-nick { font-size: 12px; font-weight: 800; margin-bottom: 0; }
+    .member-card.unranked .handi-big { font-size: 14px; margin-bottom: 0; }
+    .member-card.unranked .member-meta,
+    .member-card.unranked .member-badges,
+    .member-card.unranked .trend-line,
+    .member-card.unranked .drop-toggle { display: none; }
+    .member-card.unranked .pending-note { font-size: 9px; padding: 1px 6px; }
     .pending-note {
       margin-left: 6px; font-size: 9.5px; font-weight: 800; letter-spacing: -0.01em;
       color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.06);
