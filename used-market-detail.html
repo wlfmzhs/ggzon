@@ -425,7 +425,8 @@ let auctionBidUnsubscribe = null;
 
 window.shareKakao = function() {
   if (!itemData) return;
-  const pageUrl = `https://wlfmzhs.github.io/ggzon/used-market-detail.html?id=${itemId}`;
+  // 공유 링크는 실서비스 도메인으로. github.io 주소는 한 번 더 리다이렉트된다.
+  const pageUrl = `https://www.ggzon.co.kr/used-market-detail.html?id=${itemId}`;
   const thumb = (itemData.photos && itemData.photos.length > 0)
     ? itemData.photos[0]
     : 'https://www.ggzon.co.kr/image/golgab-logo.png';
@@ -1139,6 +1140,12 @@ onAuthStateChanged(auth, async user => {
 
   window._inAppBrowser = true;
 
+  // 이 인앱브라우저에 이미 로그인 세션이 있으면 오버레이 없이 바로 보여준다.
+  // (로그인된 회원까지 초대 화면으로 덮으면 앱/로그인 사이를 오가며 튕기게 된다)
+  let _me = null;
+  try { _me = JSON.parse(localStorage.getItem('ggzon_user') || 'null'); } catch (e) {}
+  if (_me && _me.loginType === 'kakao') return;
+
   const currentUrl = location.href;
   const isIos = /iPhone|iPad|iPod/i.test(ua);
   const isKakao = /KAKAOTALK/i.test(ua);
@@ -1177,8 +1184,11 @@ onAuthStateChanged(auth, async user => {
     if (isKakao && isIos) {
       location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
     } else if (isKakao && !isIos) {
-      location.href = 'intent://' + currentUrl.replace(/^https?:\/\//, '') +
-        '#Intent;scheme=https;package=com.android.chrome;end';
+      // 크롬이 없거나 비활성화된 기기에서 멈추지 않도록 fallback을 넣는다.
+      const bare = currentUrl.replace(/^https?:\/\//, '').split('#')[0];
+      const fallback = new URL(loginUrl, location.href).href;
+      location.href = 'intent://' + bare + '#Intent;scheme=https;package=com.android.chrome;' +
+        'S.browser_fallback_url=' + encodeURIComponent(fallback) + ';end';
     } else {
       location.href = currentUrl;
     }

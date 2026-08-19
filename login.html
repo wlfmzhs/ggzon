@@ -92,6 +92,7 @@
     }
     .msg.error { background: rgba(220,50,50,0.15); color: #ff6b6b; border: 1px solid rgba(220,50,50,0.3); display: block; }
     .msg.success { background: rgba(46,160,80,0.15); color: #3ea066; border: 1px solid rgba(46,160,80,0.3); display: block; }
+    .msg.info { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.15); display: block; }
 
     .kakao-btn {
       width: 100%; padding: 15px; border-radius: 14px;
@@ -128,13 +129,87 @@
   </style>
 </head>
 <script>
+  // ── 로그인 복귀 경로(return) 공용 헬퍼 ──────────────────────────────
+  // 카톡 초대링크로 들어온 회원이 로그인 후 원래 보려던 페이지(조인 상세 등)로
+  // 정확히 돌아가게 한다. 예전엔 이 스크립트가 URL의 ?return= 을 읽지 않고
+  // localStorage만 봐서, 이미 로그인된 회원이 항상 dashboard로 튕겨나갔다.
   (function() {
-    var u = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
-    if (u && u.loginType === 'kakao') {
-      var ret = localStorage.getItem('ggzon_return') || 'dashboard.html';
-      localStorage.removeItem('ggzon_return');
-      window.location.replace(ret);
+    var RETURN_TTL = 10 * 60 * 1000; // 저장된 복귀경로 유효시간(10분)
+
+    // 같은 사이트 안의 상대경로만 허용 (외부 리다이렉트·login 무한루프 차단)
+    function safeReturn(r) {
+      if (!r || typeof r !== 'string') return '';
+      r = r.trim();
+      if (!r) return '';
+      if (r.slice(0, 2) === '//') return '';            // 프로토콜 상대 URL
+      if (/^[a-z][a-z0-9+.\-]*:/i.test(r)) return '';   // http:, javascript:, kakaotalk: ...
+      r = r.replace(/^\/+/, '');                        // 항상 사이트 루트 기준 상대경로
+      if (/^login\.html/i.test(r)) return '';           // login → login 무한루프 차단
+      return r;
     }
+
+    function storeReturn(r) {
+      r = safeReturn(r);
+      if (!r) return;
+      try {
+        localStorage.setItem('ggzon_return', r);
+        localStorage.setItem('ggzon_return_at', String(Date.now()));
+      } catch (e) {}
+    }
+
+    function clearReturn() {
+      try {
+        localStorage.removeItem('ggzon_return');
+        localStorage.removeItem('ggzon_return_at');
+      } catch (e) {}
+    }
+
+    // 우선순위: URL의 ?return=  >  저장된 복귀경로(10분 이내)  >  dashboard
+    function takeReturn() {
+      var fromUrl = '';
+      try { fromUrl = safeReturn(new URLSearchParams(location.search).get('return')); } catch (e) {}
+
+      var saved = '';
+      try {
+        saved = safeReturn(localStorage.getItem('ggzon_return'));
+        var at = parseInt(localStorage.getItem('ggzon_return_at') || '0', 10);
+        if (saved && at && Date.now() - at > RETURN_TTL) saved = ''; // 오래된 건 버림
+      } catch (e) {}
+
+      clearReturn();
+      return fromUrl || saved || 'dashboard.html';
+    }
+
+    // 무한 튕김 방지 — 같은 목적지로 10초 안에 3번째 되돌려 보내려 하면 루프로 보고 멈춘다.
+    // (어느 페이지가 잘못된 세션 때문에 login 으로 계속 되돌려도 사용자는 로그인 화면에 멈춰
+    //  직접 다시 시도할 수 있다. 끝없이 화면이 튕기는 것보다 낫다.)
+    function loopGuard(target) {
+      var KEY = 'ggzon_redir', now = Date.now(), rec = null;
+      try { rec = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
+      if (!rec || rec.t !== target || now - rec.at > 10000) rec = { t: target, n: 0, at: now };
+      rec.n++; rec.at = now;
+      try { sessionStorage.setItem(KEY, JSON.stringify(rec)); } catch (e) {}
+      return rec.n <= 2;
+    }
+
+    window.GGZReturn = { safe: safeReturn, store: storeReturn, take: takeReturn, clear: clearReturn };
+
+    // ── 이미 로그인된 회원이면 곧바로 목적지로 보낸다 ────────────────
+    var params;
+    try { params = new URLSearchParams(location.search); } catch (e) { return; }
+    if (params.get('logout') === '1') return;               // 강제 로그아웃 진입
+    if (params.get('code') || params.get('error')) return;  // 카카오 OAuth 콜백은 모듈이 처리
+
+    var u = null;
+    try { u = JSON.parse(localStorage.getItem('ggzon_user') || 'null'); } catch (e) {}
+    if (!u || u.loginType !== 'kakao') return;
+
+    var target = takeReturn();
+    // 아래 모듈 스크립트가 같은 판단을 한 번 더 하지 않도록 표시해 둔다.
+    // (표시가 없으면 모듈이 이미 비워진 복귀경로를 읽고 dashboard로 덮어써 버린다)
+    window.GGZHandled = true;
+    if (loopGuard(target)) window.location.replace(target);
+    else window.GGZLoopBlocked = target;  // 모듈이 안내문을 띄운다
   })();
 </script>
 <body>
@@ -331,7 +406,9 @@ if (!Kakao.isInitialized()) {
   Kakao.init(KAKAO_JS_KEY);
 }
 
+// 복귀 경로는 <head>의 GGZReturn 헬퍼가 관리한다(URL ?return= 우선, 10분 만료, 외부 URL 차단).
 function getReturnUrl() {
+  if (window.GGZReturn) return window.GGZReturn.take();
   const url = localStorage.getItem('ggzon_return') || 'dashboard.html';
   localStorage.removeItem('ggzon_return');
   return url;
@@ -340,29 +417,50 @@ function getReturnUrl() {
 // ?logout=1 파라미터로 강제 로그아웃
 if (new URLSearchParams(window.location.search).get('logout') === '1') {
   localStorage.removeItem('ggzon_user');
-  localStorage.removeItem('ggzon_return');
+  window.GGZReturn ? window.GGZReturn.clear() : localStorage.removeItem('ggzon_return');
   history.replaceState({}, '', window.location.pathname);
 }
 
-// URL의 return 파라미터를 localStorage에 먼저 저장 (이미 로그인 상태에서도 적용)
+// URL의 return 파라미터를 localStorage에 먼저 저장 (카카오 왕복 중 URL이 지워지므로)
 const _urlReturn = new URLSearchParams(window.location.search).get('return');
-if (_urlReturn) localStorage.setItem('ggzon_return', _urlReturn);
+if (_urlReturn) {
+  window.GGZReturn ? window.GGZReturn.store(_urlReturn)
+                   : localStorage.setItem('ggzon_return', _urlReturn);
+}
 
-// 이미 카카오 로그인된 경우
+// 이미 카카오 로그인된 경우 — <head> 스크립트가 이미 처리했으면 건드리지 않는다.
 const savedUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
-if (savedUser && savedUser.loginType === 'kakao') {
+if (savedUser && savedUser.loginType === 'kakao' && !window.GGZHandled) {
   window.location.href = getReturnUrl();
 }
 
 // localStorage가 비어있어도(예: iOS 7일 데이터 삭제) 카카오 세션이 살아있으면
 // 조용히 재로그인 시도 (auto=1로 진입했을 때만, 1회 한정)
+//
+// ⚠️ 자동 인증은 iOS 일반 브라우저에서만 한다.
+//    안드로이드/인앱브라우저에서 사용자 터치 없이 Kakao.Auth.authorize()를 호출하면
+//    카카오 인증 페이지가 카카오톡 앱을 띄우면서 브라우저 밖으로 화면이 튕겨나가고,
+//    초대링크(join)로 들어온 회원이 조인 화면에 도달하지 못한 채 카톡으로 되돌아간다.
+//    그 경우엔 자동 이동 대신 안내문을 띄우고 사용자가 직접 버튼을 누르게 한다.
 const _loginParams = new URLSearchParams(window.location.search);
+const _loginUA     = navigator.userAgent;
+const _loginIsIos  = /iPhone|iPad|iPod/i.test(_loginUA);
+const _loginInApp  = /KAKAOTALK|Instagram|NAVER|Line|FB_IAB|Twitter/i.test(_loginUA);
 if (_loginParams.get('auto') === '1'
     && !_loginParams.get('code') && !_loginParams.get('error')
     && !savedUser
     && !sessionStorage.getItem('ggzon_auto_tried')) {
-  sessionStorage.setItem('ggzon_auto_tried', '1');
-  Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT_URI });
+  if (_loginIsIos && !_loginInApp) {
+    sessionStorage.setItem('ggzon_auto_tried', '1');
+    Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT_URI });
+  } else {
+    showMsg('login-msg', '로그인이 필요합니다. 아래 버튼으로 계속해 주세요.', 'info');
+  }
+}
+
+// 리다이렉트 루프가 감지돼 자동 이동이 멈춘 경우 안내
+if (window.GGZLoopBlocked) {
+  showMsg('login-msg', '화면이 계속 되돌아와서 여기서 멈췄습니다. 아래 버튼으로 다시 로그인해 주세요.', 'info');
 }
 
 // 관리자(이메일) 로그인 상태 확인
@@ -393,7 +491,10 @@ function clearMsg(id) {
 // ── 카카오 로그인 버튼 클릭 → 카카오로 리다이렉트 ──────
 window.doKakaoLogin = function() {
   const returnParam = new URLSearchParams(window.location.search).get('return');
-  if (returnParam) localStorage.setItem('ggzon_return', returnParam);
+  if (returnParam) {
+    window.GGZReturn ? window.GGZReturn.store(returnParam)
+                     : localStorage.setItem('ggzon_return', returnParam);
+  }
   Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT_URI });
 };
 
@@ -675,8 +776,8 @@ window.doAdminLogin = async function() {
 
   function showPwaPrompt(url) {
     if (navigator.storage?.persist) navigator.storage.persist();
-    _redirectUrl = url;
-    if (_isInstalled || localStorage.getItem('pwaPromptSeen')) { location.href = url; return; }
+    _redirectUrl = url || 'dashboard.html';
+    if (_isInstalled || localStorage.getItem('pwaPromptSeen')) { location.href = _redirectUrl; return; }
     const desc = document.getElementById('pwa-desc');
     const btn  = document.getElementById('pwa-install-btn');
     if (_isIos) {
@@ -691,9 +792,9 @@ window.doAdminLogin = async function() {
   window.doPwaInstall = async function() {
     localStorage.setItem('pwaPromptSeen', '1');
     if (_deferredPrompt) { _deferredPrompt.prompt(); await _deferredPrompt.userChoice; _deferredPrompt = null; }
-    location.href = _redirectUrl;
+    location.href = _redirectUrl || 'dashboard.html';
   };
-  window.skipPwaInstall = function() { localStorage.setItem('pwaPromptSeen', '1'); location.href = _redirectUrl; };
+  window.skipPwaInstall = function() { localStorage.setItem('pwaPromptSeen', '1'); location.href = _redirectUrl || 'dashboard.html'; };
 
   // Terms
   let currentTermType = '';
