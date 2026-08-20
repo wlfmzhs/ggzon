@@ -2538,15 +2538,13 @@ window.closeParticipantModal = function() {
 };
 
 // ── 이미지 저장 (카드 직접 캡쳐) ──────────────────────
-// 공유 링크에 /ggzon 경로를 붙이는 이유 (지우지 말 것):
-// 카카오는 앱에 등록되지 않은 도메인의 링크를 '카카오 개발자 콘솔에 등록된 도메인'으로
-// 통째로 바꿔서 보낸다. 등록된 도메인이 https://wlfmzhs.github.io 라서
-// https://www.ggzon.co.kr/join.html?joinId=... 로 공유해도 카톡방에서는
-// https://wlfmzhs.github.io/join.html 로 열려 404가 났다(= 실제 신고된 증상).
-// /ggzon 을 붙여두면 어느 도메인으로 바뀌든 살아남는다:
-//   wlfmzhs.github.io/ggzon/join.html -> 301 -> www.ggzon.co.kr/join.html
-//   www.ggzon.co.kr/ggzon/join.html   -> ggzon/join.html 경유 페이지 -> /join.html
-const APP_BASE = 'https://www.ggzon.co.kr/ggzon';
+// ⚠️ 이 주소를 www.ggzon.co.kr 로 바꾸지 말 것. (2026-04, 2026-05, 2026-08 세 번 같은 사고)
+// 카카오톡 공유 링크의 도메인은 카카오 개발자 콘솔에 등록된 도메인이어야 한다.
+// 등록된 도메인은 https://wlfmzhs.github.io 이고, www.ggzon.co.kr 는 등록돼 있지 않다.
+// 등록 안 된 도메인으로 공유하면 카톡방에서 도메인만 등록 도메인으로 바뀌어 열리는데,
+// 그러면 https://wlfmzhs.github.io/join.html (= /ggzon 없는 경로)가 되어 404가 난다.
+// github.io/ggzon 주소는 GitHub 이 www.ggzon.co.kr 로 301 해주고 쿼리(?joinId=)도 그대로 유지된다.
+const APP_BASE = 'https://wlfmzhs.github.io/ggzon';
 
 window.shareCard = async function(id) {
   if (typeof html2canvas === 'undefined') {
