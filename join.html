@@ -137,6 +137,15 @@
       background: radial-gradient(circle, rgba(62,160,102,0.15) 0%, transparent 70%);
       border-radius: 50%;
     }
+    /* 공유 링크로 들어온 카드 강조 */
+    .join-card.shared-focus {
+      animation: sharedPulse 2.6s ease-out;
+      border-color: rgba(240,192,64,0.85) !important;
+    }
+    @keyframes sharedPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,64,0); }
+      15%, 55% { box-shadow: 0 0 0 4px rgba(240,192,64,0.35); }
+    }
     /* 야간 카드 */
     .join-card.night {
       background: linear-gradient(135deg, rgba(40,50,130,0.35) 0%, rgba(5,8,35,0.65) 100%);
@@ -1238,6 +1247,7 @@ async function loadJoins() {
   renderActiveList();
   renderClosedList();
   updateTabCounts();
+  focusSharedJoin();
 }
 
 // ── 마감 더보기 ───────────────────────────────────────
@@ -1530,6 +1540,36 @@ function buildCard(j) {
       </div>
       ${adminRow}
     </div>`;
+}
+
+// ── 공유 링크(joinId)로 들어온 조인으로 이동 ──────────
+// 예전엔 ?joinId= 를 로그인 복귀 경로에만 쓰고 화면에서는 무시해서,
+// 카톡으로 받은 링크를 눌러도 그냥 조인 목록 맨 위가 떴다.
+let _sharedJoinDone = false;
+function focusSharedJoin() {
+  if (_sharedJoinDone) return;
+  let jId = '';
+  try {
+    const p = new URLSearchParams(location.search);
+    jId = p.get('joinId') || p.get('id') || '';
+  } catch (e) { return; }
+  if (!jId) return;
+
+  const inClosed = closedJoins.some(x => x.id === jId);
+  const inActive = joins.some(x => x.id === jId);
+  if (!inActive && !inClosed) return;   // 아직 못 불러온 상태 — 다음 렌더에서 재시도
+
+  _sharedJoinDone = true;
+  if (inClosed) window.switchTab('closed');
+  else if (currentFilter !== 'all') window.setFilter('all');
+
+  setTimeout(() => {
+    const card = document.getElementById('card-' + jId);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('shared-focus');
+    setTimeout(() => card.classList.remove('shared-focus'), 2600);
+  }, 60);
 }
 
 // ── 탭 전환 ───────────────────────────────────────────
@@ -2605,7 +2645,8 @@ function triggerDownload(canvas) {
 
 // ── 카카오 공유 ───────────────────────────────────────
 window.kakaoShare = function(id) {
-  const j = joins.find(x => x.id === id);
+  // 마감 탭 카드도 같은 템플릿을 쓰므로 두 목록을 모두 뒤진다(예전엔 마감 조인 공유가 아무 반응 없었다).
+  const j = joins.find(x => x.id === id) || closedJoins.find(x => x.id === id);
   if (!j) return;
 
   if (!window.Kakao || !Kakao.isInitialized()) {
@@ -2613,7 +2654,7 @@ window.kakaoShare = function(id) {
     return;
   }
 
-  const appLink = `${APP_BASE}/join.html?joinId=${id}`;
+  const appLink = `${APP_BASE}/join.html?joinId=${encodeURIComponent(id)}`;
   const participants = j.participants || [];
 
   const typeLabel = j.joinType === 'screen' ? '스크린' : (j.timeType === 'night' ? '야간 필드' : '필드');

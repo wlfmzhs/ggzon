@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>GOLGAB ZONE</title>
+  <link rel="icon" href="/image/icon-512.png" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #0A2406; }
+    body {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px 24px; color: #fff; text-align: center;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', -apple-system, sans-serif;
+    }
+    img { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 22px; }
+    .t { font-size: 17px; font-weight: 900; margin-bottom: 10px; }
+    .d { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.7; margin-bottom: 26px; }
+    a.btn {
+      display: inline-block; padding: 14px 28px; border-radius: 14px;
+      background: #2d7a4f; color: #fff; font-size: 15px; font-weight: 900; text-decoration: none;
+    }
+    #manual { display: none; }
+  </style>
+</head>
+<body>
+  <img src="/image/icon-512.png" alt="GOLGAB ZONE" />
+  <div class="t" id="msg">페이지로 이동 중...</div>
+  <div id="manual">
+    <div class="d">주소가 바뀌었거나 잘못 전달된 링크예요.<br>아래 버튼으로 골갑존을 열어주세요.</div>
+    <a class="btn" href="/index.html">골갑존 열기</a>
+  </div>
+<script>
+// GitHub Pages 는 없는 경로를 전부 이 파일로 응답한다(404).
+// 카톡 등에서 전달된 링크가 조금 어긋나도(예: /ggzon/join.html, /join.html/, 대소문자)
+// 사용자가 GitHub 기본 404 화면을 보지 않도록, 여기서 올바른 주소로 되살려 보낸다.
+(function () {
+  var PAGES = [
+    'index','dashboard','join','login','feed','my','score','event','members','notice','guide',
+    'admin','ggcup','partner','round-map','round-result','sub-round','subscribe','subscribe-complete',
+    'tournament-result','tournament-score','used-market','used-market-detail','wake-calc',
+    'golchelin-star','golchelin-star-detail','ggzon-intro','migrate-grandfather','result-gpga-2025'
+  ];
+
+  var search = location.search || '';
+  var hash = location.hash || '';
+
+  // 경로에서 마지막 의미있는 조각을 뽑는다: '/ggzon/join.html/' -> 'join'
+  var segs = decodeURIComponent(location.pathname).split('/').filter(Boolean);
+  var last = (segs[segs.length - 1] || '').toLowerCase().replace(/\.html?$/, '');
+
+  var target = null;
+  if (PAGES.indexOf(last) !== -1) {
+    target = '/' + last + '.html';
+  } else {
+    // 경로가 완전히 망가졌어도 joinId 가 남아 있으면 조인 페이지로 보낸다.
+    var jid = '';
+    try { jid = new URLSearchParams(search).get('joinId') || ''; } catch (e) {}
+    if (jid) target = '/join.html';
+    else if (segs.length === 0) target = '/index.html';
+  }
+
+  if (target && (target + search) !== (location.pathname + search)) {
+    location.replace(target + search + hash);
+    return;
+  }
+
+  document.getElementById('msg').textContent = '페이지를 찾을 수 없습니다';
+  document.getElementById('manual').style.display = 'block';
+})();
+</script>
+</body>
+</html>
