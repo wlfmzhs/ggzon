@@ -214,25 +214,65 @@
     .bottom-slogan { text-align: center; font-size: 17px; font-weight: 800; color: rgba(255,255,255,0.9); line-height: 1.6; }
     .bottom-slogan span { color: var(--green-light); }
 
-    .cta-wrap { width: 100%; margin-top: 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-    .cta-btn {
-      display: block; width: 100%; padding: 16px;
-      background: var(--green); color: #fff;
-      font-size: 16px; font-weight: 900; letter-spacing: -0.3px;
-      text-align: center; text-decoration: none;
-      border-radius: 14px; border: none; cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 0.2s;
-    }
-    .cta-btn:active { background: var(--green-light); }
+    .cta-wrap { width: 100%; margin-top: 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+    /* ── 주 버튼: 로그인 (매일 쓰는 회원이 제일 먼저, 제일 크게 누른다) ── */
     .cta-login {
-      font-size: 16px; color: rgba(255,255,255,0.6); text-decoration: none;
-      display: block; width: 100%; padding: 14px;
-      text-align: center; border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.15);
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 19px 16px;
+      background: linear-gradient(135deg, var(--green-light) 0%, var(--green) 100%);
+      color: #fff;
+      font-size: 18px; font-weight: 900; letter-spacing: -0.4px;
+      text-align: center; text-decoration: none;
+      border-radius: 16px; border: none; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(62,160,102,0.42), inset 0 1px 0 rgba(255,255,255,0.22);
       -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+      animation: ctaPulse 2.6s ease-in-out infinite;
     }
-    .cta-login span { color: var(--green-light); font-weight: 900; text-decoration: underline; margin-left: 4px; }
+    .cta-login:active {
+      transform: scale(0.975);
+      box-shadow: 0 4px 14px rgba(62,160,102,0.35), inset 0 1px 0 rgba(255,255,255,0.22);
+      animation: none;
+    }
+    .cta-login .cta-ico { width: 20px; height: 20px; flex: none; }
+    .cta-login .cta-arrow { font-size: 17px; opacity: 0.9; margin-left: 2px; }
+    /* 버튼 위를 지나가는 빛 — "여기를 누르세요"를 말없이 알려준다 */
+    .cta-login::after {
+      content: '';
+      position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.28), transparent);
+      transform: skewX(-20deg);
+      animation: ctaShine 3.4s ease-in-out infinite;
+    }
+    @keyframes ctaPulse {
+      0%, 100% { box-shadow: 0 8px 24px rgba(62,160,102,0.42), inset 0 1px 0 rgba(255,255,255,0.22); }
+      50%      { box-shadow: 0 10px 34px rgba(62,160,102,0.72), inset 0 1px 0 rgba(255,255,255,0.22); }
+    }
+    @keyframes ctaShine {
+      0%   { left: -60%; }
+      55%  { left: 130%; }
+      100% { left: 130%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cta-login { animation: none; }
+      .cta-login::after { display: none; }
+    }
+
+    /* ── 보조 버튼: 회원가입 (처음 온 사람만 필요하다) ── */
+    .cta-btn {
+      display: block; width: 100%; padding: 13px;
+      background: transparent; color: rgba(255,255,255,0.62);
+      font-size: 14px; font-weight: 700; letter-spacing: -0.3px;
+      text-align: center; text-decoration: none;
+      border-radius: 14px; border: 1px solid rgba(255,255,255,0.16);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.2s, color 0.2s;
+    }
+    .cta-btn span { color: var(--green-light); font-weight: 900; margin-left: 4px; }
+    .cta-btn:active { background: rgba(255,255,255,0.07); color: #fff; }
 
     @media (max-width: 480px) {
       html, body { background: var(--green-dark); padding: 0; }
@@ -322,9 +362,38 @@
     </div>
 
     <div class="cta-wrap">
-      <a href="login.html" class="cta-btn">지금 바로 가입하기 →</a>
-      <a href="login.html?tab=login" class="cta-login">이미 회원이신가요? <span>로그인</span></a>
+      <a href="login.html?auto=1" class="cta-login" id="cta-login">
+        <svg class="cta-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 17l5-5-5-5M15 12H3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="cta-login-text">로그인하고 시작하기</span>
+        <span class="cta-arrow">→</span>
+      </a>
+      <a href="login.html" class="cta-btn" id="cta-join">골갑존이 처음이신가요? <span>회원가입</span></a>
     </div>
+
+    <script>
+    // 이미 로그인해 둔 회원이라면 로그인 단계 자체를 건너뛰고 바로 들어가게 한다.
+    // (매일 쓰는 회원이 첫 화면에서 두 번 누르지 않도록)
+    (function () {
+      var u = null;
+      try { u = JSON.parse(localStorage.getItem('ggzon_user') || 'null'); } catch (e) {}
+      if (!u || !u.uid) return;
+
+      var btn  = document.getElementById('cta-login');
+      var text = document.getElementById('cta-login-text');
+      var join = document.getElementById('cta-join');
+      if (!btn || !text || !join) return;
+
+      var nick = (u.nickname || '').trim();
+      btn.href = 'dashboard.html';
+      text.textContent = nick ? nick + '님, 바로 들어가기' : '바로 들어가기';
+
+      join.innerHTML = '다른 계정으로 <span>로그인</span>';
+      join.href = 'login.html?logout=1';
+    })();
+    </script>
 
   </div>
 
