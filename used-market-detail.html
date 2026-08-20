@@ -425,8 +425,8 @@ let auctionBidUnsubscribe = null;
 
 window.shareKakao = function() {
   if (!itemData) return;
-  // 공유 링크는 실서비스 도메인으로. github.io 주소는 한 번 더 리다이렉트된다.
-  const pageUrl = `https://www.ggzon.co.kr/used-market-detail.html?id=${itemId}`;
+  // /ggzon 경로를 쓰는 이유는 join.html 의 APP_BASE 주석 참고(카카오 도메인 치환 대응).
+  const pageUrl = `https://www.ggzon.co.kr/ggzon/used-market-detail.html?id=${encodeURIComponent(itemId)}`;
   const thumb = (itemData.photos && itemData.photos.length > 0)
     ? itemData.photos[0]
     : 'https://www.ggzon.co.kr/image/golgab-logo.png';

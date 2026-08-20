@@ -2538,9 +2538,15 @@ window.closeParticipantModal = function() {
 };
 
 // ── 이미지 저장 (카드 직접 캡쳐) ──────────────────────
-// 공유 링크는 반드시 실서비스 도메인으로. github.io 주소는 www.ggzon.co.kr 로 한 번 더
-// 리다이렉트되면서 카톡 인앱브라우저에서 쿼리(joinId)가 유실될 수 있다.
-const APP_BASE = 'https://www.ggzon.co.kr';
+// 공유 링크에 /ggzon 경로를 붙이는 이유 (지우지 말 것):
+// 카카오는 앱에 등록되지 않은 도메인의 링크를 '카카오 개발자 콘솔에 등록된 도메인'으로
+// 통째로 바꿔서 보낸다. 등록된 도메인이 https://wlfmzhs.github.io 라서
+// https://www.ggzon.co.kr/join.html?joinId=... 로 공유해도 카톡방에서는
+// https://wlfmzhs.github.io/join.html 로 열려 404가 났다(= 실제 신고된 증상).
+// /ggzon 을 붙여두면 어느 도메인으로 바뀌든 살아남는다:
+//   wlfmzhs.github.io/ggzon/join.html -> 301 -> www.ggzon.co.kr/join.html
+//   www.ggzon.co.kr/ggzon/join.html   -> ggzon/join.html 경유 페이지 -> /join.html
+const APP_BASE = 'https://www.ggzon.co.kr/ggzon';
 
 window.shareCard = async function(id) {
   if (typeof html2canvas === 'undefined') {
