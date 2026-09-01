@@ -36,10 +36,25 @@ service cloud.firestore {
         request.resource.data.status == 'closed';
     }
 
-    // 포인트/스탯 필드만 수정하는 경우 (조인 참가자가 타인 포인트 지급 시 사용)
-    function onlyStatsFields() {
+    // 앱이 스코어로 자동 계산해 저장하는 파생 스탯 (포인트는 제외)
+    function onlyDerivedStats() {
       return request.resource.data.diff(resource.data)
-        .affectedKeys().hasOnly(['totalPoints', 'handicap', 'bestScore', 'roundCount', 'handicapTrend', 'statsUpdatedAt']);
+        .affectedKeys().hasOnly(['handicap', 'bestScore', 'roundCount', 'handicapTrend', 'statsUpdatedAt']);
+    }
+
+    // 포인트 적립: 1회 최대 +40 까지만 (앱의 최대 지급액 = 스코어보너스 40점)
+    // 감액·임의값 세팅 차단 → 랭킹 조작 방지. 관리자는 이 제한을 받지 않음.
+    function validPointAward() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPoints'])
+        && request.resource.data.totalPoints is number
+        && request.resource.data.totalPoints > resource.data.get('totalPoints', 0)
+        && request.resource.data.totalPoints <= resource.data.get('totalPoints', 0) + 40;
+    }
+
+    // 본인 문서라도 포인트·스탯은 위의 통제된 경로로만 수정 가능 (프로필 저장에 섞어 못 넣음)
+    function noStatsFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['totalPoints', 'handicap', 'bestScore', 'roundCount', 'handicapTrend', 'statsUpdatedAt']);
     }
 
     // 결제 상태 필드는 서버(Cloud Function)만 기록 가능 — 회원이 스스로 못 바꿈
@@ -58,8 +73,8 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
       // 본인 문서는 수정 가능하되 결제 필드는 건드릴 수 없음 (관리자는 예외)
       allow update: if isAdmin() ||
-        ((isOwner(userId) || isKakaoOwner(userId)) && noBillingFields()) ||
-        (isLoggedIn() && onlyStatsFields());
+        ((isOwner(userId) || isKakaoOwner(userId)) && noBillingFields() && noStatsFields()) ||
+        ((isLoggedIn() || isKakaoOwner(userId)) && (onlyDerivedStats() || validPointAward()));
 
       match /scoreHistory/{docId} {
         // 읽기: 본인/관리자 또는 유효한 조인이 있으면 누구나 (Kakao 비인증 유저도 동반자 스코어 열람 가능)
