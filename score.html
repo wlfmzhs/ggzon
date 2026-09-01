@@ -710,7 +710,35 @@ function closeParPicker() {
   parPickerIdx  = null;
 }
 
-// 연결된 팀들을 코스(전반/후반 코스 포함) 기준으로 그룹핑
+// 조(카트) 편성이 있으면 참가자를 조별로 나눈다. 없으면 전원 한 덩어리.
+// 단체 라운드에서 1~12번이 한 표에 섞여 나와 자기 카트 사람을 찾기 어렵던 문제를
+// 여기서 조 단위로 쪼개 해결한다.
+function splitByParties(d) {
+  const all   = d.participants || [];
+  const parts = (Array.isArray(d.parties) ? d.parties : []).filter(g => ((g || {}).uids || []).length);
+  if (!parts.length) return [{ label: '', players: all }];
+
+  const out  = [];
+  const used = new Set();
+  parts.forEach((g, i) => {
+    const players = (g.uids || []).map(uid => all.find(p => p.uid === uid)).filter(Boolean);
+    players.forEach(p => used.add(p.uid));
+    if (players.length) out.push({ label: g.name || `${i + 1}조`, players });
+  });
+  const rest = all.filter(p => !used.has(p.uid));
+  if (rest.length) out.push({ label: '미배정', players: rest });
+  return out;
+}
+
+// 특정 참가자와 같은 조에 속한 사람들 (편성이 없으면 전원)
+function partyMembersOf(uid) {
+  if (!joinData) return [];
+  const subs = splitByParties(joinData);
+  const mine = subs.find(s => s.players.some(p => p.uid === uid));
+  return mine ? mine.players : (joinData.participants || []);
+}
+
+// 연결된 팀들을 코스(전반/후반 코스 포함) + 조 기준으로 그룹핑
 function groupTeams() {
   const pids      = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
   const partyDocs = pids.map(id => partyJoinDataMap.get(id)).filter(Boolean);
@@ -718,29 +746,39 @@ function groupTeams() {
   const groups = [];
   const groupMap = new Map();
   for (const d of allDocs) {
-    const key = `${d.course || ''}|${d.frontCourse || ''}|${d.backCourse || ''}`;
-    let g = groupMap.get(key);
-    if (!g) {
-      g = { key, course: d.course, frontCourse: d.frontCourse, backCourse: d.backCourse, players: [], scores: {}, isMine: false };
-      groupMap.set(key, g);
-      groups.push(g);
+    const courseKey = `${d.course || ''}|${d.frontCourse || ''}|${d.backCourse || ''}`;
+    for (const sub of splitByParties(d)) {
+      const key = `${courseKey}|${sub.label}`;
+      let g = groupMap.get(key);
+      if (!g) {
+        g = { key, courseKey, course: d.course, frontCourse: d.frontCourse, backCourse: d.backCourse,
+              label: sub.label, players: [], scores: {}, isMine: false, isMyParty: false };
+        groupMap.set(key, g);
+        groups.push(g);
+      }
+      if (d._isMine) g.isMine = true;
+      for (const p of sub.players) {
+        if (!g.players.find(x => x.uid === p.uid)) g.players.push(p);
+      }
+      Object.assign(g.scores, d.scores || {});
     }
-    if (d._isMine) g.isMine = true;
-    for (const p of (d.participants || [])) {
-      if (!g.players.find(x => x.uid === p.uid)) g.players.push(p);
-    }
-    Object.assign(g.scores, d.scores || {});
   }
-  groups.sort((a, b) => (b.isMine ? 1 : 0) - (a.isMine ? 1 : 0));
+  // 내가 속한 조를 맨 위로, 그다음 내 조인의 다른 조, 그다음 연결된 팀
+  groups.forEach(g => {
+    g.isMyParty = g.isMine && !!currentUser && g.players.some(p => p.uid === currentUser.uid);
+  });
+  const rank = g => (g.isMyParty ? 2 : g.isMine ? 1 : 0);
+  groups.sort((a, b) => rank(b) - rank(a));
   return groups;
 }
 
 // 내 코스가 아닌 그룹의 파 데이터 캐시 (코스명|전반|후반 → {parFront, parBack})
 const groupParCache = new Map();
 function getGroupPar(g) {
-  if (groupParCache.has(g.key)) return groupParCache.get(g.key);
+  const ck = g.courseKey || g.key;
+  if (groupParCache.has(ck)) return groupParCache.get(ck);
   const empty = { parFront: null, parBack: null };
-  groupParCache.set(g.key, empty);
+  groupParCache.set(ck, empty);
   if (!g.course) return empty;
   getDoc(doc(db, 'courses', g.course)).then(snap => {
     let result = { parFront: null, parBack: null };
@@ -749,7 +787,7 @@ function getGroupPar(g) {
       result.parFront = g.frontCourse && nh[g.frontCourse] ? [...nh[g.frontCourse]] : null;
       result.parBack  = g.backCourse  && nh[g.backCourse]  ? [...nh[g.backCourse]]  : null;
     }
-    groupParCache.set(g.key, result);
+    groupParCache.set(ck, result);
     render();
   }).catch(() => {});
   return empty;
@@ -798,11 +836,13 @@ function render() {
 
   const groups = groupTeams();
   const showLabels = groups.length > 1;
+  const hasParties = (Array.isArray(joinData.parties) ? joinData.parties : []).some(g => ((g || {}).uids || []).length);
 
   document.getElementById('groups-container').innerHTML = groups.map(g => {
     const par = g.isMine ? { parFront, parBack } : getGroupPar(g);
-    const groupCanEdit = g.isMine && canEdit;
-    const groupMyUids  = g.isMine ? myUids : new Set();
+    // 조가 편성돼 있으면 내가 속한 조(카트)만 입력할 수 있다. 관리자는 전부 가능.
+    const groupCanEdit = g.isMine && canEdit && (!hasParties || g.isMyParty || isAdmin);
+    const groupMyUids  = groupCanEdit ? new Set(g.players.map(p => p.uid)) : new Set();
 
     const summaryHtml = buildSummary(g.players, g.scores);
     const frontHtml   = buildTable(g.players, g.scores, groupMyUids, 0, 9, par.parFront, 'front', groupCanEdit);
@@ -810,8 +850,9 @@ function render() {
 
     const courseDetail = (g.frontCourse && g.backCourse) ? ` · ${g.frontCourse} → ${g.backCourse}`
       : (g.frontCourse || g.backCourse) ? ` · ${g.frontCourse || g.backCourse}` : '';
+    const partyLabel = g.label ? `${g.label}${g.isMyParty ? ' (내 조)' : ''} · ` : '';
     return `<div class="course-group">
-      ${showLabels ? `<div class="course-group-label">${g.course || '코스 미정'}${courseDetail}</div>` : ''}
+      ${showLabels ? `<div class="course-group-label">${partyLabel}${g.course || '코스 미정'}${courseDetail}</div>` : ''}
       <div class="summary-bar">${summaryHtml}</div>
       <div class="score-section"><table class="sc-table">${frontHtml}</table></div>
       <div class="score-section"><table class="sc-table">${backHtml}</table></div>
@@ -895,7 +936,9 @@ window._openPicker = function(uid, holeIdx) {
 function renderHoleSheet() {
   if (pickerHole === null || !joinData) return;
   const gi = pickerHole;
-  const players = joinData.participants || [];
+  // 조가 편성돼 있으면 탭한 사람과 같은 조(카트)만 보여준다.
+  // 12명 라운드에서 전원이 뜨는 바람에 자기 카트 사람을 찾기 어렵던 문제를 없앤다.
+  const players = pickerUid ? partyMembersOf(pickerUid) : (joinData.participants || []);
   document.getElementById('hs-list').innerHTML = players.map(p => {
     const holes = (joinData.scores?.[p.uid]?.holes) || Array(18).fill(null);
     const cur   = holes[gi];
@@ -953,7 +996,7 @@ function openSubmitSheet() {
   }
 
   const myTotal  = myHoles.reduce((a, v) => a + (v ?? 0), 0);
-  const companions = players.filter(p => p.uid !== currentUser.uid).map(p => p.name);
+  const companions = partyMembersOf(currentUser.uid).filter(p => p.uid !== currentUser.uid).map(p => p.name);
 
   const scoreLabel = myTotal === 0 ? 'E (파)'
     : myTotal > 0 ? `+${myTotal} (${myTotal}오버파)` : `${myTotal} (${Math.abs(myTotal)}언더파)`;
@@ -983,7 +1026,7 @@ async function submitScore() {
   const scores     = joinData.scores || {};
   const myHoles    = (scores[currentUser.uid] || {}).holes || Array(18).fill(null);
   const myTotal    = myHoles.reduce((a, v) => a + (v ?? 0), 0);
-  const companions = players.filter(p => p.uid !== currentUser.uid).map(p => ({ name: p.name, uid: p.uid }));
+  const companions = partyMembersOf(currentUser.uid).filter(p => p.uid !== currentUser.uid).map(p => ({ name: p.name, uid: p.uid }));
 
   try {
     const parHoles = [
@@ -1065,7 +1108,7 @@ async function submitScore() {
               frontCourse: joinData.frontCourse || '',
               backCourse:  joinData.backCourse  || '',
               date:        joinData.date        || '',
-              companions:  players.filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
+              companions:  partyMembersOf(p.uid).filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
               totalScore:  pTotal,
               holes:       pHoles,
               parHoles,

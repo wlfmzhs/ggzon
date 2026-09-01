@@ -605,6 +605,73 @@
     .bottom-modal.show { display: flex !important; }
 
     /* 컨펌 */
+    /* 조(카트) 편성 시트 — 주최자가 참가자를 4명씩 나눈다 */
+    .party-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: flex-end; z-index: 320; opacity: 0;
+      pointer-events: none; transition: opacity 0.25s;
+    }
+    .party-overlay.open { opacity: 1; pointer-events: all; }
+    .party-sheet {
+      width: 100%; background: #1a2e1a; border-radius: 24px 24px 0 0;
+      padding: 22px 18px 26px; transform: translateY(100%);
+      max-height: 88vh; display: flex; flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+    }
+    .party-overlay.open .party-sheet { transform: translateY(0); }
+    .party-title { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
+    .party-desc { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.6; margin-bottom: 14px; }
+    .party-tools { display: flex; gap: 6px; margin-bottom: 12px; }
+    .party-tool-btn {
+      flex: 1; padding: 10px 4px; border-radius: 10px; font-size: 11.5px; font-weight: 800;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.75); cursor: pointer; font-family: inherit;
+    }
+    .party-body { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+    .party-group-box {
+      background: rgba(255,255,255,0.04); border-radius: 12px;
+      padding: 10px 12px; margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .party-group-box.full { border-color: rgba(62,160,102,0.45); }
+    .party-group-head {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; font-weight: 900; color: var(--green-light); margin-bottom: 6px;
+    }
+    .party-group-count { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; }
+    .party-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; }
+    .party-row + .party-row { border-top: 1px solid rgba(255,255,255,0.05); }
+    .party-row-name {
+      flex: 1; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .party-row-name .guest-tag { font-size: 9px; color: rgba(255,255,255,0.4); margin-left: 4px; font-weight: 700; }
+    .party-pills { display: flex; gap: 4px; flex-shrink: 0; }
+    .party-pill {
+      min-width: 30px; height: 30px; padding: 0 6px; border-radius: 8px;
+      font-size: 12px; font-weight: 800;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.55); cursor: pointer; font-family: inherit;
+    }
+    .party-pill.on { background: var(--green-light); border-color: var(--green-light); color: #0b2313; }
+    .party-pill:disabled { opacity: 0.28; cursor: default; }
+    .party-note { font-size: 12px; color: rgba(255,255,255,0.35); padding: 6px 0 2px; }
+    .party-btns { display: flex; gap: 8px; margin-top: 14px; }
+    .party-cancel {
+      flex: 1; padding: 13px; border-radius: 12px; background: rgba(255,255,255,0.08);
+      border: none; color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+    .party-save {
+      flex: 2; padding: 13px; border-radius: 12px; background: var(--green-light);
+      border: none; color: #fff; font-size: 14px; font-weight: 900;
+      cursor: pointer; font-family: inherit;
+    }
+    .chip-party {
+      font-size: 9px; font-weight: 900; margin-left: 4px;
+      color: var(--green-light);
+    }
+
     .confirm-overlay {
       position: absolute; inset: 0; background: rgba(0,0,0,0.7);
       display: flex; align-items: flex-end; z-index: 300; opacity: 0;
@@ -842,6 +909,25 @@
       <div class="confirm-btns">
         <button class="confirm-cancel" onclick="closeConfirm()">취소</button>
         <button class="confirm-ok" id="confirm-ok-btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 조(카트) 편성 시트 -->
+  <div class="party-overlay" id="party-overlay">
+    <div class="party-sheet">
+      <div class="party-title">조 편성</div>
+      <div class="party-desc" id="party-desc"></div>
+      <div class="party-tools">
+        <button class="party-tool-btn" onclick="window.partyAuto()">4명씩 자동</button>
+        <button class="party-tool-btn" onclick="window.partyAddGroup()">조 추가</button>
+        <button class="party-tool-btn" onclick="window.partyClear()">편성 해제</button>
+      </div>
+      <div class="party-body" id="party-body"></div>
+      <div class="party-btns">
+        <button class="party-cancel" onclick="window.closePartySheet()">취소</button>
+        <button class="party-save" onclick="window.savePartySheet()">저장</button>
       </div>
     </div>
   </div>
@@ -1338,6 +1424,156 @@ function renderClosedList() {
   }).join('') + moreBtn;
 }
 
+// ── 조(카트) 편성 ─────────────────────────────────────
+// 단체 라운드에서 참가자가 많으면 스코어 입력 화면에 전원이 한꺼번에 떠서
+// 자기 카트 사람을 찾기가 어렵다. 주최자가 여기서 4명씩 조를 나누면
+// score.html 이 자기 조 4명만 입력하도록 나눠서 보여준다.
+const PARTY_MAX = 4;          // 카트 한 대 정원
+let _partyJoin   = null;      // 편성 중인 조인 데이터
+let _partyAssign = {};        // uid → 조 index(0부터), 미배정이면 키 없음
+let _partyCount  = 0;         // 조 개수
+
+// 조인 데이터에서 참가자가 속한 조 index 를 찾는다 (없으면 -1)
+function partyIndexOf(j, uid) {
+  const parts = (j && Array.isArray(j.parties)) ? j.parties : [];
+  for (let i = 0; i < parts.length; i++) {
+    if (((parts[i] || {}).uids || []).includes(uid)) return i;
+  }
+  return -1;
+}
+
+function findJoinById(id) {
+  return joins.find(x => x.id === id) || closedJoins.find(x => x.id === id) || null;
+}
+
+window.openPartySheet = function(id) {
+  const j = findJoinById(id);
+  if (!j) { showToast('조인 정보를 찾지 못했습니다'); return; }
+  _partyJoin = j;
+  const players = j.participants || [];
+
+  // 기존 편성이 있으면 그대로 불러오고, 없으면 4명씩 미리 나눠 보여준다
+  _partyAssign = {};
+  const saved = Array.isArray(j.parties) ? j.parties : [];
+  if (saved.some(g => ((g || {}).uids || []).length)) {
+    saved.forEach((g, i) => ((g || {}).uids || []).forEach(uid => { _partyAssign[uid] = i; }));
+    _partyCount = Math.max(saved.length, Math.ceil(players.length / PARTY_MAX));
+  } else {
+    players.forEach((p, i) => { _partyAssign[p.uid] = Math.floor(i / PARTY_MAX); });
+    _partyCount = Math.max(1, Math.ceil(players.length / PARTY_MAX));
+  }
+  renderPartySheet();
+  document.getElementById('party-overlay').classList.add('open');
+};
+
+window.closePartySheet = function() {
+  document.getElementById('party-overlay').classList.remove('open');
+  _partyJoin = null;
+};
+
+function partyCountOf(gi) {
+  return Object.values(_partyAssign).filter(v => v === gi).length;
+}
+
+function renderPartySheet() {
+  if (!_partyJoin) return;
+  const players = _partyJoin.participants || [];
+  const unassigned = players.filter(p => _partyAssign[p.uid] === undefined);
+
+  document.getElementById('party-desc').textContent =
+    `${_partyJoin.course || '조인'} · 총 ${players.length}명 — 한 조는 최대 ${PARTY_MAX}명입니다. 조를 나누면 스코어 입력 시 같은 조 사람만 보입니다.`;
+
+  const rowHtml = (p) => {
+    const cur = _partyAssign[p.uid];
+    const pills = Array.from({ length: _partyCount }, (_, gi) => {
+      const on   = cur === gi;
+      const full = !on && partyCountOf(gi) >= PARTY_MAX;
+      return `<button class="party-pill${on ? ' on' : ''}" ${full ? 'disabled' : ''}
+        onclick="window.partySet('${p.uid}',${gi})">${gi + 1}</button>`;
+    }).join('');
+    return `<div class="party-row">
+      <div class="party-row-name">${p.name}${p.isGuest ? '<span class="guest-tag">게스트</span>' : ''}</div>
+      <div class="party-pills">${pills}</div>
+    </div>`;
+  };
+
+  let html = '';
+  for (let gi = 0; gi < _partyCount; gi++) {
+    const members = players.filter(p => _partyAssign[p.uid] === gi);
+    const n = members.length;
+    html += `<div class="party-group-box${n >= PARTY_MAX ? ' full' : ''}">
+      <div class="party-group-head">
+        <span>${gi + 1}조</span>
+        <span class="party-group-count">${n} / ${PARTY_MAX}명</span>
+      </div>
+      ${n ? members.map(rowHtml).join('') : '<div class="party-note">아직 비어 있습니다</div>'}
+    </div>`;
+  }
+  if (unassigned.length) {
+    html += `<div class="party-group-box">
+      <div class="party-group-head">
+        <span style="color:#e6a41e;">미배정</span>
+        <span class="party-group-count">${unassigned.length}명</span>
+      </div>
+      ${unassigned.map(rowHtml).join('')}
+    </div>`;
+  }
+  document.getElementById('party-body').innerHTML = html;
+}
+
+// 같은 조를 다시 누르면 배정 해제(미배정으로)
+window.partySet = function(uid, gi) {
+  if (_partyAssign[uid] === gi) delete _partyAssign[uid];
+  else {
+    if (partyCountOf(gi) >= PARTY_MAX) { showToast(`한 조는 최대 ${PARTY_MAX}명까지예요`); return; }
+    _partyAssign[uid] = gi;
+  }
+  renderPartySheet();
+};
+
+window.partyAuto = function() {
+  if (!_partyJoin) return;
+  const players = _partyJoin.participants || [];
+  _partyAssign = {};
+  players.forEach((p, i) => { _partyAssign[p.uid] = Math.floor(i / PARTY_MAX); });
+  _partyCount = Math.max(1, Math.ceil(players.length / PARTY_MAX));
+  renderPartySheet();
+};
+
+window.partyAddGroup = function() {
+  if (_partyCount >= 12) { showToast('조는 최대 12개까지예요'); return; }
+  _partyCount++;
+  renderPartySheet();
+};
+
+window.partyClear = function() {
+  _partyAssign = {};
+  renderPartySheet();
+};
+
+window.savePartySheet = async function() {
+  if (!_partyJoin) return;
+  const id = _partyJoin.id;
+  const players = _partyJoin.participants || [];
+  const parties = [];
+  for (let gi = 0; gi < _partyCount; gi++) {
+    const uids = players.filter(p => _partyAssign[p.uid] === gi).map(p => p.uid);
+    if (uids.length) parties.push({ name: `${parties.length + 1}조`, uids });
+  }
+  const btn = document.querySelector('.party-save');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  try {
+    await updateDoc(doc(db, 'joins', id), { parties });
+    showToast(parties.length ? `${parties.length}개 조로 편성했습니다` : '조 편성을 해제했습니다');
+    window.closePartySheet();
+    await loadJoins();
+  } catch (e) {
+    showToast('저장 실패: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
+};
+
 // ── 마감 카드 스코어 드롭다운 ─────────────────────────
 const _scorePanelCache = {};
 
@@ -1489,9 +1725,11 @@ function buildCard(j) {
   else if (isFull)   { joinBtnText = '마감'; joinBtnClass += ' full'; }
 
   const isAuthor = currentUser && (j.creatorUid === currentUser.uid || (j.participants?.[0]?.uid === currentUser.uid));
+  const canParty = (isAdmin || isAuthor) && participants.length >= 4;
   const adminRow = (isAdmin || isAuthor) ? `
     <div class="card-admin-row">
       <button class="card-edit-btn" onclick="window.openAdminModal('${j.id}')">수정</button>
+      ${canParty ? `<button class="card-edit-btn" style="background:rgba(62,160,102,0.22);color:var(--green-light);border-color:rgba(62,160,102,0.4);" onclick="window.openPartySheet('${j.id}')">조 편성</button>` : ''}
       ${isAdmin ? `<button class="card-close-btn" onclick="window.confirmClose('${j.id}','${j.course}')">마감</button>
       <button class="card-delete-btn" onclick="window.confirmDelete('${j.id}','${j.course}')">삭제</button>` : ''}
     </div>` : '';
@@ -1546,7 +1784,9 @@ function buildCard(j) {
               const click = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
               const style = canView ? 'cursor:pointer;' : '';
               const chipClass = isMe ? ' me' : isGuest ? ' guest' : '';
-              const label = p.name + (i === 0 ? ' ★' : '') + (isGuest ? ' G' : '');
+              const pIdx = partyIndexOf(j, p.uid);
+              const partyTag = pIdx >= 0 ? `<span class="chip-party">${pIdx + 1}조</span>` : '';
+              const label = p.name + (i === 0 ? ' ★' : '') + (isGuest ? ' G' : '') + partyTag;
               return `<span class="participant-name-chip${chipClass}" ${click} style="${style}">${label}</span>`;
             }).join('')}</div>`
         }
@@ -2042,6 +2282,19 @@ window.confirmReflect = function(id, name) {
     });
 };
 
+// 조 편성이 되어 있으면 같은 조 사람만, 아니면 참가자 전원을 동반자로 본다.
+function partyMembersOf(j, uid) {
+  const all   = (j && j.participants) || [];
+  const parts = (j && Array.isArray(j.parties) ? j.parties : []).filter(g => ((g || {}).uids || []).length);
+  if (!parts.length) return all;
+  const mine = parts.find(g => (g.uids || []).includes(uid));
+  if (!mine) {
+    const assigned = new Set(parts.flatMap(g => g.uids || []));
+    return all.filter(x => !assigned.has(x.uid));   // 미배정끼리 묶는다
+  }
+  return mine.uids.map(u => all.find(x => x.uid === u)).filter(Boolean);
+}
+
 // 참가자 1명의 scoreHistory 문서를 없을 때만 생성하고 핸디캡/통계를 재계산한다. (멱등)
 async function ensureScoreHistory(joinData, joinId, p, pHoles, pTotal) {
   const histPath = `users/${p.uid}/scoreHistory/${joinId}`;
@@ -2053,7 +2306,7 @@ async function ensureScoreHistory(joinData, joinId, p, pHoles, pTotal) {
     frontCourse: joinData.frontCourse || '',
     backCourse:  joinData.backCourse  || '',
     date:        joinData.date        || '',
-    companions:  (joinData.participants || []).filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
+    companions:  partyMembersOf(joinData, p.uid).filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
     totalScore:  pTotal,
     holes:       pHoles,
     parHoles:    [],
