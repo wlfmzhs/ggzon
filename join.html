@@ -329,6 +329,14 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
     }
+    .pgrp + .pgrp { margin-top: 10px; }
+    .pgrp-tag {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 900; color: var(--green-light);
+      margin-bottom: 5px; letter-spacing: 0.3px;
+    }
+    .pgrp-tag.unassigned { color: #e6a41e; }
+    .pgrp-num { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3); }
     .participant-name-chip {
       font-size: 11px; font-weight: 800;
       color: var(--gold);
@@ -666,10 +674,6 @@
       flex: 2; padding: 13px; border-radius: 12px; background: var(--green-light);
       border: none; color: #fff; font-size: 14px; font-weight: 900;
       cursor: pointer; font-family: inherit;
-    }
-    .chip-party {
-      font-size: 9px; font-weight: 900; margin-left: 4px;
-      color: var(--green-light);
     }
 
     .confirm-overlay {
@@ -1433,15 +1437,6 @@ let _partyJoin   = null;      // 편성 중인 조인 데이터
 let _partyAssign = {};        // uid → 조 index(0부터), 미배정이면 키 없음
 let _partyCount  = 0;         // 조 개수
 
-// 조인 데이터에서 참가자가 속한 조 index 를 찾는다 (없으면 -1)
-function partyIndexOf(j, uid) {
-  const parts = (j && Array.isArray(j.parties)) ? j.parties : [];
-  for (let i = 0; i < parts.length; i++) {
-    if (((parts[i] || {}).uids || []).includes(uid)) return i;
-  }
-  return -1;
-}
-
 function findJoinById(id) {
   return joins.find(x => x.id === id) || closedJoins.find(x => x.id === id) || null;
 }
@@ -1691,6 +1686,47 @@ function buildPanelTable(players, scores, from, to) {
   </table>`;
 }
 
+// 참석자 칩. 조가 편성돼 있으면 1조부터 차례로 줄을 나눠 보여준다.
+// (칩 그리드가 4칸이라 한 조 4명이 정확히 한 줄에 들어온다)
+function buildParticipantChips(j, participants) {
+  const chip = (p, i) => {
+    const isMe     = currentUser && p.uid === currentUser.uid;
+    const isGuest  = p.isGuest === true;
+    const canView  = isAdmin && !isGuest;
+    const click    = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
+    const style    = canView ? 'cursor:pointer;' : '';
+    const chipClass = isMe ? ' me' : isGuest ? ' guest' : '';
+    const label    = p.name + (i === 0 ? ' ★' : '') + (isGuest ? ' G' : '');
+    return `<span class="participant-name-chip${chipClass}" ${click} style="${style}">${label}</span>`;
+  };
+
+  const parts = (Array.isArray(j.parties) ? j.parties : []).filter(g => ((g || {}).uids || []).length);
+  if (!parts.length) {
+    return `<div class="participant-chips">${participants.map((p, i) => chip(p, i)).join('')}</div>`;
+  }
+
+  const idxOf = new Map(participants.map((p, i) => [p.uid, i]));   // ★(주최자) 표시는 원래 순서 기준
+  const used  = new Set();
+  let html = '';
+  parts.forEach((g, gi) => {
+    const members = (g.uids || []).map(uid => participants.find(p => p.uid === uid)).filter(Boolean);
+    if (!members.length) return;
+    members.forEach(p => used.add(p.uid));
+    html += `<div class="pgrp">
+      <div class="pgrp-tag">${g.name || `${gi + 1}조`}<span class="pgrp-num">${members.length}명</span></div>
+      <div class="participant-chips">${members.map(p => chip(p, idxOf.get(p.uid))).join('')}</div>
+    </div>`;
+  });
+  const rest = participants.filter(p => !used.has(p.uid));
+  if (rest.length) {
+    html += `<div class="pgrp">
+      <div class="pgrp-tag unassigned">미배정<span class="pgrp-num">${rest.length}명</span></div>
+      <div class="participant-chips">${rest.map(p => chip(p, idxOf.get(p.uid))).join('')}</div>
+    </div>`;
+  }
+  return html;
+}
+
 // ── 카드 빌드 ─────────────────────────────────────────
 function buildCard(j) {
   const isNight = j.timeType === 'night';
@@ -1725,7 +1761,8 @@ function buildCard(j) {
   else if (isFull)   { joinBtnText = '마감'; joinBtnClass += ' full'; }
 
   const isAuthor = currentUser && (j.creatorUid === currentUser.uid || (j.participants?.[0]?.uid === currentUser.uid));
-  const canParty = (isAdmin || isAuthor) && participants.length >= 4;
+  // 4명 이하(카트 1대)는 나눌 게 없으므로 조 편성 버튼을 안 보여준다
+  const canParty = (isAdmin || isAuthor) && participants.length > 4;
   const adminRow = (isAdmin || isAuthor) ? `
     <div class="card-admin-row">
       <button class="card-edit-btn" onclick="window.openAdminModal('${j.id}')">수정</button>
@@ -1777,18 +1814,7 @@ function buildCard(j) {
         </div>
         ${participants.length === 0
           ? `<span class="participant-empty">아직 없음</span>`
-          : `<div class="participant-chips">${participants.map((p, i) => {
-              const isMe = currentUser && p.uid === currentUser.uid;
-              const isGuest = p.isGuest === true;
-              const canView = isAdmin && !isGuest;
-              const click = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
-              const style = canView ? 'cursor:pointer;' : '';
-              const chipClass = isMe ? ' me' : isGuest ? ' guest' : '';
-              const pIdx = partyIndexOf(j, p.uid);
-              const partyTag = pIdx >= 0 ? `<span class="chip-party">${pIdx + 1}조</span>` : '';
-              const label = p.name + (i === 0 ? ' ★' : '') + (isGuest ? ' G' : '') + partyTag;
-              return `<span class="participant-name-chip${chipClass}" ${click} style="${style}">${label}</span>`;
-            }).join('')}</div>`
+          : buildParticipantChips(j, participants)
         }
       </div>
       ${memo}
