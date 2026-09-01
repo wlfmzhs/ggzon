@@ -1440,7 +1440,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, increment,
-  onSnapshot, serverTimestamp, writeBatch, deleteField, query, where
+  onSnapshot, serverTimestamp, writeBatch, deleteField, query, where, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { makeDb } from "/fs-cache.js";
 
@@ -1582,14 +1582,23 @@ async function loadActiveTournaments() {
 }
 
 // ── 리스트 뷰 진행 바용 등록 수 일괄 조회 ────────────────
+// 진행 바에 필요한 건 "신청 인원 수" 하나뿐이라 신청자 문서를 전부 내려받지 않고
+// 서버 집계(getCountFromServer)로 숫자만 받는다. 대회가 여러 개여도 동시에 조회한다.
+// (예전엔 대회마다 신청자 전원을 순서대로 다 받아와서 인원이 늘수록 목록이 느려졌다)
 async function loadRegistrationCounts() {
   const active = activeTournaments.filter(t => t.status === 'recruiting' || t.status === 'upcoming');
-  for (const t of active) {
+  await Promise.all(active.map(async (t) => {
     try {
-      const snap = await getDocs(collection(db, 'tournaments', t.id, 'registrations'));
-      updateCardProgress(t.id, snap.size, t.totalParticipants || 0);
-    } catch (e) {}
-  }
+      const agg = await getCountFromServer(collection(db, 'tournaments', t.id, 'registrations'));
+      updateCardProgress(t.id, agg.data().count, t.totalParticipants || 0);
+    } catch (e) {
+      // 집계가 막힌 환경(오래된 브라우저 등)에서는 기존 방식으로 한 번 더 시도
+      try {
+        const snap = await getDocs(collection(db, 'tournaments', t.id, 'registrations'));
+        updateCardProgress(t.id, snap.size, t.totalParticipants || 0);
+      } catch (_) {}
+    }
+  }));
 }
 
 // ── Render active list ────────────────────────────────
