@@ -444,8 +444,10 @@
       max-height: 0; overflow: hidden;
       transition: max-height 0.4s ease;
     }
+    /* 열린 높이는 JS가 내용에 맞춰 지정한다. 여기 고정값을 두면
+       단체 라운드처럼 참가자가 많을 때 아래 스코어가 잘린다. */
     .past-score-panel.open {
-      max-height: 1200px;
+      max-height: none;
       border-top: 1px solid rgba(255,255,255,0.07);
     }
     .ps-inner { padding: 14px 12px 16px; }
@@ -1339,20 +1341,41 @@ function renderClosedList() {
 // ── 마감 카드 스코어 드롭다운 ─────────────────────────
 const _scorePanelCache = {};
 
+// 펼친 패널 높이를 실제 내용 높이에 맞춘다.
+// 스코어는 열고 나서 불러오므로(스피너 → 표) 내용이 바뀔 때마다 다시 맞춰야 하고,
+// 애니메이션이 끝난 뒤엔 상한 자체를 없애 인원이 몇 명이든 아래가 잘리지 않게 한다.
+function fitScorePanel(panel) {
+  if (!panel || !panel.classList.contains('open')) return;
+  panel.style.maxHeight = panel.scrollHeight + 'px';
+  clearTimeout(panel._fitTimer);
+  panel._fitTimer = setTimeout(() => {
+    if (panel.classList.contains('open')) panel.style.maxHeight = 'none';
+  }, 450);
+}
+
 window.toggleScorePanel = async function(id) {
   const card  = document.getElementById(`past-${id}`);
   const panel = document.getElementById(`score-panel-${id}`);
   if (!panel || !card) return;
 
-  const isOpen = panel.classList.contains('open');
-  panel.classList.toggle('open', !isOpen);
-  card.classList.toggle('open', !isOpen);
+  if (panel.classList.contains('open')) {
+    // 접기: 상한이 'none'인 상태에선 애니메이션 시작점이 없으므로 현재 높이를 먼저 박아준다
+    clearTimeout(panel._fitTimer);
+    panel.style.maxHeight = panel.scrollHeight + 'px';
+    void panel.offsetHeight;
+    panel.classList.remove('open');
+    card.classList.remove('open');
+    panel.style.maxHeight = '';
+    return;
+  }
 
-  if (isOpen) return;
+  panel.classList.add('open');
+  card.classList.add('open');
 
-  if (_scorePanelCache[id]) { panel.innerHTML = _scorePanelCache[id]; return; }
+  if (_scorePanelCache[id]) { panel.innerHTML = _scorePanelCache[id]; fitScorePanel(panel); return; }
 
   panel.innerHTML = `<div class="ps-loading"><div class="spinner"></div></div>`;
+  fitScorePanel(panel);
   try {
     const snap = await getDoc(doc(db, 'joins', id));
     const html = snap.exists() ? buildScorePanel(snap.data()) : `<div class="ps-no-score">데이터 없음</div>`;
@@ -1361,6 +1384,7 @@ window.toggleScorePanel = async function(id) {
   } catch(_) {
     panel.innerHTML = `<div class="ps-no-score">불러오기 실패</div>`;
   }
+  fitScorePanel(panel);
 };
 
 function buildScorePanel(jData) {
