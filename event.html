@@ -271,6 +271,35 @@
     }
     .card-action-btn:active { opacity: 0.8; }
 
+    /* 공유 버튼 행 — 조인(join.html) 카드와 같은 모양 */
+    .card-bottom-row { display: flex; gap: 8px; margin-top: 8px; }
+    .card-share-btn {
+      flex: 1; padding: 10px 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 700;
+      border-radius: 10px; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .card-share-btn:active { background: rgba(255,255,255,0.12); }
+    .card-kakao-btn {
+      flex: 1; padding: 10px 8px;
+      background: rgba(254,229,0,0.12);
+      border: 1px solid rgba(254,229,0,0.3);
+      color: #ffe033; font-size: 12px; font-weight: 700;
+      border-radius: 10px; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      text-decoration: none;
+    }
+    .card-kakao-btn:active { background: rgba(254,229,0,0.2); }
+
+    /* 공유 링크로 들어왔을 때 해당 대회 카드 강조 */
+    .active-card.shared-focus { animation: sharedPulse 2.6s ease-out; }
+    @keyframes sharedPulse {
+      0%, 100% { box-shadow: none; }
+      15%, 60% { box-shadow: 0 0 0 3px rgba(240,192,64,0.55); }
+    }
+
     .card-admin-row {
       display: flex; gap: 8px; margin-top: 10px;
     }
@@ -1458,6 +1487,7 @@
 
 </div><!-- /phone -->
 
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -1477,6 +1507,10 @@ const app = initializeApp({
 });
 const auth = getAuth(app);
 const db = makeDb(app);
+
+if (window.Kakao && !Kakao.isInitialized()) {
+  Kakao.init('a14a8368381df22cac7c0fd0841fd28e');
+}
 
 // ── 코스명 헬퍼 (tournament 객체에서 가져오거나 기본값 사용) ──
 function getCourseNamesFor(t) {
@@ -1639,6 +1673,7 @@ function renderActiveList() {
 
   el.innerHTML = active.map(t => buildActiveCard(t)).join('');
   startTimers(active);
+  focusSharedTournament();
 }
 
 function isNightRound(teeUpTime) {
@@ -1662,7 +1697,7 @@ function buildActiveCard(t) {
       <button class="card-delete-btn" onclick="event.stopPropagation(); confirmDeleteTournament('${t.id}', '${t.name}')">삭제</button>
     </div>` : '';
 
-  return `<div class="active-card ${night ? 'night' : 'day'}" onclick="openDetail('${t.id}')">
+  return `<div class="active-card ${night ? 'night' : 'day'}" id="tcard-${t.id}" onclick="openDetail('${t.id}')">
     <div class="card-status-row">
       ${isRecruiting
         ? `<span class="badge-live">● LIVE</span>`
@@ -1707,8 +1742,113 @@ function buildActiveCard(t) {
       </div>
     </div>
     <button class="card-action-btn">신청하기</button>
+    <div class="card-bottom-row">
+      <button class="card-share-btn" onclick="event.stopPropagation(); window.shareTournamentCard('${t.id}')">공유용 이미지 저장</button>
+      <button class="card-kakao-btn" onclick="event.stopPropagation(); window.kakaoShareTournament('${t.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
+        카카오 공유
+      </button>
+    </div>
     ${adminButtons}
   </div>`;
+}
+
+// ── 공유 (카카오 / 이미지) ─────────────────────────────
+// ⚠️ 이 주소를 www.ggzon.co.kr 로 바꾸지 말 것. (join.html 에서 세 번 같은 사고)
+// 카카오 공유 링크의 도메인은 카카오 개발자 콘솔에 등록된 도메인이어야 한다.
+// 등록된 도메인은 https://wlfmzhs.github.io 뿐이고, 등록 안 된 도메인으로 공유하면
+// 카톡이 도메인만 등록 도메인으로 바꿔 열어 /ggzon 없는 경로가 되면서 404가 난다.
+// github.io/ggzon 주소는 GitHub 이 www.ggzon.co.kr 로 301 해주고 쿼리도 그대로 유지된다.
+const APP_BASE = 'https://wlfmzhs.github.io/ggzon';
+
+window.kakaoShareTournament = function(id) {
+  const t = activeTournaments.find(x => x.id === id) || currentTournament;
+  if (!t) { showToast('대회 정보를 찾지 못했습니다'); return; }
+  if (!window.Kakao || !Kakao.isInitialized()) {
+    showToast('카카오 SDK 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  const appLink = `${APP_BASE}/event.html?eventId=${encodeURIComponent(id)}`;
+  const dateStr = t.date ? formatDate(t.date) : '일정 조율 중';
+  const teeStr  = t.teeUpTimeDisplay || t.teeUpTime || '';
+  const descParts = [dateStr + (teeStr ? ' ' + teeStr + ' 티업' : '')];
+  if (t.golfCourseName) descParts.push(t.golfCourseName);
+  if (t.totalParticipants) descParts.push(t.totalParticipants + '명');
+
+  Kakao.Share.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: `[골갑존] ${t.name}`,
+      description: descParts.join(' · '),
+      imageUrl: 'https://www.ggzon.co.kr/image/icon-512.png',
+      link: { mobileWebUrl: appLink, webUrl: appLink },
+    },
+    buttons: [
+      { title: '대회 보러가기', link: { mobileWebUrl: appLink, webUrl: appLink } },
+    ],
+  });
+};
+
+// 목록 카드를 그대로 이미지로 저장 (조인 카드 공유와 같은 방식)
+window.shareTournamentCard = async function(id) {
+  const cardEl = document.getElementById('tcard-' + id);
+  if (!cardEl) return;
+  if (typeof html2canvas === 'undefined') { showToast('이미지 기능 로딩 중입니다'); return; }
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;padding:20px;background:#111;display:inline-block;';
+  const clone = cardEl.cloneNode(true);
+  clone.querySelectorAll('.card-bottom-row, .card-admin-row, .card-action-btn').forEach(el => el.remove());
+  clone.style.width  = cardEl.offsetWidth + 'px';
+  clone.style.margin = '0';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  showToast('이미지 생성 중...');
+  try {
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: '#111', scale: 3, useCORS: true, logging: false,
+    });
+    const t = activeTournaments.find(x => x.id === id);
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], 'golgab-tournament.png', { type: 'image/png' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: (t && t.name) || '골갑존 대회' }); return; }
+        catch (_) { /* 취소하면 저장으로 대체 */ }
+      }
+      const a = document.createElement('a');
+      a.download = ((t && t.name) || 'golgab-tournament') + '.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      showToast('이미지가 저장되었습니다');
+    }, 'image/png');
+  } catch (e) {
+    showToast('이미지 생성에 실패했습니다');
+  } finally {
+    if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+  }
+};
+
+// ── 공유 링크(?eventId=)로 들어오면 그 대회를 바로 연다 ──
+let _sharedEventDone = false;
+function focusSharedTournament() {
+  if (_sharedEventDone) return;
+  let id = '';
+  try {
+    const p = new URLSearchParams(location.search);
+    id = p.get('eventId') || p.get('tournamentId') || '';
+  } catch (e) { return; }
+  if (!id) return;
+  if (!activeTournaments.some(x => x.id === id)) return;   // 아직 못 불러옴 — 다음 렌더에서 재시도
+
+  _sharedEventDone = true;
+  const card = document.getElementById('tcard-' + id);
+  if (card) {
+    card.classList.add('shared-focus');
+    setTimeout(() => card.classList.remove('shared-focus'), 2600);
+  }
+  setTimeout(() => window.openDetail(id), 80);
 }
 
 // ── Countdown timers ──────────────────────────────────
@@ -1940,6 +2080,13 @@ function renderDetailHeader(t) {
       ${t.notice ? `<div class="detail-notice-box"><div class="detail-notice-label">NOTICE</div><div class="detail-notice-text">${escHtml(t.notice).replace(/\n/g,'<br>')}</div></div>` : ''}
       ${t.rule ? `<div class="detail-notice-box" style="margin-top:10px;"><div class="detail-notice-label">RULE</div><div class="detail-notice-text">${escHtml(t.rule).replace(/\n/g,'<br>')}</div></div>` : ''}
       ${adminEdit}
+      <div class="card-bottom-row">
+        <button class="card-share-btn" onclick="window.downloadDetailImage()">공유용 이미지 저장</button>
+        <button class="card-kakao-btn" onclick="window.kakaoShareTournament('${t.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
+          카카오 공유
+        </button>
+      </div>
     </div>
 
     <div class="info-grid">
@@ -3143,6 +3290,7 @@ window.downloadDetailImage = async function() {
   // 캡처 시 숨길 요소 (관리자 버튼, 신청 버튼, 선택 바)
   const toHide = [
     scroll.querySelector('button[onclick*="openAdminModal"]')?.closest('div'),
+    scroll.querySelector('.card-bottom-row'),
     document.getElementById('detail-register-btn'),
     document.getElementById('selected-info-bar'),
   ].filter(Boolean);
