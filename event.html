@@ -1034,6 +1034,27 @@
       cursor: grab;
     }
     .pairing-dnd-slot.manual .pairing-dnd-name { color: var(--gold); }
+    /* 관리자 인원 빼기 ✕ — 슬롯이 작아 탭 영역을 따로 넉넉히 준다 */
+    .pairing-del-btn {
+      position: absolute; top: 0; right: 0; z-index: 3;
+      width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900; line-height: 1;
+      color: rgba(255,105,97,0.85); cursor: pointer;
+    }
+    .pairing-del-btn:active { color: #ff5c52; }
+    /* 킵 = 섭외는 됐지만 아직 신청 전인 자리 */
+    .pairing-dnd-slot.keep {
+      background: rgba(240,192,64,0.05);
+      border: 1px dashed rgba(240,192,64,0.55);
+      cursor: grab;
+    }
+    .pairing-dnd-slot.keep .pairing-dnd-name { color: rgba(240,192,64,0.9); }
+    .pairing-keep-tag {
+      position: absolute; top: 2px; left: 3px; z-index: 2;
+      font-size: 8px; font-weight: 900; letter-spacing: 0.3px;
+      color: #241a02; background: rgba(240,192,64,0.85);
+      border-radius: 3px; padding: 1px 3px; line-height: 1;
+    }
     .pairing-dnd-slot.empty-clickable { cursor: pointer; }
     .pairing-dnd-slot.empty-clickable:active { background: rgba(62,160,102,0.1); }
     .pairing-dnd-slot.long-press-hold {
@@ -1411,7 +1432,9 @@
         <div id="manual-seat-label" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:18px;"></div>
         <input id="manual-name-input" type="text" placeholder="이름 입력" maxlength="10"
           style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.35);border-radius:12px;padding:14px 16px;color:#fff;font-size:16px;font-family:inherit;outline:none;margin-bottom:14px;" />
-        <button onclick="window._saveManualName()" style="width:100%;padding:14px;border-radius:12px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:10px;">추가하기</button>
+        <button onclick="window._saveManualName(false)" style="width:100%;padding:14px;border-radius:12px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:8px;">참가자로 추가</button>
+        <button onclick="window._saveManualName(true)" style="width:100%;padding:14px;border-radius:12px;background:rgba(240,192,64,0.9);color:#241a02;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:4px;">킵 (자리만 잡아두기)</button>
+        <div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:12px;">킵은 섭외는 끝났지만 아직 신청 전인 분의 자리를 잡아두는 용도입니다. 조편성에 점선 + 금색 '킵' 으로 표시됩니다.</div>
         <button onclick="window._closeManualSheet()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
       </div>
     </div>
@@ -2785,7 +2808,8 @@ function renderPairingContent(t, registrations) {
   });
 
   const isBW = t.tournamentType === 'black-white';
-  let html = `<div class="pairing-dnd-hint">카드를 0.5초 길게 눌러서 드래그하면 자리가 바뀝니다</div>`;
+  let html = `<div class="pairing-dnd-hint">카드를 0.5초 길게 눌러서 드래그하면 자리가 바뀝니다${
+    isAdmin ? ' · ✕ 로 인원을 빼고, 빈자리를 눌러 추가·킵 할 수 있습니다' : ''}</div>`;
 
   for (let ci = 0; ci < courseCount; ci++) {
     html += `<div class="pairing-course-section">
@@ -2814,13 +2838,16 @@ function renderPairingContent(t, registrations) {
         const reg = regMap[`${ci}-${cartIdx}-${si}`];
         const teamCls = isBW ? (si < 2 ? 'heuk' : 'baek') : '';
         if (reg) {
-          const isManual = reg.isManual ? 'manual' : '';
-          const delBtn = (isAdmin && reg.isManual)
-            ? `<div onclick="event.stopPropagation();window._deleteManual('${reg.id}')" style="position:absolute;top:2px;right:3px;font-size:12px;color:rgba(255,100,100,0.8);line-height:1;cursor:pointer;">×</div>` : '';
+          const isKeep   = reg.isKeep === true;
+          const isManual = isKeep ? 'keep' : reg.isManual ? 'manual' : '';
+          // 관리자는 신청자·수동 추가·킵 가리지 않고 자리에서 뺄 수 있다
+          const delBtn = isAdmin
+            ? `<div class="pairing-del-btn" onclick="event.stopPropagation();window._removeReg('${reg.id}')" title="이 인원 빼기">×</div>` : '';
+          const keepTag = isKeep ? `<div class="pairing-keep-tag">킵</div>` : '';
           html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls}"
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
             draggable="true" style="position:relative;">
-            ${delBtn}
+            ${keepTag}${delBtn}
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
             <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</div>
           </div>`;
@@ -3020,28 +3047,45 @@ window._closeManualSheet = function() {
   _manualTarget = null;
 };
 
-window._saveManualName = async function() {
+// asKeep = true 면 '킵' (섭외 완료 · 신청 전) 자리로 잡아둔다
+window._saveManualName = async function(asKeep) {
   if (!isAdmin || !_manualTarget) return;
   const name = document.getElementById('manual-name-input').value.trim();
   if (!name) { showToast('이름을 입력해주세요'); return; }
   const { ci, cartIdx, si } = _manualTarget;
+  const entry = {
+    name, courseIndex: ci, cartIndex: cartIdx, seatIndex: si,
+    isManual: true, createdAt: new Date().toISOString(),
+  };
+  if (asKeep === true) entry.isKeep = true;
   try {
-    await addDoc(collection(db, 'tournaments', currentTournament.id, 'registrations'), {
-      name, courseIndex: ci, cartIndex: cartIdx, seatIndex: si,
-      isManual: true, createdAt: new Date().toISOString(),
-    });
-    showToast(`${name} 추가되었습니다`);
+    await addDoc(collection(db, 'tournaments', currentTournament.id, 'registrations'), entry);
+    showToast(asKeep === true ? `${name} 자리를 잡았습니다 (킵)` : `${name} 추가되었습니다`);
     window._closeManualSheet();
   } catch (e) { showToast('저장 오류: ' + e.message); }
 };
 
-window._deleteManual = async function(regId) {
-  if (!isAdmin) return;
-  try {
-    await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'registrations', regId));
-    showToast('삭제되었습니다');
-  } catch (e) { showToast('삭제 오류: ' + e.message); }
+// 자리에서 인원 빼기 — 수동 추가·킵뿐 아니라 실제 신청자도 뺄 수 있다.
+// 신청 문서를 지우는 것이라 되돌릴 수 없어 반드시 확인을 받는다.
+window._removeReg = function(regId) {
+  if (!isAdmin || !currentTournament) return;
+  const reg = (allRegistrations || []).find(r => r.id === regId);
+  if (!reg) { showToast('참가자 정보를 찾지 못했습니다'); return; }
+  const who  = reg.name || '이 참가자';
+  const kind = reg.isKeep ? '킵' : reg.isManual ? '추가 인원' : '신청자';
+  const msg  = reg.isManual
+    ? `"${who}" 자리를 비웁니다.`
+    : `"${who}" 님의 대회 신청을 취소하고 자리를 비웁니다. 되돌릴 수 없습니다.`;
+  openConfirm(`${kind} 빼기`, msg, async () => {
+    try {
+      await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'registrations', regId));
+      showToast(`"${who}" 님을 뺐습니다`);
+    } catch (e) { showToast('삭제 오류: ' + e.message); }
+  });
 };
+
+// 이전 이름 (혹시 남아 있는 호출 대비)
+window._deleteManual = function(regId) { window._removeReg(regId); };
 
 // ═══════════════════════════════════════════════════════
 // 추첨 번호 부여 / 리셋 (Admin only)
