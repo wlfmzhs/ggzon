@@ -84,6 +84,26 @@
     .summary-score.under { color: #e74c3c; }
     .summary-score.even  { color: rgba(255,255,255,0.8); }
 
+    /* 전체 순위 (모든 조 통합) */
+    .overall-card { margin: 10px 14px 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(62,160,102,0.22); border-radius: 14px; overflow: hidden; }
+    .overall-head { display: flex; align-items: center; gap: 7px; padding: 11px 14px 9px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .overall-title { font-size: 12px; font-weight: 900; color: var(--green-light); letter-spacing: 0.02em; }
+    .overall-sub { font-size: 10px; color: rgba(255,255,255,0.3); margin-left: auto; }
+    .ov-row { display: grid; grid-template-columns: 30px 1fr auto auto; align-items: center; gap: 0 8px; padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+    .ov-row:last-child { border-bottom: none; }
+    .ov-row.top1 { background: rgba(240,192,64,0.07); }
+    .ov-row.is-me { background: rgba(62,160,102,0.10); }
+    .ov-rank { font-size: 12px; font-weight: 900; color: rgba(255,255,255,0.25); }
+    .ov-rank.r1 { color: #f0c040; }
+    .ov-rank.r2 { color: rgba(255,255,255,0.6); }
+    .ov-rank.r3 { color: #cd8c5a; }
+    .ov-name { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ov-tag { display: inline-block; font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.08); border-radius: 4px; padding: 1px 5px; margin-left: 5px; vertical-align: 1px; }
+    .ov-holes { font-size: 10px; color: rgba(255,255,255,0.25); text-align: right; }
+    .ov-score { font-size: 16px; font-weight: 900; color: #fff; text-align: right; min-width: 34px; }
+    .ov-score.under { color: #e74c3c; }
+    .ov-score.even  { color: rgba(255,255,255,0.8); }
+
     /* 스코어 테이블 공통 */
     .score-section { margin: 0 14px 16px; }
     table.sc-table { width: 100%; border-collapse: collapse; }
@@ -312,6 +332,9 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       참석자만 스코어를 입력할 수 있습니다.
     </div>
+
+    <!-- 전체 순위 (모든 조 통합) -->
+    <div id="overall-container"></div>
 
     <!-- 코스 그룹별 순위/스코어 -->
     <div id="groups-container"></div>
@@ -793,6 +816,70 @@ function getGroupPar(g) {
   return empty;
 }
 
+// 모든 조를 합쳐 1위부터 줄세운 전체 순위.
+// 조가 여러 개면 자기 조 안에서만 등수를 알 수 있어, 맨 위에 통합 리더보드를 얹는다.
+function buildOverall(groups) {
+  const byUid = new Map();
+  groups.forEach((g, gi) => {
+    (g.players || []).forEach(p => {
+      const holes   = ((g.scores || {})[p.uid] || {}).holes || Array(18).fill(null);
+      const entered = holes.filter(v => v !== null).length;
+      const tot     = entered ? holes.reduce((a, v) => a + (v ?? 0), 0) : null;
+      const prev    = byUid.get(p.uid);
+      if (prev && prev.entered >= entered) return;   // 같은 사람이 두 조에 걸치면 입력이 많은 쪽
+      byUid.set(p.uid, { uid: p.uid, name: p.name, tag: g.label || g.course || '', gi, tot, entered });
+    });
+  });
+
+  const rows = [...byUid.values()].sort((a, b) => {
+    if (!!a.entered !== !!b.entered) return a.entered ? -1 : 1;
+    if (!a.entered) return String(a.name).localeCompare(String(b.name), 'ko');
+    if (a.tot !== b.tot) return a.tot - b.tot;
+    return b.entered - a.entered;
+  });
+  if (!rows.length) return '';
+
+  // 동점은 같은 등수(T)
+  let rank = 0, prevTot = null;
+  rows.forEach((r, i) => {
+    if (!r.entered) { r.rank = null; return; }
+    if (prevTot === null || r.tot !== prevTot) { rank = i + 1; prevTot = r.tot; }
+    r.rank = rank;
+  });
+  const rankCount = {};
+  rows.forEach(r => { if (r.rank) rankCount[r.rank] = (rankCount[r.rank] || 0) + 1; });
+
+  const scored = rows.filter(r => r.entered).length;
+  const list = rows.map(r => {
+    const isMe    = currentUser && r.uid === currentUser.uid;
+    const label   = r.tot === null ? '-' : r.tot === 0 ? 'E' : r.tot > 0 ? `+${r.tot}` : String(r.tot);
+    const cls     = r.tot === null ? '' : r.tot < 0 ? 'under' : r.tot === 0 ? 'even' : '';
+    const rankCls = r.rank === 1 ? 'r1' : r.rank === 2 ? 'r2' : r.rank === 3 ? 'r3' : '';
+    const tie     = r.rank && rankCount[r.rank] > 1 ? 'T' : '';
+    const rankTxt = r.rank ? `${tie}${r.rank}` : '-';
+    return `<div class="ov-row ${r.rank === 1 ? 'top1' : ''} ${isMe ? 'is-me' : ''}" onclick="window._goGroup(${r.gi})">
+      <div class="ov-rank ${rankCls}">${rankTxt}</div>
+      <div class="ov-name">${r.name}${isMe ? '<span class="me-tag">나</span>' : ''}${r.tag ? `<span class="ov-tag">${r.tag}</span>` : ''}</div>
+      <div class="ov-holes">${r.entered ? `${r.entered}H` : '-'}</div>
+      <div class="ov-score ${cls}">${label}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="overall-card">
+    <div class="overall-head">
+      <div class="overall-title">전체 순위</div>
+      <div class="overall-sub">${rows.length}명 중 ${scored}명 입력</div>
+    </div>
+    ${list}
+  </div>`;
+}
+
+// 전체 순위에서 이름을 누르면 해당 조 스코어표로 이동
+window._goGroup = function(gi) {
+  const el = document.getElementById('grp-' + gi);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
 function buildSummary(players, scores) {
   const playerStats = players.map(p => {
     const holes  = (scores[p.uid] || {}).holes || Array(18).fill(null);
@@ -838,7 +925,10 @@ function render() {
   const showLabels = groups.length > 1;
   const hasParties = (Array.isArray(joinData.parties) ? joinData.parties : []).some(g => ((g || {}).uids || []).length);
 
-  document.getElementById('groups-container').innerHTML = groups.map(g => {
+  // 조가 둘 이상일 때만 통합 순위를 보여준다 (한 조면 아래 요약과 중복)
+  document.getElementById('overall-container').innerHTML = groups.length > 1 ? buildOverall(groups) : '';
+
+  document.getElementById('groups-container').innerHTML = groups.map((g, gi) => {
     const par = g.isMine ? { parFront, parBack } : getGroupPar(g);
     // 조가 편성돼 있으면 내가 속한 조(카트)만 입력할 수 있다. 관리자는 전부 가능.
     const groupCanEdit = g.isMine && canEdit && (!hasParties || g.isMyParty || isAdmin);
@@ -851,7 +941,7 @@ function render() {
     const courseDetail = (g.frontCourse && g.backCourse) ? ` · ${g.frontCourse} → ${g.backCourse}`
       : (g.frontCourse || g.backCourse) ? ` · ${g.frontCourse || g.backCourse}` : '';
     const partyLabel = g.label ? `${g.label}${g.isMyParty ? ' (내 조)' : ''} · ` : '';
-    return `<div class="course-group">
+    return `<div class="course-group" id="grp-${gi}">
       ${showLabels ? `<div class="course-group-label">${partyLabel}${g.course || '코스 미정'}${courseDetail}</div>` : ''}
       <div class="summary-bar">${summaryHtml}</div>
       <div class="score-section"><table class="sc-table">${frontHtml}</table></div>
