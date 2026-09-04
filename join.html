@@ -663,6 +663,25 @@
     }
     .party-pill.on { background: var(--green-light); border-color: var(--green-light); color: #0b2313; }
     .party-pill:disabled { opacity: 0.28; cursor: default; }
+    .party-row-name .keep-tag { font-size: 9px; color: #e6a41e; background: rgba(230,164,30,0.15); border-radius: 4px; padding: 1px 4px; margin-left: 5px; font-weight: 800; }
+    .party-row-del {
+      width: 24px; height: 24px; flex-shrink: 0; border-radius: 7px;
+      background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.3);
+      color: #e74c3c; font-size: 12px; font-weight: 900; line-height: 1;
+      cursor: pointer; font-family: inherit; padding: 0;
+    }
+    .party-row-del:disabled { opacity: 0.2; cursor: default; }
+    .keep-form { display: none; gap: 6px; margin-bottom: 12px; }
+    .keep-form.open { display: flex; }
+    .keep-form input {
+      flex: 1; padding: 10px 12px; border-radius: 10px; font-size: 13px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+      color: #fff; font-family: inherit; outline: none; min-width: 0;
+    }
+    .keep-form button {
+      flex-shrink: 0; padding: 0 16px; border-radius: 10px; font-size: 12.5px; font-weight: 900;
+      background: rgba(230,164,30,0.9); border: none; color: #241a02; cursor: pointer; font-family: inherit;
+    }
     .party-note { font-size: 12px; color: rgba(255,255,255,0.35); padding: 6px 0 2px; }
     .party-btns { display: flex; gap: 8px; margin-top: 14px; }
     .party-cancel {
@@ -678,7 +697,7 @@
 
     .confirm-overlay {
       position: absolute; inset: 0; background: rgba(0,0,0,0.7);
-      display: flex; align-items: flex-end; z-index: 300; opacity: 0;
+      display: flex; align-items: flex-end; z-index: 340; opacity: 0;
       pointer-events: none; transition: opacity 0.25s;
     }
     .confirm-overlay.open { opacity: 1; pointer-events: all; }
@@ -732,6 +751,13 @@
     .course-status.warn { color: #f0c040; }
     .course-status.new  { color: rgba(255,255,255,0.4); }
     .course-status .cs-pick { text-decoration: underline; cursor: pointer; }
+
+    /* 킵 (섭외 완료 · 자리 잡아둠) */
+    .participant-name-chip.keep {
+      color: #e6a41e;
+      background: rgba(230,164,30,0.12);
+      border-color: rgba(230,164,30,0.35);
+    }
 
     /* 게스트 */
     .participant-name-chip.guest {
@@ -927,6 +953,11 @@
         <button class="party-tool-btn" onclick="window.partyAuto()">4명씩 자동</button>
         <button class="party-tool-btn" onclick="window.partyAddGroup()">조 추가</button>
         <button class="party-tool-btn" onclick="window.partyClear()">편성 해제</button>
+        <button class="party-tool-btn" style="background:rgba(230,164,30,0.18);border-color:rgba(230,164,30,0.4);color:#e6a41e;" onclick="window.partyToggleKeep()">＋킵</button>
+      </div>
+      <div class="keep-form" id="keep-form">
+        <input id="keep-name" type="text" maxlength="12" placeholder="섭외한 멤버 이름" autocomplete="off">
+        <button onclick="window.partyAddKeep()">자리 잡기</button>
       </div>
       <div class="party-body" id="party-body"></div>
       <div class="party-btns">
@@ -1457,13 +1488,19 @@ window.openPartySheet = function(id) {
     players.forEach((p, i) => { _partyAssign[p.uid] = Math.floor(i / PARTY_MAX); });
     _partyCount = Math.max(1, Math.ceil(players.length / PARTY_MAX));
   }
+  _partyDirty = false;
+  const kf = document.getElementById('keep-form');
+  if (kf) { kf.classList.remove('open'); document.getElementById('keep-name').value = ''; }
   renderPartySheet();
   document.getElementById('party-overlay').classList.add('open');
 };
 
 window.closePartySheet = function() {
   document.getElementById('party-overlay').classList.remove('open');
+  const kf = document.getElementById('keep-form');
+  if (kf) { kf.classList.remove('open'); document.getElementById('keep-name').value = ''; }
   _partyJoin = null;
+  if (_partyDirty) { _partyDirty = false; loadJoins(); }   // 인원이 바뀌었으면 카드 새로고침
 };
 
 function partyCountOf(gi) {
@@ -1476,19 +1513,27 @@ function renderPartySheet() {
   const unassigned = players.filter(p => _partyAssign[p.uid] === undefined);
 
   document.getElementById('party-desc').textContent =
-    `${_partyJoin.course || '조인'} · 총 ${players.length}명 — 한 조는 최대 ${PARTY_MAX}명입니다. 조를 나누면 스코어 입력 시 같은 조 사람만 보입니다.`;
+    `${_partyJoin.course || '조인'} · ${players.length}${_partyJoin.capacity ? '/' + _partyJoin.capacity : ''}명 — 한 조는 최대 ${PARTY_MAX}명입니다. ` +
+    `✕ 로 인원을 빼고, ＋킵 으로 섭외한 멤버 자리를 미리 잡아둘 수 있습니다.`;
 
+  const hostUid = (players[0] || {}).uid;
   const rowHtml = (p) => {
     const cur = _partyAssign[p.uid];
+    const isHost = p.uid === hostUid;
     const pills = Array.from({ length: _partyCount }, (_, gi) => {
       const on   = cur === gi;
       const full = !on && partyCountOf(gi) >= PARTY_MAX;
       return `<button class="party-pill${on ? ' on' : ''}" ${full ? 'disabled' : ''}
         onclick="window.partySet('${p.uid}',${gi})">${gi + 1}</button>`;
     }).join('');
+    const tag = p.isKeep ? '<span class="keep-tag">킵</span>'
+      : p.isGuest ? '<span class="guest-tag">게스트</span>' : '';
     return `<div class="party-row">
-      <div class="party-row-name">${p.name}${p.isGuest ? '<span class="guest-tag">게스트</span>' : ''}</div>
+      <div class="party-row-name">${p.name}${tag}</div>
       <div class="party-pills">${pills}</div>
+      <button class="party-row-del" ${isHost ? 'disabled' : ''}
+        title="${isHost ? '주최자는 뺄 수 없습니다' : '이 인원 빼기'}"
+        onclick="window.partyRemove('${p.uid}')">✕</button>
     </div>`;
   };
 
@@ -1515,6 +1560,85 @@ function renderPartySheet() {
   }
   document.getElementById('party-body').innerHTML = html;
 }
+
+// 편성 중 인원을 빼거나 킵을 넣으면 joins 문서를 즉시 고친다.
+// (조 배정은 '저장'을 눌러야 반영되지만, 인원 증감은 정원과 직결돼 바로 반영해야 한다)
+let _partyDirty = false;
+
+function partyReflectLocal(nextParticipants) {
+  _partyJoin.participants = nextParticipants;
+  const j = findJoinById(_partyJoin.id);
+  if (j && j !== _partyJoin) j.participants = nextParticipants;
+  _partyDirty = true;
+}
+
+// 인원 빼기 — 참가자 목록에서 지우고, 저장된 편성에 남은 uid도 같이 정리한다
+window.partyRemove = function(uid) {
+  if (!_partyJoin) return;
+  const players = _partyJoin.participants || [];
+  const p = players.find(x => x.uid === uid);
+  if (!p) return;
+  if (players[0] && players[0].uid === uid) { showToast('주최자는 뺄 수 없습니다'); return; }
+
+  const what = p.isKeep ? '킵' : p.isGuest ? '게스트' : '참가자';
+  showConfirm(what + ' 빼기', `"${p.name}" 님을 이 조인에서 뺍니다.`, async () => {
+    const id   = _partyJoin.id;
+    const next = players.filter(x => x.uid !== uid);
+    const patch = { participants: next };
+    if (Array.isArray(_partyJoin.parties)) {
+      patch.parties = _partyJoin.parties
+        .map(g => ({ ...g, uids: ((g || {}).uids || []).filter(u => u !== uid) }))
+        .filter(g => g.uids.length);
+    }
+    await withRetry(() => updateDoc(doc(db, 'joins', id), patch));
+    if (patch.parties) _partyJoin.parties = patch.parties;
+    partyReflectLocal(next);
+    delete _partyAssign[uid];
+    renderPartySheet();
+    showToast(`"${p.name}" 님을 뺐습니다`);
+  });
+};
+
+// 킵 입력줄 열고 닫기
+window.partyToggleKeep = function() {
+  const box = document.getElementById('keep-form');
+  box.classList.toggle('open');
+  if (box.classList.contains('open')) document.getElementById('keep-name').focus();
+};
+
+// 킵 추가 — 이미 섭외한 멤버 자리를 미리 잡아둔다.
+// 실제 계정이 아니므로 isGuest 로도 표시해 포인트·스코어 지급 대상에서 빠지게 한다.
+window.partyAddKeep = async function() {
+  if (!_partyJoin) return;
+  const input = document.getElementById('keep-name');
+  const name  = (input.value || '').trim();
+  if (!name) { showToast('이름을 입력해주세요'); input.focus(); return; }
+
+  const players = _partyJoin.participants || [];
+  const cap = Number(_partyJoin.capacity) || 0;
+  if (cap && players.length >= cap) { showToast(`정원(${cap}명)이 다 찼습니다`); return; }
+
+  const entry = {
+    uid: 'keep_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    name,
+    isGuest: true,
+    isKeep: true,
+    joinedAt: new Date().toISOString(),
+  };
+  try {
+    await withRetry(() => updateDoc(doc(db, 'joins', _partyJoin.id), { participants: arrayUnion(entry) }));
+  } catch (e) {
+    showToast('추가 실패: ' + (e.code || e.message)); return;
+  }
+
+  partyReflectLocal([...players, entry]);
+  for (let gi = 0; gi < _partyCount; gi++) {          // 빈자리 있는 첫 조에 자동 배정
+    if (partyCountOf(gi) < PARTY_MAX) { _partyAssign[entry.uid] = gi; break; }
+  }
+  input.value = '';
+  renderPartySheet();
+  showToast(`"${name}" 자리를 잡았습니다`);
+};
 
 // 같은 조를 다시 누르면 배정 해제(미배정으로)
 window.partySet = function(uid, gi) {
@@ -1560,6 +1684,7 @@ window.savePartySheet = async function() {
   try {
     await updateDoc(doc(db, 'joins', id), { parties });
     showToast(parties.length ? `${parties.length}개 조로 편성했습니다` : '조 편성을 해제했습니다');
+    _partyDirty = false;
     window.closePartySheet();
     await loadJoins();
   } catch (e) {
@@ -1691,12 +1816,13 @@ function buildPanelTable(players, scores, from, to) {
 function buildParticipantChips(j, participants) {
   const chip = (p, i) => {
     const isMe     = currentUser && p.uid === currentUser.uid;
-    const isGuest  = p.isGuest === true;
-    const canView  = isAdmin && !isGuest;
+    const isKeep   = p.isKeep === true;
+    const isGuest  = p.isGuest === true && !isKeep;
+    const canView  = isAdmin && !isGuest && !isKeep;
     const click    = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
     const style    = canView ? 'cursor:pointer;' : '';
-    const chipClass = isMe ? ' me' : isGuest ? ' guest' : '';
-    const label    = p.name + (i === 0 ? ' ★' : '') + (isGuest ? ' G' : '');
+    const chipClass = isKeep ? ' keep' : isMe ? ' me' : isGuest ? ' guest' : '';
+    const label    = p.name + (i === 0 ? ' ★' : '') + (isKeep ? ' 킵' : isGuest ? ' G' : '');
     return `<span class="participant-name-chip${chipClass}" ${click} style="${style}">${label}</span>`;
   };
 
