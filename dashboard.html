@@ -352,15 +352,6 @@
     .notice-arrow { font-size: 16px; color: rgba(255,255,255,0.2); }
     .notice-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
     /* ===== GG ISSUE (홀인원 축하 카드) ===== */
-    .ggissue-badge {
-      font-size: 9.5px; font-weight: 900; letter-spacing: 0.5px;
-      padding: 2px 7px; border-radius: 20px; margin-left: 6px;
-      background: rgba(245,200,66,0.16); color: #f5c842;
-      border: 1px solid rgba(245,200,66,0.4);
-      animation: hioBlink 1.8s ease-in-out infinite;
-    }
-    @keyframes hioBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
-
     .hio-card {
       position: relative; width: 100%; aspect-ratio: 1 / 1;
       border-radius: 20px; overflow: hidden; cursor: pointer;
@@ -799,8 +790,7 @@
 
       <!-- GG ISSUE (홀인원) -->
       <div class="section-header section-gap" style="margin-top:22px;">
-        <span class="section-title">GG ISSUE<span class="ggissue-badge">NEW</span></span>
-        <span class="section-more" style="color:#f5c842;">🎉 축하해요</span>
+        <span class="section-title">GG ISSUE</span>
       </div>
       <div class="hio-card" id="hio-card" onclick="replayHio()">
         <img class="hio-photo" src="image/ggissue-hio-20260906.jpg" alt="김경운 홀인원 - 서라벌CC 파인코스 6번홀" loading="lazy" />
