@@ -490,6 +490,56 @@
       .hio-card, .hio-card.play, .hio-card.play * { animation: none !important; opacity: 1 !important; transform: none !important; }
       .hio-conf, .hio-spark, .hio-burst { display: none; }
     }
+    /* 하트(축하) 누르기 */
+    .hio-like-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      margin-top: 16px;
+    }
+    .hio-like {
+      position: relative; width: 78px; height: 78px; border-radius: 50%;
+      border: 1.5px solid rgba(255,90,120,0.32); padding: 0;
+      background: radial-gradient(circle at 50% 34%, rgba(255,90,120,0.16), rgba(255,90,120,0.05));
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; outline: none;
+      transition: transform 0.18s cubic-bezier(0.2,1.4,0.4,1), border-color 0.2s, background 0.2s;
+    }
+    .hio-like:active { transform: scale(0.9); }
+    .hio-like svg {
+      width: 40px; height: 40px; color: rgba(255,255,255,0.5);
+      fill: none; stroke: currentColor; stroke-width: 2;
+      transition: color 0.2s, filter 0.2s;
+    }
+    .hio-like.on { border-color: rgba(255,70,110,0.85); background: radial-gradient(circle at 50% 34%, rgba(255,70,110,0.3), rgba(255,70,110,0.09)); }
+    .hio-like.on svg { color: #ff4d78; fill: #ff4d78; filter: drop-shadow(0 0 12px rgba(255,77,120,0.65)); }
+    .hio-like::after {
+      content: ''; position: absolute; inset: -7px; border-radius: 50%;
+      border: 2px solid rgba(255,77,120,0.6); opacity: 0; pointer-events: none;
+    }
+    .hio-like.pop { animation: hioHeartPop 0.55s cubic-bezier(0.2,1.5,0.4,1); }
+    .hio-like.pop::after { animation: hioHeartRing 0.75s ease-out; }
+    @keyframes hioHeartPop {
+      0% { transform: scale(1); } 32% { transform: scale(1.28); }
+      58% { transform: scale(0.93); } 100% { transform: scale(1); }
+    }
+    @keyframes hioHeartRing {
+      0% { opacity: 0.9; transform: scale(0.8); }
+      100% { opacity: 0; transform: scale(1.95); }
+    }
+    .hio-like-fx { position: absolute; inset: 0; pointer-events: none; }
+    .hio-like-fx i {
+      position: absolute; left: 50%; top: 46%; font-style: normal;
+      font-size: 15px; color: #ff5c86; opacity: 0;
+      animation: hioHeartFloat 1.15s ease-out forwards;
+    }
+    @keyframes hioHeartFloat {
+      0%   { opacity: 1; transform: translate(-50%, 0) scale(0.5) rotate(0deg); }
+      100% { opacity: 0; transform: translate(calc(-50% + var(--fx)), -78px) scale(1.25) rotate(var(--fr)); }
+    }
+    .hio-like-count { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: -0.2px; }
+    .hio-like-count b { font-size: 16px; font-weight: 900; color: #ff7a9c; margin-right: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      .hio-like, .hio-like::after, .hio-like-fx i { animation: none !important; }
+    }
     /* 히스토그램 */
     .chart-section {
       width: 100%; background: rgba(255,255,255,0.04);
@@ -825,6 +875,16 @@
         </div>
       </div>
 
+      <div class="hio-like-wrap">
+        <button type="button" class="hio-like" id="hio-like-btn"
+                aria-label="축하 하트 누르기" aria-pressed="false"
+                onclick="window.toggleHioLike && window.toggleHioLike()">
+          <span class="hio-like-fx" id="hio-like-fx"></span>
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21.2l7.7-7.7 1.1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        </button>
+        <div class="hio-like-count" id="hio-like-count"><b>0</b>명이 축하했어요</div>
+      </div>
+
       <script>
       (function(){
         var card = document.getElementById('hio-card');
@@ -1018,7 +1078,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { makeDb } from "/fs-cache.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
   import { PAYWALL_ENABLED } from "/ggzon-config.js";
@@ -1067,9 +1127,86 @@ import { makeDb } from "/fs-cache.js";
     loadGGPlayerList();
     loadLatestTournamentChart();
     loadTabBadges();
+    loadHioLike();
     // 유료화가 꺼져 있으면 모두 통과(현재 동작). 켜지면 관리자/유료회원만.
     window._isPaidUser = !PAYWALL_ENABLED || _isAdmin;
   }
+
+  // ===== GG ISSUE 하트(축하) =====
+  // 하트는 ggissues/{id}/likes/{uid} 문서 1개로 저장한다. 카운터 필드를 따로 두면
+  // 동시 클릭 때 어긋나므로 개수는 서버 집계(getCountFromServer)로 센다.
+  const HIO_ISSUE_ID = 'hio-20260906';
+  let _hioLiked = false, _hioCount = 0, _hioBusy = false;
+
+  function hioUid() {
+    const gu = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+    if (gu && gu.loginType === 'kakao' && gu.uid) return gu.uid;
+    return auth.currentUser ? auth.currentUser.uid : null;
+  }
+
+  function renderHioLike() {
+    const btn = document.getElementById('hio-like-btn');
+    const cnt = document.getElementById('hio-like-count');
+    if (!btn || !cnt) return;
+    btn.classList.toggle('on', _hioLiked);
+    btn.setAttribute('aria-pressed', _hioLiked ? 'true' : 'false');
+    cnt.innerHTML = `<b>${_hioCount}</b>명이 축하했어요`;
+  }
+
+  async function loadHioLike() {
+    if (!document.getElementById('hio-like-btn')) return;
+    const uid = hioUid();
+    const likesCol = collection(db, 'ggissues', HIO_ISSUE_ID, 'likes');
+    try {
+      const [agg, mine] = await Promise.all([
+        getCountFromServer(likesCol),
+        uid ? getDoc(doc(likesCol, uid)) : Promise.resolve(null),
+      ]);
+      _hioCount = agg.data().count;
+      _hioLiked = !!(mine && mine.exists());
+      renderHioLike();
+    } catch (_) {}
+  }
+
+  function hioHeartBurst() {
+    const fx = document.getElementById('hio-like-fx');
+    if (!fx) return;
+    let h = '';
+    for (let i = 0; i < 7; i++) {
+      h += `<i style="--fx:${Math.round(-46 + Math.random() * 92)}px;--fr:${Math.round(-60 + Math.random() * 120)}deg;`
+         + `animation-delay:${(Math.random() * 0.22).toFixed(2)}s;font-size:${(11 + Math.random() * 8).toFixed(0)}px">♥</i>`;
+    }
+    fx.innerHTML = h;
+    setTimeout(() => { fx.innerHTML = ''; }, 1500);
+  }
+
+  window.toggleHioLike = async function() {
+    const btn = document.getElementById('hio-like-btn');
+    if (!btn || _hioBusy) return;
+    const uid = hioUid();
+    if (!uid) { showToast('로그인 후 하트를 누를 수 있어요'); return; }
+
+    // 낙관적 업데이트 — 네트워크를 기다리지 않고 먼저 반응한다. 실패하면 되돌린다.
+    const prevLiked = _hioLiked, prevCount = _hioCount;
+    _hioLiked = !_hioLiked;
+    _hioCount = Math.max(0, _hioCount + (_hioLiked ? 1 : -1));
+    renderHioLike();
+    btn.classList.remove('pop');
+    void btn.offsetWidth;
+    btn.classList.add('pop');
+    if (_hioLiked) hioHeartBurst();
+
+    _hioBusy = true;
+    const ref = doc(db, 'ggissues', HIO_ISSUE_ID, 'likes', uid);
+    try {
+      if (_hioLiked) await setDoc(ref, { uid, createdAt: serverTimestamp() });
+      else await deleteDoc(ref);
+    } catch (e) {
+      _hioLiked = prevLiked; _hioCount = prevCount;
+      renderHioLike();
+      showToast('하트 저장에 실패했어요. 잠시 후 다시 시도해 주세요');
+    } finally { _hioBusy = false; }
+  };
 
   window.markSeen = function(key) {
     localStorage.setItem('ggzon_seen_' + key, new Date().toISOString());

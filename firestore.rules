@@ -120,6 +120,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // GG ISSUE (홀인원 등 축하 카드). 본문은 관리자만 쓰고,
+    // 하트는 likes/{uid} 문서 1개 = 1명이라 본인 것만 만들고 지울 수 있다.
+    match /ggissues/{issueId} {
+      allow read: if isAnyUser();
+      allow write: if isAdmin();
+
+      match /likes/{likeUid} {
+        allow read: if isAnyUser();
+        allow create, delete: if isAdmin() || isOwner(likeUid) || isKakaoOwner(likeUid);
+        allow update: if false;
+      }
+    }
+
     match /achievements/{achId} {
       allow read: if isAnyUser();
       allow create: if (isLoggedIn() && request.resource.data.uid == request.auth.uid) ||
