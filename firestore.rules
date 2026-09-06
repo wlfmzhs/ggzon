@@ -121,15 +121,25 @@ service cloud.firestore {
     }
 
     // GG ISSUE (홀인원 등 축하 카드). 본문은 관리자만 쓰고,
-    // 하트는 likes/{uid} 문서 1개 = 1명이라 본인 것만 만들고 지울 수 있다.
+    // 하트는 likes/{uid} 문서에 내가 누른 횟수를 누적 저장한다.
     match /ggissues/{issueId} {
       allow read: if isAnyUser();
       allow write: if isAdmin();
 
       match /likes/{likeUid} {
+        // 하트는 누적식. 내 문서의 count(내가 누른 횟수)만 올릴 수 있고, 줄이거나
+        // 1인 50회를 넘길 수는 없다.
+        function isMine() { return isAdmin() || isOwner(likeUid) || isKakaoOwner(likeUid); }
+        function validCount() {
+          return request.resource.data.count is int
+                 && request.resource.data.count >= 1
+                 && request.resource.data.count <= 50;
+        }
         allow read: if isAnyUser();
-        allow create, delete: if isAdmin() || isOwner(likeUid) || isKakaoOwner(likeUid);
-        allow update: if false;
+        allow create: if isMine() && validCount();
+        allow update: if isMine() && validCount()
+                      && request.resource.data.count >= resource.data.get('count', 0);
+        allow delete: if isMine();
       }
     }
 

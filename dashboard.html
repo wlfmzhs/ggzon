@@ -535,6 +535,15 @@
       0%   { opacity: 1; transform: translate(-50%, 0) scale(0.5) rotate(0deg); }
       100% { opacity: 0; transform: translate(calc(-50% + var(--fx)), -78px) scale(1.25) rotate(var(--fr)); }
     }
+    .hio-like-mine {
+      position: absolute; top: -4px; right: -6px; min-width: 24px; height: 24px;
+      padding: 0 6px; border-radius: 12px; box-sizing: border-box;
+      background: linear-gradient(180deg, #ff5c86, #ff3d6f);
+      border: 2px solid #10241a; color: #fff;
+      font-size: 12px; font-weight: 900; letter-spacing: -0.3px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(255,61,111,0.45); pointer-events: none;
+    }
     .hio-like-count { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: -0.2px; }
     .hio-like-count b { font-size: 16px; font-weight: 900; color: #ff7a9c; margin-right: 2px; }
     @media (prefers-reduced-motion: reduce) {
@@ -878,11 +887,12 @@
       <div class="hio-like-wrap">
         <button type="button" class="hio-like" id="hio-like-btn"
                 aria-label="축하 하트 누르기" aria-pressed="false"
-                onclick="window.toggleHioLike && window.toggleHioLike()">
+                onclick="window.cheerHio && window.cheerHio()">
           <span class="hio-like-fx" id="hio-like-fx"></span>
+          <span class="hio-like-mine" id="hio-like-mine" style="display:none"></span>
           <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21.2l7.7-7.7 1.1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
         </button>
-        <div class="hio-like-count" id="hio-like-count"><b>0</b>명이 축하했어요</div>
+        <div class="hio-like-count" id="hio-like-count"><b>0</b>번 축하했어요</div>
       </div>
 
       <script>
@@ -1078,7 +1088,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, deleteDoc, getCountFromServer, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, deleteDoc, getCountFromServer, getAggregateFromServer, sum, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { makeDb } from "/fs-cache.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
   import { PAYWALL_ENABLED } from "/ggzon-config.js";
@@ -1133,10 +1143,12 @@ import { makeDb } from "/fs-cache.js";
   }
 
   // ===== GG ISSUE 하트(축하) =====
-  // 하트는 ggissues/{id}/likes/{uid} 문서 1개로 저장한다. 카운터 필드를 따로 두면
-  // 동시 클릭 때 어긋나므로 개수는 서버 집계(getCountFromServer)로 센다.
+  // 하트는 누를 때마다 누적된다. ggissues/{id}/likes/{uid} 문서에 "내가 누른 횟수(count)"를
+  // 저장하고, 전체 숫자는 서버 집계(sum)로 센다. 연타는 모아서 한 번만 저장한다.
   const HIO_ISSUE_ID = 'hio-20260906';
-  let _hioLiked = false, _hioCount = 0, _hioBusy = false;
+  const HIO_MAX_PER_USER = 50;      // 한 사람이 누를 수 있는 최대(연타 도배 방지)
+  const HIO_SAVE_DELAY  = 650;      // 연타가 멈춘 뒤 저장까지 기다리는 시간(ms)
+  let _hioMine = 0, _hioTotal = 0, _hioSaved = 0, _hioTimer = null, _hioSaving = false;
 
   function hioUid() {
     const gu = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
@@ -1145,12 +1157,17 @@ import { makeDb } from "/fs-cache.js";
   }
 
   function renderHioLike() {
-    const btn = document.getElementById('hio-like-btn');
-    const cnt = document.getElementById('hio-like-count');
+    const btn  = document.getElementById('hio-like-btn');
+    const cnt  = document.getElementById('hio-like-count');
+    const mine = document.getElementById('hio-like-mine');
     if (!btn || !cnt) return;
-    btn.classList.toggle('on', _hioLiked);
-    btn.setAttribute('aria-pressed', _hioLiked ? 'true' : 'false');
-    cnt.innerHTML = `<b>${_hioCount}</b>명이 축하했어요`;
+    btn.classList.toggle('on', _hioMine > 0);
+    btn.setAttribute('aria-pressed', _hioMine > 0 ? 'true' : 'false');
+    cnt.innerHTML = `<b>${_hioTotal}</b>번 축하했어요`;
+    if (mine) {
+      mine.textContent = _hioMine > 0 ? '+' + _hioMine : '';
+      mine.style.display = _hioMine > 0 ? '' : 'none';
+    }
   }
 
   async function loadHioLike() {
@@ -1158,12 +1175,17 @@ import { makeDb } from "/fs-cache.js";
     const uid = hioUid();
     const likesCol = collection(db, 'ggissues', HIO_ISSUE_ID, 'likes');
     try {
-      const [agg, mine] = await Promise.all([
+      const [agg, docCnt, withCnt, mineSnap] = await Promise.all([
+        getAggregateFromServer(likesCol, { total: sum('count') }),
         getCountFromServer(likesCol),
+        getCountFromServer(query(likesCol, where('count', '>=', 1))),
         uid ? getDoc(doc(likesCol, uid)) : Promise.resolve(null),
       ]);
-      _hioCount = agg.data().count;
-      _hioLiked = !!(mine && mine.exists());
+      // count 필드가 없던 초기(1인 1하트) 문서는 1번으로 친다.
+      const legacy = Math.max(0, docCnt.data().count - withCnt.data().count);
+      _hioTotal = (agg.data().total || 0) + legacy;
+      _hioMine  = mineSnap && mineSnap.exists() ? (mineSnap.data().count || 1) : 0;
+      _hioSaved = _hioMine;
       renderHioLike();
     } catch (_) {}
   }
@@ -1180,33 +1202,68 @@ import { makeDb } from "/fs-cache.js";
     setTimeout(() => { fx.innerHTML = ''; }, 1500);
   }
 
-  window.toggleHioLike = async function() {
-    const btn = document.getElementById('hio-like-btn');
-    if (!btn || _hioBusy) return;
-    const uid = hioUid();
-    if (!uid) { showToast('로그인 후 하트를 누를 수 있어요'); return; }
-
-    // 낙관적 업데이트 — 네트워크를 기다리지 않고 먼저 반응한다. 실패하면 되돌린다.
-    const prevLiked = _hioLiked, prevCount = _hioCount;
-    _hioLiked = !_hioLiked;
-    _hioCount = Math.max(0, _hioCount + (_hioLiked ? 1 : -1));
-    renderHioLike();
+  function hioPop(btn) {
     btn.classList.remove('pop');
     void btn.offsetWidth;
     btn.classList.add('pop');
-    if (_hioLiked) hioHeartBurst();
+  }
 
-    _hioBusy = true;
-    const ref = doc(db, 'ggissues', HIO_ISSUE_ID, 'likes', uid);
+  // 누를 때마다 누적. 화면은 바로 올리고, 저장은 연타가 멈춘 뒤 한 번만 한다.
+  window.cheerHio = function() {
+    const btn = document.getElementById('hio-like-btn');
+    if (!btn) return;
+    const uid = hioUid();
+    if (!uid) { showToast('로그인 후 하트를 누를 수 있어요'); return; }
+    if (_hioMine >= HIO_MAX_PER_USER) {
+      hioPop(btn);
+      showToast('축하하는 마음 충분히 전달됐어요 😊');
+      return;
+    }
+    _hioMine++; _hioTotal++;
+    renderHioLike();
+    hioPop(btn);
+    hioHeartBurst();
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+    clearTimeout(_hioTimer);
+    _hioTimer = setTimeout(saveHioLike, HIO_SAVE_DELAY);
+  };
+
+  async function saveHioLike() {
+    const uid = hioUid();
+    if (!uid || _hioSaving || _hioMine === _hioSaved) return;
+    _hioSaving = true;
+    const target = _hioMine, first = _hioSaved === 0;
+    const data = { uid, count: target, updatedAt: serverTimestamp() };
+    if (first) data.createdAt = serverTimestamp();
     try {
-      if (_hioLiked) await setDoc(ref, { uid, createdAt: serverTimestamp() });
-      else await deleteDoc(ref);
+      await setDoc(doc(db, 'ggissues', HIO_ISSUE_ID, 'likes', uid), data, { merge: true });
+      _hioSaved = target;
     } catch (e) {
-      _hioLiked = prevLiked; _hioCount = prevCount;
+      // 저장 실패 — 화면을 서버에 저장된 값으로 되돌린다.
+      _hioTotal = Math.max(0, _hioTotal - (_hioMine - _hioSaved));
+      _hioMine  = _hioSaved;
       renderHioLike();
       showToast('하트 저장에 실패했어요. 잠시 후 다시 시도해 주세요');
-    } finally { _hioBusy = false; }
-  };
+    } finally {
+      _hioSaving = false;
+      // 저장하는 동안 더 눌렀으면 한 번 더.
+      if (_hioMine !== _hioSaved) {
+        clearTimeout(_hioTimer);
+        _hioTimer = setTimeout(saveHioLike, HIO_SAVE_DELAY);
+      }
+    }
+  }
+
+  // 저장 전에 화면을 벗어나도 누른 만큼은 남긴다.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && _hioMine !== _hioSaved) {
+      clearTimeout(_hioTimer);
+      saveHioLike();
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    if (_hioMine !== _hioSaved) { clearTimeout(_hioTimer); saveHioLike(); }
+  });
 
   window.markSeen = function(key) {
     localStorage.setItem('ggzon_seen_' + key, new Date().toISOString());
