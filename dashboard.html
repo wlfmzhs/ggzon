@@ -351,6 +351,154 @@
     .notice-date { font-size: 11px; color: rgba(240,235,224,0.35); }
     .notice-arrow { font-size: 16px; color: rgba(255,255,255,0.2); }
     .notice-empty { font-size: 13px; color: rgba(255,255,255,0.3); text-align: center; padding: 18px 0; }
+    /* ===== GG ISSUE (홀인원 축하 카드) ===== */
+    .ggissue-badge {
+      font-size: 9.5px; font-weight: 900; letter-spacing: 0.5px;
+      padding: 2px 7px; border-radius: 20px; margin-left: 6px;
+      background: rgba(245,200,66,0.16); color: #f5c842;
+      border: 1px solid rgba(245,200,66,0.4);
+      animation: hioBlink 1.8s ease-in-out infinite;
+    }
+    @keyframes hioBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+    .hio-card {
+      position: relative; width: 100%; aspect-ratio: 1 / 1;
+      border-radius: 20px; overflow: hidden; cursor: pointer;
+      background: #06170e; isolation: isolate;
+      border: 1px solid rgba(245,200,66,0.35);
+      box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+      opacity: 0; transform: scale(0.94) translateY(16px);
+    }
+    .hio-card.play { animation: hioCardIn 0.85s cubic-bezier(0.2,0.9,0.25,1) forwards; }
+    @keyframes hioCardIn {
+      from { opacity: 0; transform: scale(0.94) translateY(16px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .hio-card::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 6;
+      border-radius: 20px; box-shadow: 0 0 0 1px rgba(245,200,66,0.18) inset;
+    }
+    .hio-photo {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; transform: scale(1.14);
+    }
+    .hio-card.play .hio-photo { animation: hioZoom 9s ease-out forwards; }
+    @keyframes hioZoom { from { transform: scale(1.14); } to { transform: scale(1); } }
+
+    .hio-scrim-top, .hio-scrim-bot { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 2; }
+    .hio-scrim-top {
+      top: 0; height: 58%;
+      background: linear-gradient(180deg, rgba(3,14,8,0.88) 0%, rgba(3,14,8,0.5) 42%, rgba(3,14,8,0) 100%);
+    }
+    .hio-scrim-bot {
+      bottom: 0; height: 42%;
+      background: linear-gradient(0deg, rgba(3,14,8,0.94) 6%, rgba(3,14,8,0.72) 32%, rgba(3,14,8,0) 100%);
+    }
+    .hio-glow {
+      position: absolute; top: -16%; left: 50%; transform: translateX(-50%);
+      width: 130%; height: 64%; pointer-events: none; z-index: 3;
+      background: radial-gradient(50% 58% at 50% 45%, rgba(245,200,66,0.34), rgba(245,200,66,0) 72%);
+    }
+    .hio-card.play .hio-glow { animation: hioGlow 3.4s ease-in-out 0.6s infinite; }
+    @keyframes hioGlow { 0%,100% { opacity: 0.45; } 50% { opacity: 1; } }
+
+    /* 상단 타이틀 */
+    .hio-top { position: absolute; top: 6.5%; left: 0; right: 0; z-index: 5; text-align: center; padding: 0 12px; }
+    .hio-kicker {
+      font-size: 9.5px; font-weight: 800; letter-spacing: 2.2px;
+      color: rgba(255,235,180,0.72); margin-bottom: 9px;
+      opacity: 0; transform: translateY(-8px);
+    }
+    .hio-card.play .hio-kicker { animation: hioDown 0.6s ease-out 0.25s forwards; }
+    @keyframes hioDown { to { opacity: 1; transform: translateY(0); } }
+
+    .hio-title { display: flex; justify-content: center; align-items: baseline; perspective: 500px; }
+    .hio-title b {
+      display: inline-block; font-size: 34px; font-weight: 900;
+      letter-spacing: 0.5px; line-height: 1;
+      background: linear-gradient(100deg,#f7e08a 0%,#f5c842 20%,#fffbe8 38%,#f5c842 56%,#d99f16 100%);
+      background-size: 280% 100%;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      filter: drop-shadow(0 3px 10px rgba(0,0,0,0.55));
+      opacity: 0; transform: translateY(22px) rotateX(70deg) scale(0.8);
+    }
+    .hio-title b.sp { width: 13px; }
+    .hio-card.play .hio-title b {
+      animation: hioLetter 0.6s cubic-bezier(0.2,1.3,0.35,1) forwards,
+                 hioShine 3.4s linear infinite;
+      animation-delay: calc(var(--i) * 55ms + 0.35s), 1.7s;
+    }
+    @keyframes hioLetter { to { opacity: 1; transform: translateY(0) rotateX(0deg) scale(1); } }
+    @keyframes hioShine { 0% { background-position: 240% 0; } 100% { background-position: -80% 0; } }
+
+    .hio-sub {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 10px; opacity: 0; transform: translateY(10px);
+    }
+    .hio-card.play .hio-sub { animation: hioUp 0.6s ease-out 1.05s forwards; }
+    .hio-date { font-size: 12px; font-weight: 800; color: rgba(255,240,205,0.85); letter-spacing: 0.8px; }
+    .hio-bar { width: 1px; height: 11px; background: rgba(245,200,66,0.45); }
+    .hio-name {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 999px;
+      background: linear-gradient(135deg, rgba(245,200,66,0.26), rgba(245,200,66,0.08));
+      border: 1px solid rgba(245,200,66,0.55);
+      font-size: 13px; font-weight: 900; color: #ffe89a; letter-spacing: -0.2px;
+    }
+    .hio-name svg { flex-shrink: 0; }
+
+    /* 하단 정보 */
+    .hio-info { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 0 14px 15px; text-align: center; }
+    .hio-line { opacity: 0; transform: translateY(12px); }
+    .hio-card.play .hio-line { animation: hioUp 0.55s ease-out forwards; animation-delay: calc(var(--i) * 130ms + 1.35s); }
+    @keyframes hioUp { to { opacity: 1; transform: translateY(0); } }
+    .hio-l1 { font-size: 13.5px; font-weight: 900; color: #fff; letter-spacing: -0.3px; }
+    .hio-l1 em { font-style: normal; color: #f5c842; }
+    .hio-l2 { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.72); margin-top: 3px; letter-spacing: -0.2px; }
+    .hio-l3 { font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.45); margin-top: 4px; letter-spacing: -0.2px; }
+    .hio-l3 b { color: rgba(245,200,66,0.75); font-weight: 800; }
+
+    /* 링 버스트 + 반짝이 + 컨페티 */
+    .hio-burst {
+      position: absolute; top: 22%; left: 50%; z-index: 4;
+      width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
+      border: 2px solid rgba(245,200,66,0.85); opacity: 0; pointer-events: none;
+    }
+    .hio-card.play .hio-burst { animation: hioBurst 1.5s ease-out forwards; }
+    .hio-card.play .hio-burst.b2 { animation-delay: 0.32s; }
+    @keyframes hioBurst {
+      0% { opacity: 0.85; transform: scale(1); }
+      100% { opacity: 0; transform: scale(24); }
+    }
+    .hio-fx { position: absolute; inset: 0; z-index: 5; overflow: hidden; pointer-events: none; }
+    .hio-conf { position: absolute; top: -14%; width: 6px; height: 10px; border-radius: 1.5px; opacity: 0; }
+    .hio-card.play .hio-conf { animation: hioFall linear forwards; }
+    @keyframes hioFall {
+      0%   { opacity: 0; transform: translate3d(0,0,0) rotate(0deg); }
+      8%   { opacity: 1; }
+      85%  { opacity: 1; }
+      100% { opacity: 0; transform: translate3d(var(--dx), 128%, 0) rotate(var(--rot)); }
+    }
+    .hio-spark { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #fff6cf; opacity: 0; box-shadow: 0 0 8px 2px rgba(245,200,66,0.85); }
+    .hio-card.play .hio-spark { animation: hioTwinkle 2.4s ease-in-out infinite; }
+    @keyframes hioTwinkle {
+      0%,100% { opacity: 0; transform: scale(0.4); }
+      50%     { opacity: 1; transform: scale(1); }
+    }
+    .hio-replay {
+      position: absolute; right: 10px; top: 10px; z-index: 7;
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 9px; border-radius: 999px;
+      background: rgba(0,0,0,0.42); border: 1px solid rgba(255,255,255,0.18);
+      font-size: 9.5px; font-weight: 800; color: rgba(255,255,255,0.75);
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    }
+    .hio-card:active { filter: brightness(1.06); }
+    @media (prefers-reduced-motion: reduce) {
+      .hio-card, .hio-card.play, .hio-card.play * { animation: none !important; opacity: 1 !important; transform: none !important; }
+      .hio-conf, .hio-spark, .hio-burst { display: none; }
+    }
     /* 히스토그램 */
     .chart-section {
       width: 100%; background: rgba(255,255,255,0.04);
@@ -648,6 +796,85 @@
       <div id="notice-list">
         <div class="notice-empty">불러오는 중...</div>
       </div>
+
+      <!-- GG ISSUE (홀인원) -->
+      <div class="section-header section-gap" style="margin-top:22px;">
+        <span class="section-title">GG ISSUE<span class="ggissue-badge">NEW</span></span>
+        <span class="section-more" style="color:#f5c842;">🎉 축하해요</span>
+      </div>
+      <div class="hio-card" id="hio-card" onclick="replayHio()">
+        <img class="hio-photo" src="image/ggissue-hio-20260906.jpg" alt="김경운 홀인원 - 서라벌CC 파인코스 6번홀" loading="lazy" />
+        <div class="hio-scrim-top"></div>
+        <div class="hio-scrim-bot"></div>
+        <div class="hio-glow"></div>
+        <div class="hio-burst b1"></div>
+        <div class="hio-burst b2"></div>
+        <div class="hio-fx" id="hio-fx"></div>
+
+        <div class="hio-replay">↻ 다시보기</div>
+
+        <div class="hio-top">
+          <div class="hio-kicker">GOLGAB ZONE · ACE CLUB</div>
+          <div class="hio-title">
+            <b style="--i:0">H</b><b style="--i:1">O</b><b style="--i:2">L</b><b style="--i:3">E</b><b class="sp" style="--i:4"></b><b style="--i:5">I</b><b style="--i:6">N</b><b class="sp" style="--i:7"></b><b style="--i:8">O</b><b style="--i:9">N</b><b style="--i:10">E</b>
+          </div>
+          <div class="hio-sub">
+            <span class="hio-date">2026.09.06</span>
+            <span class="hio-bar"></span>
+            <span class="hio-name">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.7 1.2 6.6L12 17.2 6.1 20.3l1.2-6.6L2.5 9l6.6-.9L12 2z"/></svg>
+              김경운
+            </span>
+          </div>
+        </div>
+
+        <div class="hio-info">
+          <div class="hio-line hio-l1" style="--i:0">서라벌CC 파인코스 <em>6번홀</em> · PAR 3</div>
+          <div class="hio-line hio-l2" style="--i:1">타이틀리스트 PRO V1 2번</div>
+          <div class="hio-line hio-l3" style="--i:2">동반자 <b>김양애 · 박영철 · 하준경</b></div>
+        </div>
+      </div>
+
+      <script>
+      (function(){
+        var card = document.getElementById('hio-card');
+        var fx   = document.getElementById('hio-fx');
+        if (!card || !fx) return;
+        var COLORS = ['#f5c842','#fff0b8','#3ea066','#ffffff','#e8a71a','#7ee0a6'];
+        function buildFx(){
+          var h = '';
+          for (var i = 0; i < 22; i++) {
+            var w = 4 + Math.round(Math.random() * 4);
+            h += '<i class="hio-conf" style="left:' + Math.round(Math.random()*100) + '%'
+               + ';width:' + w + 'px;height:' + (w*1.8) + 'px'
+               + ';background:' + COLORS[i % COLORS.length]
+               + ';animation-duration:' + (2.6 + Math.random()*2.2).toFixed(2) + 's'
+               + ';animation-delay:' + (Math.random()*2.4).toFixed(2) + 's'
+               + ';--dx:' + Math.round(-30 + Math.random()*60) + 'px'
+               + ';--rot:' + Math.round(360 + Math.random()*720) + 'deg"></i>';
+          }
+          for (var j = 0; j < 9; j++) {
+            h += '<i class="hio-spark" style="left:' + Math.round(6 + Math.random()*88) + '%'
+               + ';top:' + Math.round(6 + Math.random()*46) + '%'
+               + ';animation-delay:' + (Math.random()*2.2).toFixed(2) + 's"></i>';
+          }
+          fx.innerHTML = h;
+        }
+        function play(){
+          buildFx();
+          card.classList.remove('play');
+          void card.offsetWidth;   // 리플로우 강제 → 애니메이션 재생
+          card.classList.add('play');
+        }
+        window.replayHio = play;
+        if ('IntersectionObserver' in window) {
+          var io = new IntersectionObserver(function(entries){
+            entries.forEach(function(e){ if (e.isIntersecting) { play(); io.disconnect(); } });
+          }, { threshold: 0.3 });
+          io.observe(card);
+        } else { play(); }
+      })();
+      </script>
 
       <!-- 조인 모집 -->
       <div class="section-header section-gap">
