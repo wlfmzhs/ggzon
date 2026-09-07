@@ -512,6 +512,7 @@
     .dn-total { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 11px; border-top: 1px solid rgba(240,192,64,0.22); }
     .dn-total-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.45); }
     .dn-total-val { font-size: 18px; font-weight: 900; color: var(--gold); letter-spacing: -0.5px; }
+    .dn-share-row { display: flex; gap: 8px; margin-top: 12px; }
 
     /* ── 찬조 위저드 (질문 → 답 방식) ── */
     .dw-overlay {
@@ -2679,7 +2680,99 @@ function renderDonationSection(t) {
       <span class="dn-total-label">총 찬조 금액</span>
       <span class="dn-total-val">${total.toLocaleString()}원</span>
     </div>
+    <div class="dn-share-row">
+      <button class="card-share-btn" onclick="shareDonationImage()">찬조 내역 이미지</button>
+      <button class="card-kakao-btn" onclick="kakaoShareDonations()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.49 1.39 4.69 3.5 6.1L4.5 21l4.37-2.62A11.3 11.3 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/></svg>
+        카카오 공유
+      </button>
+    </div>
   </div>`;
+}
+
+// 찬조 내역만 따로 공유 — 대회명을 함께 얹어 이미지로 저장/공유
+async function shareDonationImage() {
+  const t = currentTournament;
+  const box = document.querySelector('#donation-section .dn-box');
+  if (!t || !box) return;
+  if (typeof html2canvas === 'undefined') { showToast('이미지 기능 로딩 중입니다'); return; }
+
+  const sub = [t.date ? formatDate(t.date) : '', t.golfCourseName || ''].filter(Boolean).join(' · ');
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;padding:22px;background:#0A2406;display:inline-block;';
+
+  const head = document.createElement('div');
+  head.style.cssText = 'text-align:center;margin-bottom:16px;';
+  head.innerHTML = `
+    <div style="font-size:10px;font-weight:800;letter-spacing:2.5px;color:rgba(62,160,102,0.9);margin-bottom:7px;">GOLGAB ZONE</div>
+    <div style="font-size:19px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.3;">${escHtml(t.name || '대회')}</div>
+    ${sub ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:6px;">${escHtml(sub)}</div>` : ''}`;
+
+  const clone = box.cloneNode(true);
+  clone.querySelectorAll('.dn-add-btn, .dn-del, .dn-share-row').forEach(el => el.remove());
+  clone.style.width = box.offsetWidth + 'px';
+  clone.style.margin = '0';
+
+  wrapper.appendChild(head);
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  showToast('이미지 생성 중...');
+  try {
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: '#0A2406', scale: 3, useCORS: true, logging: false,
+    });
+    const fileName = `${t.name || '골갑존'}_찬조내역.png`;
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], fileName, { type: 'image/png' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: `${t.name || '골갑존'} 찬조 내역` }); return; }
+        catch (_) { /* 취소하면 저장으로 대체 */ }
+      }
+      const a = document.createElement('a');
+      a.download = fileName;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      showToast('이미지가 저장되었습니다');
+    }, 'image/png');
+  } catch (e) {
+    console.error(e);
+    showToast('이미지 생성에 실패했습니다');
+  } finally {
+    if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+  }
+}
+
+function kakaoShareDonations() {
+  const t = currentTournament;
+  if (!t) return;
+  if (!window.Kakao || !Kakao.isInitialized()) {
+    showToast('카카오 SDK 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  const rows = donationRows(t);
+  const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
+  const appLink = `${APP_BASE}/event.html?eventId=${encodeURIComponent(t.id)}`;
+  const desc = rows.length
+    ? `찬조 ${rows.length}건 · 총 ${total.toLocaleString()}원\n` +
+      rows.slice(0, 4).map(r => `${r.name} · ${r.kind === 'cash' ? '현금' : (r.item || '현물')}`).join('\n') +
+      (rows.length > 4 ? `\n외 ${rows.length - 4}건` : '')
+    : '아직 등록된 찬조가 없습니다. 첫 찬조의 주인공이 되어주세요!';
+
+  Kakao.Share.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: `[골갑존] ${t.name} 시상 & 찬조 내역`,
+      description: desc,
+      imageUrl: 'https://www.ggzon.co.kr/image/icon-512.png',
+      link: { mobileWebUrl: appLink, webUrl: appLink },
+    },
+    buttons: [
+      { title: '찬조 내역 보기', link: { mobileWebUrl: appLink, webUrl: appLink } },
+    ],
+  });
 }
 
 async function deleteDonation(id) {
@@ -2836,6 +2929,8 @@ async function dwSubmit() {
 };
 
 // onclick 핸들러용 노출
+window.shareDonationImage = shareDonationImage;
+window.kakaoShareDonations = kakaoShareDonations;
 window.deleteDonation = deleteDonation;
 window.openDonateWizard = openDonateWizard;
 window.closeDonateWizard = closeDonateWizard;
@@ -3665,7 +3760,7 @@ window.downloadDetailImage = async function() {
     scroll.querySelector('.card-bottom-row'),
     document.getElementById('detail-register-btn'),
     document.getElementById('selected-info-bar'),
-    ...scroll.querySelectorAll('.dn-add-btn, .dn-del'),
+    ...scroll.querySelectorAll('.dn-add-btn, .dn-del, .dn-share-row'),
   ].filter(Boolean);
   const origDisplay = toHide.map(el => el.style.display);
   toHide.forEach(el => el.style.display = 'none');
