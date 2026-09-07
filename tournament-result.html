@@ -23,6 +23,11 @@
   <meta name="apple-mobile-web-app-title" content="GGZON" />
   <link rel="apple-touch-icon" href="/image/icon-512.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://firestore.googleapis.com" />
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js" crossorigin />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js" crossorigin />
   <title>대회 결과 — GOLGAB ZONE</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -131,6 +136,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { makeDb } from "./fs-cache.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -140,7 +146,7 @@ const app = initializeApp({
   messagingSenderId: "774722580869",
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
-const db = getFirestore(app);
+const db = makeDb(app);
 
 const tournId = new URLSearchParams(location.search).get('id');
 if (!tournId) { document.getElementById('app').innerHTML = '<div class="loading-wrap" style="color:rgba(255,255,255,0.4);font-size:13px;">잘못된 접근입니다</div>'; }

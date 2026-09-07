@@ -104,3 +104,11 @@
     init();
   }
 })();
+
+// 서비스워커 등록 — index.html 을 거치지 않고 (카톡 링크 등으로) 바로 들어온
+// 회원도 라이브러리·이미지 캐시를 쓰도록, 이 파일을 부르는 모든 페이지에서 등록한다.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

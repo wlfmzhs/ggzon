@@ -23,6 +23,9 @@
 <meta name="apple-mobile-web-app-title" content="GGZON" />
 <link rel="apple-touch-icon" href="/image/icon-512.png" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js" crossorigin />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js" crossorigin />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js" crossorigin />
 <link rel="preconnect" href="https://firestore.googleapis.com" />
 <link rel="preconnect" href="https://www.gstatic.com" />
 <title>GOLGAB ZONE — 중고득템</title>
@@ -397,6 +400,7 @@ import {
   collection, query, orderBy, getDocs, addDoc, serverTimestamp,
   runTransaction, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { makeDb } from "./fs-cache.js";
 import { isLoggedIn, getUid, getNick, getKakaoUser, ADMIN_EMAIL } from '/ggzon-auth.js';
 const SHARED_ACCOUNT = '카카오뱅크 3333-09-6368315';
 const KAKAO_JS_KEY = 'a14a8368381df22cac7c0fd0841fd28e';
@@ -411,7 +415,7 @@ const app = initializeApp({
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = makeDb(app);
 
 const params = new URLSearchParams(location.search);
 const itemId = params.get('id');

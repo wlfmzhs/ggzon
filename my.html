@@ -24,6 +24,9 @@
   <meta name="apple-mobile-web-app-title" content="GGZON" />
   <link rel="apple-touch-icon" href="/image/icon-512.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js" crossorigin />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js" crossorigin />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js" crossorigin />
   <link rel="preconnect" href="https://firestore.googleapis.com" />
   <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
   <link rel="preconnect" href="https://www.gstatic.com" />
@@ -950,9 +953,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, onAuthStateChanged, signOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
-  query, serverTimestamp, orderBy, where, arrayRemove, arrayUnion
+  query, serverTimestamp, orderBy, where, arrayRemove, arrayUnion, limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { makeDb } from "/fs-cache.js";
+import { makeDb } from "./fs-cache.js";
 
 
 const app = initializeApp({
@@ -992,11 +995,15 @@ onAuthStateChanged(auth, async (user) => {
     if (pwMenu) pwMenu.style.display = 'none';
   }
 
+  // 화면에 바로 필요한 건 회원 문서뿐이다. 공지·업적까지 다 기다리느라 로딩 화면이
+  // 오래 떠 있던 것을 고쳐, 셋을 한 번에 요청하고 회원 문서가 오는 즉시 화면을 연다.
+  const userP = getDoc(doc(db, 'users', effectiveUser.uid));
+  const noticesP = getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'), limit(30)));
+  const achP = getDocs(query(collection(db, 'achievements'), where('uid', '==', effectiveUser.uid)));
+  [userP, noticesP, achP].forEach(p => p.catch(() => {}));   // 나중에 각자 처리한다
+
   try {
-    const [userSnap, noticesSnap] = await Promise.all([
-      getDoc(doc(db, 'users', effectiveUser.uid)),
-      getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'))),
-    ]);
+    const userSnap = await userP;
 
     if (userSnap.exists()) {
       userData = userSnap.data();
@@ -1007,28 +1014,6 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById('prof-nick').textContent = effectiveUser.displayName || effectiveUser.email?.split('@')[0] || '';
     }
 
-    notices = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    try {
-      const achSnap = await getDocs(query(collection(db, 'achievements'), where('uid', '==', effectiveUser.uid)));
-      achievements = achSnap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      const hasEagle = achievements.some(a => a.type === 'eagle');
-      const hasHoleinone = achievements.some(a => a.type === 'holeinone');
-      const update = {};
-      if (hasEagle) update.hasEagle = true;
-      if (hasHoleinone) update.hasHoleinone = true;
-      if (Object.keys(update).length) {
-        try { await updateDoc(doc(db, 'users', effectiveUser.uid), update); } catch(_) {}
-      }
-    } catch (_) { achievements = []; }
-
-    const unread = notices.length;
-    if (unread > 0) document.getElementById('notice-count-label').textContent = `${unread}개의 공지`;
-
-    updateAchMenuDesc();
-
     if (effectiveUser.email === ADMIN_EMAIL || userData.isAdmin) {
       document.getElementById('admin-section').classList.remove('hidden');
     }
@@ -1037,7 +1022,32 @@ onAuthStateChanged(auth, async (user) => {
   } finally {
     document.getElementById('loading-overlay').classList.add('hidden');
   }
+
+  // 아래는 화면이 뜬 뒤 채워진다
+  try {
+    const noticesSnap = await noticesP;
+    notices = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (notices.length > 0) document.getElementById('notice-count-label').textContent = `${notices.length}개의 공지`;
+  } catch (_) { notices = []; }
+
+  try {
+    const achSnap = await achP;
+    achievements = achSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const hasEagle = achievements.some(a => a.type === 'eagle');
+    const hasHoleinone = achievements.some(a => a.type === 'holeinone');
+    const update = {};
+    if (hasEagle) update.hasEagle = true;
+    if (hasHoleinone) update.hasHoleinone = true;
+    if (Object.keys(update).length) {
+      try { await updateDoc(doc(db, 'users', effectiveUser.uid), update); } catch(_) {}
+    }
+  } catch (_) { achievements = []; }
+
+  updateAchMenuDesc();
 });
+
 
 // ── 뒤로가기 ──────────────────────────────────────────
 document.getElementById('btn-back').addEventListener('click', () => history.back());
