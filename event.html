@@ -452,10 +452,11 @@
       margin-bottom: 16px; line-height: 1.5; letter-spacing: -0.2px;
     }
     .detail-sponsor-strip {
-      display: flex; gap: 8px; align-items: stretch;
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 16px 8px; align-items: stretch;
     }
     .detail-sponsor-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      flex: 0 0 calc((100% - 24px) / 4); display: flex; flex-direction: column; align-items: center; justify-content: space-between;
     }
     .detail-sponsor-logo-box {
       flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 4px 0;
@@ -902,10 +903,11 @@
 
     /* ── Sponsor strip ── */
     .sponsor-strip {
-      display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px;
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 14px 8px; align-items: stretch; margin-bottom: 8px;
     }
     .sponsor-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      flex: 0 0 calc((100% - 24px) / 4); display: flex; flex-direction: column; align-items: center; justify-content: space-between;
     }
     .sponsor-logo-box {
       flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 4px 0;
@@ -1193,6 +1195,104 @@
       border-color: rgba(62,160,102,0.6) !important;
       transform: scale(0.96);
       transition: transform 0.3s, border-color 0.3s;
+    }
+
+    /* ═══════════════════════════
+       MODAL: 참가비 입금 확인 (관리자)
+    ═══════════════════════════ */
+    .dep-tools {
+      flex-shrink: 0; padding: 10px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .dep-search {
+      width: 100%; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+      padding: 10px 12px; color: #fff; font-size: 13px;
+      font-family: inherit; outline: none;
+    }
+    .dep-search::placeholder { color: rgba(255,255,255,0.28); }
+    .dep-chips { display: flex; gap: 6px; }
+    .dep-chip {
+      flex: 1; padding: 8px 0; border-radius: 9px; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 800;
+      background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.45);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .dep-chip.active {
+      background: rgba(62,160,102,0.18); color: var(--green-light);
+      border-color: rgba(62,160,102,0.45);
+    }
+    .dep-summary {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 14px 14px 12px; margin-bottom: 14px;
+    }
+    .dep-sum-top {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    }
+    .dep-sum-main { font-size: 15px; font-weight: 900; color: #fff; }
+    .dep-sum-main b { color: var(--green-light); font-size: 20px; }
+    .dep-sum-pct { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.4); }
+    .dep-sum-bar {
+      height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08);
+      margin: 10px 0; overflow: hidden;
+    }
+    .dep-sum-bar i {
+      display: block; height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, #3ea066, #6fd193);
+      transition: width 0.3s;
+    }
+    .dep-sum-money { font-size: 12px; font-weight: 800; color: var(--gold); }
+    .dep-sum-money span { color: rgba(255,255,255,0.35); font-weight: 700; }
+    .dep-sum-note { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 6px; line-height: 1.5; }
+    .dep-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .dep-check {
+      flex-shrink: 0; width: 30px; height: 30px; border-radius: 9px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 900; color: transparent;
+      cursor: pointer; user-select: none; -webkit-user-select: none;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .dep-check:active { transform: scale(0.92); }
+    .dep-row.paid .dep-check {
+      background: rgba(62,160,102,0.9); border-color: rgba(62,160,102,0.9); color: #fff;
+    }
+    .dep-info { flex: 1; min-width: 0; }
+    .dep-name {
+      font-size: 13px; font-weight: 800; color: #fff;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .dep-row.paid .dep-name { color: rgba(255,255,255,0.55); }
+    .dep-seat {
+      font-size: 9px; font-weight: 800; color: var(--gold);
+      background: rgba(240,192,64,0.12); border-radius: 4px; padding: 2px 5px;
+    }
+    .dep-sub {
+      font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 3px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .dep-sub a { color: rgba(255,255,255,0.5); text-decoration: none; }
+    .dep-memo { color: rgba(240,192,64,0.75); font-weight: 700; }
+    .dep-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .dep-amt {
+      font-size: 12px; font-weight: 900; color: rgba(255,255,255,0.75);
+      cursor: pointer; padding: 2px 0;
+    }
+    .dep-row.paid .dep-amt { color: var(--green-light); }
+    .dep-amt.diff { color: rgba(255,150,90,0.95); }
+    .dep-sms {
+      font-size: 9px; font-weight: 800; color: rgba(240,192,64,0.9);
+      background: rgba(240,192,64,0.1); border: 1px solid rgba(240,192,64,0.25);
+      border-radius: 6px; padding: 3px 7px; text-decoration: none;
+    }
+    .dep-empty {
+      text-align: center; font-size: 12px; color: rgba(255,255,255,0.25);
+      padding: 40px 0;
     }
 
     /* ── Toast ── */
@@ -1630,6 +1730,11 @@
           <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/ytour.png" class="sponsor-logo" alt="ytour" /></div>
           <input class="sponsor-input" id="sponsor-text-3" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
+        <div class="sponsor-item" id="sponsor-item-4">
+          <label class="sponsor-check"><input type="checkbox" id="sponsor-on-4" checked onchange="toggleSponsor(4)" /><span>선택</span></label>
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/RODEO.png" class="sponsor-logo" alt="RODEO" /></div>
+          <input class="sponsor-input" id="sponsor-text-4" type="text" placeholder="짧은 문구" maxlength="20" />
+        </div>
       </div>
 
       <button class="admin-save-btn" onclick="saveTournament()">저장하기</button>
@@ -1665,6 +1770,47 @@
         <button onclick="window._saveManualName(true)" style="width:100%;padding:14px;border-radius:12px;background:rgba(240,192,64,0.9);color:#241a02;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:4px;">킵 (자리만 잡아두기)</button>
         <div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:12px;">킵은 섭외는 끝났지만 아직 신청 전인 분의 자리를 잡아두는 용도입니다. 조편성에 점선 + 금색 '킵' 으로 표시됩니다.</div>
         <button onclick="window._closeManualSheet()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ DEPOSIT MODAL (참가비 입금 확인) ══════════════════════════ -->
+  <div class="pairing-overlay" id="deposit-overlay">
+    <div class="pairing-appbar">
+      <div class="pairing-appbar-left">
+        <span class="pairing-appbar-title">참가비 입금 확인</span>
+        <span class="pairing-appbar-sub" id="deposit-appbar-sub"></span>
+      </div>
+      <button class="pairing-close-btn" onclick="closeDepositModal()">×</button>
+    </div>
+    <div class="dep-tools">
+      <input id="deposit-search" class="dep-search" type="text" placeholder="이름 · 전화번호 검색"
+        oninput="onDepositSearch(this.value)" />
+      <div class="dep-chips">
+        <button class="dep-chip active" id="dep-chip-all" onclick="setDepositFilter('all')">전체</button>
+        <button class="dep-chip" id="dep-chip-unpaid" onclick="setDepositFilter('unpaid')">미입금</button>
+        <button class="dep-chip" id="dep-chip-paid" onclick="setDepositFilter('paid')">입금완료</button>
+      </div>
+    </div>
+    <div class="pairing-scroll" id="deposit-content"></div>
+    <div class="pairing-footer">
+      <div style="display:flex; gap:8px; width:100%;">
+        <button class="lottery-btn lottery-assign-btn" onclick="copyUnpaidList()">미입금 명단 복사</button>
+        <button class="lottery-btn lottery-assign-btn" onclick="copyDepositSummary()">입금 현황 복사</button>
+      </div>
+    </div>
+
+    <!-- 입금액 / 메모 수정 시트 -->
+    <div id="deposit-amt-sheet" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;">
+      <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 36px;">
+        <div style="font-size:15px;font-weight:900;margin-bottom:4px;">입금액 · 메모</div>
+        <div id="deposit-amt-label" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:18px;"></div>
+        <input id="deposit-amt-input" type="text" inputmode="numeric" placeholder="실제 입금된 금액" oninput="formatMoney(this)"
+          style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.35);border-radius:12px;padding:14px 16px;color:#fff;font-size:16px;font-family:inherit;outline:none;margin-bottom:10px;" />
+        <input id="deposit-memo-input" type="text" placeholder="메모 (예: 3만원 부족 / 대납 / 현장납부)" maxlength="40"
+          style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px 16px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin-bottom:14px;" />
+        <button onclick="window._saveDepositAmount()" style="width:100%;padding:14px;border-radius:12px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:8px;">저장 (입금완료 처리)</button>
+        <button onclick="window._closeDepositAmount()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
       </div>
     </div>
   </div>
@@ -2223,6 +2369,9 @@ window.openDetail = function(tournamentId) {
       if (document.getElementById('pairing-overlay').classList.contains('open')) {
         renderPairingContent(t, allRegistrations);
       }
+      if (document.getElementById('deposit-overlay').classList.contains('open')) {
+        renderDepositContent(t, allRegistrations);
+      }
     },
     (err) => { console.error('registrations onSnapshot error:', err); }
   );
@@ -2250,6 +2399,13 @@ function renderDetailHeader(t) {
         padding:6px 14px; font-size:11px; font-weight:700;
         cursor:pointer; font-family:inherit;">
         조편성 관리
+      </button>
+      <button onclick="openDepositModal()" style="
+        background:rgba(62,160,102,0.15); color:var(--green-light);
+        border:1px solid rgba(62,160,102,0.3); border-radius:8px;
+        padding:6px 14px; font-size:11px; font-weight:700;
+        cursor:pointer; font-family:inherit;">
+        입금 확인
       </button>
       <button onclick="downloadDetailPDF()" style="
         background:rgba(240,192,64,0.1); color:var(--gold);
@@ -2360,7 +2516,7 @@ function renderDetailHeader(t) {
     </div>
 
     ${(() => {
-      const allNames = ['Ayserleather','Drun','swingpod','ytour'];
+      const allNames = ['Ayserleather','Drun','swingpod','ytour','RODEO'];
       const texts = t.sponsorTexts || [];
       // sponsorOn 없으면 기존 대회 호환 위해 전부 노출
       const items = allNames
@@ -3200,7 +3356,7 @@ function clearAdminForm() {
   document.getElementById('admin-tee-interval').value = '7';
   document.getElementById('admin-cart-hint').textContent = '총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다';
   document.getElementById('tee-interval-preview').textContent = '';
-  [0,1,2,3].forEach(i => {
+  [0,1,2,3,4].forEach(i => {
     const el = document.getElementById(`sponsor-text-${i}`); if (el) el.value = '';
     const chk = document.getElementById(`sponsor-on-${i}`); if (chk) chk.checked = true;
     document.getElementById(`sponsor-item-${i}`)?.classList.remove('off');
@@ -3244,7 +3400,7 @@ function fillAdminForm(t) {
     if (el) el.value = text || '';
   });
   // 스폰서 선택 상태 복원 (sponsorOn 없으면 기존 대회 호환 위해 전부 선택)
-  [0,1,2,3].forEach(i => {
+  [0,1,2,3,4].forEach(i => {
     const on = t.sponsorOn ? t.sponsorOn[i] !== false : true;
     const chk = document.getElementById(`sponsor-on-${i}`);
     if (chk) chk.checked = on;
@@ -3422,8 +3578,8 @@ window.saveTournament = async function() {
     depositHolder: document.getElementById('admin-deposit-holder').value.trim(),
     prizesData: getPrizesData(),
     teeInterval: isScreen ? 0 : (parseInt(document.getElementById('admin-tee-interval').value) || 7),
-    sponsorTexts: [0,1,2,3].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
-    sponsorOn: [0,1,2,3].map(i => document.getElementById(`sponsor-on-${i}`)?.checked !== false),
+    sponsorTexts: [0,1,2,3,4].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
+    sponsorOn: [0,1,2,3,4].map(i => document.getElementById(`sponsor-on-${i}`)?.checked !== false),
   };
 
   const editingId = document.getElementById('admin-editing-id').value;
@@ -4150,6 +4306,253 @@ window.downloadScreenPDF = async function() {
     if (closeBtn) closeBtn.style.display = '';
     if (pdfBtn) { pdfBtn.textContent = '화면 그대로 PDF 저장'; pdfBtn.disabled = false; }
   }
+};
+
+// ═══════════════════════════════════════════════════════
+// 참가비 입금 확인 (Admin only)
+// 계좌 자동연동은 없으므로, 통장에서 확인한 입금을 관리자가 여기서 체크한다.
+// 체크 결과는 registrations 문서에 paid / paidAmount / paidAt / payMemo 로 저장 —
+// 규칙상 registrations 의 update 는 관리자만 가능하므로 참가자는 못 건드린다.
+// ═══════════════════════════════════════════════════════
+
+let depositFilter = 'all';   // all | unpaid | paid
+let depositSearch = '';
+let _depositEditId = null;
+
+// 대회에 설정된 참가비(숫자)
+function expectedFee(t) {
+  return Number(String((t && t.entryFee) || '').replace(/[^\d]/g, '')) || 0;
+}
+// 이 사람에게 잡아 둘 금액 — 따로 입력한 금액이 있으면 그것, 없으면 대회 참가비
+function amountOf(t, r) {
+  if (r && r.paidAmount !== undefined && r.paidAmount !== null && r.paidAmount !== '') {
+    return Number(r.paidAmount) || 0;
+  }
+  return expectedFee(t);
+}
+// 입금 대상 = 킵(자리만 잡아둔 것)을 뺀 실제 신청자, 자리 순 정렬
+function depositTargets(registrations) {
+  return (registrations || [])
+    .filter(r => r.isKeep !== true)
+    .slice()
+    .sort((a, b) =>
+      ((a.courseIndex || 0) - (b.courseIndex || 0)) ||
+      ((a.cartIndex || 0) - (b.cartIndex || 0)) ||
+      ((a.seatIndex || 0) - (b.seatIndex || 0)));
+}
+
+window.openDepositModal = function() {
+  if (!isAdmin) return;
+  const t = currentTournament;
+  if (!t) return;
+  depositFilter = 'all';
+  depositSearch = '';
+  const si = document.getElementById('deposit-search');
+  if (si) si.value = '';
+  document.getElementById('deposit-appbar-sub').textContent = t.name || '';
+  renderDepositContent(t, allRegistrations);
+  document.getElementById('deposit-overlay').classList.add('open');
+};
+
+window.closeDepositModal = function() {
+  document.getElementById('deposit-overlay').classList.remove('open');
+};
+
+window.setDepositFilter = function(f) {
+  depositFilter = f;
+  renderDepositContent(currentTournament, allRegistrations);
+};
+
+window.onDepositSearch = function(v) {
+  depositSearch = String(v || '').trim();
+  renderDepositContent(currentTournament, allRegistrations);
+};
+
+function renderDepositContent(t, registrations) {
+  const el = document.getElementById('deposit-content');
+  if (!el || !t) return;
+
+  ['all', 'unpaid', 'paid'].forEach(k => {
+    const c = document.getElementById('dep-chip-' + k);
+    if (c) c.classList.toggle('active', depositFilter === k);
+  });
+
+  const all       = depositTargets(registrations);
+  const fee       = expectedFee(t);
+  const paidRows  = all.filter(r => r.paid === true);
+  const collected = paidRows.reduce((s, r) => s + amountOf(t, r), 0);
+  const target    = fee * all.length;
+  const pct       = all.length ? Math.round(paidRows.length / all.length * 100) : 0;
+  const keepCount = (registrations || []).filter(r => r.isKeep === true).length;
+
+  let rows = all;
+  if (depositFilter === 'paid')   rows = rows.filter(r => r.paid === true);
+  if (depositFilter === 'unpaid') rows = rows.filter(r => r.paid !== true);
+  const kw = depositSearch.replace(/\s/g, '');
+  if (kw) rows = rows.filter(r => ((r.name || '') + (r.phone || '')).replace(/\s/g, '').includes(kw));
+
+  let html = `
+    <div class="dep-summary">
+      <div class="dep-sum-top">
+        <div class="dep-sum-main"><b>${paidRows.length}</b> / ${all.length}명 입금</div>
+        <div class="dep-sum-pct">${pct}%</div>
+      </div>
+      <div class="dep-sum-bar"><i style="width:${pct}%"></i></div>
+      <div class="dep-sum-money">${commaNum(collected)}원 <span>/ ${target ? commaNum(target) + '원 예상' : '참가비 미설정'}</span></div>
+      <div class="dep-sum-note">
+        이름 왼쪽 네모를 눌러 입금 체크 · 금액을 눌러 실제 입금액·메모 수정${keepCount ? ' · 킵 ' + keepCount + '명은 집계 제외' : ''}
+      </div>
+    </div>`;
+
+  if (!rows.length) {
+    html += `<div class="dep-empty">${all.length ? '해당하는 신청자가 없습니다' : '아직 신청자가 없습니다'}</div>`;
+  } else {
+    rows.forEach(r => {
+      const paid = r.paid === true;
+      const amt  = amountOf(t, r);
+      const diff = paid && fee > 0 && amt !== fee;
+      const seat = seatLabelFor(t, r.courseIndex || 0, r.cartIndex || 0, r.seatIndex || 0);
+      const phone = (r.phone || '').trim();
+      const phoneHtml = phone
+        ? `<a href="tel:${escAttr(phone.replace(/[^0-9+]/g, ''))}">${escHtml(phone)}</a>`
+        : `<span style="color:rgba(255,255,255,0.2);">번호 없음</span>`;
+      const smsBtn = (!paid && phone)
+        ? `<a class="dep-sms" href="${escAttr(depositSmsHref(t, r))}">문자</a>` : '';
+      const hcp = (r.handicap !== undefined && r.handicap !== null && r.handicap !== '')
+        ? `· 핸디 ${escHtml(String(r.handicap))}` : '';
+      html += `
+        <div class="dep-row ${paid ? 'paid' : ''}">
+          <div class="dep-check" onclick="window._toggleDeposit('${r.id}')">✓</div>
+          <div class="dep-info">
+            <div class="dep-name">${escHtml(r.name || '?')}<span class="dep-seat">${escHtml(seat)}</span></div>
+            <div class="dep-sub">
+              ${phoneHtml}
+              ${hcp}
+              ${r.payMemo ? `<span class="dep-memo">· ${escHtml(r.payMemo)}</span>` : ''}
+            </div>
+          </div>
+          <div class="dep-right">
+            <div class="dep-amt ${diff ? 'diff' : ''}" onclick="window._openDepositAmount('${r.id}')">${commaNum(amt)}원</div>
+            ${smsBtn}
+          </div>
+        </div>`;
+    });
+  }
+
+  el.innerHTML = html;
+}
+
+// 미입금자에게 보낼 안내 문자 — 누르면 문자앱이 내용까지 채워서 열린다
+function depositSmsHref(t, r) {
+  const acc  = t.depositAccount || DEFAULT_ACCOUNT;
+  const hold = t.depositHolder ? ` (예금주 ${t.depositHolder})` : '';
+  const fee  = expectedFee(t);
+  const body = `[${t.name || '대회'}] 참가비${fee ? ' ' + commaNum(fee) + '원' : ''} 입금 안내입니다.\n${acc}${hold}\n입금하시면 확인 후 체크해 드립니다. 감사합니다!`;
+  return `sms:${(r.phone || '').replace(/[^0-9+]/g, '')}?body=${encodeURIComponent(body)}`;
+}
+
+window._toggleDeposit = async function(regId) {
+  const t = currentTournament;
+  if (!t || !isAdmin) return;
+  const r = allRegistrations.find(x => x.id === regId);
+  if (!r) return;
+  const next = !(r.paid === true);
+  try {
+    await updateDoc(doc(db, 'tournaments', t.id, 'registrations', regId),
+      next
+        ? { paid: true, paidAt: serverTimestamp(), paidAmount: amountOf(t, r) }
+        : { paid: false, paidAt: deleteField() });
+    showToast(`${r.name || ''} ${next ? '입금 확인' : '입금 취소'}`);
+  } catch (e) {
+    console.error(e);
+    showToast('저장에 실패했습니다');
+  }
+};
+
+window._openDepositAmount = function(regId) {
+  if (!isAdmin) return;
+  const t = currentTournament;
+  const r = allRegistrations.find(x => x.id === regId);
+  if (!t || !r) return;
+  _depositEditId = regId;
+  document.getElementById('deposit-amt-label').textContent =
+    `${r.name || '?'} · 대회 참가비 ${expectedFee(t) ? commaNum(expectedFee(t)) + '원' : '미설정'}`;
+  document.getElementById('deposit-amt-input').value = fmtMoneyInput(amountOf(t, r));
+  document.getElementById('deposit-memo-input').value = r.payMemo || '';
+  document.getElementById('deposit-amt-sheet').style.display = 'flex';
+};
+
+window._closeDepositAmount = function() {
+  document.getElementById('deposit-amt-sheet').style.display = 'none';
+  _depositEditId = null;
+};
+
+window._saveDepositAmount = async function() {
+  const t = currentTournament;
+  if (!t || !_depositEditId || !isAdmin) return;
+  const amt  = Number(String(document.getElementById('deposit-amt-input').value).replace(/[^\d]/g, '')) || 0;
+  const memo = document.getElementById('deposit-memo-input').value.trim();
+  try {
+    await updateDoc(doc(db, 'tournaments', t.id, 'registrations', _depositEditId), {
+      paid: true, paidAt: serverTimestamp(), paidAmount: amt,
+      payMemo: memo || deleteField()
+    });
+    window._closeDepositAmount();
+    showToast('저장되었습니다');
+  } catch (e) {
+    console.error(e);
+    showToast('저장에 실패했습니다');
+  }
+};
+
+// 클립보드 복사 (구형 브라우저 폴백 포함)
+async function copyTextTo(text, okMsg) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(okMsg);
+    return;
+  } catch (_) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(okMsg);
+  } catch (e) {
+    showToast('복사에 실패했습니다');
+  }
+}
+
+window.copyUnpaidList = function() {
+  const t = currentTournament;
+  if (!t) return;
+  const rows = depositTargets(allRegistrations).filter(r => r.paid !== true);
+  if (!rows.length) { showToast('미입금자가 없습니다 👍'); return; }
+  const fee = expectedFee(t);
+  const text = `[${t.name || '대회'}] 참가비 미입금 ${rows.length}명` +
+    (fee ? ` (1인 ${commaNum(fee)}원)` : '') + '\n' +
+    rows.map((r, i) => `${i + 1}. ${r.name || '?'}${r.phone ? ' ' + r.phone : ''}`).join('\n');
+  copyTextTo(text, `미입금 ${rows.length}명 명단 복사됨`);
+};
+
+window.copyDepositSummary = function() {
+  const t = currentTournament;
+  if (!t) return;
+  const all = depositTargets(allRegistrations);
+  if (!all.length) { showToast('신청자가 없습니다'); return; }
+  const fee = expectedFee(t);
+  const paidRows = all.filter(r => r.paid === true);
+  const collected = paidRows.reduce((s, r) => s + amountOf(t, r), 0);
+  const text = `[${t.name || '대회'}] 참가비 입금 현황\n` +
+    `입금 ${paidRows.length}명 / 신청 ${all.length}명` +
+    (fee ? `\n수금 ${commaNum(collected)}원 / 예상 ${commaNum(fee * all.length)}원` : '') + '\n\n' +
+    all.map(r => `${r.paid === true ? '✅' : '⬜'} ${r.name || '?'}` +
+      (r.paid === true ? ` ${commaNum(amountOf(t, r))}원` : '') +
+      (r.payMemo ? ` (${r.payMemo})` : '')).join('\n');
+  copyTextTo(text, '입금 현황이 복사되었습니다');
 };
 
 // ── Confirm modal ──────────────────────────────────────
