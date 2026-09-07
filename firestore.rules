@@ -178,6 +178,13 @@ service cloud.firestore {
         allow read: if isAnyUser();
         allow write: if isAnyUser();
       }
+
+      // 찬조 — 누구나 등록/열람, 수정·삭제는 관리자만
+      match /donations/{donationId} {
+        allow read: if isAnyUser();
+        allow create: if isAnyUser();
+        allow update, delete: if isAdmin();
+      }
     }
 
     match /inviteCodes/{code} {

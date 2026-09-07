@@ -491,6 +491,79 @@
     .prizes-add-btn { width: 100%; padding: 10px; background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.13); border-radius: 8px; color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; }
     .prizes-table td.received-no { color: rgba(255,255,255,0.25) !important; }
 
+    /* ── 찬조 리스트 (스폰서 아래 공개 노출) ── */
+    .dn-wrap { margin: 0 0 24px; }
+    .dn-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 15px 14px 13px; }
+    .dn-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .dn-title { font-size: 12px; font-weight: 900; color: var(--gold); letter-spacing: 0.4px; }
+    .dn-sub { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 4px; line-height: 1.5; }
+    .dn-add-btn { flex-shrink: 0; background: rgba(240,192,64,0.14); color: var(--gold); border: 1px solid rgba(240,192,64,0.35); border-radius: 10px; padding: 8px 13px; font-size: 12px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .dn-add-btn:active { background: rgba(240,192,64,0.26); }
+    .dn-empty { font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; padding: 16px 0; line-height: 1.7; }
+    .dn-row { display: flex; align-items: center; gap: 7px; padding: 9px 2px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .dn-row:last-of-type { border-bottom: none; }
+    .dn-name { font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dn-kind { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; flex-shrink: 0; }
+    .dn-kind.item { background: rgba(62,160,102,0.18); color: var(--green-light); }
+    .dn-kind.cash { background: rgba(240,192,64,0.15); color: var(--gold); }
+    .dn-item { font-size: 12px; color: rgba(255,255,255,0.6); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dn-amt { font-size: 12px; font-weight: 800; color: #fff; white-space: nowrap; }
+    .dn-del { background: none; border: none; color: rgba(255,120,120,0.6); font-size: 14px; cursor: pointer; padding: 0 1px; line-height: 1; flex-shrink: 0; }
+    .dn-total { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 11px; border-top: 1px solid rgba(240,192,64,0.22); }
+    .dn-total-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.45); }
+    .dn-total-val { font-size: 18px; font-weight: 900; color: var(--gold); letter-spacing: -0.5px; }
+
+    /* ── 찬조 위저드 (질문 → 답 방식) ── */
+    .dw-overlay {
+      position: absolute; inset: 0;
+      background: #0A2406; z-index: 75;
+      display: none; flex-direction: column;
+      border-radius: 40px; overflow: hidden;
+    }
+    .dw-overlay.open { display: flex; }
+    .dw-appbar { flex-shrink: 0; padding: 32px 18px 0; display: flex; align-items: center; justify-content: space-between; }
+    .dw-back { background: none; border: none; color: var(--green-light); font-size: 22px; line-height: 1; padding: 4px 8px 4px 0; width: 40px; cursor: pointer; font-family: inherit; }
+    .dw-counter { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.3); }
+    .dw-counter span { color: var(--green-light); }
+    .dw-close { background: none; border: none; color: rgba(255,255,255,0.35); font-size: 24px; width: 40px; line-height: 1; cursor: pointer; font-family: inherit; }
+    .dw-progress { flex-shrink: 0; padding: 12px 20px 0; }
+    .dw-track { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .dw-fill { height: 100%; background: var(--green-light); border-radius: 2px; transition: width 0.4s cubic-bezier(0.32,0.72,0,1); }
+    .dw-steps { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .dw-step { display: none; flex-direction: column; flex: 1; padding: 28px 24px 28px; overflow-y: auto; scrollbar-width: none; }
+    .dw-step::-webkit-scrollbar { display: none; }
+    .dw-step.active { display: flex; animation: dwIn 0.32s cubic-bezier(0.32,0.72,0,1) both; }
+    .dw-step.active.back { animation: dwInBack 0.32s cubic-bezier(0.32,0.72,0,1) both; }
+    @keyframes dwIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes dwInBack { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .dw-q { font-size: 23px; font-weight: 900; line-height: 1.35; letter-spacing: -0.5px; text-align: center; margin-bottom: 8px; }
+    .dw-hint { font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6; text-align: center; margin-bottom: 26px; }
+    .dw-input { width: 100%; padding: 16px 18px; background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 14px; color: #fff; font-size: 16px; font-family: inherit; outline: none; }
+    .dw-input:focus { border-color: var(--green-light); }
+    .dw-input::placeholder { color: rgba(255,255,255,0.22); }
+    .dw-amt-wrap { position: relative; }
+    .dw-input.amt { text-align: right; font-weight: 900; font-size: 22px; padding-right: 48px; letter-spacing: -0.5px; }
+    .dw-won { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 800; color: rgba(255,255,255,0.4); pointer-events: none; }
+    .dw-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .dw-chip { padding: 10px 14px; border-radius: 30px; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .dw-chip:active { background: rgba(62,160,102,0.2); color: var(--green-light); border-color: rgba(62,160,102,0.5); }
+    .dw-pick { display: flex; flex-direction: column; gap: 12px; }
+    .dw-pick-btn { display: flex; align-items: center; gap: 14px; padding: 20px 18px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 16px; cursor: pointer; font-family: inherit; text-align: left; }
+    .dw-pick-btn:active { border-color: var(--green-light); background: rgba(62,160,102,0.14); }
+    .dw-pick-btn.on { border-color: var(--green-light); background: rgba(62,160,102,0.16); }
+    .dw-pick-emoji { font-size: 26px; line-height: 1; flex-shrink: 0; }
+    .dw-pick-t { display: block; font-size: 16px; font-weight: 900; color: #fff; }
+    .dw-pick-d { display: block; font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+    .dw-footer { margin-top: auto; padding-top: 22px; }
+    .dw-next { width: 100%; padding: 17px; background: var(--green); color: #fff; font-size: 17px; font-weight: 900; letter-spacing: -0.3px; border: none; border-radius: 16px; font-family: inherit; cursor: pointer; }
+    .dw-next:active { background: var(--green-light); }
+    .dw-next:disabled { opacity: 0.35; }
+    .dw-done-icon { font-size: 52px; text-align: center; margin-bottom: 12px; }
+    .dw-summary { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+    .dw-sum-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; }
+    .dw-sum-k { color: rgba(255,255,255,0.4); flex-shrink: 0; }
+    .dw-sum-v { color: #fff; font-weight: 800; text-align: right; word-break: break-all; }
+
     /* ── Seat map ── */
     .seat-map-section { margin-bottom: 20px; }
     .seat-map-title {
@@ -1225,6 +1298,86 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════ 찬조 위저드 ══════════════════════════ -->
+  <div class="dw-overlay" id="dw-overlay">
+    <div class="dw-appbar">
+      <button class="dw-back" id="dw-back" onclick="dwPrev()">‹</button>
+      <div class="dw-counter" id="dw-counter"><span id="dw-cur">1</span> / <span id="dw-tot">5</span></div>
+      <button class="dw-close" onclick="closeDonateWizard()">×</button>
+    </div>
+    <div class="dw-progress"><div class="dw-track"><div class="dw-fill" id="dw-fill" style="width:20%"></div></div></div>
+
+    <div class="dw-steps">
+
+      <!-- 1. 인사 -->
+      <div class="dw-step active" id="dw-step-1">
+        <div class="dw-q">이번 대회에<br>찬조해 주셔서 감사합니다</div>
+        <div class="dw-hint" id="dw-intro-hint">여러분의 찬조가 대회를 더 풍성하게 만듭니다.<br>몇 가지만 여쭤볼게요.</div>
+        <div class="dw-footer"><button class="dw-next" onclick="dwGo(2)">찬조 시작하기</button></div>
+      </div>
+
+      <!-- 2. 현물 / 현금 -->
+      <div class="dw-step" id="dw-step-2">
+        <div class="dw-q">어떤 방식으로<br>찬조하시나요?</div>
+        <div class="dw-hint">현물과 현금 중에서 선택해주세요</div>
+        <div class="dw-pick">
+          <button class="dw-pick-btn" id="dw-kind-item" onclick="dwPickKind('item')">
+            <span class="dw-pick-emoji">🎁</span>
+            <span><span class="dw-pick-t">현물</span><span class="dw-pick-d">상품·물품으로 찬조합니다</span></span>
+          </button>
+          <button class="dw-pick-btn" id="dw-kind-cash" onclick="dwPickKind('cash')">
+            <span class="dw-pick-emoji">💰</span>
+            <span><span class="dw-pick-t">현금</span><span class="dw-pick-d">금액으로 찬조합니다</span></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. 현물 품목 -->
+      <div class="dw-step" id="dw-step-3">
+        <div class="dw-q">어떤 물품을<br>찬조하시나요?</div>
+        <div class="dw-hint">상품명을 적어주세요 (예: 골프공 1박스)</div>
+        <input class="dw-input" id="dw-item" type="text" placeholder="예) 타이틀리스트 프로v1 1더즌" maxlength="40" oninput="dwCheckItem()" />
+        <div class="dw-footer"><button class="dw-next" id="dw-next-3" onclick="dwGo(4)" disabled>다음</button></div>
+      </div>
+
+      <!-- 4. 금액 -->
+      <div class="dw-step" id="dw-step-4">
+        <div class="dw-q" id="dw-amt-q">금액이 얼마인가요?</div>
+        <div class="dw-hint" id="dw-amt-hint">시상 합산 금액에 반영됩니다</div>
+        <div class="dw-amt-wrap">
+          <input class="dw-input amt" id="dw-amount" type="text" inputmode="numeric" placeholder="0" oninput="dwFormatAmt(this)" />
+          <span class="dw-won">원</span>
+        </div>
+        <div class="dw-chips">
+          <button class="dw-chip" onclick="dwSetAmt(30000)">3만원</button>
+          <button class="dw-chip" onclick="dwSetAmt(50000)">5만원</button>
+          <button class="dw-chip" onclick="dwSetAmt(100000)">10만원</button>
+          <button class="dw-chip" onclick="dwSetAmt(200000)">20만원</button>
+          <button class="dw-chip" onclick="dwSetAmt(300000)">30만원</button>
+        </div>
+        <div class="dw-footer"><button class="dw-next" id="dw-next-4" onclick="dwGo(5)" disabled>다음</button></div>
+      </div>
+
+      <!-- 5. 성함 -->
+      <div class="dw-step" id="dw-step-5">
+        <div class="dw-q">찬조하시는 분<br>성함을 알려주세요</div>
+        <div class="dw-hint">대회 페이지 찬조 내역에 함께 표시됩니다</div>
+        <input class="dw-input" id="dw-name" type="text" placeholder="홍길동 (또는 업체명)" maxlength="20" oninput="dwCheckName()" />
+        <div class="dw-footer"><button class="dw-next" id="dw-next-5" onclick="dwSubmit()" disabled>찬조 등록하기</button></div>
+      </div>
+
+      <!-- 6. 완료 -->
+      <div class="dw-step" id="dw-step-6">
+        <div class="dw-done-icon">🙏</div>
+        <div class="dw-q">찬조 감사합니다!</div>
+        <div class="dw-hint">대회 페이지 찬조 내역에 등록되었습니다</div>
+        <div class="dw-summary" id="dw-summary"></div>
+        <div class="dw-footer"><button class="dw-next" onclick="closeDonateWizard()">확인</button></div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ══════════════════════════ MODAL: Admin ══════════════════════════ -->
   <div class="admin-overlay" id="admin-overlay">
     <div class="admin-appbar">
@@ -1404,7 +1557,7 @@
           </div>
           <button type="button" class="prizes-add-btn" onclick="addPrizesRow()">+ 항목 추가</button>
         </div>
-        <div class="admin-hint">대회 중 언제든지 수정 가능합니다</div>
+        <div class="admin-hint">대회 중 언제든지 수정 가능합니다. 참가자가 대회 페이지에서 직접 등록한 찬조는 아래 목록과 자동으로 합산됩니다.</div>
       </div>
 
       <div class="admin-section-title">스폰서</div>
@@ -1579,6 +1732,8 @@ let currentTournament = null;
 let selectedSeat = null; // { courseIdx, cartIdx, seatIdx }
 let myRegistration = null;
 let allRegistrations = [];
+let allDonations = [];
+let donationListener = null;
 
 // ── Static past tournaments ────────────────────────────
 const PAST_TOURNAMENTS = [
@@ -1995,6 +2150,20 @@ window.openDetail = function(tournamentId) {
   // Build detail HTML (without seats first)
   renderDetailHeader(t);
 
+  // 찬조 내역 실시간 반영
+  if (donationListener) { donationListener(); donationListener = null; }
+  allDonations = [];
+  renderDonationSection(t);
+  donationListener = onSnapshot(
+    collection(db, 'tournaments', t.id, 'donations'),
+    (snap) => {
+      allDonations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allDonations.sort((a, b) => ((a.createdAt && a.createdAt.seconds) || 0) - ((b.createdAt && b.createdAt.seconds) || 0));
+      renderDonationSection(t);
+    },
+    (err) => { console.error('donations onSnapshot error:', err); }
+  );
+
   // Listen for registrations in real time
   seatMapListener = onSnapshot(
     collection(db, 'tournaments', t.id, 'registrations'),
@@ -2125,35 +2294,6 @@ function renderDetailHeader(t) {
     </div>
 
     ${(() => {
-      const pd = t.prizesData;
-      if (!pd || !pd.length) return '';
-      const total = pd.reduce((s, r) => s + (r.amount || 0), 0);
-      const rows = pd.map(r => {
-        const no = r.received === false;
-        return `<tr>
-          <td style="${no ? 'color:rgba(255,255,255,0.25)' : 'color:var(--green-light);font-weight:700'}">${no ? '무' : '유'}</td>
-          <td>${escHtml(r.company)}</td>
-          <td>${escHtml(r.product)}</td>
-          <td class="amt">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</td>
-          <td>${escHtml(r.note)}</td>
-        </tr>`;
-      }).join('');
-      return `<div class="prizes-box" id="prizes-box-${t.id}" onclick="togglePrizes('${t.id}')">
-        <div class="prizes-box-header">
-          <div class="prizes-title">시상 및 찬조 물품 <span class="prizes-toggle-arrow">▼</span></div>
-          <div class="prizes-total-chip">총 ${total.toLocaleString()}원</div>
-        </div>
-        <div class="prizes-detail">
-          <table class="prizes-table">
-            <thead><tr><th>수령</th><th>업체 및 이름</th><th>상품명</th><th>금액</th><th>기타</th></tr></thead>
-            <tbody>${rows}</tbody>
-            <tfoot><tr><td colspan="3">합계</td><td class="amt">${total.toLocaleString()}원</td><td></td></tr></tfoot>
-          </table>
-        </div>
-      </div>`;
-    })()}
-
-    ${(() => {
       const allNames = ['Ayserleather','Drun','swingpod','ytour'];
       const texts = t.sponsorTexts || [];
       // sponsorOn 없으면 기존 대회 호환 위해 전부 노출
@@ -2173,6 +2313,8 @@ function renderDetailHeader(t) {
         </div>
       </div>`;
     })()}
+
+    <div class="dn-wrap" id="donation-section"></div>
 
     <div class="seat-map-section">
       <div class="seat-map-title">${t.tournamentType === 'screen' ? '참가 신청' : '좌석 선택'} <span>— 자리를 선택해 신청하세요</span></div>
@@ -2478,6 +2620,234 @@ window.submitRegistration = async function() {
   }
 };
 
+// ══════════════════════════ 찬조 (누구나 입력) ══════════════════════════
+// 예전에는 관리자가 취합해 대회 수정에서만 입력했지만,
+// 이제 참가자 누구나 위저드로 직접 등록하고 모두가 볼 수 있게 공개한다.
+// 관리자가 입력해 둔 기존 prizesData 도 같은 목록에 함께 합산해 보여준다.
+
+function donationRows(t) {
+  const rows = [];
+  ((t && t.prizesData) || []).forEach(r => {
+    if (!r) return;
+    rows.push({
+      id: null,
+      name: r.company || '-',
+      kind: r.product ? 'item' : 'cash',
+      item: r.product || '',
+      amount: r.amount || 0
+    });
+  });
+  allDonations.forEach(d => {
+    rows.push({
+      id: d.id,
+      name: d.name || '-',
+      kind: d.kind === 'cash' ? 'cash' : 'item',
+      item: d.kind === 'cash' ? '' : (d.item || ''),
+      amount: d.amount || 0
+    });
+  });
+  return rows;
+}
+
+function renderDonationSection(t) {
+  const el = document.getElementById('donation-section');
+  if (!el) return;
+
+  const rows = donationRows(t);
+  const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
+
+  const list = rows.length
+    ? rows.map(r => `<div class="dn-row">
+        <span class="dn-name">${escHtml(r.name)}</span>
+        <span class="dn-kind ${r.kind}">${r.kind === 'cash' ? '현금' : '현물'}</span>
+        <span class="dn-item">${escHtml(r.kind === 'cash' ? '현금 찬조' : (r.item || '-'))}</span>
+        <span class="dn-amt">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</span>
+        ${(isAdmin && r.id) ? `<button class="dn-del" onclick="deleteDonation('${r.id}')">×</button>` : ''}
+      </div>`).join('')
+    : `<div class="dn-empty">아직 등록된 찬조가 없습니다.<br>첫 번째 찬조의 주인공이 되어주세요!</div>`;
+
+  el.innerHTML = `<div class="dn-box">
+    <div class="dn-head">
+      <div>
+        <div class="dn-title">시상 &amp; 찬조 내역</div>
+        <div class="dn-sub">함께해 주신 분들 덕분에 대회가 풍성해집니다</div>
+      </div>
+      <button class="dn-add-btn" onclick="openDonateWizard()">찬조하기</button>
+    </div>
+    ${list}
+    <div class="dn-total">
+      <span class="dn-total-label">총 찬조 금액</span>
+      <span class="dn-total-val">${total.toLocaleString()}원</span>
+    </div>
+  </div>`;
+}
+
+async function deleteDonation(id) {
+  if (!currentTournament) return;
+  if (!confirm('이 찬조 내역을 삭제할까요?')) return;
+  try {
+    await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'donations', id));
+    showToast('삭제했습니다');
+  } catch (e) {
+    console.error(e);
+    showToast('삭제에 실패했습니다');
+  }
+};
+
+// ── 찬조 위저드 (질문 → 답 방식, 기상시간 계산기와 동일한 흐름) ──
+let dwData = { kind: null, item: '', amount: 0, name: '' };
+let dwStep = 1;
+
+function dwSeq() {
+  return dwData.kind === 'cash' ? [1, 2, 4, 5] : [1, 2, 3, 4, 5];
+}
+
+async function openDonateWizard() {
+  if (!currentTournament) return;
+  dwData = { kind: null, item: '', amount: 0, name: '' };
+  document.getElementById('dw-item').value = '';
+  document.getElementById('dw-amount').value = '';
+  document.getElementById('dw-name').value = '';
+  document.getElementById('dw-next-3').disabled = true;
+  document.getElementById('dw-next-4').disabled = true;
+  document.getElementById('dw-next-5').disabled = true;
+  document.getElementById('dw-kind-item').classList.remove('on');
+  document.getElementById('dw-kind-cash').classList.remove('on');
+  document.getElementById('dw-intro-hint').innerHTML =
+    `${escHtml(currentTournament.name || '대회')}에 함께해 주셔서 감사합니다.<br>몇 가지만 여쭤볼게요.`;
+
+  document.getElementById('dw-overlay').classList.add('open');
+  dwGo(1);
+
+  // 가입 시 등록한 실명 자동 입력
+  if (currentUser) {
+    try {
+      const snap = await getDoc(doc(db, 'users', currentUser.uid));
+      if (snap.exists()) document.getElementById('dw-name').value = snap.data().name || '';
+    } catch (_) {}
+    dwCheckName();
+  }
+};
+
+function closeDonateWizard() {
+  document.getElementById('dw-overlay').classList.remove('open');
+};
+
+function dwPaint() {
+  const seq = dwSeq();
+  const idx = Math.max(0, seq.indexOf(dwStep));
+  const done = dwStep === 6;
+  document.getElementById('dw-counter').style.visibility = done ? 'hidden' : 'visible';
+  document.getElementById('dw-cur').textContent = idx + 1;
+  document.getElementById('dw-tot').textContent = seq.length;
+  document.getElementById('dw-fill').style.width = (done ? 100 : ((idx + 1) / seq.length) * 100) + '%';
+  document.getElementById('dw-back').style.visibility = (dwStep === 1 || done) ? 'hidden' : 'visible';
+}
+
+function dwGo(step, isBack = false) {
+  // 다음으로 넘어가기 전 현재 단계 값 확정
+  if (!isBack) {
+    if (dwStep === 3) {
+      dwData.item = document.getElementById('dw-item').value.trim();
+      if (!dwData.item) { showToast('물품명을 입력해주세요'); return; }
+    }
+    if (dwStep === 4) {
+      dwData.amount = parseInt((document.getElementById('dw-amount').value || '').replace(/[^0-9]/g, '')) || 0;
+      if (!dwData.amount) { showToast('금액을 입력해주세요'); return; }
+    }
+  }
+
+  document.querySelectorAll('.dw-step').forEach(el => el.classList.remove('active', 'back'));
+  const el = document.getElementById('dw-step-' + step);
+  if (!el) return;
+  el.classList.add('active');
+  if (isBack) el.classList.add('back');
+  el.scrollTop = 0;
+  dwStep = step;
+  dwPaint();
+};
+
+function dwPrev() {
+  const seq = dwSeq();
+  const idx = seq.indexOf(dwStep);
+  if (idx <= 0) { closeDonateWizard(); return; }
+  dwGo(seq[idx - 1], true);
+};
+
+function dwPickKind(kind) {
+  dwData.kind = kind;
+  document.getElementById('dw-kind-item').classList.toggle('on', kind === 'item');
+  document.getElementById('dw-kind-cash').classList.toggle('on', kind === 'cash');
+  document.getElementById('dw-amt-q').textContent =
+    kind === 'cash' ? '얼마를 찬조하시나요?' : '물품 가격은 얼마인가요?';
+  document.getElementById('dw-amt-hint').textContent =
+    kind === 'cash' ? '입력하신 금액이 총 찬조 금액에 합산됩니다' : '대략적인 금액이면 충분합니다';
+  dwGo(kind === 'cash' ? 4 : 3);
+};
+
+function dwCheckItem() {
+  document.getElementById('dw-next-3').disabled = !document.getElementById('dw-item').value.trim();
+};
+
+function dwCheckName() {
+  document.getElementById('dw-next-5').disabled = !document.getElementById('dw-name').value.trim();
+};
+
+function dwFormatAmt(input) {
+  const raw = (input.value || '').replace(/[^0-9]/g, '');
+  input.value = raw ? parseInt(raw).toLocaleString() : '';
+  document.getElementById('dw-next-4').disabled = !raw || parseInt(raw) === 0;
+};
+
+function dwSetAmt(v) {
+  document.getElementById('dw-amount').value = v.toLocaleString();
+  document.getElementById('dw-next-4').disabled = false;
+};
+
+async function dwSubmit() {
+  if (!currentTournament) return;
+  const name = document.getElementById('dw-name').value.trim();
+  if (!name) { showToast('성함을 입력해주세요'); return; }
+  dwData.name = name;
+
+  const btn = document.getElementById('dw-next-5');
+  btn.disabled = true;
+  try {
+    await addDoc(collection(db, 'tournaments', currentTournament.id, 'donations'), {
+      userId: currentUser ? currentUser.uid : '',
+      name,
+      kind: dwData.kind === 'cash' ? 'cash' : 'item',
+      item: dwData.kind === 'cash' ? '' : dwData.item,
+      amount: dwData.amount,
+      createdAt: serverTimestamp()
+    });
+
+    document.getElementById('dw-summary').innerHTML = `
+      <div class="dw-sum-row"><span class="dw-sum-k">찬조자</span><span class="dw-sum-v">${escHtml(name)}</span></div>
+      <div class="dw-sum-row"><span class="dw-sum-k">구분</span><span class="dw-sum-v">${dwData.kind === 'cash' ? '현금' : '현물'}</span></div>
+      ${dwData.kind === 'cash' ? '' : `<div class="dw-sum-row"><span class="dw-sum-k">물품</span><span class="dw-sum-v">${escHtml(dwData.item)}</span></div>`}
+      <div class="dw-sum-row"><span class="dw-sum-k">금액</span><span class="dw-sum-v">${dwData.amount.toLocaleString()}원</span></div>`;
+    dwGo(6);
+  } catch (e) {
+    console.error(e);
+    showToast('등록에 실패했습니다. 다시 시도해주세요');
+    btn.disabled = false;
+  }
+};
+
+// onclick 핸들러용 노출
+window.deleteDonation = deleteDonation;
+window.openDonateWizard = openDonateWizard;
+window.closeDonateWizard = closeDonateWizard;
+window.dwGo = dwGo;
+window.dwPrev = dwPrev;
+window.dwPickKind = dwPickKind;
+window.dwCheckItem = dwCheckItem;
+window.dwCheckName = dwCheckName;
+window.dwFormatAmt = dwFormatAmt;
+window.dwSetAmt = dwSetAmt;
+window.dwSubmit = dwSubmit;
+
 // ── Go back ────────────────────────────────────────────
 window.goBack = function() {
   if (currentView === 'list') {
@@ -2485,6 +2855,8 @@ window.goBack = function() {
     return;
   }
   if (seatMapListener) { seatMapListener(); seatMapListener = null; }
+  if (donationListener) { donationListener(); donationListener = null; }
+  allDonations = [];
   currentTournament = null;
   selectedSeat = null;
   currentView = 'list';
@@ -3293,6 +3665,7 @@ window.downloadDetailImage = async function() {
     scroll.querySelector('.card-bottom-row'),
     document.getElementById('detail-register-btn'),
     document.getElementById('selected-info-bar'),
+    ...scroll.querySelectorAll('.dn-add-btn, .dn-del'),
   ].filter(Boolean);
   const origDisplay = toHide.map(el => el.style.display);
   toHide.forEach(el => el.style.display = 'none');
