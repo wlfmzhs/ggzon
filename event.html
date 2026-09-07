@@ -151,6 +151,30 @@
       font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 800;
       letter-spacing: 1px; margin-bottom: 8px;
     }
+    /* ── 참가비 입금 계좌 ── */
+    .pay-box {
+      margin-top: 10px;
+      background: rgba(240,192,64,0.06);
+      border: 1px solid rgba(240,192,64,0.28);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .pay-label { font-size: 10px; color: var(--gold); font-weight: 800; letter-spacing: 1px; margin-bottom: 9px; }
+    .pay-amount { font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -0.6px; margin-bottom: 10px; }
+    .pay-amount span { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.45); margin-left: 3px; }
+    .pay-acc-row { display: flex; align-items: center; gap: 10px; }
+    .pay-acc { flex: 1; min-width: 0; }
+    .pay-acc-num { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.2px; word-break: break-all; }
+    .pay-acc-holder { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+    .pay-copy-btn {
+      flex-shrink: 0; padding: 9px 14px;
+      background: rgba(240,192,64,0.16); border: 1px solid rgba(240,192,64,0.4);
+      color: var(--gold); font-size: 12px; font-weight: 800;
+      border-radius: 10px; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .pay-copy-btn:active { background: rgba(240,192,64,0.3); }
+
     .detail-notice-text {
       font-size: 14px; color: rgba(255,255,255,0.9);
       line-height: 1.75; white-space: pre-line; font-weight: 500;
@@ -1544,6 +1568,23 @@
         </div>
       </div>
 
+      <div class="admin-section-title">참가비 입금 계좌</div>
+      <div class="admin-form-group">
+        <label class="admin-label">참가비 (입금하실 금액)</label>
+        <input class="admin-input" id="admin-entry-fee" placeholder="예) 200,000" oninput="formatMoney(this)" inputmode="numeric" />
+      </div>
+      <div class="admin-row">
+        <div class="admin-form-group">
+          <label class="admin-label">입금 계좌</label>
+          <input class="admin-input" id="admin-deposit-account" placeholder="카카오뱅크 3333-01-4734859" />
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">예금주</label>
+          <input class="admin-input" id="admin-deposit-holder" placeholder="예) 홍길동" />
+        </div>
+      </div>
+      <div class="admin-hint">계좌를 비워두면 카카오뱅크 3333-01-4734859 로 표시됩니다</div>
+
       <div class="admin-section-title">시상 & 찬조</div>
       <div class="admin-form-group">
         <label class="admin-label">시상 및 찬조 물품 내역</label>
@@ -2248,6 +2289,25 @@ function renderDetailHeader(t) {
         ${isBWTournament ? `<img src="image/bw-cup.png" alt="B&W CUP" style="width:72px;height:72px;object-fit:contain;flex-shrink:0;margin-top:2px;" />` : ''}
       </div>
       ${t.notice ? `<div class="detail-notice-box"><div class="detail-notice-label">NOTICE</div><div class="detail-notice-text">${escHtml(t.notice).replace(/\n/g,'<br>')}</div></div>` : ''}
+      ${(() => {
+        const acc    = t.depositAccount || DEFAULT_ACCOUNT;
+        const holder = t.depositHolder || '';
+        const fee    = commaNum(t.entryFee || '');
+        return `<div class="pay-box">
+          <div class="pay-label">참가비 입금 계좌</div>
+          ${fee ? `<div class="pay-amount">${fee}원<span>참가비</span></div>` : ''}
+          <div class="pay-acc-row">
+            <div class="pay-acc">
+              <div class="pay-acc-num">${escHtml(acc)}</div>
+              ${holder ? `<div class="pay-acc-holder">예금주 ${escHtml(holder)}</div>` : ''}
+            </div>
+            <button class="pay-copy-btn" onclick="copyAccount('${escAttr(acc)}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+              복사
+            </button>
+          </div>
+        </div>`;
+      })()}
       ${t.rule ? `<div class="detail-notice-box" style="margin-top:10px;"><div class="detail-notice-label">RULE</div><div class="detail-notice-text">${escHtml(t.rule).replace(/\n/g,'<br>')}</div></div>` : ''}
       ${adminEdit}
       <div class="card-bottom-row">
@@ -3065,7 +3125,8 @@ window.togglePrizes = function(id) {
 
 function clearAdminForm() {
   ['admin-name','admin-slogan','admin-notice','admin-rule','admin-golf-course','admin-tee-time','admin-gather-time','admin-gather',
-   'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-date','admin-tee-interval'].forEach(id => {
+   'admin-total','admin-carts','admin-green-fee','admin-caddy-fee','admin-date','admin-tee-interval',
+   'admin-entry-fee','admin-deposit-account','admin-deposit-holder'].forEach(id => {
     document.getElementById(id).value = '';
   });
   renderPrizesEditor([]);
@@ -3110,6 +3171,9 @@ function fillAdminForm(t) {
   document.getElementById('admin-courses').value = t.courseCount || '2';
   document.getElementById('admin-green-fee').value = fmtMoneyInput(t.greenFee);
   document.getElementById('admin-caddy-fee').value = fmtMoneyInput(t.caddyFee);
+  document.getElementById('admin-entry-fee').value = fmtMoneyInput(t.entryFee);
+  document.getElementById('admin-deposit-account').value = t.depositAccount || '';
+  document.getElementById('admin-deposit-holder').value = t.depositHolder || '';
   renderPrizesEditor(t.prizesData || []);
   // 코스명 복원
   renderCourseNameInputs(t.courseNames || [], t.courseTimes || []);
@@ -3296,6 +3360,9 @@ window.saveTournament = async function() {
     courseTimes: isScreen ? [] : getCourseTimes(),
     greenFee: document.getElementById('admin-green-fee').value.trim(),
     caddyFee: document.getElementById('admin-caddy-fee').value.trim(),
+    entryFee: document.getElementById('admin-entry-fee').value.trim(),
+    depositAccount: document.getElementById('admin-deposit-account').value.trim(),
+    depositHolder: document.getElementById('admin-deposit-holder').value.trim(),
     prizesData: getPrizesData(),
     teeInterval: isScreen ? 0 : (parseInt(document.getElementById('admin-tee-interval').value) || 7),
     sponsorTexts: [0,1,2,3].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
@@ -4062,6 +4129,32 @@ function formatDate(dateStr) {
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   } catch { return dateStr; }
 }
+// 기본 입금 계좌 — 대회별로 따로 지정하지 않으면 이 계좌로 표시된다
+const DEFAULT_ACCOUNT = '카카오뱅크 3333-01-4734859';
+
+// 계좌번호 복사 — 은행명은 빼고 번호만 복사해 붙여넣기 바로 되게
+window.copyAccount = async function(acc) {
+  const num = String(acc || '').replace(/[^0-9-]/g, '').replace(/^-+|-+$/g, '');
+  const text = num || acc;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('계좌번호가 복사되었습니다');
+    return;
+  } catch (_) { /* 구형 브라우저 / 권한 거부 시 아래로 */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('계좌번호가 복사되었습니다');
+  } catch (e) {
+    showToast('복사에 실패했습니다: ' + text);
+  }
+};
+
 function commaNum(n) {
   const raw = String(n).replace(/[^\d]/g, '');
   return raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
