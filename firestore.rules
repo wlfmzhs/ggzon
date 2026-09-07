@@ -25,6 +25,21 @@ service cloud.firestore {
       return true;
     }
 
+    // 찬조를 등록한 본인인지 (카카오 로그인은 auth 없이 uid 문자열만 저장된다)
+    function isDonationOwner() {
+      return resource.data.userId is string && resource.data.userId != '' && (
+        (request.auth != null && resource.data.userId == request.auth.uid) ||
+        (request.auth == null && resource.data.userId.matches('kakao_.+'))
+      );
+    }
+
+    // 수정은 내용만 — 등록자(userId)를 바꿔 남의 찬조를 가로채지 못하게 막는다
+    function onlyDonationFields() {
+      return request.resource.data.userId == resource.data.userId &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'kind', 'item', 'amount', 'updatedAt']);
+    }
+
     function onlyAllowedJoinFields() {
       return request.resource.data.diff(resource.data)
         .affectedKeys().hasOnly(['participants', 'scores', 'parties', 'partyId', 'partyIds', 'status', 'pointsAwarded', 'scoreBonusAwarded', 'pointAwardedUids', 'scoreAwardedUids']);
@@ -179,11 +194,12 @@ service cloud.firestore {
         allow write: if isAnyUser();
       }
 
-      // 찬조 — 누구나 등록/열람, 수정·삭제는 관리자만
+      // 찬조 — 누구나 등록/열람, 수정은 등록한 본인(내용만), 삭제는 본인 또는 관리자
       match /donations/{donationId} {
         allow read: if isAnyUser();
         allow create: if isAnyUser();
-        allow update, delete: if isAdmin();
+        allow update: if isAdmin() || (isDonationOwner() && onlyDonationFields());
+        allow delete: if isAdmin() || isDonationOwner();
       }
     }
 

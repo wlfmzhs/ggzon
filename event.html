@@ -532,6 +532,8 @@
     .dn-kind.cash { background: rgba(240,192,64,0.15); color: var(--gold); }
     .dn-item { font-size: 12px; color: rgba(255,255,255,0.6); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dn-amt { font-size: 12px; font-weight: 800; color: #fff; white-space: nowrap; }
+    .dn-edit { flex-shrink: 0; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 7px; cursor: pointer; font-family: inherit; }
+    .dn-edit:active { background: rgba(62,160,102,0.2); color: var(--green-light); }
     .dn-del { background: none; border: none; color: rgba(255,120,120,0.6); font-size: 14px; cursor: pointer; padding: 0 1px; line-height: 1; flex-shrink: 0; }
     .dn-total { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 11px; border-top: 1px solid rgba(240,192,64,0.22); }
     .dn-total-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.45); }
@@ -1336,9 +1338,9 @@
 
       <!-- 1. 인사 -->
       <div class="dw-step active" id="dw-step-1">
-        <div class="dw-q">이번 대회에<br>찬조해 주셔서 감사합니다</div>
+        <div class="dw-q" id="dw-q-1">이번 대회에<br>찬조해 주셔서 감사합니다</div>
         <div class="dw-hint" id="dw-intro-hint">여러분의 찬조가 대회를 더 풍성하게 만듭니다.<br>몇 가지만 여쭤볼게요.</div>
-        <div class="dw-footer"><button class="dw-next" onclick="dwGo(2)">찬조 시작하기</button></div>
+        <div class="dw-footer"><button class="dw-next" id="dw-start-btn" onclick="dwGo(2)">찬조 시작하기</button></div>
       </div>
 
       <!-- 2. 현물 / 현금 -->
@@ -1393,9 +1395,9 @@
 
       <!-- 6. 완료 -->
       <div class="dw-step" id="dw-step-6">
-        <div class="dw-done-icon">🙏</div>
-        <div class="dw-q">찬조 감사합니다!</div>
-        <div class="dw-hint">대회 페이지 찬조 내역에 등록되었습니다</div>
+        <div class="dw-done-icon" id="dw-done-icon">🙏</div>
+        <div class="dw-q" id="dw-done-q">찬조 감사합니다!</div>
+        <div class="dw-hint" id="dw-done-hint">대회 페이지 찬조 내역에 등록되었습니다</div>
         <div class="dw-summary" id="dw-summary"></div>
         <div class="dw-footer"><button class="dw-next" onclick="closeDonateWizard()">확인</button></div>
       </div>
@@ -2701,6 +2703,7 @@ function donationRows(t) {
   allDonations.forEach(d => {
     rows.push({
       id: d.id,
+      uid: d.userId || '',
       name: d.name || '-',
       kind: d.kind === 'cash' ? 'cash' : 'item',
       item: d.kind === 'cash' ? '' : (d.item || ''),
@@ -2723,6 +2726,7 @@ function renderDonationSection(t) {
         <span class="dn-kind ${r.kind}">${r.kind === 'cash' ? '현금' : '현물'}</span>
         <span class="dn-item">${escHtml(r.kind === 'cash' ? '현금 찬조' : (r.item || '-'))}</span>
         <span class="dn-amt">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</span>
+        ${isMyDonation(r) ? `<button class="dn-edit" onclick="openDonateWizard('${r.id}')">수정</button>` : ''}
         ${(isAdmin && r.id) ? `<button class="dn-del" onclick="deleteDonation('${r.id}')">×</button>` : ''}
       </div>`).join('')
     : `<div class="dn-empty">아직 등록된 찬조가 없습니다.<br>첫 번째 찬조의 주인공이 되어주세요!</div>`;
@@ -2770,7 +2774,7 @@ async function shareDonationImage() {
     ${sub ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:6px;">${escHtml(sub)}</div>` : ''}`;
 
   const clone = box.cloneNode(true);
-  clone.querySelectorAll('.dn-add-btn, .dn-del, .dn-share-row').forEach(el => el.remove());
+  clone.querySelectorAll('.dn-add-btn, .dn-del, .dn-edit, .dn-share-row').forEach(el => el.remove());
   clone.style.width = box.offsetWidth + 'px';
   clone.style.margin = '0';
 
@@ -2848,39 +2852,80 @@ async function deleteDonation(id) {
 };
 
 // ── 찬조 위저드 (질문 → 답 방식, 기상시간 계산기와 동일한 흐름) ──
-let dwData = { kind: null, item: '', amount: 0, name: '' };
+let dwData = { editId: null, kind: null, item: '', amount: 0, name: '' };
 let dwStep = 1;
 
 function dwSeq() {
   return dwData.kind === 'cash' ? [1, 2, 4, 5] : [1, 2, 3, 4, 5];
 }
 
-async function openDonateWizard() {
+// 내가 등록한 찬조인지 — 등록자 본인만 수정 버튼이 보인다
+function isMyDonation(r) {
+  return !!(r && r.id && r.uid && currentUser && r.uid === currentUser.uid);
+}
+
+function dwSetKindTexts(kind) {
+  document.getElementById('dw-amt-q').textContent =
+    kind === 'cash' ? '얼마를 찬조하시나요?' : '물품 가격은 얼마인가요?';
+  document.getElementById('dw-amt-hint').textContent =
+    kind === 'cash' ? '입력하신 금액이 총 찬조 금액에 합산됩니다' : '대략적인 금액이면 충분합니다';
+}
+
+async function openDonateWizard(editId) {
   if (!currentTournament) return;
-  dwData = { kind: null, item: '', amount: 0, name: '' };
-  document.getElementById('dw-item').value = '';
-  document.getElementById('dw-amount').value = '';
-  document.getElementById('dw-name').value = '';
-  document.getElementById('dw-next-3').disabled = true;
-  document.getElementById('dw-next-4').disabled = true;
-  document.getElementById('dw-next-5').disabled = true;
-  document.getElementById('dw-kind-item').classList.remove('on');
-  document.getElementById('dw-kind-cash').classList.remove('on');
-  document.getElementById('dw-intro-hint').innerHTML =
-    `${escHtml(currentTournament.name || '대회')}에 함께해 주셔서 감사합니다.<br>몇 가지만 여쭤볼게요.`;
+
+  const editing = editId ? allDonations.find(d => d.id === editId) : null;
+  if (editId && !editing) { showToast('찬조 내역을 찾지 못했습니다'); return; }
+  if (editing && !isMyDonation({ id: editing.id, uid: editing.userId })) {
+    showToast('본인이 등록한 찬조만 수정할 수 있습니다');
+    return;
+  }
+
+  dwData = {
+    editId: editing ? editing.id : null,
+    kind:   editing ? (editing.kind === 'cash' ? 'cash' : 'item') : null,
+    item:   editing ? (editing.item || '') : '',
+    amount: editing ? (editing.amount || 0) : 0,
+    name:   editing ? (editing.name || '') : ''
+  };
+
+  document.getElementById('dw-item').value = dwData.item;
+  document.getElementById('dw-amount').value = dwData.amount ? dwData.amount.toLocaleString() : '';
+  document.getElementById('dw-name').value = dwData.name;
+  document.getElementById('dw-next-3').disabled = !dwData.item;
+  document.getElementById('dw-next-4').disabled = !dwData.amount;
+  document.getElementById('dw-next-5').disabled = !dwData.name;
+  document.getElementById('dw-kind-item').classList.toggle('on', dwData.kind === 'item');
+  document.getElementById('dw-kind-cash').classList.toggle('on', dwData.kind === 'cash');
+  if (dwData.kind) dwSetKindTexts(dwData.kind);
+
+  // 등록/수정에 따라 문구만 바꿔 같은 흐름을 재사용
+  document.getElementById('dw-q-1').innerHTML = editing
+    ? '찬조 내역을<br>수정합니다'
+    : '이번 대회에<br>찬조해 주셔서 감사합니다';
+  document.getElementById('dw-intro-hint').innerHTML = editing
+    ? '방식·물품·금액·성함을 다시 입력하면 됩니다.'
+    : `${escHtml(currentTournament.name || '대회')}에 함께해 주셔서 감사합니다.<br>몇 가지만 여쭤볼게요.`;
+  document.getElementById('dw-start-btn').textContent = editing ? '수정 시작하기' : '찬조 시작하기';
+  document.getElementById('dw-next-5').textContent = editing ? '수정 완료' : '찬조 등록하기';
+  document.getElementById('dw-done-icon').textContent = editing ? '✅' : '🙏';
+  document.getElementById('dw-done-q').textContent = editing ? '수정되었습니다' : '찬조 감사합니다!';
+  document.getElementById('dw-done-hint').textContent = editing
+    ? '대회 페이지 찬조 내역에 반영되었습니다'
+    : '대회 페이지 찬조 내역에 등록되었습니다';
 
   document.getElementById('dw-overlay').classList.add('open');
   dwGo(1);
 
-  // 가입 시 등록한 실명 자동 입력
-  if (currentUser) {
+  // 새로 등록할 때만 가입 시 등록한 실명 자동 입력
+  if (!editing && currentUser) {
     try {
       const snap = await getDoc(doc(db, 'users', currentUser.uid));
       if (snap.exists()) document.getElementById('dw-name').value = snap.data().name || '';
     } catch (_) {}
     dwCheckName();
   }
-};
+}
 
 function closeDonateWizard() {
   document.getElementById('dw-overlay').classList.remove('open');
@@ -2931,10 +2976,7 @@ function dwPickKind(kind) {
   dwData.kind = kind;
   document.getElementById('dw-kind-item').classList.toggle('on', kind === 'item');
   document.getElementById('dw-kind-cash').classList.toggle('on', kind === 'cash');
-  document.getElementById('dw-amt-q').textContent =
-    kind === 'cash' ? '얼마를 찬조하시나요?' : '물품 가격은 얼마인가요?';
-  document.getElementById('dw-amt-hint').textContent =
-    kind === 'cash' ? '입력하신 금액이 총 찬조 금액에 합산됩니다' : '대략적인 금액이면 충분합니다';
+  dwSetKindTexts(kind);
   dwGo(kind === 'cash' ? 4 : 3);
 };
 
@@ -2966,14 +3008,26 @@ async function dwSubmit() {
   const btn = document.getElementById('dw-next-5');
   btn.disabled = true;
   try {
-    await addDoc(collection(db, 'tournaments', currentTournament.id, 'donations'), {
-      userId: currentUser ? currentUser.uid : '',
+    const payload = {
       name,
       kind: dwData.kind === 'cash' ? 'cash' : 'item',
       item: dwData.kind === 'cash' ? '' : dwData.item,
       amount: dwData.amount,
-      createdAt: serverTimestamp()
-    });
+    };
+
+    if (dwData.editId) {
+      // 등록자 본인만 수정 (규칙에서도 한 번 더 막는다)
+      await updateDoc(
+        doc(db, 'tournaments', currentTournament.id, 'donations', dwData.editId),
+        { ...payload, updatedAt: serverTimestamp() }
+      );
+    } else {
+      await addDoc(collection(db, 'tournaments', currentTournament.id, 'donations'), {
+        ...payload,
+        userId: currentUser ? currentUser.uid : '',
+        createdAt: serverTimestamp()
+      });
+    }
 
     document.getElementById('dw-summary').innerHTML = `
       <div class="dw-sum-row"><span class="dw-sum-k">찬조자</span><span class="dw-sum-v">${escHtml(name)}</span></div>
@@ -2983,10 +3037,10 @@ async function dwSubmit() {
     dwGo(6);
   } catch (e) {
     console.error(e);
-    showToast('등록에 실패했습니다. 다시 시도해주세요');
+    showToast(dwData.editId ? '수정에 실패했습니다. 다시 시도해주세요' : '등록에 실패했습니다. 다시 시도해주세요');
     btn.disabled = false;
   }
-};
+}
 
 // onclick 핸들러용 노출
 window.shareDonationImage = shareDonationImage;
@@ -3827,7 +3881,7 @@ window.downloadDetailImage = async function() {
     scroll.querySelector('.card-bottom-row'),
     document.getElementById('detail-register-btn'),
     document.getElementById('selected-info-bar'),
-    ...scroll.querySelectorAll('.dn-add-btn, .dn-del, .dn-share-row'),
+    ...scroll.querySelectorAll('.dn-add-btn, .dn-del, .dn-edit, .dn-share-row'),
   ].filter(Boolean);
   const origDisplay = toHide.map(el => el.style.display);
   toHide.forEach(el => el.style.display = 'none');
