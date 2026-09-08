@@ -617,6 +617,17 @@
     .dw-next:disabled { opacity: 0.35; }
     .dw-done-icon { font-size: 52px; text-align: center; margin-bottom: 12px; }
     .dw-summary { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+    /* 현금 찬조 — 입금 계좌 안내 */
+    .dw-acc { margin-top: 18px; background: rgba(240,192,64,0.06); border: 1px solid rgba(240,192,64,0.28); border-radius: 14px; padding: 14px 16px; }
+    .dw-acc-label { font-size: 10px; color: var(--gold); font-weight: 800; letter-spacing: 1px; margin-bottom: 9px; }
+    .dw-acc-guide { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.6; margin-bottom: 11px; }
+    .dw-acc-guide b { color: #fff; font-weight: 800; }
+    .dw-acc-row { display: flex; align-items: center; gap: 10px; }
+    .dw-acc-info { flex: 1; min-width: 0; }
+    .dw-acc-num { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.2px; word-break: break-all; }
+    .dw-acc-holder { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+    .dw-acc-copy { flex-shrink: 0; padding: 9px 14px; background: rgba(240,192,64,0.16); border: 1px solid rgba(240,192,64,0.4); color: var(--gold); font-size: 12px; font-weight: 800; border-radius: 10px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 5px; }
+    .dw-acc-copy:active { background: rgba(240,192,64,0.3); }
     .dw-sum-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; }
     .dw-sum-k { color: rgba(255,255,255,0.4); flex-shrink: 0; }
     .dw-sum-v { color: #fff; font-weight: 800; text-align: right; word-break: break-all; }
@@ -1559,6 +1570,7 @@
           <button class="dw-chip" onclick="dwSetAmt(200000)">20만원</button>
           <button class="dw-chip" onclick="dwSetAmt(300000)">30만원</button>
         </div>
+        <div class="dw-acc" id="dw-acc-4" style="display:none;"></div>
         <div class="dw-footer"><button class="dw-next" id="dw-next-4" onclick="dwGo(5)" disabled>다음</button></div>
       </div>
 
@@ -1576,6 +1588,7 @@
         <div class="dw-q" id="dw-done-q">찬조 감사합니다!</div>
         <div class="dw-hint" id="dw-done-hint">대회 페이지 찬조 내역에 등록되었습니다</div>
         <div class="dw-summary" id="dw-summary"></div>
+        <div class="dw-acc" id="dw-acc-6" style="display:none;"></div>
         <div class="dw-footer"><button class="dw-next" onclick="closeDonateWizard()">확인</button></div>
       </div>
 
@@ -3406,6 +3419,7 @@ function dwGo(step, isBack = false) {
   if (isBack) el.classList.add('back');
   el.scrollTop = 0;
   dwStep = step;
+  if (step === 4 || step === 6) dwRenderAccount();
   dwPaint();
 };
 
@@ -3442,6 +3456,40 @@ function dwSetAmt(v) {
   document.getElementById('dw-amount').value = v.toLocaleString();
   document.getElementById('dw-next-4').disabled = false;
 };
+
+// 현금 찬조 — 입금 계좌 안내 (금액 단계와 완료 단계에 같은 박스를 그린다)
+// 현물 찬조에는 입금이 없으므로 숨긴다.
+function dwRenderAccount() {
+  const t = currentTournament;
+  [4, 6].forEach(step => {
+    const el = document.getElementById('dw-acc-' + step);
+    if (!el) return;
+    if (!t || dwData.kind !== 'cash') { el.innerHTML = ''; el.style.display = 'none'; return; }
+
+    const acc = t.depositAccount || DEFAULT_ACCOUNT;
+    const holder = t.depositHolder || '';
+    const amt = dwData.amount ? dwData.amount.toLocaleString() + '원' : '';
+    const guide = step === 6
+      ? (amt ? '<b>' + amt + '</b>을 아래 계좌로 입금해 주세요.' : '아래 계좌로 입금해 주세요.') +
+        '<br>입금이 확인되면 시상 내역에 반영됩니다.'
+      : '현금 찬조는 아래 계좌로 입금해 주세요.';
+
+    el.style.display = '';
+    el.innerHTML = '<div class="dw-acc-label">찬조금 입금 계좌</div>' +
+      '<div class="dw-acc-guide">' + guide + '</div>' +
+      '<div class="dw-acc-row">' +
+        '<div class="dw-acc-info">' +
+          '<div class="dw-acc-num">' + escHtml(acc) + '</div>' +
+          (holder ? '<div class="dw-acc-holder">예금주 ' + escHtml(holder) + '</div>' : '') +
+        '</div>' +
+        '<button class="dw-acc-copy" onclick="copyAccount(\'' + escAttr(acc) + '\')">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>' +
+          '복사' +
+        '</button>' +
+      '</div>';
+  });
+}
+
 
 async function dwSubmit() {
   if (!currentTournament) return;
