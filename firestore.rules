@@ -75,9 +75,15 @@ service cloud.firestore {
     }
 
     // 본인 문서라도 포인트·스탯은 위의 통제된 경로로만 수정 가능 (프로필 저장에 섞어 못 넣음)
+    //
+    // handicap 은 여기서 뺀다. 가입할 때 본인이 직접 고르는 프로필 값이고
+    // (create 규칙엔 제한이 없어 어차피 처음부터 아무 값이나 넣을 수 있다) 랭킹 계산에도 쓰지 않는다.
+    // 여기에 넣어 두면 로그인 후 "정보 업데이트"에서 전화번호+핸디를 함께 저장할 때
+    // 이 경로(본인 프로필 수정)도 onlyDerivedStats(스탯 필드만 허용)도 통과하지 못해
+    // "Missing or insufficient permissions" 로 막히고, 회원이 그 화면에 갇힌다.
     function noStatsFields() {
       return !request.resource.data.diff(resource.data).affectedKeys()
-        .hasAny(['totalPoints', 'handicap', 'bestScore', 'roundCount', 'handicapTrend', 'statsUpdatedAt']);
+        .hasAny(['totalPoints', 'bestScore', 'roundCount', 'handicapTrend', 'statsUpdatedAt']);
     }
 
     // 결제 상태 필드는 서버(Cloud Function)만 기록 가능 — 회원이 스스로 못 바꿈
