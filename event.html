@@ -544,6 +544,32 @@
     .dn-total-val { font-size: 18px; font-weight: 900; color: var(--gold); letter-spacing: -0.5px; }
     .dn-share-row { display: flex; gap: 8px; margin-top: 12px; }
 
+    /* ── 대기자 (정원 마감 후 순서대로 대기) ───────────── */
+    .wl-wrap { margin: 22px 0 4px; }
+    .wl-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 15px 14px 13px; }
+    .wl-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .wl-title { font-size: 12px; font-weight: 900; color: var(--gold); letter-spacing: 0.4px; }
+    .wl-sub { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 4px; line-height: 1.5; }
+    .wl-count { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--green-light); background: rgba(62,160,102,0.15); border: 1px solid rgba(62,160,102,0.3); border-radius: 8px; padding: 5px 9px; white-space: nowrap; }
+    .wl-empty { font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; padding: 16px 0; line-height: 1.7; }
+    .wl-row { display: flex; align-items: center; gap: 7px; padding: 9px 2px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .wl-row:last-of-type { border-bottom: none; }
+    .wl-row.mine { background: rgba(240,192,64,0.07); border-radius: 8px; padding-left: 6px; padding-right: 6px; }
+    .wl-no { flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+    .wl-row.mine .wl-no { background: rgba(240,192,64,0.2); color: var(--gold); }
+    .wl-name { font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wl-tag { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: rgba(240,192,64,0.15); color: var(--gold); flex-shrink: 0; }
+    .wl-meta { font-size: 11px; color: rgba(255,255,255,0.4); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wl-ord { display: flex; gap: 4px; flex-shrink: 0; }
+    .wl-ord button { width: 24px; height: 24px; border-radius: 7px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 900; cursor: pointer; font-family: inherit; line-height: 1; padding: 0; }
+    .wl-ord button:disabled { opacity: 0.22; cursor: default; }
+    .wl-ord button:active:not(:disabled) { background: rgba(62,160,102,0.22); color: var(--green-light); }
+    .wl-del { background: none; border: none; color: rgba(255,120,120,0.6); font-size: 14px; cursor: pointer; padding: 0 1px; line-height: 1; flex-shrink: 0; }
+    .wl-btn { width: 100%; margin-top: 12px; background: rgba(62,160,102,0.16); color: var(--green-light); border: 1px solid rgba(62,160,102,0.35); border-radius: 11px; padding: 12px; font-size: 13px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .wl-btn:active { background: rgba(62,160,102,0.28); }
+    .wl-btn.cancel { background: rgba(255,100,100,0.1); color: rgba(255,140,140,0.9); border-color: rgba(255,100,100,0.28); }
+    .wl-note { font-size: 10px; color: rgba(255,255,255,0.28); text-align: center; margin-top: 9px; line-height: 1.6; }
+
     /* ── 찬조 위저드 (질문 → 답 방식) ── */
     .dw-overlay {
       position: absolute; inset: 0;
@@ -1433,6 +1459,49 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════ SHEET: 대기자 등록 ══════════════════════════ -->
+  <div class="sheet-overlay" id="sheet-waitlist" onclick="onWaitlistOverlayClick(event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">대기자 등록</div>
+      <div class="sheet-subtitle" id="wl-sheet-sub">자리가 나면 순서대로 연락드립니다</div>
+
+      <div class="sheet-seat-badge">
+        <div class="sheet-seat-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+        </div>
+        <div class="sheet-seat-text">
+          <strong id="wl-sheet-pos">대기 순번 -</strong><br>
+          취소 자리가 생기면 대기 순서대로 연락드립니다
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">이름 *</label>
+          <input class="form-input" id="wl-name" type="text" placeholder="홍길동" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">핸디캡</label>
+          <input class="form-input" id="wl-handicap" type="number" placeholder="0" min="0" max="54" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">연락처 *</label>
+        <input class="form-input" id="wl-phone" type="tel" placeholder="010-0000-0000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">남길 말 (선택)</label>
+        <input class="form-input" id="wl-memo" type="text" placeholder="예) 오전 조 희망합니다" />
+      </div>
+
+      <div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:14px;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;">
+        대기자 등록은 <b style="color:rgba(255,255,255,0.65);">참가 확정이 아닙니다.</b> 취소 자리가 생기면 대기 순서대로 연락드리며, 입력하신 연락처는 주최자 및 관리자에게 공유될 수 있습니다.
+      </div>
+      <button class="submit-btn" onclick="submitWaitlist()">대기자로 등록하기</button>
+    </div>
+  </div>
+
   <!-- ══════════════════════════ 찬조 위저드 ══════════════════════════ -->
   <div class="dw-overlay" id="dw-overlay">
     <div class="dw-appbar">
@@ -1932,6 +2001,9 @@ let myRegistration = null;
 let allRegistrations = [];
 let allDonations = [];
 let donationListener = null;
+let allWaitlist = [];
+let waitlistListener = null;
+let myWaitlist = null;
 
 // ── Static past tournaments ────────────────────────────
 const PAST_TOURNAMENTS = [
@@ -2334,6 +2406,7 @@ window.openDetail = function(tournamentId) {
   currentTournament = t;
   selectedSeat = null;
   myRegistration = null;
+  allRegistrations = [];
 
   document.getElementById('view-list').style.display = 'none';
   document.getElementById('view-detail').style.display = 'flex';
@@ -2362,6 +2435,21 @@ window.openDetail = function(tournamentId) {
     (err) => { console.error('donations onSnapshot error:', err); }
   );
 
+  // 대기자 실시간 반영 — 순서(order)는 관리자가 바꾼 값을 그대로 따른다
+  if (waitlistListener) { waitlistListener(); waitlistListener = null; }
+  allWaitlist = [];
+  myWaitlist = null;
+  renderWaitlistSection(t);
+  waitlistListener = onSnapshot(
+    collection(db, 'tournaments', t.id, 'waitlist'),
+    (snap) => {
+      allWaitlist = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      myWaitlist = (currentUser && allWaitlist.find(w => w.userId === currentUser.uid)) || null;
+      renderWaitlistSection(t);
+    },
+    (err) => { console.error('waitlist onSnapshot error:', err); }
+  );
+
   // Listen for registrations in real time
   seatMapListener = onSnapshot(
     collection(db, 'tournaments', t.id, 'registrations'),
@@ -2369,6 +2457,7 @@ window.openDetail = function(tournamentId) {
       allRegistrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       myRegistration = (currentUser && allRegistrations.find(r => r.userId === currentUser.uid)) || null;
       renderSeatMap(t, allRegistrations);
+      renderWaitlistSection(t);
       updateCardProgress(t.id, allRegistrations.length, t.totalParticipants || 0);
       // 조편성 모달이 열려 있으면 함께 갱신
       if (document.getElementById('pairing-overlay').classList.contains('open')) {
@@ -2563,6 +2652,8 @@ function renderDetailHeader(t) {
     <button class="detail-register-btn" id="detail-register-btn" onclick="openRegisterSheet()">
       자리를 선택하세요
     </button>
+
+    <div class="wl-wrap" id="waitlist-section"></div>
   `;
 
 }
@@ -2845,6 +2936,195 @@ window.submitRegistration = async function() {
     console.error(e);
     showToast('오류가 발생했습니다. 다시 시도해주세요');
   }
+};
+
+// ══════════════════════════ 대기자 (Waitlist) ══════════════════════════
+// 정원이 다 찬 뒤에도 신청을 받아 두는 목록.
+// 화면에 보이는 순서 = order 값 오름차순이고, 그 값은 관리자가 ▲▼ 로 바꾼다.
+// (order 를 둘씩 바꿔치기하면 값이 비어 있거나 겹친 문서에서 순서가 튀어서,
+//  움직일 때마다 전체를 0..n 으로 다시 매겨 저장한다. 대기자는 많아야 수십 명이라 부담 없다.)
+
+function sortedWaitlist() {
+  return allWaitlist.slice().sort((a, b) => {
+    const ao = typeof a.order === 'number' ? a.order : 9999;
+    const bo = typeof b.order === 'number' ? b.order : 9999;
+    if (ao !== bo) return ao - bo;
+    return ((a.createdAt && a.createdAt.seconds) || 0) - ((b.createdAt && b.createdAt.seconds) || 0);
+  });
+}
+
+function renderWaitlistSection(t) {
+  const el = document.getElementById('waitlist-section');
+  if (!el) return;
+
+  const rows = sortedWaitlist();
+  const last = rows.length - 1;
+  const seatsLeft = Math.max(0, (t.totalParticipants || 0) - allRegistrations.length);
+
+  const list = rows.length
+    ? rows.map((r, i) => {
+        const isMine = !!(currentUser && r.userId && r.userId === currentUser.uid);
+        const meta = [
+          (r.handicap || r.handicap === 0) ? 'H' + r.handicap : '',
+          isAdmin ? (r.phone || '') : '',
+          r.memo || ''
+        ].filter(Boolean).join(' · ');
+        return `<div class="wl-row ${isMine ? 'mine' : ''}">
+          <span class="wl-no">${i + 1}</span>
+          <span class="wl-name">${escHtml(r.name || '-')}</span>
+          ${isMine ? '<span class="wl-tag">나</span>' : ''}
+          <span class="wl-meta">${escHtml(meta)}</span>
+          ${isAdmin ? `<span class="wl-ord">
+            <button onclick="moveWaitlist('${r.id}',-1)" ${i === 0 ? 'disabled' : ''} title="위로">▲</button>
+            <button onclick="moveWaitlist('${r.id}',1)" ${i === last ? 'disabled' : ''} title="아래로">▼</button>
+          </span>
+          <button class="wl-del" onclick="deleteWaitlist('${r.id}')" title="삭제">×</button>` : ''}
+        </div>`;
+      }).join('')
+    : `<div class="wl-empty">아직 대기자가 없습니다.<br>자리가 다 찼다면 대기자로 등록해 주세요.</div>`;
+
+  let action = '';
+  if (myWaitlist) {
+    const pos = rows.findIndex(r => r.id === myWaitlist.id) + 1;
+    action = `<button class="wl-btn cancel" onclick="cancelMyWaitlist()">대기 신청 취소 (현재 ${pos}번)</button>
+      <div class="wl-note">자리가 나면 대기 순서대로 연락드립니다</div>`;
+  } else if (myRegistration) {
+    action = `<div class="wl-note">이미 참가 신청이 완료되어 대기 등록은 필요하지 않습니다</div>`;
+  } else if (t.status !== 'recruiting') {
+    action = `<div class="wl-note">모집이 마감되어 대기 신청을 받지 않습니다</div>`;
+  } else {
+    action = `<button class="wl-btn" onclick="openWaitlistSheet()">대기자 등록하기</button>
+      <div class="wl-note">${seatsLeft > 0
+        ? `아직 ${seatsLeft}자리 남아 있습니다. 자리를 선택해 바로 신청할 수 있어요`
+        : '취소 자리가 생기면 대기 순서대로 연락드립니다'}</div>`;
+  }
+
+  el.innerHTML = `<div class="wl-box">
+    <div class="wl-head">
+      <div>
+        <div class="wl-title">대기자 등록</div>
+        <div class="wl-sub">정원 마감 후에도 신청을 받습니다${isAdmin ? '<br>▲▼ 로 대기 순서를 바꿀 수 있습니다' : ''}</div>
+      </div>
+      <div class="wl-count">대기 ${rows.length}명</div>
+    </div>
+    ${list}
+    ${action}
+  </div>`;
+}
+
+window.openWaitlistSheet = async function() {
+  if (!currentTournament) return;
+  if (myWaitlist) { showToast('이미 대기 신청하셨습니다'); return; }
+
+  document.getElementById('wl-name').value = '';
+  document.getElementById('wl-phone').value = '';
+  document.getElementById('wl-handicap').value = '';
+  document.getElementById('wl-memo').value = '';
+  document.getElementById('wl-sheet-pos').textContent = '대기 순번 ' + (allWaitlist.length + 1) + '번';
+
+  // 가입 시 등록한 실명 자동 입력
+  if (currentUser) {
+    try {
+      const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userSnap.exists()) {
+        const ud = userSnap.data();
+        document.getElementById('wl-name').value = ud.name || '';
+        if (ud.handicap || ud.handicap === 0) document.getElementById('wl-handicap').value = ud.handicap;
+      }
+    } catch (_) {}
+  }
+
+  document.getElementById('sheet-waitlist').classList.add('open');
+};
+
+window.onWaitlistOverlayClick = function(e) {
+  if (e.target === document.getElementById('sheet-waitlist')) {
+    document.getElementById('sheet-waitlist').classList.remove('open');
+  }
+};
+
+window.submitWaitlist = async function() {
+  if (!currentTournament) return;
+  if (myWaitlist) { showToast('이미 대기 신청하셨습니다'); return; }
+
+  const name = document.getElementById('wl-name').value.trim();
+  const phone = document.getElementById('wl-phone').value.trim();
+  const handicap = document.getElementById('wl-handicap').value.trim();
+  const memo = document.getElementById('wl-memo').value.trim();
+
+  if (!name || !phone) { showToast('이름과 연락처를 입력해주세요'); return; }
+
+  // 맨 뒤에 붙인다 — 기존 최대 order + 1
+  const maxOrder = allWaitlist.reduce(
+    (m, w) => Math.max(m, typeof w.order === 'number' ? w.order : -1), -1);
+
+  try {
+    await addDoc(collection(db, 'tournaments', currentTournament.id, 'waitlist'), {
+      userId: currentUser ? currentUser.uid : '',
+      name, phone, memo,
+      handicap: handicap === '' ? null : parseInt(handicap),
+      order: maxOrder + 1,
+      createdAt: serverTimestamp()
+    });
+    document.getElementById('sheet-waitlist').classList.remove('open');
+    showToast('대기자로 등록되었습니다');
+  } catch (e) {
+    console.error(e);
+    showToast('오류가 발생했습니다. 다시 시도해주세요');
+  }
+};
+
+window.cancelMyWaitlist = function() {
+  if (!myWaitlist || !currentTournament) return;
+  const id = myWaitlist.id;
+  openConfirm('대기 신청 취소', '대기자 목록에서 빠집니다. 다시 등록하면 맨 뒤 순서가 됩니다.', async () => {
+    try {
+      await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'waitlist', id));
+      showToast('대기 신청을 취소했습니다');
+    } catch (e) {
+      console.error(e);
+      showToast('취소에 실패했습니다');
+    }
+  });
+};
+
+// 관리자 — 대기 순서 변경 (위/아래 한 칸)
+window.moveWaitlist = async function(id, dir) {
+  if (!isAdmin || !currentTournament) return;
+  const rows = sortedWaitlist();
+  const i = rows.findIndex(r => r.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= rows.length) return;
+
+  const reordered = rows.slice();
+  reordered[i] = rows[j];
+  reordered[j] = rows[i];
+
+  try {
+    const batch = writeBatch(db);
+    reordered.forEach((r, idx) => {
+      batch.update(doc(db, 'tournaments', currentTournament.id, 'waitlist', r.id), { order: idx });
+    });
+    await batch.commit();
+  } catch (e) {
+    console.error(e);
+    showToast('순서 변경에 실패했습니다');
+  }
+};
+
+// 관리자 — 대기자 삭제
+window.deleteWaitlist = function(id) {
+  if (!isAdmin || !currentTournament) return;
+  const r = allWaitlist.find(w => w.id === id);
+  openConfirm('대기자 삭제', '"' + ((r && r.name) || '이 대기자') + '" 를 대기 목록에서 삭제합니다.', async () => {
+    try {
+      await deleteDoc(doc(db, 'tournaments', currentTournament.id, 'waitlist', id));
+      showToast('삭제했습니다');
+    } catch (e) {
+      console.error(e);
+      showToast('삭제에 실패했습니다');
+    }
+  });
 };
 
 // ══════════════════════════ 찬조 (누구나 입력) ══════════════════════════
@@ -3229,7 +3509,10 @@ window.goBack = function() {
   }
   if (seatMapListener) { seatMapListener(); seatMapListener = null; }
   if (donationListener) { donationListener(); donationListener = null; }
+  if (waitlistListener) { waitlistListener(); waitlistListener = null; }
   allDonations = [];
+  allWaitlist = [];
+  myWaitlist = null;
   currentTournament = null;
   selectedSeat = null;
   currentView = 'list';
@@ -3639,6 +3922,11 @@ window.confirmDeleteTournament = function(tournamentId, name) {
       for (const d of regSnap.docs) {
         await deleteDoc(doc(db, 'tournaments', tournamentId, 'registrations', d.id));
       }
+      // 대기자 하위 컬렉션도 함께 삭제
+      const waitSnap = await getDocs(collection(db, 'tournaments', tournamentId, 'waitlist'));
+      for (const d of waitSnap.docs) {
+        await deleteDoc(doc(db, 'tournaments', tournamentId, 'waitlist', d.id));
+      }
       await deleteDoc(doc(db, 'tournaments', tournamentId));
       await loadActiveTournaments();
       renderPastList();
@@ -3658,6 +3946,10 @@ window.confirmDeletePast = function(id, name, fromDB) {
         const regSnap = await getDocs(collection(db, 'tournaments', id, 'registrations'));
         for (const d of regSnap.docs) {
           await deleteDoc(doc(db, 'tournaments', id, 'registrations', d.id));
+        }
+        const waitSnap = await getDocs(collection(db, 'tournaments', id, 'waitlist'));
+        for (const d of waitSnap.docs) {
+          await deleteDoc(doc(db, 'tournaments', id, 'waitlist', d.id));
         }
         await deleteDoc(doc(db, 'tournaments', id));
         await loadActiveTournaments();
@@ -4046,6 +4338,7 @@ window.downloadDetailImage = async function() {
     document.getElementById('detail-register-btn'),
     document.getElementById('selected-info-bar'),
     ...scroll.querySelectorAll('.dn-add-btn, .dn-del, .dn-edit, .dn-share-row'),
+    ...scroll.querySelectorAll('.wl-btn, .wl-ord, .wl-del'),
   ].filter(Boolean);
   const origDisplay = toHide.map(el => el.style.display);
   toHide.forEach(el => el.style.display = 'none');

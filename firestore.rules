@@ -33,6 +33,14 @@ service cloud.firestore {
       );
     }
 
+    // 대기 신청을 등록한 본인인지 (카카오 로그인은 auth 없이 uid 문자열만 저장된다)
+    function isWaitOwner() {
+      return resource.data.userId is string && resource.data.userId != '' && (
+        (request.auth != null && resource.data.userId == request.auth.uid) ||
+        (request.auth == null && resource.data.userId.matches('kakao_.+'))
+      );
+    }
+
     // 수정은 내용만 — 등록자(userId)를 바꿔 남의 찬조를 가로채지 못하게 막는다
     function onlyDonationFields() {
       return request.resource.data.userId == resource.data.userId &&
@@ -187,6 +195,15 @@ service cloud.firestore {
         allow read: if isAnyUser();
         allow create: if isAnyUser();
         allow update, delete: if isAdmin();
+      }
+
+      // 대기자 — 누구나 신청/열람, 순서(order) 변경은 관리자만,
+      // 삭제는 관리자 또는 본인 취소
+      match /waitlist/{waitId} {
+        allow read: if isAnyUser();
+        allow create: if isAnyUser();
+        allow update: if isAdmin();
+        allow delete: if isAdmin() || isWaitOwner();
       }
 
       match /scores/{scoreId} {
