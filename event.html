@@ -783,16 +783,12 @@
     .seat.baek .seat-name { color: #111; }
     .seat.baek.taken svg { stroke: rgba(0,0,0,0.35); }
 
-    /* ── 골슐랭스타 참가자 강조 (빨간 바탕 + 이름 옆 노란 별) ── */
+    /* ── 골슐랭스타 참가자 강조 (빨간 바탕 + ★개수, 챔피언은 👑) ── */
     .seat.gc-star { background: rgba(255,26,26,0.22); border-color: rgba(255,90,90,0.6); }
     .seat.mine.gc-star { border-color: var(--gold); }
     /* 흑백대전은 팀 색이 우선이라 바탕은 살짝만, 테두리로 표시 */
     .seat.heuk.gc-star { background: #1c0707; border-color: #ff3b3b; }
     .seat.baek.gc-star { background: #ffecec; border-color: #d40000; }
-    /* 1스타는 바탕을 절반쯤 옅게 — 스타 등급이 한눈에 구분되게 */
-    .seat.gc-star.gc-s1 { background: rgba(255,26,26,0.11); border-color: rgba(255,90,90,0.3); }
-    .seat.heuk.gc-star.gc-s1 { background: #140505; border-color: rgba(255,59,59,0.5); }
-    .seat.baek.gc-star.gc-s1 { background: #fff6f6; border-color: rgba(212,0,0,0.5); }
     /* 이름 + 별을 한 줄에 — 이름만 길면 줄이고 별은 안 줄인다 */
     .seat-line {
       display: flex; align-items: center; justify-content: center;
@@ -812,7 +808,6 @@
     .seat.baek .gc-champ { color: #111; }
     .pairing-dnd-slot.baek.gc-star .gc-champ { color: #111; }
     .screen-slot.gc-star { background: rgba(255,26,26,0.16); border-color: rgba(255,90,90,0.55); }
-    .screen-slot.gc-star.gc-s1 { background: rgba(255,26,26,0.08); border-color: rgba(255,90,90,0.28); }
     .screen-slot .gc-stars { font-size: 11px; }
     .screen-slot .gc-champ { font-size: 8px; }
     /* 파이어링 흑 */
@@ -1280,10 +1275,6 @@
     .pairing-dnd-slot.gc-star { background: rgba(255,26,26,0.16) !important; border-color: rgba(255,90,90,0.6) !important; }
     .pairing-dnd-slot.heuk.gc-star { background: rgba(28,7,7,0.9) !important; border-color: #ff3b3b !important; }
     .pairing-dnd-slot.baek.gc-star { background: rgba(255,236,236,0.95) !important; border-color: #d40000 !important; }
-    /* 1스타는 절반쯤 옅게 */
-    .pairing-dnd-slot.gc-star.gc-s1 { background: rgba(255,26,26,0.08) !important; border-color: rgba(255,90,90,0.3) !important; }
-    .pairing-dnd-slot.heuk.gc-star.gc-s1 { background: rgba(20,5,5,0.9) !important; border-color: rgba(255,59,59,0.5) !important; }
-    .pairing-dnd-slot.baek.gc-star.gc-s1 { background: rgba(255,246,246,0.95) !important; border-color: rgba(212,0,0,0.5) !important; }
     .pairing-dnd-slot.baek.gc-star .pairing-dnd-name { color: #111; }
     .pairing-dnd-name .gc-stars { font-size: 9px; }
     .pairing-dnd-slot.baek.gc-star .gc-stars { color: #b8860b; }
@@ -2849,7 +2840,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
 
       const clickable = !reg && !isMine && t.status === 'recruiting';
       const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
-      html += `<div class="screen-slot ${cls} ${(gm && gm.st) ? 'gc-star gc-s' + gm.st : ''}" ${onclick ? `onclick="${onclick}"` : ''}>
+      html += `<div class="screen-slot ${cls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>
         <span class="slot-num">${i + 1}번</span>
         <span class="slot-body">${content}</span>
       </div>`;
@@ -2927,7 +2918,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         const clickable = !reg && !isMine && t.status === 'recruiting';
         const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
         const teamCls = isBW ? (seatIdx < 2 ? 'heuk' : 'baek') : '';
-        allHtml += `<div class="seat ${cls} ${teamCls} ${(gm && gm.st) ? 'gc-star gc-s' + gm.st : ''}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
+        allHtml += `<div class="seat ${cls} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
       }
       allHtml += `</div></div>`;
     }
@@ -4439,7 +4430,7 @@ function renderPairingContent(t, registrations) {
             ? `<div class="pairing-del-btn" onclick="event.stopPropagation();window._removeReg('${reg.id}')" title="이 인원 빼기">×</div>` : '';
           const keepTag = isKeep ? `<div class="pairing-keep-tag">킵</div>` : '';
           const gm = golchelinMark(reg.name);
-          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls} ${(gm && gm.st) ? 'gc-star gc-s' + gm.st : ''}"
+          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}"
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
             draggable="true" style="position:relative;">
             ${keepTag}${delBtn}
@@ -4915,7 +4906,7 @@ window.downloadDetailPDF = function() {
           ? `<td class="cart-cell" rowspan="4">${gi + 1}조${cartTeeStr}</td>` : '';
         const seatCell = `<td class="seat-cell">${seatLetters[si]}</td>`;
         const gm = reg ? golchelinMark(reg.name) : null;
-        const gcCell = (gm && gm.st) ? ` gc-star gc-s${gm.st}` : '';
+        const gcCell = (gm && gm.st) ? ' gc-star' : '';
         const gcMark = gm
           ? `${gm.st ? ` <span class="gc-stars">${'★'.repeat(gm.st)}</span>` : ''}${gm.champ ? '<div class="gc-champ">CHAMPION</div>' : ''}`
           : '';
@@ -4976,7 +4967,6 @@ window.downloadDetailPDF = function() {
     .seat-cell { font-weight: 700; color: #555; width: 36px; }
     .name-cell { font-weight: 600; }
     .name-cell.gc-star { background: #fff0f0; }
-    .name-cell.gc-star.gc-s1 { background: #fff8f8; }
     .name-cell .gc-stars { color: #d4a017; font-size: 11px; letter-spacing: -0.5px; }
     .name-cell .gc-champ {
       margin-top: 2px;
