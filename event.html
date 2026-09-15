@@ -1681,11 +1681,12 @@
       <div class="admin-form-group" id="grp-tee-interval">
         <label class="admin-label">조 간격 (분) *</label>
         <div style="display:flex; align-items:center; gap:10px;">
-          <input class="admin-input" id="admin-tee-interval" type="number" min="1" max="30"
-            placeholder="예) 7" style="width:80px; flex-shrink:0;"
+          <input class="admin-input" id="admin-tee-interval" type="text" inputmode="numeric"
+            placeholder="예) 7 또는 8,7" style="width:120px; flex-shrink:0;"
             oninput="updateIntervalPreview()" />
           <span style="font-size:11px; color:rgba(255,255,255,0.4); line-height:1.5;">
             분 간격으로 조별 티타임 자동 계산<br>
+            간격이 일정하지 않으면 쉼표로 입력 (예: <b>8,7</b> → 8분·7분 반복)<br>
             <span id="tee-interval-preview" style="color:var(--green-light);"></span>
           </span>
         </div>
@@ -2755,8 +2756,9 @@ function renderSeatGrid(t, registrations, _courseIdx) {
     for (let cartIdx = 0; cartIdx < courseCarts[ci]; cartIdx++) {
       let teeTimeHtml = '';
       const baseMin0 = getCourseBaseMin(t, ci);
-      if (baseMin0 !== null && t.teeInterval) {
-        const totalMin = baseMin0 + cartIdx * t.teeInterval;
+      const teeOff0 = teeOffsetMin(t, cartIdx);
+      if (baseMin0 !== null && teeOff0 !== null) {
+        const totalMin = baseMin0 + teeOff0;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
@@ -3730,7 +3732,7 @@ function fillAdminForm(t) {
   if (t.teeUpTime) setTimePicker('tee', t.teeUpTime);
   if (t.gatherTime) setTimePicker('gather', t.gatherTime);
   // 조 간격 복원
-  document.getElementById('admin-tee-interval').value = t.teeInterval || '7';
+  document.getElementById('admin-tee-interval').value = getTeeIntervals(t).join(',') || '7';
   (t.sponsorTexts || []).forEach((text, i) => {
     const el = document.getElementById(`sponsor-text-${i}`);
     if (el) el.value = text || '';
@@ -3786,6 +3788,30 @@ function getCourseTimes() {
 }
 
 // 코스별 시작 분(0시 기준) 반환 — courseTimes 우선, 없으면 teeUpTime+offset 폴백
+// 조 간격 파싱 — "7" 또는 "8,7"(8분·7분 반복) 패턴 지원
+function parseTeeIntervals(v) {
+  if (Array.isArray(v)) v = v.join(',');
+  return String(v == null ? '' : v)
+    .split(/[^0-9]+/)
+    .map(x => parseInt(x, 10))
+    .filter(x => Number.isFinite(x) && x > 0 && x <= 60);
+}
+
+// 대회 데이터의 조 간격 배열 (구버전 teeInterval 숫자도 호환)
+function getTeeIntervals(t) {
+  const list = parseTeeIntervals(t && t.teeIntervals);
+  return list.length ? list : parseTeeIntervals(t && t.teeInterval);
+}
+
+// idx번째 조(0-based)의 1조 대비 누적 경과(분). 간격 없으면 null
+function teeOffsetMin(t, idx) {
+  const list = getTeeIntervals(t);
+  if (!list.length) return null;
+  let sum = 0;
+  for (let i = 0; i < idx; i++) sum += list[i % list.length];
+  return sum;
+}
+
 function getCourseBaseMin(t, ci) {
   if (t.courseTimes && t.courseTimes[ci]) {
     const [hh, mm] = t.courseTimes[ci].split(':').map(Number);
@@ -3821,10 +3847,10 @@ window.syncTimeInput = function(picker) {
 // 조 간격 미리보기 (입력 시 실시간 표시)
 function updateIntervalPreview() {
   const teeTime = document.getElementById('admin-tee-time').value;
-  const interval = parseInt(document.getElementById('admin-tee-interval').value);
+  const list = parseTeeIntervals(document.getElementById('admin-tee-interval').value);
   const preview = document.getElementById('tee-interval-preview');
   if (!preview) return;
-  if (!teeTime || !interval) { preview.textContent = ''; return; }
+  if (!teeTime || !list.length) { preview.textContent = ''; return; }
   const [h, m] = teeTime.split(':').map(Number);
   const fmt = (totalMin) => {
     const hh = Math.floor(totalMin / 60) % 24;
@@ -3834,7 +3860,14 @@ function updateIntervalPreview() {
     return `${ampm} ${h12}:${String(mm).padStart(2,'0')}`;
   };
   const start = h * 60 + m;
-  preview.textContent = `1조 ${fmt(start)} → 2조 ${fmt(start + interval)} → 3조 ${fmt(start + interval * 2)} …`;
+  const shown = Math.min(4, Math.max(3, list.length + 1));
+  const parts = [];
+  let acc = 0;
+  for (let i = 0; i < shown; i++) {
+    if (i > 0) acc += list[(i - 1) % list.length];
+    parts.push(`${i + 1}조 ${fmt(start + acc)}`);
+  }
+  preview.textContent = parts.join(' → ') + ' …';
 }
 window.updateIntervalPreview = updateIntervalPreview;
 
@@ -3887,6 +3920,8 @@ window.saveTournament = async function() {
   const gatherInfo = [fmt(gatherTime), gatherPlace].filter(Boolean).join(' / ');
 
   const isScreen = currentTournamentType === 'screen';
+  const teeIntervalList = parseTeeIntervals(document.getElementById('admin-tee-interval').value);
+  if (!teeIntervalList.length) teeIntervalList.push(7);
 
   const data = {
     name,
@@ -3913,7 +3948,8 @@ window.saveTournament = async function() {
     depositAccount: document.getElementById('admin-deposit-account').value.trim(),
     depositHolder: document.getElementById('admin-deposit-holder').value.trim(),
     prizesData: getPrizesData(),
-    teeInterval: isScreen ? 0 : (parseInt(document.getElementById('admin-tee-interval').value) || 7),
+    teeInterval: isScreen ? 0 : teeIntervalList[0],
+    teeIntervals: isScreen ? [] : teeIntervalList,
     sponsorTexts: [0,1,2,3,4].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
     sponsorOn: [0,1,2,3,4].map(i => document.getElementById(`sponsor-on-${i}`)?.checked !== false),
   };
@@ -4061,8 +4097,9 @@ function renderPairingContent(t, registrations) {
     for (let cartIdx = 0; cartIdx < courseCarts[ci]; cartIdx++) {
       let teeLabel = '';
       const baseMin1 = getCourseBaseMin(t, ci);
-      if (baseMin1 !== null && t.teeInterval) {
-        const totalMin = baseMin1 + cartIdx * t.teeInterval;
+      const teeOff1 = teeOffsetMin(t, cartIdx);
+      if (baseMin1 !== null && teeOff1 !== null) {
+        const totalMin = baseMin1 + teeOff1;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
@@ -4457,8 +4494,9 @@ window.downloadDetailPDF = function() {
       // PDF용 조별 티타임
       let cartTeeStr = '';
       const baseMin2 = getCourseBaseMin(t, ci);
-      if (baseMin2 !== null && t.teeInterval) {
-        const totalMin = baseMin2 + gi * t.teeInterval;
+      const teeOff2 = teeOffsetMin(t, gi);
+      if (baseMin2 !== null && teeOff2 !== null) {
+        const totalMin = baseMin2 + teeOff2;
         const th = Math.floor(totalMin / 60) % 24;
         const tm = totalMin % 60;
         const ampm = th < 12 ? 'AM' : 'PM';
