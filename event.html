@@ -782,6 +782,29 @@
     .seat.baek.mine      { background: #fff; }
     .seat.baek .seat-name { color: #111; }
     .seat.baek.taken svg { stroke: rgba(0,0,0,0.35); }
+
+    /* ── 골슐랭스타 참가자 강조 (빨간 바탕 + ★개수, 챔피언은 👑) ── */
+    .seat.gc-star { background: rgba(255,26,26,0.22); border-color: rgba(255,90,90,0.6); }
+    .seat.mine.gc-star { border-color: var(--gold); }
+    /* 흑백대전은 팀 색이 우선이라 바탕은 살짝만, 테두리로 표시 */
+    .seat.heuk.gc-star { background: #1c0707; border-color: #ff3b3b; }
+    .seat.baek.gc-star { background: #ffecec; border-color: #d40000; }
+    .gc-badge {
+      position: absolute; top: 2px; right: 3px;
+      display: flex; align-items: center; gap: 1px;
+      font-size: 8px; font-weight: 900; line-height: 1;
+      letter-spacing: -0.2px; pointer-events: none;
+    }
+    .gc-badge .gc-stars { color: #ff6b6b; }
+    .gc-badge .gc-champ { font-size: 9px; }
+    .seat.baek .gc-badge .gc-stars { color: #d40000; }
+    .screen-slot.gc-star { background: rgba(255,26,26,0.16); border-color: rgba(255,90,90,0.55); }
+    .gc-badge.inline { position: static; flex-shrink: 0; font-size: 10px; }
+    .gc-legend {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+      font-size: 10px; color: rgba(255,255,255,0.35); margin: 12px 0 2px;
+    }
+    .gc-legend .gc-stars { color: #ff6b6b; font-weight: 900; }
     /* 파이어링 흑 */
     .pairing-dnd-slot.heuk { background: rgba(20,20,20,0.7) !important; border-color: rgba(200,200,200,0.3) !important; }
     .pairing-dnd-slot.baek { background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.45) !important; }
@@ -1243,6 +1266,14 @@
       cursor: grab;
     }
     .pairing-dnd-slot.manual .pairing-dnd-name { color: var(--gold); }
+    /* 조편성에서도 골슐랭스타는 빨간 바탕 */
+    .pairing-dnd-slot.gc-star { background: rgba(255,26,26,0.16) !important; border-color: rgba(255,90,90,0.6) !important; }
+    .pairing-dnd-slot.heuk.gc-star { background: rgba(28,7,7,0.9) !important; border-color: #ff3b3b !important; }
+    .pairing-dnd-slot.baek.gc-star { background: rgba(255,236,236,0.95) !important; border-color: #d40000 !important; }
+    .pairing-dnd-slot.baek.gc-star .pairing-dnd-name { color: #111; }
+    .pairing-gc { font-size: 9px; font-weight: 900; line-height: 1; letter-spacing: -0.2px; }
+    .pairing-gc .gc-stars { color: #ff6b6b; }
+    .pairing-dnd-slot.baek.gc-star .pairing-gc .gc-stars { color: #d40000; }
     /* 관리자 인원 빼기 ✕ — 슬롯이 작아 탭 영역을 따로 넉넉히 준다 */
     .pairing-del-btn {
       position: absolute; top: 0; right: 0; z-index: 3;
@@ -1985,6 +2016,7 @@
 </div><!-- /phone -->
 
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
+<script src="data-golchelin.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -2017,6 +2049,29 @@ function getCourseNamesFor(t) {
 }
 
 // 자리 라벨 — 스크린 대회는 순번(N번), 그 외는 코스/조/번
+// 참가자 이름에서 골슐랭 표시 정보 뽑기 — 해당 없으면 null
+// (명단은 data-golchelin.js 에 있다)
+function golchelinMark(name) {
+  const st = window.golchelinStarsOf ? window.golchelinStarsOf(name) : 0;
+  const champ = window.isGolchelinChampion ? window.isGolchelinChampion(name) : false;
+  if (!st && !champ) return null;
+  return {
+    st, champ,
+    html: (champ ? '<span class="gc-champ" title="챔피언">👑</span>' : '') +
+          (st ? `<span class="gc-stars" title="골슐랭 ${st}스타">★${st}</span>` : ''),
+  };
+}
+
+// 자리배치·조편성 아래에 붙이는 범례 (해당자가 있을 때만)
+function golchelinLegendHtml(registrations) {
+  const any = (registrations || []).some(r => golchelinMark(r.name));
+  if (!any) return '';
+  return `<div class="gc-legend">
+    <span><span class="gc-stars">★</span> 골슐랭스타 (숫자는 스타 개수)</span>
+    <span>👑 챔피언</span>
+  </div>`;
+}
+
 function seatLabelFor(t, courseIdx, cartIdx, seatIdx) {
   if (t && t.tournamentType === 'screen') {
     return `${cartIdx * 4 + seatIdx + 1}번`;
@@ -2788,12 +2843,15 @@ function renderSeatGrid(t, registrations, _courseIdx) {
 
       const clickable = !reg && !isMine && t.status === 'recruiting';
       const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
-      html += `<div class="screen-slot ${cls}" ${onclick ? `onclick="${onclick}"` : ''}>
+      const gm = reg ? golchelinMark(reg.name) : null;
+      html += `<div class="screen-slot ${cls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>
         <span class="slot-num">${i + 1}번</span>
         <span class="slot-body">${content}</span>
+        ${gm ? `<span class="gc-badge inline">${gm.html}</span>` : ''}
       </div>`;
     }
     html += '</div>';
+    html += golchelinLegendHtml(registrations);
     el.innerHTML = html;
     updateRegisterButton();
     return;
@@ -2862,13 +2920,15 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         const clickable = !reg && !isMine && t.status === 'recruiting';
         const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
         const teamCls = isBW ? (seatIdx < 2 ? 'heuk' : 'baek') : '';
-        allHtml += `<div class="seat ${cls} ${teamCls}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
+        const gm = reg ? golchelinMark(reg.name) : null;
+        allHtml += `<div class="seat ${cls} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>${gm ? `<span class="gc-badge">${gm.html}</span>` : ''}${content}</div>`;
       }
       allHtml += `</div></div>`;
     }
     allHtml += `</div>`;
   }
 
+  allHtml += golchelinLegendHtml(registrations);
   el.innerHTML = allHtml;
   updateRegisterButton();
 }
@@ -4378,12 +4438,14 @@ function renderPairingContent(t, registrations) {
           const delBtn = isAdmin
             ? `<div class="pairing-del-btn" onclick="event.stopPropagation();window._removeReg('${reg.id}')" title="이 인원 빼기">×</div>` : '';
           const keepTag = isKeep ? `<div class="pairing-keep-tag">킵</div>` : '';
-          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls}"
+          const gm = golchelinMark(reg.name);
+          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}"
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
             draggable="true" style="position:relative;">
             ${keepTag}${delBtn}
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
             <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</div>
+            ${gm ? `<div class="pairing-gc">${gm.html}</div>` : ''}
           </div>`;
         } else {
           const addAttr = isAdmin
@@ -4794,8 +4856,13 @@ window.downloadDetailPDF = function() {
         const cartCell = si === 0
           ? `<td class="cart-cell" rowspan="4">${gi + 1}조${cartTeeStr}</td>` : '';
         const seatCell = `<td class="seat-cell">${seatLetters[si]}</td>`;
+        const gm = reg ? golchelinMark(reg.name) : null;
+        const gcCell = (gm && gm.st) ? ' gc-star' : '';
+        const gcMark = gm
+          ? `${gm.champ ? ' <span class="gc-champ">👑</span>' : ''}${gm.st ? ` <span class="gc-stars">★${gm.st}</span>` : ''}`
+          : '';
         const nameCell = reg
-          ? `<td class="name-cell">${reg.name || '-'}</td>`
+          ? `<td class="name-cell${gcCell}">${reg.name || '-'}${gcMark}</td>`
           : `<td class="empty-cell">-</td>`;
         rows += `<tr>${cartCell}${seatCell}${nameCell}</tr>`;
       }
@@ -4850,6 +4917,9 @@ window.downloadDetailPDF = function() {
     }
     .seat-cell { font-weight: 700; color: #555; width: 36px; }
     .name-cell { font-weight: 600; }
+    .name-cell.gc-star { background: #fff0f0; }
+    .name-cell .gc-stars { color: #d40000; font-weight: 900; font-size: 11px; }
+    .name-cell .gc-champ { font-size: 11px; }
     .empty-cell { color: #bbb; }
     tr:nth-child(4n+1) td:not(.cart-cell) { }
     tr:nth-child(4n) td { border-bottom: 3px solid #e0ede5; }
