@@ -528,8 +528,22 @@
     .dn-add-btn { flex-shrink: 0; background: rgba(240,192,64,0.14); color: var(--gold); border: 1px solid rgba(240,192,64,0.35); border-radius: 10px; padding: 8px 13px; font-size: 12px; font-weight: 800; font-family: inherit; cursor: pointer; }
     .dn-add-btn:active { background: rgba(240,192,64,0.26); }
     .dn-empty { font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; padding: 16px 0; line-height: 1.7; }
-    .dn-row { display: flex; align-items: center; gap: 7px; padding: 9px 2px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .dn-row:last-of-type { border-bottom: none; }
+    .dn-entry { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .dn-entry:last-of-type { border-bottom: none; }
+    .dn-row { display: flex; align-items: center; gap: 7px; padding: 9px 2px; }
+    .dn-entry.has-more .dn-row { cursor: pointer; }
+    .dn-chev { flex-shrink: 0; width: 14px; text-align: center; font-size: 9px; color: rgba(255,255,255,0.3); display: none; transition: transform 0.18s ease; }
+    .dn-entry.has-more .dn-chev { display: block; }
+    .dn-entry.open .dn-chev { transform: rotate(180deg); color: var(--gold); }
+    .dn-detail { display: none; padding: 1px 4px 12px; }
+    .dn-entry.open .dn-detail { display: block; animation: dnDetailIn 0.2s ease both; }
+    @keyframes dnDetailIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+    .dn-detail-name { font-size: 11px; font-weight: 800; color: var(--gold); margin-bottom: 5px; }
+    .dn-detail-text { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    /* 이미지 캡처용 — 잘림 없이 전문을 그대로 펼쳐 담는다 */
+    .dn-full .dn-row { align-items: flex-start; }
+    .dn-full .dn-name, .dn-full .dn-item { max-width: none; overflow: visible; text-overflow: clip; white-space: normal; word-break: break-word; }
+    .dn-full .dn-chev, .dn-full .dn-detail { display: none !important; }
     .dn-name { font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dn-kind { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; flex-shrink: 0; }
     .dn-kind.item { background: rgba(62,160,102,0.18); color: var(--green-light); }
@@ -3365,14 +3379,24 @@ function renderDonationSection(t) {
   const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
 
   const list = rows.length
-    ? rows.map(r => `<div class="dn-row">
-        <span class="dn-name">${escHtml(r.name)}</span>
-        <span class="dn-kind ${r.kind}">${r.kind === 'cash' ? '현금' : '현물'}</span>
-        <span class="dn-item">${escHtml(r.kind === 'cash' ? '현금 찬조' : (r.item || '-'))}</span>
-        <span class="dn-amt">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</span>
-        ${isMyDonation(r) ? `<button class="dn-edit" onclick="openDonateWizard('${r.id}')">수정</button>` : ''}
-        ${(isAdmin && r.id) ? `<button class="dn-del" onclick="deleteDonation('${r.id}')">×</button>` : ''}
-      </div>`).join('')
+    ? rows.map((r, i) => {
+        const itemText = r.kind === 'cash' ? '현금 찬조' : (r.item || '-');
+        return `<div class="dn-entry" data-dn-idx="${i}">
+        <div class="dn-row" onclick="toggleDonationRow(${i})">
+          <span class="dn-name">${escHtml(r.name)}</span>
+          <span class="dn-kind ${r.kind}">${r.kind === 'cash' ? '현금' : '현물'}</span>
+          <span class="dn-item">${escHtml(itemText)}</span>
+          <span class="dn-amt">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</span>
+          <span class="dn-chev">▼</span>
+          ${isMyDonation(r) ? `<button class="dn-edit" onclick="event.stopPropagation();openDonateWizard('${r.id}')">수정</button>` : ''}
+          ${(isAdmin && r.id) ? `<button class="dn-del" onclick="event.stopPropagation();deleteDonation('${r.id}')">×</button>` : ''}
+        </div>
+        <div class="dn-detail">
+          <div class="dn-detail-name">${escHtml(r.name)}${r.amount ? ' · ' + r.amount.toLocaleString() + '원' : ''}</div>
+          <div class="dn-detail-text">${escHtml(itemText)}</div>
+        </div>
+      </div>`;
+      }).join('')
     : `<div class="dn-empty">아직 등록된 찬조가 없습니다.<br>첫 번째 찬조의 주인공이 되어주세요!</div>`;
 
   el.innerHTML = `<div class="dn-box">
@@ -3396,7 +3420,31 @@ function renderDonationSection(t) {
       </button>
     </div>
   </div>`;
+
+  markDonationOverflow();
 }
+
+// 이름·내용이 실제로 잘린 행에만 ▼ 를 달아 준다.
+// (아직 화면에 안 그려져 폭을 못 재는 경우엔 글자 수로 대신 판단)
+function markDonationOverflow() {
+  document.querySelectorAll('#donation-section .dn-entry').forEach(entry => {
+    const cut = el => {
+      if (!el) return false;
+      if (!el.clientWidth) return (el.textContent || '').length > 12;
+      return el.scrollWidth > el.clientWidth + 1;
+    };
+    const more = cut(entry.querySelector('.dn-name')) || cut(entry.querySelector('.dn-item'));
+    if (!more) entry.classList.remove('open');
+    entry.classList.toggle('has-more', more);
+  });
+}
+
+// 찬조 한 줄 펼치기 / 접기 (잘린 행만 반응)
+window.toggleDonationRow = function(idx) {
+  const entry = document.querySelector(`#donation-section .dn-entry[data-dn-idx="${idx}"]`);
+  if (!entry || !entry.classList.contains('has-more')) return;
+  entry.classList.toggle('open');
+};
 
 // 찬조 내역만 따로 공유 — 대회명을 함께 얹어 이미지로 저장/공유
 async function shareDonationImage() {
@@ -3418,7 +3466,8 @@ async function shareDonationImage() {
     ${sub ? `<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:6px;">${escHtml(sub)}</div>` : ''}`;
 
   const clone = box.cloneNode(true);
-  clone.querySelectorAll('.dn-add-btn, .dn-del, .dn-edit, .dn-share-row').forEach(el => el.remove());
+  clone.querySelectorAll('.dn-add-btn, .dn-del, .dn-edit, .dn-share-row, .dn-chev').forEach(el => el.remove());
+  clone.classList.add('dn-full'); // 캡처에는 긴 문구도 줄바꿈해서 전부 넣는다
   clone.style.width = box.offsetWidth + 'px';
   clone.style.margin = '0';
 
@@ -4655,11 +4704,14 @@ window.downloadDetailImage = async function() {
     scroll.querySelector('.card-bottom-row'),
     document.getElementById('detail-register-btn'),
     document.getElementById('selected-info-bar'),
-    ...scroll.querySelectorAll('.dn-add-btn, .dn-del, .dn-edit, .dn-share-row'),
-    ...scroll.querySelectorAll('.wl-btn, .wl-ord, .wl-del'),
+    ...scroll.querySelectorAll('.dn-add-btn, .dn-del, .dn-edit, .dn-share-row, .dn-chev'),
+    ...scroll.querySelectorAll('.wl-btn, .wl-ord, .wl-del, .wl-seat-add'),
   ].filter(Boolean);
   const origDisplay = toHide.map(el => el.style.display);
   toHide.forEach(el => el.style.display = 'none');
+  // 캡처 동안에는 찬조 문구를 자르지 않고 전부 펼쳐 둔다
+  const dnBox = scroll.querySelector('.dn-box');
+  if (dnBox) dnBox.classList.add('dn-full');
 
   const s = {
     panelOv: panel.style.overflow, panelH: panel.style.height,
@@ -4687,6 +4739,7 @@ window.downloadDetailImage = async function() {
     showToast('이미지 생성에 실패했습니다');
   } finally {
     toHide.forEach((el, i) => el.style.display = origDisplay[i]);
+    if (dnBox) dnBox.classList.remove('dn-full');
     panel.style.overflow  = s.panelOv;
     panel.style.height    = s.panelH;
     scroll.style.overflow = s.scrollOv;
