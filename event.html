@@ -2361,23 +2361,20 @@ window.shareTournamentCard = async function(id) {
   showToast('이미지 생성 중...');
   try {
     const canvas = await html2canvas(wrapper, {
-      backgroundColor: '#111', scale: 3, useCORS: true, logging: false,
+      backgroundColor: '#111',
+      scale: safeCaptureScale(wrapper.offsetWidth, wrapper.offsetHeight, 3),
+      useCORS: true, logging: false,
     });
     const t = activeTournaments.find(x => x.id === id);
-    canvas.toBlob(async (blob) => {
-      const file = new File([blob], 'golgab-tournament.png', { type: 'image/png' });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: (t && t.name) || '골갑존 대회' }); return; }
-        catch (_) { /* 취소하면 저장으로 대체 */ }
-      }
-      const a = document.createElement('a');
-      a.download = ((t && t.name) || 'golgab-tournament') + '.png';
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-      showToast('이미지가 저장되었습니다');
-    }, 'image/png');
+    await saveCanvasImage(
+      canvas,
+      safeFileName(t && t.name, 'golgab-tournament') + '.png',
+      'image/png', undefined,
+      (t && t.name) || '골갑존 대회'
+    );
   } catch (e) {
-    showToast('이미지 생성에 실패했습니다');
+    console.error('대회 카드 이미지 저장 실패:', e);
+    showToast('이미지 생성에 실패했습니다' + (e && e.message ? ' (' + e.message + ')' : ''));
   } finally {
     if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
   }
@@ -3537,24 +3534,19 @@ async function shareDonationImage() {
   showToast('이미지 생성 중...');
   try {
     const canvas = await html2canvas(wrapper, {
-      backgroundColor: '#0A2406', scale: 3, useCORS: true, logging: false,
+      backgroundColor: '#0A2406',
+      scale: safeCaptureScale(wrapper.offsetWidth, wrapper.offsetHeight, 3),
+      useCORS: true, logging: false,
     });
-    const fileName = `${t.name || '골갑존'}_찬조내역.png`;
-    canvas.toBlob(async (blob) => {
-      const file = new File([blob], fileName, { type: 'image/png' });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: `${t.name || '골갑존'} 찬조 내역` }); return; }
-        catch (_) { /* 취소하면 저장으로 대체 */ }
-      }
-      const a = document.createElement('a');
-      a.download = fileName;
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-      showToast('이미지가 저장되었습니다');
-    }, 'image/png');
+    await saveCanvasImage(
+      canvas,
+      safeFileName(t.name, '골갑존') + '_찬조내역.png',
+      'image/png', undefined,
+      `${t.name || '골갑존'} 찬조 내역`
+    );
   } catch (e) {
-    console.error(e);
-    showToast('이미지 생성에 실패했습니다');
+    console.error('찬조 이미지 저장 실패:', e);
+    showToast('이미지 생성에 실패했습니다' + (e && e.message ? ' (' + e.message + ')' : ''));
   } finally {
     if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
   }
@@ -4751,13 +4743,64 @@ window.resetLotteryNumbers = async function() {
 };
 
 // ═══════════════════════════════════════════════════════
+// ── 이미지 저장 공통 처리 ─────────────────────────────
+
+// 파일명에 못 쓰는 글자 정리 (대회명에 / : 가 들어오면 저장이 실패한다)
+function safeFileName(name, fallback) {
+  const cleaned = String(name || '').replace(/[\\/:*?"<>|]+/g, '_').trim();
+  return cleaned || fallback;
+}
+
+// 캔버스 최대 크기를 넘지 않는 배율을 고른다.
+// 모바일 브라우저는 캔버스가 일정 크기를 넘으면 그리기 자체가 실패해서,
+// 참가자가 많아 화면이 길어지면 이미지가 통째로 안 나온다.
+function safeCaptureScale(w, h, want) {
+  const MAX_SIDE = 8000;       // 한 변 상한
+  const MAX_PX   = 16000000;   // 총 픽셀 상한
+  if (!w || !h) return 1;
+  const fit = Math.min(MAX_SIDE / Math.max(w, h), Math.sqrt(MAX_PX / (w * h)));
+  // 화면이 아주 길면 1배도 한도를 넘는다 — 화질을 조금 포기하더라도 이미지는 나오게 한다
+  return Math.max(0.6, Math.min(want, fit));
+}
+
+// 캔버스를 파일로 넘긴다. 공유 시트가 있으면 공유, 없으면 내려받기.
+// data: URL 은 용량이 커지면 모바일에서 아무 반응 없이 실패하므로 blob 으로 처리한다.
+async function saveCanvasImage(canvas, fileName, mime, quality, shareTitle) {
+  const blob = await new Promise(res => {
+    try { canvas.toBlob(res, mime, quality); } catch (_) { res(null); }
+  });
+  if (!blob) throw new Error('이미지 변환 실패');
+
+  try {
+    const file = new File([blob], fileName, { type: mime });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: shareTitle || fileName });
+      return;
+    }
+  } catch (_) { /* 공유를 취소했거나 지원하지 않으면 저장으로 대체 */ }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = fileName;
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  showToast('이미지가 저장되었습니다');
+}
+
 // ── 대회 정보 이미지 저장 (JPEG) ──────────────────────
 window.downloadDetailImage = async function() {
   const t = currentTournament;
   if (!t) return;
   const scroll = document.getElementById('detail-scroll');
   const panel  = document.getElementById('detail-panel-info');
-  if (!scroll) return;
+  if (!scroll || !panel) return;
+  if (typeof html2canvas === 'undefined') {
+    showToast('이미지 기능 로딩 중입니다. 잠시 후 다시 시도해주세요');
+    return;
+  }
 
   // 캡처 시 숨길 요소 (관리자 버튼, 신청 버튼, 선택 바)
   const toHide = [
@@ -4789,15 +4832,22 @@ window.downloadDetailImage = async function() {
   await new Promise(r => setTimeout(r, 150));
 
   try {
+    // 명단이 길면 scale 2 로는 캔버스 한도를 넘어 캡처가 실패한다
+    const w = scroll.scrollWidth || scroll.offsetWidth || 400;
+    const h = scroll.scrollHeight || scroll.offsetHeight || 800;
     const canvas = await html2canvas(scroll, {
-      backgroundColor: '#0A2406', scale: 2, useCORS: true, logging: false,
+      backgroundColor: '#0A2406', scale: safeCaptureScale(w, h, 2),
+      useCORS: true, logging: false,
     });
-    const link = document.createElement('a');
-    link.download = `${t.name}_대회정보.jpg`;
-    link.href = canvas.toDataURL('image/jpeg', 0.92);
-    link.click();
+    await saveCanvasImage(
+      canvas,
+      safeFileName(t.name, '골갑존') + '_대회정보.jpg',
+      'image/jpeg', 0.92,
+      `${t.name || '골갑존'} 대회 정보`
+    );
   } catch(e) {
-    showToast('이미지 생성에 실패했습니다');
+    console.error('대회 이미지 저장 실패:', e);
+    showToast('이미지 생성에 실패했습니다' + (e && e.message ? ' (' + e.message + ')' : ''));
   } finally {
     toHide.forEach((el, i) => el.style.display = origDisplay[i]);
     if (dnBox) dnBox.classList.remove('dn-full');
@@ -5019,7 +5069,9 @@ window.downloadScreenPDF = async function() {
 
   try {
     const canvas = await html2canvas(overlay, {
-      backgroundColor: '#0A2406', scale: 2, useCORS: true, logging: false,
+      backgroundColor: '#0A2406',
+      scale: safeCaptureScale(overlay.scrollWidth, overlay.scrollHeight, 2),
+      useCORS: true, logging: false,
     });
     const imgData = canvas.toDataURL('image/jpeg', 0.92);
     const win = window.open('', '_blank');
