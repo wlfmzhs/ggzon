@@ -789,22 +789,31 @@
     /* 흑백대전은 팀 색이 우선이라 바탕은 살짝만, 테두리로 표시 */
     .seat.heuk.gc-star { background: #1c0707; border-color: #ff3b3b; }
     .seat.baek.gc-star { background: #ffecec; border-color: #d40000; }
-    .gc-badge {
-      position: absolute; top: 2px; right: 3px;
-      display: flex; align-items: center; gap: 1px;
-      font-size: 8px; font-weight: 900; line-height: 1;
-      letter-spacing: -0.2px; pointer-events: none;
+    /* 이름 + 별을 한 줄에 — 이름만 길면 줄이고 별은 안 줄인다 */
+    .seat-line {
+      display: flex; align-items: center; justify-content: center;
+      gap: 2px; max-width: 100%; min-width: 0;
     }
-    .gc-badge .gc-stars { color: #ff6b6b; }
-    .gc-badge .gc-champ { font-size: 9px; }
-    .seat.baek .gc-badge .gc-stars { color: #d40000; }
+    .seat-line .seat-name { min-width: 0; }
+    .gc-stars {
+      color: var(--gold); font-size: 8px; line-height: 1;
+      letter-spacing: -0.5px; white-space: nowrap; flex-shrink: 0;
+    }
+    .gc-champ {
+      font-size: 7px; font-weight: 900; letter-spacing: 0.6px; line-height: 1;
+      color: #241a02; background: var(--gold);
+      border-radius: 3px; padding: 2px 3px; white-space: nowrap;
+    }
+    /* 백팀 자리는 흰 바탕이라 금색을 진하게 */
+    .seat.baek .gc-stars { color: #b8860b; }
     .screen-slot.gc-star { background: rgba(255,26,26,0.16); border-color: rgba(255,90,90,0.55); }
-    .gc-badge.inline { position: static; flex-shrink: 0; font-size: 10px; }
+    .screen-slot .gc-stars { font-size: 11px; }
+    .screen-slot .gc-champ { font-size: 8px; }
     .gc-legend {
-      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center;
       font-size: 10px; color: rgba(255,255,255,0.35); margin: 12px 0 2px;
     }
-    .gc-legend .gc-stars { color: #ff6b6b; font-weight: 900; }
+    .gc-legend .gc-stars { font-size: 10px; }
     /* 파이어링 흑 */
     .pairing-dnd-slot.heuk { background: rgba(20,20,20,0.7) !important; border-color: rgba(200,200,200,0.3) !important; }
     .pairing-dnd-slot.baek { background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.45) !important; }
@@ -1271,9 +1280,8 @@
     .pairing-dnd-slot.heuk.gc-star { background: rgba(28,7,7,0.9) !important; border-color: #ff3b3b !important; }
     .pairing-dnd-slot.baek.gc-star { background: rgba(255,236,236,0.95) !important; border-color: #d40000 !important; }
     .pairing-dnd-slot.baek.gc-star .pairing-dnd-name { color: #111; }
-    .pairing-gc { font-size: 9px; font-weight: 900; line-height: 1; letter-spacing: -0.2px; }
-    .pairing-gc .gc-stars { color: #ff6b6b; }
-    .pairing-dnd-slot.baek.gc-star .pairing-gc .gc-stars { color: #d40000; }
+    .pairing-dnd-name .gc-stars { font-size: 9px; }
+    .pairing-dnd-slot.baek.gc-star .gc-stars { color: #b8860b; }
     /* 관리자 인원 빼기 ✕ — 슬롯이 작아 탭 영역을 따로 넉넉히 준다 */
     .pairing-del-btn {
       position: absolute; top: 0; right: 0; z-index: 3;
@@ -2057,8 +2065,9 @@ function golchelinMark(name) {
   if (!st && !champ) return null;
   return {
     st, champ,
-    html: (champ ? '<span class="gc-champ" title="챔피언">👑</span>' : '') +
-          (st ? `<span class="gc-stars" title="골슐랭 ${st}스타">★${st}</span>` : ''),
+    // 1스타 = ★, 2스타 = ★★ … 스타 개수만큼 노란 별
+    stars: st ? `<span class="gc-stars" title="골슐랭 ${st}스타">${'★'.repeat(st)}</span>` : '',
+    champLabel: champ ? '<span class="gc-champ">CHAMPION</span>' : '',
   };
 }
 
@@ -2067,8 +2076,8 @@ function golchelinLegendHtml(registrations) {
   const any = (registrations || []).some(r => golchelinMark(r.name));
   if (!any) return '';
   return `<div class="gc-legend">
-    <span><span class="gc-stars">★</span> 골슐랭스타 (숫자는 스타 개수)</span>
-    <span>👑 챔피언</span>
+    <span><span class="gc-stars">★</span> 골슐랭스타 (별 개수 = 스타 등급)</span>
+    <span><span class="gc-champ">CHAMPION</span> 챔피언</span>
   </div>`;
 }
 
@@ -2824,15 +2833,19 @@ function renderSeatGrid(t, registrations, _courseIdx) {
       const isMine = myRegistration && myRegistration.courseIndex === ci &&
         myRegistration.cartIndex === cartIdx && myRegistration.seatIndex === seatIdx;
 
+      const gm = reg ? golchelinMark(reg.name) : null;
+      const gcStars = gm ? gm.stars : '';
+      const gcChamp = gm ? gm.champLabel : '';
+
       let cls, content;
       if (isMine) {
         cls = 'mine';
         content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-          <span class="seat-name" style="color:#f0c040; font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? '나ㆍ' + reg.lotteryNum : '나'}</span>`;
+          <span class="seat-name" style="color:#f0c040; font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? '나ㆍ' + reg.lotteryNum : '나'}</span>${gcStars}${gcChamp}`;
       } else if (reg) {
         cls = 'taken';
         content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-          <span class="seat-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</span>`;
+          <span class="seat-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</span>${gcStars}${gcChamp}`;
       } else if (isSelected) {
         cls = 'selected';
         content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span class="seat-name" style="color:var(--gold);">선택됨</span>`;
@@ -2843,11 +2856,9 @@ function renderSeatGrid(t, registrations, _courseIdx) {
 
       const clickable = !reg && !isMine && t.status === 'recruiting';
       const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
-      const gm = reg ? golchelinMark(reg.name) : null;
       html += `<div class="screen-slot ${cls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>
         <span class="slot-num">${i + 1}번</span>
         <span class="slot-body">${content}</span>
-        ${gm ? `<span class="gc-badge inline">${gm.html}</span>` : ''}
       </div>`;
     }
     html += '</div>';
@@ -2900,15 +2911,19 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         const isMine = myRegistration && myRegistration.courseIndex === ci &&
           myRegistration.cartIndex === cartIdx && myRegistration.seatIndex === seatIdx;
 
+        const gm = reg ? golchelinMark(reg.name) : null;
+        const gcStars = gm ? gm.stars : '';
+        const gcChamp = gm ? gm.champLabel : '';
+
         let cls, content;
         if (isMine) {
           cls = 'mine';
           content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            <span class="seat-name" style="color:#f0c040; font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? '나ㆍ' + reg.lotteryNum : '나'}</span>`;
+            <span class="seat-line"><span class="seat-name" style="color:#f0c040; font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? '나ㆍ' + reg.lotteryNum : '나'}</span>${gcStars}</span>${gcChamp}`;
         } else if (reg) {
           cls = 'taken';
           content = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            <span class="seat-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</span>`;
+            <span class="seat-line"><span class="seat-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</span>${gcStars}</span>${gcChamp}`;
         } else if (isSelected) {
           cls = 'selected';
           content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -2920,8 +2935,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         const clickable = !reg && !isMine && t.status === 'recruiting';
         const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
         const teamCls = isBW ? (seatIdx < 2 ? 'heuk' : 'baek') : '';
-        const gm = reg ? golchelinMark(reg.name) : null;
-        allHtml += `<div class="seat ${cls} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>${gm ? `<span class="gc-badge">${gm.html}</span>` : ''}${content}</div>`;
+        allHtml += `<div class="seat ${cls} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
       }
       allHtml += `</div></div>`;
     }
@@ -4444,8 +4458,8 @@ function renderPairingContent(t, registrations) {
             draggable="true" style="position:relative;">
             ${keepTag}${delBtn}
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
-            <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}</div>
-            ${gm ? `<div class="pairing-gc">${gm.html}</div>` : ''}
+            <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}${gm ? ' ' + gm.stars : ''}</div>
+            ${gm ? gm.champLabel : ''}
           </div>`;
         } else {
           const addAttr = isAdmin
@@ -4859,7 +4873,7 @@ window.downloadDetailPDF = function() {
         const gm = reg ? golchelinMark(reg.name) : null;
         const gcCell = (gm && gm.st) ? ' gc-star' : '';
         const gcMark = gm
-          ? `${gm.champ ? ' <span class="gc-champ">👑</span>' : ''}${gm.st ? ` <span class="gc-stars">★${gm.st}</span>` : ''}`
+          ? `${gm.st ? ` <span class="gc-stars">${'★'.repeat(gm.st)}</span>` : ''}${gm.champ ? '<div class="gc-champ">CHAMPION</div>' : ''}`
           : '';
         const nameCell = reg
           ? `<td class="name-cell${gcCell}">${reg.name || '-'}${gcMark}</td>`
@@ -4918,8 +4932,12 @@ window.downloadDetailPDF = function() {
     .seat-cell { font-weight: 700; color: #555; width: 36px; }
     .name-cell { font-weight: 600; }
     .name-cell.gc-star { background: #fff0f0; }
-    .name-cell .gc-stars { color: #d40000; font-weight: 900; font-size: 11px; }
-    .name-cell .gc-champ { font-size: 11px; }
+    .name-cell .gc-stars { color: #d4a017; font-size: 11px; letter-spacing: -0.5px; }
+    .name-cell .gc-champ {
+      display: inline-block; margin-top: 2px;
+      font-size: 8px; font-weight: 900; letter-spacing: 0.6px;
+      color: #241a02; background: #f0c040; border-radius: 3px; padding: 1px 4px;
+    }
     .empty-cell { color: #bbb; }
     tr:nth-child(4n+1) td:not(.cart-cell) { }
     tr:nth-child(4n) td { border-bottom: 3px solid #e0ede5; }
