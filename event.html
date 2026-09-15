@@ -1262,6 +1262,30 @@
       text-align: center; word-break: keep-all; line-height: 1.2;
     }
     .pairing-dnd-empty { font-size: 9px; color: rgba(255,255,255,0.18); }
+    /* 티오프 희망 — 참가자가 남긴 요청 */
+    .pairing-req {
+      font-size: 8px; font-weight: 800; line-height: 1; letter-spacing: -0.2px;
+      color: var(--green-light); background: rgba(62,160,102,0.18);
+      border-radius: 4px; padding: 2px 4px; cursor: pointer; white-space: nowrap;
+    }
+    .pairing-req.bad { color: #fff; background: rgba(255,60,60,0.85); }
+    .pairing-dnd-slot.req-bad { outline: 1.5px solid #ff3b3b; outline-offset: -1px; }
+    .tee-req-btn {
+      width: 100%; margin-top: 8px; padding: 11px;
+      background: rgba(62,160,102,0.16); color: var(--green-light);
+      border: 1px solid rgba(62,160,102,0.35); border-radius: 11px;
+      font-size: 13px; font-weight: 800; font-family: inherit; cursor: pointer;
+    }
+    .tee-req-btn.has-bad { background: rgba(255,60,60,0.15); color: #ff8a8a; border-color: rgba(255,60,60,0.4); }
+    .tr-row { padding: 11px 2px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .tr-row:last-of-type { border-bottom: none; }
+    .tr-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+    .tr-name { font-size: 13px; font-weight: 800; }
+    .tr-seat { font-size: 11px; color: rgba(255,255,255,0.4); flex: 1; min-width: 0; }
+    .tr-state { font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
+    .tr-state.ok  { background: rgba(62,160,102,0.18); color: var(--green-light); }
+    .tr-state.bad { background: rgba(255,60,60,0.2); color: #ff8a8a; }
+    .tr-note { font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
     .pairing-dnd-hint {
       font-size: 10px; color: rgba(255,255,255,0.3); text-align: center;
       padding: 8px 0 4px; letter-spacing: 0.3px;
@@ -1535,11 +1559,46 @@
         <label class="form-label">환불계좌 *</label>
         <input class="form-input" id="reg-account" type="text" placeholder="은행명 / 계좌번호 / 예금주" />
       </div>
+      <div class="form-group">
+        <label class="form-label">티오프 희망 (선택)</label>
+        <input class="form-input" id="reg-tee-note" type="text" maxlength="60"
+          placeholder="예) 일이 늦게 끝나서 오후 2시 이후로 부탁드려요" />
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);line-height:1.6;margin-top:6px;">
+          적어 두시면 조편성할 때 주최자가 확인합니다. 신청 후에도 바꿀 수 있어요.
+        </div>
+      </div>
 
       <div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:14px;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;">
         대회 진행을 위해 입력하신 <b style="color:rgba(255,255,255,0.65);">개인정보(연락처)</b>가 주최자 및 관리자에게 공유될 수 있습니다. 신청 시 동의한 것으로 간주합니다.
       </div>
       <button class="submit-btn" onclick="submitRegistration()">동의하고 신청 완료</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ SHEET: 티오프 희망 수정 ══════════════════════════ -->
+  <div class="sheet-overlay" id="sheet-tee-req" onclick="if(event.target===this) closeTeeReqSheet()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">티오프 희망</div>
+      <div class="sheet-subtitle" id="tee-req-sub">늦게 끝나거나 일찍 가야 하면 적어 주세요</div>
+      <div class="form-group">
+        <input class="form-input" id="tee-req-input" type="text" maxlength="60"
+          placeholder="예) 오후 2시 이후로 부탁드려요" />
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);line-height:1.6;margin-top:6px;" id="tee-req-hint"></div>
+      </div>
+      <button class="submit-btn" onclick="saveTeeRequest()">저장</button>
+      <button class="wl-btn cancel" onclick="closeTeeReqSheet()">닫기</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ SHEET: 티오프 희망 모아보기 (관리자) ══════════════════════════ -->
+  <div class="sheet-overlay" id="sheet-tee-req-list" onclick="if(event.target===this) closeTeeReqList()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">티오프 희망</div>
+      <div class="sheet-subtitle" id="tee-req-list-sub">참가자가 남긴 요청</div>
+      <div id="tee-req-list"></div>
+      <button class="wl-btn cancel" onclick="closeTeeReqList()">닫기</button>
     </div>
   </div>
 
@@ -1932,6 +1991,7 @@
     <div class="pairing-scroll" id="pairing-content"></div>
     <div class="pairing-footer">
       <button class="pairing-pdf-btn" onclick="downloadScreenPDF()">화면 그대로 PDF 저장</button>
+      <button class="tee-req-btn" id="tee-req-summary" style="display:none;" onclick="openTeeReqList()"></button>
       <div id="lottery-admin-row" class="lottery-admin-row">
         <button class="lottery-btn lottery-assign-btn" onclick="assignLotteryNumbers()">랜덤 번호 부여하기</button>
         <button class="lottery-btn lottery-reset-btn" onclick="resetLotteryNumbers()">번호 리셋</button>
@@ -2067,6 +2127,56 @@ function golchelinMark(name) {
   };
 }
 
+
+// ── 티오프 희망 ───────────────────────────────────────
+// 참가자가 자유롭게 적은 "오후 2시 이후로 부탁드려요" 같은 문장에서 기준 시각을 뽑는다.
+// 읽어내면 조편성에서 그 조 티타임과 비교해 경고할 수 있고,
+// 못 읽어도 메모 자체는 관리자에게 그대로 보인다.
+function parseTeeRequest(text) {
+  const raw = String(text || '').trim();
+  const none = { notBefore: null, notAfter: null };
+  if (!raw) return none;
+  const c = raw.replace(/\s+/g, '');
+
+  // (오전/오후) H시(M분) · H:MM · H시반
+  const m = c.match(/(오전|오후|아침|저녁|밤|새벽)?(\d{1,2})(?::|시)(\d{1,2})?(분|반)?/);
+  if (!m) return none;
+
+  let h = parseInt(m[2], 10);
+  let min = m[3] ? parseInt(m[3], 10) : (m[4] === '반' ? 30 : 0);
+  if (h > 23 || min > 59) return none;
+
+  const ap = m[1];
+  if (ap === '오후' || ap === '저녁' || ap === '밤') { if (h < 12) h += 12; }
+  else if (ap === '오전' || ap === '아침' || ap === '새벽') { if (h === 12) h = 0; }
+  // 오전/오후를 안 적었는데 5시 이하면 오후로 본다 (티타임이 새벽 5시 전일 리 없다)
+  else if (h <= 5) h += 12;
+
+  const at = h * 60 + min;
+  // "이전/전에/까지" 면 그 시각보다 일찍, 그 외("이후/부터/넘어서")는 그 시각보다 늦게
+  if (/이전|전에|까지|이내|안으로/.test(c)) return { notBefore: null, notAfter: at };
+  return { notBefore: at, notAfter: null };
+}
+
+// 이 참가자의 요청 + 현재 배정된 조의 티타임이 어긋나는지
+function teeRequestOf(t, reg) {
+  if (!reg || !reg.teeNote) return null;
+  const req = parseTeeRequest(reg.teeNote);
+  const base = getCourseBaseMin(t, reg.courseIndex);
+  const off = teeOffsetMin(t, reg.cartIndex);
+  const teeMin = (base !== null && off !== null) ? base + off : null;
+
+  let label = '요청';
+  if (req.notBefore !== null) label = fmtClock(req.notBefore) + ' 이후';
+  else if (req.notAfter !== null) label = fmtClock(req.notAfter) + ' 이전';
+
+  let bad = false;
+  if (teeMin !== null) {
+    if (req.notBefore !== null && teeMin < req.notBefore) bad = true;
+    if (req.notAfter !== null && teeMin > req.notAfter) bad = true;
+  }
+  return { note: reg.teeNote, req, teeMin, label, bad };
+}
 
 function seatLabelFor(t, courseIdx, cartIdx, seatIdx) {
   if (t && t.tournamentType === 'screen') {
@@ -2955,10 +3065,13 @@ function updateRegisterButton() {
 
   if (myRegistration) {
     const label = seatLabelFor(currentTournament, myRegistration.courseIndex, myRegistration.cartIndex, myRegistration.seatIndex);
-    btn.textContent = `신청 완료 (${label})`;
+    btn.textContent = `신청 완료 (${label}) · 티오프 희망 ${myRegistration.teeNote ? '수정' : '남기기'}`;
     btn.className = 'detail-register-btn my-seat';
+    btn.onclick = () => window.openTeeReqSheet();
     return;
   }
+  // myRegistration 이 없으면 원래대로 신청 시트를 연다 (인라인 onclick 을 덮어썼으므로 되돌린다)
+  btn.onclick = () => window.openRegisterSheet();
 
   if (selectedSeat) {
     btn.textContent = '선택한 자리로 신청하기 →';
@@ -2968,6 +3081,91 @@ function updateRegisterButton() {
     btn.className = 'detail-register-btn';
   }
 }
+
+// ── 티오프 희망 남기기 / 수정 ───────────────────────────
+window.openTeeReqSheet = function() {
+  if (!myRegistration || !currentTournament) return;
+  const input = document.getElementById('tee-req-input');
+  input.value = myRegistration.teeNote || '';
+  document.getElementById('tee-req-sub').textContent =
+    seatLabelFor(currentTournament, myRegistration.courseIndex, myRegistration.cartIndex, myRegistration.seatIndex) +
+    ' · 늦게 끝나거나 일찍 가야 하면 적어 주세요';
+  updateTeeReqHint();
+  input.oninput = updateTeeReqHint;
+  document.getElementById('sheet-tee-req').classList.add('open');
+};
+
+window.closeTeeReqSheet = function() {
+  document.getElementById('sheet-tee-req').classList.remove('open');
+};
+
+// 적은 문장에서 시각을 읽어냈는지 그 자리에서 보여준다
+function updateTeeReqHint() {
+  const el = document.getElementById('tee-req-hint');
+  if (!el) return;
+  const v = document.getElementById('tee-req-input').value.trim();
+  if (!v) { el.textContent = '비워 두면 요청 없음으로 처리됩니다'; el.style.color = 'rgba(255,255,255,0.3)'; return; }
+  const req = parseTeeRequest(v);
+  if (req.notBefore !== null) {
+    el.textContent = `${fmtClock(req.notBefore)} 이후 조로 이해했습니다`;
+    el.style.color = 'var(--green-light)';
+  } else if (req.notAfter !== null) {
+    el.textContent = `${fmtClock(req.notAfter)} 이전 조로 이해했습니다`;
+    el.style.color = 'var(--green-light)';
+  } else {
+    el.textContent = '시각을 못 읽었습니다. 적은 내용 그대로 주최자에게 전달됩니다';
+    el.style.color = 'rgba(255,255,255,0.35)';
+  }
+}
+
+window.saveTeeRequest = async function() {
+  if (!myRegistration || !currentTournament) return;
+  const teeNote = document.getElementById('tee-req-input').value.trim();
+  try {
+    await updateDoc(
+      doc(db, 'tournaments', currentTournament.id, 'registrations', myRegistration.id),
+      { teeNote, teeNoteAt: serverTimestamp() }
+    );
+    window.closeTeeReqSheet();
+    showToast(teeNote ? '티오프 희망을 전달했습니다' : '티오프 희망을 지웠습니다');
+  } catch (e) {
+    console.error(e);
+    showToast('저장에 실패했습니다: ' + (e && e.message ? e.message : ''));
+  }
+};
+
+// ── 관리자: 티오프 희망 모아보기 ────────────────────────
+window.openTeeReqList = function() {
+  const t = currentTournament;
+  if (!t) return;
+  const rows = (allRegistrations || [])
+    .map(r => ({ reg: r, info: teeRequestOf(t, r) }))
+    .filter(x => x.info)
+    .sort((a, b) => (b.info.bad ? 1 : 0) - (a.info.bad ? 1 : 0));
+
+  const el = document.getElementById('tee-req-list');
+  const bad = rows.filter(x => x.info.bad).length;
+  document.getElementById('tee-req-list-sub').textContent =
+    rows.length ? `요청 ${rows.length}명${bad ? ` · 지금 배치와 안 맞는 ${bad}명` : ' · 모두 맞게 배치됨'}`
+                : '남긴 요청이 없습니다';
+
+  el.innerHTML = rows.length
+    ? rows.map(({ reg, info }) => `<div class="tr-row">
+        <div class="tr-head">
+          <span class="tr-name">${escHtml(reg.name || '-')}</span>
+          <span class="tr-seat">${escHtml(seatLabelFor(t, reg.courseIndex, reg.cartIndex, reg.seatIndex))}${info.teeMin !== null ? ' · ' + fmtClock(info.teeMin) : ''}</span>
+          <span class="tr-state ${info.bad ? 'bad' : 'ok'}">${escHtml(info.label)}</span>
+        </div>
+        <div class="tr-note">${escHtml(info.note)}</div>
+      </div>`).join('')
+    : '<div class="wl-empty">남긴 요청이 없습니다.</div>';
+
+  document.getElementById('sheet-tee-req-list').classList.add('open');
+};
+
+window.closeTeeReqList = function() {
+  document.getElementById('sheet-tee-req-list').classList.remove('open');
+};
 
 // ── Register sheet ─────────────────────────────────────
 window.openRegisterSheet = async function() {
@@ -2982,6 +3180,7 @@ window.openRegisterSheet = async function() {
   document.getElementById('reg-phone').value = '';
   document.getElementById('reg-handicap').value = '';
   document.getElementById('reg-account').value = '';
+  document.getElementById('reg-tee-note').value = '';
 
   // 가입 시 등록한 실명 자동 입력
   if (currentUser) {
@@ -3017,6 +3216,7 @@ window.submitRegistration = async function() {
   const phone = document.getElementById('reg-phone').value.trim();
   const handicap = document.getElementById('reg-handicap').value.trim();
   const account = document.getElementById('reg-account').value.trim();
+  const teeNote = document.getElementById('reg-tee-note').value.trim();
 
   if (!name || !phone || !handicap || !account) {
     showToast('모든 항목을 입력해주세요');
@@ -3049,6 +3249,7 @@ window.submitRegistration = async function() {
       courseIndex: selectedSeat.courseIdx,
       cartIndex: selectedSeat.cartIdx,
       seatIndex: selectedSeat.seatIdx,
+      teeNote,
       registeredAt: serverTimestamp()
     });
 
@@ -4430,13 +4631,15 @@ function renderPairingContent(t, registrations) {
             ? `<div class="pairing-del-btn" onclick="event.stopPropagation();window._removeReg('${reg.id}')" title="이 인원 빼기">×</div>` : '';
           const keepTag = isKeep ? `<div class="pairing-keep-tag">킵</div>` : '';
           const gm = golchelinMark(reg.name);
-          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}"
+          const tr = teeRequestOf(t, reg);
+          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''} ${(tr && tr.bad) ? 'req-bad' : ''}"
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
             draggable="true" style="position:relative;">
             ${keepTag}${delBtn}
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
             <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}${gm ? ' ' + gm.stars : ''}</div>
             ${gm ? gm.champLabel : ''}
+            ${tr ? `<div class="pairing-req ${tr.bad ? 'bad' : ''}" onclick="event.stopPropagation();openTeeReqList()" title="${escHtml(tr.note)}">⏰${escHtml(tr.label)}</div>` : ''}
           </div>`;
         } else {
           const addAttr = isAdmin
@@ -4456,6 +4659,21 @@ function renderPairingContent(t, registrations) {
 
   el.innerHTML = html;
   _initPairingDnD(t);
+  updateTeeReqSummary(t, registrations);
+}
+
+// 조편성 하단 "티오프 희망 N명" 버튼 — 요청이 있을 때만 보인다
+function updateTeeReqSummary(t, registrations) {
+  const btn = document.getElementById('tee-req-summary');
+  if (!btn) return;
+  const infos = (registrations || []).map(r => teeRequestOf(t, r)).filter(Boolean);
+  if (!infos.length) { btn.style.display = 'none'; return; }
+  const bad = infos.filter(x => x.bad).length;
+  btn.style.display = '';
+  btn.className = 'tee-req-btn' + (bad ? ' has-bad' : '');
+  btn.textContent = bad
+    ? `⏰ 티오프 희망 ${infos.length}명 · 안 맞는 ${bad}명 보기`
+    : `⏰ 티오프 희망 ${infos.length}명 보기`;
 }
 
 // ── DnD 상태 ─────────────────────────────────────────
