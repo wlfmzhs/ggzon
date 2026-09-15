@@ -858,6 +858,19 @@
       background: rgba(62,160,102,0.2); color: var(--green-light);
       border: 1px solid rgba(62,160,102,0.4); opacity: 1; cursor: default;
     }
+    /* 티오프 희망 — 신청 완료 버튼과 섞이지 않게 따로 둔다 */
+    .tee-req-own {
+      width: 100%; margin-top: 8px; padding: 12px;
+      background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+      font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+    }
+    .tee-req-own:active { background: rgba(255,255,255,0.1); }
+    .tee-req-own.filled { color: var(--gold); border-color: rgba(240,192,64,0.35); background: rgba(240,192,64,0.08); }
+    .tee-req-own-note {
+      font-size: 10px; color: rgba(255,255,255,0.28);
+      line-height: 1.6; text-align: center; margin-top: 7px;
+    }
 
     /* ═══════════════════════════
        BOTTOM SHEET: Register
@@ -1560,11 +1573,12 @@
         <input class="form-input" id="reg-account" type="text" placeholder="은행명 / 계좌번호 / 예금주" />
       </div>
       <div class="form-group">
-        <label class="form-label">티오프 희망 (선택)</label>
+        <label class="form-label">티오프 희망 (부득이한 경우만)</label>
         <input class="form-input" id="reg-tee-note" type="text" maxlength="60"
           placeholder="예) 일이 늦게 끝나서 오후 2시 이후로 부탁드려요" />
         <div style="font-size:11px;color:rgba(255,255,255,0.3);line-height:1.6;margin-top:6px;">
-          적어 두시면 조편성할 때 주최자가 확인합니다. 신청 후에도 바꿀 수 있어요.
+          <b style="color:rgba(255,180,180,0.8);">한 번 등록된 조는 변경이 어렵습니다.</b>
+          운영진이 전체 조편성을 다시 짜야 하므로, 정말 불가피한 경우에만 남겨 주세요.
         </div>
       </div>
 
@@ -1580,7 +1594,11 @@
     <div class="sheet">
       <div class="sheet-handle"></div>
       <div class="sheet-title">티오프 희망</div>
-      <div class="sheet-subtitle" id="tee-req-sub">늦게 끝나거나 일찍 가야 하면 적어 주세요</div>
+      <div class="sheet-subtitle" id="tee-req-sub"></div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:14px;padding:12px;background:rgba(255,120,120,0.08);border:1px solid rgba(255,120,120,0.2);border-radius:10px;">
+        <b style="color:rgba(255,180,180,0.9);">한 번 등록된 조는 변경이 어렵습니다.</b><br>
+        운영진이 전체 조편성을 다시 짜야 해서, 정말 불가피한 경우에만 남겨 주세요.
+      </div>
       <div class="form-group">
         <input class="form-input" id="tee-req-input" type="text" maxlength="60"
           placeholder="예) 오후 2시 이후로 부탁드려요" />
@@ -2888,6 +2906,13 @@ function renderDetailHeader(t) {
       자리를 선택하세요
     </button>
 
+    <div id="tee-req-own-wrap" style="display:none;">
+      <button class="tee-req-own" id="tee-req-own-btn" onclick="openTeeReqSheet()"></button>
+      <div class="tee-req-own-note">
+        한 번 등록된 조는 변경이 어렵습니다.<br>부득이한 경우에만 희망 시간을 남겨 주세요.
+      </div>
+    </div>
+
     <div class="wl-wrap" id="waitlist-section"></div>
   `;
 
@@ -3063,15 +3088,14 @@ function updateRegisterButton() {
   const btn = document.getElementById('detail-register-btn');
   if (!btn) return;
 
+  updateTeeReqOwnButton();
+
   if (myRegistration) {
     const label = seatLabelFor(currentTournament, myRegistration.courseIndex, myRegistration.cartIndex, myRegistration.seatIndex);
-    btn.textContent = `신청 완료 (${label}) · 티오프 희망 ${myRegistration.teeNote ? '수정' : '남기기'}`;
+    btn.textContent = `신청 완료 (${label})`;
     btn.className = 'detail-register-btn my-seat';
-    btn.onclick = () => window.openTeeReqSheet();
     return;
   }
-  // myRegistration 이 없으면 원래대로 신청 시트를 연다 (인라인 onclick 을 덮어썼으므로 되돌린다)
-  btn.onclick = () => window.openRegisterSheet();
 
   if (selectedSeat) {
     btn.textContent = '선택한 자리로 신청하기 →';
@@ -3083,13 +3107,24 @@ function updateRegisterButton() {
 }
 
 // ── 티오프 희망 남기기 / 수정 ───────────────────────────
+// 신청을 마친 본인에게만 보이는 별도 버튼 (신청 완료 버튼과 분리)
+function updateTeeReqOwnButton() {
+  const wrap = document.getElementById('tee-req-own-wrap');
+  const btn = document.getElementById('tee-req-own-btn');
+  if (!wrap || !btn) return;
+  if (!myRegistration) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const note = myRegistration.teeNote;
+  btn.className = 'tee-req-own' + (note ? ' filled' : '');
+  btn.textContent = note ? `⏰ 티오프 희망 · ${note}` : '⏰ 티오프 희망 남기기';
+}
+
 window.openTeeReqSheet = function() {
   if (!myRegistration || !currentTournament) return;
   const input = document.getElementById('tee-req-input');
   input.value = myRegistration.teeNote || '';
   document.getElementById('tee-req-sub').textContent =
-    seatLabelFor(currentTournament, myRegistration.courseIndex, myRegistration.cartIndex, myRegistration.seatIndex) +
-    ' · 늦게 끝나거나 일찍 가야 하면 적어 주세요';
+    '현재 자리 ' + seatLabelFor(currentTournament, myRegistration.courseIndex, myRegistration.cartIndex, myRegistration.seatIndex);
   updateTeeReqHint();
   input.oninput = updateTeeReqHint;
   document.getElementById('sheet-tee-req').classList.add('open');
