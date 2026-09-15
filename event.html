@@ -569,6 +569,22 @@
     .wl-btn:active { background: rgba(62,160,102,0.28); }
     .wl-btn.cancel { background: rgba(255,100,100,0.1); color: rgba(255,140,140,0.9); border-color: rgba(255,100,100,0.28); }
     .wl-note { font-size: 10px; color: rgba(255,255,255,0.28); text-align: center; margin-top: 9px; line-height: 1.6; }
+    /* 대기자 → 빈자리 배정 (관리자) */
+    .wl-seat-add { flex-shrink: 0; background: rgba(62,160,102,0.16); border: 1px solid rgba(62,160,102,0.4); color: var(--green-light); border-radius: 7px; padding: 4px 7px; font-size: 10px; font-weight: 800; font-family: inherit; cursor: pointer; white-space: nowrap; }
+    .wl-seat-add:active { background: rgba(62,160,102,0.3); }
+    .wl-seat-group { margin-bottom: 14px; }
+    .wl-seat-group-title { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.5); margin-bottom: 7px; }
+    .wl-seat-group-title b { color: var(--gold); font-weight: 800; }
+    .wl-seat-btns { display: flex; flex-wrap: wrap; gap: 7px; }
+    .wl-seat-btn { min-width: 46px; background: rgba(62,160,102,0.14); border: 1px solid rgba(62,160,102,0.35); color: var(--green-light); border-radius: 10px; padding: 11px 10px; font-size: 13px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .wl-seat-btn:active { background: rgba(62,160,102,0.3); color: #fff; }
+    /* 조편성 시트 안 대기자 고르기 */
+    .wl-pick { width: 100%; display: flex; align-items: center; gap: 8px; text-align: left; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 10px 11px; color: #fff; font-family: inherit; cursor: pointer; }
+    .wl-pick:active { background: rgba(62,160,102,0.22); border-color: rgba(62,160,102,0.5); }
+    .wl-pick-no { flex-shrink: 0; width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+    .wl-pick-name { font-size: 13px; font-weight: 800; flex-shrink: 0; }
+    .wl-pick-meta { font-size: 11px; color: rgba(255,255,255,0.4); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wl-pick-go { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--green-light); }
 
     /* ── 찬조 위저드 (질문 → 답 방식) ── */
     .dw-overlay {
@@ -1521,6 +1537,17 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════ SHEET: 대기자 → 빈자리 배정 (관리자) ══════════════════════════ -->
+  <div class="sheet-overlay" id="sheet-wl-seat" onclick="if(event.target===this) closeWlSeatSheet()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">빈자리에 넣기</div>
+      <div class="sheet-subtitle" id="wl-seat-sub">넣을 빈자리를 선택하세요</div>
+      <div id="wl-seat-list" style="margin-bottom:6px;"></div>
+      <button class="wl-btn cancel" onclick="closeWlSeatSheet()">취소</button>
+    </div>
+  </div>
+
   <!-- ══════════════════════════ 찬조 위저드 ══════════════════════════ -->
   <div class="dw-overlay" id="dw-overlay">
     <div class="dw-appbar">
@@ -1867,6 +1894,13 @@
       <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 36px;">
         <div style="font-size:15px;font-weight:900;margin-bottom:4px;">자리에 이름 추가</div>
         <div id="manual-seat-label" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:18px;"></div>
+        <div id="manual-waitlist-box" style="display:none;margin-bottom:18px;">
+          <div style="font-size:12px;font-weight:900;color:var(--gold);margin-bottom:8px;">대기자에서 넣기 <span id="manual-waitlist-count" style="color:rgba(255,255,255,0.35);font-weight:700;"></span></div>
+          <div id="manual-waitlist-list" style="max-height:176px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5;margin-top:8px;">누르면 이 자리에 참가자로 들어가고 대기 목록에서 빠집니다.</div>
+          <div style="height:1px;background:rgba(255,255,255,0.1);margin:16px 0 14px;"></div>
+          <div style="font-size:12px;font-weight:900;color:rgba(255,255,255,0.5);margin-bottom:8px;">이름 직접 입력</div>
+        </div>
         <input id="manual-name-input" type="text" placeholder="이름 입력" maxlength="10"
           style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.35);border-radius:12px;padding:14px 16px;color:#fff;font-size:16px;font-family:inherit;outline:none;margin-bottom:14px;" />
         <button onclick="window._saveManualName(false)" style="width:100%;padding:14px;border-radius:12px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:8px;">참가자로 추가</button>
@@ -3004,6 +3038,7 @@ function renderWaitlistSection(t) {
           <span class="wl-name">${escHtml(r.name || '-')}</span>
           ${isMine ? '<span class="wl-tag">나</span>' : ''}
           <span class="wl-meta">${escHtml(meta)}</span>
+          ${isAdmin && seatsLeft > 0 ? `<button class="wl-seat-add" onclick="openWlSeatSheet('${r.id}')" title="빈자리에 넣기">＋자리</button>` : ''}
           ${isAdmin ? `<span class="wl-ord">
             <button onclick="moveWaitlist('${r.id}',-1)" ${i === 0 ? 'disabled' : ''} title="위로">▲</button>
             <button onclick="moveWaitlist('${r.id}',1)" ${i === last ? 'disabled' : ''} title="아래로">▼</button>
@@ -3033,7 +3068,7 @@ function renderWaitlistSection(t) {
     <div class="wl-head">
       <div>
         <div class="wl-title">대기자 등록</div>
-        <div class="wl-sub">정원 마감 후에도 신청을 받습니다${isAdmin ? '<br>▲▼ 로 대기 순서를 바꿀 수 있습니다' : ''}</div>
+        <div class="wl-sub">정원 마감 후에도 신청을 받습니다${isAdmin ? '<br>▲▼ 로 순서 변경 · ＋자리 로 빈자리에 배정' : ''}</div>
       </div>
       <div class="wl-count">대기 ${rows.length}명</div>
     </div>
@@ -3141,6 +3176,141 @@ window.moveWaitlist = async function(id, dir) {
     showToast('순서 변경에 실패했습니다');
   }
 };
+
+// ── 관리자: 대기자를 빈자리에 배정 ──────────────────────
+// 대기자 문서를 참가 신청(registrations)으로 옮기고 대기 목록에서 지운다.
+let _wlSeatTarget = null;
+
+// 아직 아무도 없는 자리 목록
+function emptySeatsFor(t) {
+  const taken = new Set((allRegistrations || [])
+    .map(r => `${r.courseIndex}-${r.cartIndex}-${r.seatIndex}`));
+  const out = [];
+  if (t.tournamentType === 'screen') {
+    const total = t.totalParticipants || 0;
+    for (let i = 0; i < total; i++) {
+      const ca = Math.floor(i / 4), si = i % 4;
+      if (!taken.has(`0-${ca}-${si}`)) out.push({ ci: 0, ca, si, course: '참가 자리' });
+    }
+    return out;
+  }
+  const courseCount = t.courseCount || 2;
+  const courseCarts = getCourseCarts(Math.ceil((t.totalParticipants || 0) / 4), courseCount);
+  const courseNames = getCourseNamesFor(t);
+  for (let ci = 0; ci < courseCount; ci++) {
+    for (let ca = 0; ca < courseCarts[ci]; ca++) {
+      for (let si = 0; si < 4; si++) {
+        if (!taken.has(`${ci}-${ca}-${si}`)) out.push({ ci, ca, si, course: courseNames[ci] });
+      }
+    }
+  }
+  return out;
+}
+
+window.openWlSeatSheet = function(waitId) {
+  if (!isAdmin || !currentTournament) return;
+  const w = allWaitlist.find(x => x.id === waitId);
+  if (!w) { showToast('대기자 정보를 찾지 못했습니다'); return; }
+  _wlSeatTarget = waitId;
+
+  const t = currentTournament;
+  const isScreen = t.tournamentType === 'screen';
+  const seats = emptySeatsFor(t);
+  document.getElementById('wl-seat-sub').textContent =
+    `${w.name || '대기자'} 님을 넣을 자리 (빈자리 ${seats.length})`;
+
+  const list = document.getElementById('wl-seat-list');
+  if (!seats.length) {
+    list.innerHTML = '<div class="wl-empty">남은 빈자리가 없습니다.<br>조편성에서 기존 인원을 먼저 빼주세요.</div>';
+  } else if (isScreen) {
+    list.innerHTML = '<div class="wl-seat-group"><div class="wl-seat-btns">' +
+      seats.map(sx => `<button class="wl-seat-btn" onclick="assignWaitlistSeat(${sx.ci},${sx.ca},${sx.si})">${sx.ca * 4 + sx.si + 1}번</button>`).join('') +
+      '</div></div>';
+  } else {
+    const groups = [];
+    seats.forEach(sx => {
+      const key = sx.ci + '-' + sx.ca;
+      let g = groups.find(x => x.key === key);
+      if (!g) { g = { key, ci: sx.ci, ca: sx.ca, course: sx.course, seats: [] }; groups.push(g); }
+      g.seats.push(sx.si);
+    });
+    const letters = ['A', 'B', 'C', 'D'];
+    list.innerHTML = groups.map(g => {
+      const base = getCourseBaseMin(t, g.ci);
+      const off = teeOffsetMin(t, g.ca);
+      const tee = (base !== null && off !== null) ? ` <b>${fmtClock(base + off)}</b>` : '';
+      return `<div class="wl-seat-group">
+        <div class="wl-seat-group-title">${escHtml(g.course)} ${g.ca + 1}조${tee}</div>
+        <div class="wl-seat-btns">` +
+        g.seats.map(si => `<button class="wl-seat-btn" onclick="assignWaitlistSeat(${g.ci},${g.ca},${si})">${letters[si]}</button>`).join('') +
+        '</div></div>';
+    }).join('');
+  }
+  document.getElementById('sheet-wl-seat').classList.add('open');
+};
+
+window.closeWlSeatSheet = function() {
+  document.getElementById('sheet-wl-seat').classList.remove('open');
+  _wlSeatTarget = null;
+};
+
+// 대기자 목록 → 빈자리 선택 후 배정
+window.assignWaitlistSeat = function(ci, ca, si) {
+  if (!_wlSeatTarget) return;
+  _assignWaitlist(_wlSeatTarget, ci, ca, si, () => window.closeWlSeatSheet());
+};
+
+// 조편성 화면 빈자리 → 대기자 골라 배정
+window._placeWaitlistToSeat = function(waitId) {
+  if (!_manualTarget) return;
+  const { ci, cartIdx, si } = _manualTarget;
+  _assignWaitlist(waitId, ci, cartIdx, si, () => window._closeManualSheet());
+};
+
+function _assignWaitlist(waitId, ci, ca, si, done) {
+  if (!isAdmin || !currentTournament) return;
+  const t = currentTournament;
+  const w = allWaitlist.find(x => x.id === waitId);
+  if (!w) { showToast('대기자 정보를 찾지 못했습니다'); return; }
+
+  // 그 사이 자리가 찼는지 다시 확인
+  if ((allRegistrations || []).some(r => r.courseIndex === ci && r.cartIndex === ca && r.seatIndex === si)) {
+    showToast('이미 다른 분이 들어간 자리입니다');
+    if (done) done();
+    return;
+  }
+  // 같은 계정으로 이미 신청돼 있으면 중복 등록 방지
+  if (w.userId && (allRegistrations || []).some(r => r.userId === w.userId)) {
+    showToast('이미 참가 신청이 되어 있는 분입니다');
+    return;
+  }
+
+  const label = seatLabelFor(t, ci, ca, si);
+  const who = w.name || '대기자';
+  openConfirm('빈자리에 넣기', `"${who}" 님을 ${label} 자리에 참가자로 넣고 대기 목록에서 뺍니다.`, async () => {
+    const entry = {
+      userId: w.userId || '',
+      name: getUniqueName(who, (allRegistrations || []).map(r => r.name)),
+      phone: w.phone || '',
+      handicap: (w.handicap || w.handicap === 0) ? w.handicap : null,
+      courseIndex: ci, cartIndex: ca, seatIndex: si,
+      fromWaitlist: true,
+      registeredAt: serverTimestamp(),
+    };
+    if (w.memo) entry.memo = w.memo;
+    // 계정 없이 등록된 대기자는 수동 추가 인원으로 취급 (내 신청 매칭이 불가하므로)
+    if (!w.userId) entry.isManual = true;
+    try {
+      await addDoc(collection(db, 'tournaments', t.id, 'registrations'), entry);
+      await deleteDoc(doc(db, 'tournaments', t.id, 'waitlist', waitId));
+      showToast(`${who} 님을 ${label} 자리에 넣었습니다`);
+      if (done) done();
+    } catch (e) {
+      console.error(e);
+      showToast('배정 오류: ' + e.message);
+    }
+  });
+}
 
 // 관리자 — 대기자 삭제
 window.deleteWaitlist = function(id) {
@@ -3827,6 +3997,13 @@ function teeOffsetMin(t, idx) {
   return sum;
 }
 
+// 분 단위 시각 → "AM 7:08"
+function fmtClock(totalMin) {
+  const hh = Math.floor(totalMin / 60) % 24;
+  const mm = totalMin % 60;
+  return `${hh < 12 ? 'AM' : 'PM'} ${hh === 0 ? 12 : hh > 12 ? hh - 12 : hh}:${String(mm).padStart(2, '0')}`;
+}
+
 function getCourseBaseMin(t, ci) {
   if (t.courseTimes && t.courseTimes[ci]) {
     const [hh, mm] = t.courseTimes[ci].split(':').map(Number);
@@ -4346,9 +4523,33 @@ window._openManualSheet = function(ci, cartIdx, si) {
   document.getElementById('manual-seat-label').textContent =
     seatLabelFor(currentTournament, ci, cartIdx, si);
   document.getElementById('manual-name-input').value = '';
+  _renderManualWaitlist();
   document.getElementById('manual-name-sheet').style.display = 'flex';
   setTimeout(() => document.getElementById('manual-name-input').focus(), 100);
 };
+
+// 조편성 빈자리 시트 안에 현재 대기자 목록 그리기
+function _renderManualWaitlist() {
+  const box = document.getElementById('manual-waitlist-box');
+  const list = document.getElementById('manual-waitlist-list');
+  if (!box || !list) return;
+  const rows = sortedWaitlist();
+  if (!rows.length) { box.style.display = 'none'; list.innerHTML = ''; return; }
+  box.style.display = '';
+  document.getElementById('manual-waitlist-count').textContent = `(${rows.length}명)`;
+  list.innerHTML = rows.map((w, i) => {
+    const meta = [
+      (w.handicap || w.handicap === 0) ? 'H' + w.handicap : '',
+      w.phone || '', w.memo || ''
+    ].filter(Boolean).join(' · ');
+    return `<button type="button" class="wl-pick" onclick="window._placeWaitlistToSeat('${w.id}')">
+      <span class="wl-pick-no">${i + 1}</span>
+      <span class="wl-pick-name">${escHtml(w.name || '-')}</span>
+      <span class="wl-pick-meta">${escHtml(meta)}</span>
+      <span class="wl-pick-go">넣기 →</span>
+    </button>`;
+  }).join('');
+}
 
 window._closeManualSheet = function() {
   document.getElementById('manual-name-sheet').style.display = 'none';
