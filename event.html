@@ -599,6 +599,17 @@
     .wl-pick-name { font-size: 13px; font-weight: 800; flex-shrink: 0; }
     .wl-pick-meta { font-size: 11px; color: rgba(255,255,255,0.4); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .wl-pick-go { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--green-light); }
+    /* 관리자 — 신청된 자리 눌러 취소 / 대기자 교체 */
+    .seat.admin-editable, .screen-slot.admin-editable { cursor: pointer; }
+    .sm-card { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 12px 13px; margin-bottom: 4px; }
+    .sm-card-seat { flex-shrink: 0; font-size: 11px; font-weight: 900; color: var(--gold); background: rgba(240,192,64,0.14); border: 1px solid rgba(240,192,64,0.3); border-radius: 8px; padding: 6px 8px; white-space: nowrap; }
+    .sm-card-info { flex: 1; min-width: 0; }
+    .sm-card-name { font-size: 14px; font-weight: 900; color: #fff; }
+    .sm-card-meta { font-size: 11px; color: rgba(255,255,255,0.42); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sm-title { font-size: 11px; font-weight: 900; color: var(--gold); letter-spacing: 0.3px; margin: 18px 0 4px; }
+    .sm-sub { font-size: 10px; color: rgba(255,255,255,0.32); line-height: 1.6; margin-bottom: 9px; }
+    .sm-list { display: flex; flex-direction: column; gap: 7px; max-height: 232px; overflow-y: auto; }
+    .sm-close { width: 100%; margin-top: 14px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 11px; padding: 12px; font-size: 13px; font-weight: 800; font-family: inherit; cursor: pointer; }
 
     /* ── 찬조 위저드 (질문 → 답 방식) ── */
     .dw-overlay {
@@ -1596,6 +1607,16 @@
       <button class="wl-btn cancel" onclick="closeWlSeatSheet()">취소</button>
     </div>
   </div>
+  <!-- ══════════════════════════ SHEET: 참가자 취소 / 대기자 교체 (관리자) ══════════════════════════ -->
+  <div class="sheet-overlay" id="sheet-seat-manage" onclick="if(event.target===this) closeSeatManage()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">참가자 관리</div>
+      <div class="sheet-subtitle" id="sm-sub">신청을 취소하거나 대기자로 교체합니다</div>
+      <div id="sm-body"></div>
+      <button class="sm-close" onclick="closeSeatManage()">닫기</button>
+    </div>
+  </div>
 
   <!-- ══════════════════════════ 찬조 위저드 ══════════════════════════ -->
   <div class="dw-overlay" id="dw-overlay">
@@ -2571,6 +2592,7 @@ window.openDetail = function(tournamentId) {
       allWaitlist = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       myWaitlist = (currentUser && allWaitlist.find(w => w.userId === currentUser.uid)) || null;
       renderWaitlistSection(t);
+      refreshSeatManage();
     },
     (err) => { console.error('waitlist onSnapshot error:', err); }
   );
@@ -2583,6 +2605,7 @@ window.openDetail = function(tournamentId) {
       myRegistration = (currentUser && allRegistrations.find(r => r.userId === currentUser.uid)) || null;
       renderSeatMap(t, allRegistrations);
       renderWaitlistSection(t);
+      refreshSeatManage();
       updateCardProgress(t.id, allRegistrations.length, t.totalParticipants || 0);
       // 조편성 모달이 열려 있으면 함께 갱신
       if (document.getElementById('pairing-overlay').classList.contains('open')) {
@@ -2759,6 +2782,7 @@ function renderDetailHeader(t) {
 
     <div class="seat-map-section">
       <div class="seat-map-title">${t.tournamentType === 'screen' ? '참가 신청' : '좌석 선택'} <span>— 자리를 선택해 신청하세요</span></div>
+      ${isAdmin ? '<div class="wl-sub" style="margin:-6px 0 10px;">관리자 — 신청된 자리를 누르면 취소하거나 대기자로 교체할 수 있습니다</div>' : ''}
 
       <div class="seat-legend">
         <div class="legend-item"><div class="legend-dot available"></div>신청 가능</div>
@@ -2839,8 +2863,12 @@ function renderSeatGrid(t, registrations, _courseIdx) {
       }
 
       const clickable = !reg && !isMine && t.status === 'recruiting';
-      const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
-      html += `<div class="screen-slot ${cls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>
+      // 관리자는 이미 찬 자리를 눌러 취소 / 대기자 교체를 할 수 있다
+      const adminSeat = isAdmin && !!reg;
+      const onclick = adminSeat
+        ? `window.openSeatManage('${reg.id}')`
+        : (clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '');
+      html += `<div class="screen-slot ${cls} ${adminSeat ? 'admin-editable' : ''} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>
         <span class="slot-num">${i + 1}번</span>
         <span class="slot-body">${content}</span>
       </div>`;
@@ -2916,9 +2944,13 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         }
 
         const clickable = !reg && !isMine && t.status === 'recruiting';
-        const onclick = clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '';
+        // 관리자는 이미 찬 자리를 눌러 취소 / 대기자 교체를 할 수 있다
+        const adminSeat = isAdmin && !!reg;
+        const onclick = adminSeat
+          ? `window.openSeatManage('${reg.id}')`
+          : (clickable ? `window.selectSeat(${ci},${cartIdx},${seatIdx})` : '');
         const teamCls = isBW ? (seatIdx < 2 ? 'heuk' : 'baek') : '';
-        allHtml += `<div class="seat ${cls} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
+        allHtml += `<div class="seat ${cls} ${teamCls} ${adminSeat ? 'admin-editable' : ''} ${(gm && gm.st) ? 'gc-star' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>${content}</div>`;
       }
       allHtml += `</div></div>`;
     }
@@ -3395,6 +3427,146 @@ window.deleteWaitlist = function(id) {
       showToast('삭제에 실패했습니다');
     }
   });
+};
+
+// ══════════════════════ 관리자 — 참가 취소 / 대기자 교체 ══════════════════════
+// 모집중 화면의 좌석표에서 이미 신청된 자리를 누르면 열린다.
+// ① 그냥 신청 취소(자리 비우기)  ② 취소와 동시에 대기자를 그 자리에 넣기(교체)
+// 교체는 "취소 → 대기자 배정" 두 단계를 한 번에 처리해 자리가 비는 순간을 없앤다.
+
+let _seatManageTarget = null;   // registrations 문서 id
+
+window.openSeatManage = function(regId) {
+  if (!isAdmin || !currentTournament) return;
+  _seatManageTarget = regId;
+  if (!renderSeatManage()) return;
+  document.getElementById('sheet-seat-manage').classList.add('open');
+};
+
+window.closeSeatManage = function() {
+  document.getElementById('sheet-seat-manage').classList.remove('open');
+  _seatManageTarget = null;
+};
+
+// 실시간 갱신 — 시트가 열려 있는 동안 참가자/대기자가 바뀌면 다시 그린다.
+// 대상 참가자가 사라졌으면(취소·교체 완료) 조용히 닫는다.
+function refreshSeatManage() {
+  const sheet = document.getElementById('sheet-seat-manage');
+  if (!sheet || !sheet.classList.contains('open')) return;
+  if (!renderSeatManage()) closeSeatManage();
+}
+
+function renderSeatManage() {
+  const t = currentTournament;
+  const body = document.getElementById('sm-body');
+  if (!t || !body || !_seatManageTarget) return false;
+
+  const reg = (allRegistrations || []).find(r => r.id === _seatManageTarget);
+  if (!reg) return false;
+
+  const label = seatLabelFor(t, reg.courseIndex, reg.cartIndex, reg.seatIndex);
+  const kind  = reg.isKeep ? '킵' : reg.isManual ? '추가 인원' : '신청자';
+  const meta  = [
+    kind,
+    (reg.handicap || reg.handicap === 0) ? 'H' + reg.handicap : '',
+    reg.phone || '',
+    (t.lotteryAssigned && reg.lotteryNum) ? '추첨 ' + reg.lotteryNum + '번' : '',
+    reg.paid ? '입금 확인' : ''
+  ].filter(Boolean).join(' · ');
+
+  document.getElementById('sm-sub').textContent = label;
+
+  const rows = sortedWaitlist();
+  const picks = rows.length
+    ? rows.map((w, i) => {
+        const wmeta = [
+          (w.handicap || w.handicap === 0) ? 'H' + w.handicap : '',
+          w.phone || '', w.memo || ''
+        ].filter(Boolean).join(' · ');
+        return `<button type="button" class="wl-pick" onclick="window.replaceSeatWithWaitlist('${w.id}')">
+          <span class="wl-pick-no">${i + 1}</span>
+          <span class="wl-pick-name">${escHtml(w.name || '-')}</span>
+          <span class="wl-pick-meta">${escHtml(wmeta)}</span>
+          <span class="wl-pick-go">이 자리로 →</span>
+        </button>`;
+      }).join('')
+    : `<div class="wl-empty">대기자가 없습니다.<br>취소만 하면 자리가 빈자리로 남습니다.</div>`;
+
+  body.innerHTML = `
+    <div class="sm-card">
+      <span class="sm-card-seat">${escHtml(label)}</span>
+      <span class="sm-card-info">
+        <span class="sm-card-name">${escHtml(reg.name || '-')}</span>
+        <span class="sm-card-meta">${escHtml(meta)}</span>
+      </span>
+    </div>
+    <button class="wl-btn cancel" onclick="window.cancelSeatReg()">신청 취소하고 자리 비우기</button>
+
+    <div class="sm-title">대기자로 교체 (대기 ${rows.length}명)</div>
+    <div class="sm-sub">누르면 위 참가자의 신청을 취소하고, 그 대기자를 이 자리에 참가자로 넣습니다.</div>
+    <div class="sm-list">${picks}</div>
+  `;
+  return true;
+}
+
+// ① 취소만 — 자리를 빈자리로 되돌린다
+window.cancelSeatReg = function() {
+  if (!isAdmin || !_seatManageTarget) return;
+  window._removeReg(_seatManageTarget);
+};
+
+// ② 교체 — 참가 취소 + 대기자를 같은 자리에 배정 + 대기 목록에서 제거
+window.replaceSeatWithWaitlist = function(waitId) {
+  if (!isAdmin || !currentTournament || !_seatManageTarget) return;
+  const t = currentTournament;
+  const reg = (allRegistrations || []).find(r => r.id === _seatManageTarget);
+  const w   = allWaitlist.find(x => x.id === waitId);
+  if (!reg) { showToast('참가자 정보를 찾지 못했습니다'); closeSeatManage(); return; }
+  if (!w)   { showToast('대기자 정보를 찾지 못했습니다'); return; }
+
+  // 같은 계정으로 이미 다른 자리에 신청돼 있으면 중복 등록 방지
+  if (w.userId && (allRegistrations || []).some(r => r.userId === w.userId && r.id !== reg.id)) {
+    showToast('이미 참가 신청이 되어 있는 분입니다');
+    return;
+  }
+
+  const ci = reg.courseIndex, ca = reg.cartIndex, si = reg.seatIndex;
+  const label   = seatLabelFor(t, ci, ca, si);
+  const outName = reg.name || '참가자';
+  const who     = w.name || '대기자';
+
+  openConfirm('대기자로 교체',
+    `${label} 자리의 "${outName}" 님 신청을 취소하고, 대기자 "${who}" 님을 그 자리에 넣습니다. 되돌릴 수 없습니다.`,
+    async () => {
+      const entry = {
+        userId: w.userId || '',
+        name: getUniqueName(who, (allRegistrations || []).filter(r => r.id !== reg.id).map(r => r.name)),
+        phone: w.phone || '',
+        handicap: (w.handicap || w.handicap === 0) ? w.handicap : null,
+        courseIndex: ci, cartIndex: ca, seatIndex: si,
+        fromWaitlist: true,
+        registeredAt: serverTimestamp(),
+      };
+      if (w.memo) entry.memo = w.memo;
+      // 계정 없이 등록된 대기자는 수동 추가 인원으로 취급 (내 신청 매칭이 불가하므로)
+      if (!w.userId) entry.isManual = true;
+      // 추첨 번호가 이미 부여된 대회면 그 자리의 번호를 그대로 물려준다
+      if (t.lotteryAssigned && reg.lotteryNum) entry.lotteryNum = reg.lotteryNum;
+
+      try {
+        // 세 번의 쓰기를 한 배치로 — 중간에 실패해 자리가 붕 뜨는 상태를 만들지 않는다
+        const batch = writeBatch(db);
+        batch.delete(doc(db, 'tournaments', t.id, 'registrations', reg.id));
+        batch.set(doc(collection(db, 'tournaments', t.id, 'registrations')), entry);
+        batch.delete(doc(db, 'tournaments', t.id, 'waitlist', waitId));
+        await batch.commit();
+        showToast(`${label} — ${outName} → ${who} 교체 완료`);
+        closeSeatManage();
+      } catch (e) {
+        console.error(e);
+        showToast('교체 오류: ' + e.message);
+      }
+    });
 };
 
 // ══════════════════════════ 찬조 (누구나 입력) ══════════════════════════
