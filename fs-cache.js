@@ -18,15 +18,21 @@ import {
 // 그래서 캐시를 켜 놓고도 화면은 매번 네트워크 왕복만큼 비어 있었다.
 // → 기기에 남아 있는 결과로 먼저 그리고(수 ms), 서버 결과가 오면 한 번 더 그린다.
 //   paint 는 두 번 불려도 같은 결과가 나오게(innerHTML 교체 방식) 짜야 한다.
+const snapSig = (snap) => {
+  try { return snap.docs.map(d => d.id + ':' + JSON.stringify(d.data())).join('|'); }
+  catch (_) { return null; }
+};
+
 export async function getDocsSWR(q, paint) {
-  let painted = false;
+  let painted = false, sig = null;
   try {
     const cached = await getDocsFromCache(q);
-    if (!cached.empty) { paint(cached, true); painted = true; }
+    if (!cached.empty) { paint(cached, true); painted = true; sig = snapSig(cached); }
   } catch (_) {}
   try {
     const fresh = await getDocs(q);
-    paint(fresh, false);
+    // 서버 결과가 캐시와 똑같으면 다시 그리지 않는다 (사진 깜빡임·중복 애니메이션 방지)
+    if (!painted || sig === null || snapSig(fresh) !== sig) paint(fresh, false);
     return fresh;
   } catch (e) {
     if (!painted) throw e;   // 캐시로라도 그렸으면 조용히 그 화면을 유지

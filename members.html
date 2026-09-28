@@ -253,7 +253,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { makeDb } from "./fs-cache.js";
+import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   // limit을 별칭으로 사용 (내부 변수명 충돌 방지용)
 
   const app = initializeApp({
@@ -271,11 +271,13 @@ import { makeDb } from "./fs-cache.js";
   const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
     ? { uid: _ggzonKakao.uid } : null;
 
+  // 랭킹은 로그인 확인과 동시에 불러온다 (카카오 회원도 읽는 공개 데이터). 예전엔 로그인 확인이
+  // 끝난 뒤에야 요청을 보냈다. 카카오 회원은 이미 로그인 상태가 확실하니 오버레이도 바로 걷는다.
   onAuthStateChanged(auth, (user) => {
     document.getElementById('loading-overlay').classList.add('hidden');
     if (!user && !_kakaoFbUser) { window.location.href = 'login.html?auto=1&return=members.html'; return; }
-    loadPlayers();
   });
+  if (_kakaoFbUser) document.getElementById('loading-overlay').classList.add('hidden');
 
   // 골슐랭스타 데이터 (golchelin-star.html 동기화)
   const GOLCHELIN = {
@@ -286,6 +288,7 @@ import { makeDb } from "./fs-cache.js";
 
   let allPlayers = [];
   const PAGE = 10;
+  let _topHintDone = false;
 
   // 랭킹 반영 최소 경기 수. 이보다 적게 친 멤버는 순위 번호 없이(흐리게) 자리만 지키고,
   // 순위 번호는 5경기 이상인 멤버끼리만 1위부터 순서대로 매긴다.
@@ -409,7 +412,7 @@ import { makeDb } from "./fs-cache.js";
     const el   = document.getElementById('player-list');
     const note = document.getElementById('rank-note');
     try {
-      const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(200)));
+      await getDocsSWR(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(200)), snap => {
       allPlayers = snap.docs
         .map(d => ({ uid: d.id, ...d.data() }))
         .filter(u => u.roundCount > 0 && typeof u.handicap === 'number');
@@ -429,7 +432,8 @@ import { makeDb } from "./fs-cache.js";
 
       // 1위 자동 드롭다운 힌트 (1~2초 후 펼쳐서 클릭 유도)
       const topRanked = allPlayers.find(u => u._rank === 1) || allPlayers[0];
-      if (topRanked) {
+      if (topRanked && !_topHintDone) {
+        _topHintDone = true;
         const first = topRanked;
         setTimeout(() => {
           window.toggleDrop(first.uid, `drop-${first.uid}`, `card-${first.uid}`);
@@ -446,6 +450,7 @@ import { makeDb } from "./fs-cache.js";
       }
 
       note.textContent = `스코어 제출 시 자동 업데이트 · 최근 10경기 평균 기준\n${MIN_ROUNDS}경기 이상부터 순위가 매겨집니다 (미만은 번호 없이 표시)`;
+      });
     } catch(e) {
       el.innerHTML = '<div class="empty-msg">불러오기 실패<br>잠시 후 다시 시도해주세요</div>';
       note.textContent = '';
@@ -457,6 +462,8 @@ import { makeDb } from "./fs-cache.js";
     renderList(allPlayers, el);
     document.getElementById('load-more-btn').style.display = 'none';
   };
+
+  loadPlayers();   // 모듈 끝에서 시작 — 위의 상수·변수가 모두 준비된 뒤
 </script>
 <script src="/ptr.js"></script>
 </body>

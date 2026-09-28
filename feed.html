@@ -227,7 +227,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { makeDb } from "./fs-cache.js";
+import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
 const CLOUDINARY_CLOUD = 'da9tzfmg0';
 const CLOUDINARY_PRESET = 'GG ZON';
 
@@ -281,10 +281,12 @@ function showFeedNow() {
   document.getElementById('loading-overlay').classList.add('hidden');
 }
 
+let _feedScrolled = false;
 async function loadFeed() {
   const el = document.getElementById('feed-list');
   try {
-    const snap = await getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20)));
+    // 기기 캐시의 피드로 먼저 그리고, 서버 결과가 다르면 다시 그린다
+    await getDocsSWR(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20)), snap => {
     if (snap.empty) {
       showFeedNow();
       el.innerHTML = '<div class="feed-empty">아직 올라온 사진이 없습니다.<br>첫 번째 사진을 올려보세요!</div>';
@@ -363,10 +365,12 @@ async function loadFeed() {
     }
     // 대시보드 그리드에서 특정 포스트로 진입 시 스크롤
     const targetId = new URLSearchParams(location.search).get('post');
-    if (targetId) {
+    if (targetId && !_feedScrolled) {
+      _feedScrolled = true;
       const target = document.getElementById('post-' + targetId);
       if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
+    });
   } catch(e) {
     console.error('[GGLOG 로드 에러]', e);
     showFeedNow();

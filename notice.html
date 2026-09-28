@@ -248,7 +248,7 @@
     getFirestore, collection, query, orderBy, getDocs,
     addDoc, doc, updateDoc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { makeDb } from "./fs-cache.js";
+import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
 
   const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
@@ -285,7 +285,7 @@ import { makeDb } from "./fs-cache.js";
   async function load() {
     const el = document.getElementById('notice-list');
     try {
-      const snap = await getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc')));
+      await getDocsSWR(query(collection(db, 'notices'), orderBy('createdAt', 'desc')), snap => {
       document.getElementById('loading-overlay').classList.add('hidden');
       notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (notices.length === 0) {
@@ -315,6 +315,7 @@ import { makeDb } from "./fs-cache.js";
           </div>
         </div>`;
       }).join('');
+      });
     } catch (e) {
       document.getElementById('loading-overlay').classList.add('hidden');
       el.innerHTML = '<div class="empty">불러오기 실패</div>';
