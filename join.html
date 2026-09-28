@@ -782,6 +782,10 @@
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
       font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6);
     }
+    .guest-chip.member {
+      background: rgba(62,160,102,0.12); border-color: rgba(62,160,102,0.35); color: var(--green-light);
+    }
+    .ac-item .ac-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: 6px; }
     .guest-chip-remove {
       background: none; border: none; color: rgba(255,255,255,0.3);
       cursor: pointer; padding: 0; font-size: 15px; line-height: 1;
@@ -922,6 +926,16 @@
       </div>
 
       <div class="admin-form-group">
+        <label class="admin-label">멤버 지정 (회원)</label>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);margin:-2px 0 8px;line-height:1.5;">단톡방 등에서 미리 구한 멤버를 먼저 넣어두세요. 남은 자리만 모집됩니다.</div>
+        <div class="ac-wrap">
+          <input class="admin-input" id="admin-member-input" placeholder="회원 이름 검색" autocomplete="off" oninput="window.searchMember()" />
+          <div class="ac-list" id="ac-member" style="display:none;"></div>
+        </div>
+        <div class="guest-chips" id="member-chips"></div>
+      </div>
+
+      <div class="admin-form-group">
         <label class="admin-label">게스트 추가 (비회원)</label>
         <div class="guest-input-row">
           <input class="admin-input" id="admin-guest-input" placeholder="게스트 이름 입력" style="flex:1;" autocomplete="off" />
@@ -1045,6 +1059,7 @@ let currentFilter = 'all';
 let editingId = null;
 let isPaidUser = false;
 let guestList = [];
+let memberList = [];   // 주최자가 미리 지정한 회원 [{uid, name, joinedAt?}]
 
 // ── 아이콘 SVG ──────────────────────
 const icons = {
@@ -2082,10 +2097,16 @@ window.openAdminModal = function(id) {
   if (id) {
     const j = joins.find(x => x.id === id);
     guestList = (j?.participants || []).filter(p => p.isGuest).map(p => p.name);
+    memberList = (j?.participants || []).filter(p => p.addedByHost && !p.isGuest)
+      .map(p => ({ uid: p.uid, name: p.name, joinedAt: p.joinedAt }));
   } else {
     guestList = [];
+    memberList = [];
   }
   renderGuestChips();
+  document.getElementById('admin-member-input').value = '';
+  document.getElementById('ac-member').style.display = 'none';
+  renderMemberChips();
   document.getElementById('admin-overlay').classList.add('open');
 };
 
@@ -2116,6 +2137,81 @@ function renderGuestChips() {
     `<div class="guest-chip">${name}<button class="guest-chip-remove" onclick="window.removeGuest(${i})">×</button></div>`
   ).join('');
 }
+
+// ── 멤버 지정 (회원 검색) ─────────────────────────────
+// 단톡방에서 이미 구한 멤버를 방 개설 시 바로 넣어, 모르는 사람이 먼저 참여를 누르는 일을 막는다.
+// 실제 회원 uid 로 들어가므로 포인트·스코어도 일반 참가자와 똑같이 처리된다.
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let memberSearchTimer = null;
+let memberSearchSeq = 0;
+let memberResults = [];
+
+window.searchMember = function() {
+  clearTimeout(memberSearchTimer);
+  const q = document.getElementById('admin-member-input').value.trim();
+  const box = document.getElementById('ac-member');
+  if (!q) { box.style.display = 'none'; return; }
+  memberSearchTimer = setTimeout(async () => {
+    const seq = ++memberSearchSeq;
+    try {
+      const byField = f => getDocs(query(collection(db, 'users'), where(f, '>=', q), where(f, '<=', q + ''), limit(10)));
+      const snaps = await Promise.all([byField('name'), byField('nickname')].map(p => p.catch(() => null)));
+      if (seq !== memberSearchSeq) return;
+      const map = new Map();
+      snaps.forEach(snap => snap && snap.forEach(d => {
+        const u = d.data();
+        const name = u.name || u.nickname;
+        if (name) map.set(d.id, { uid: d.id, name, nickname: u.nickname && u.nickname !== name ? u.nickname : '' });
+      }));
+      memberResults = [...map.values()].slice(0, 10);
+      if (!memberResults.length) {
+        box.innerHTML = '<div class="ac-item" style="color:rgba(255,255,255,0.4);cursor:default;">검색 결과가 없습니다 (비회원은 게스트로 추가)</div>';
+      } else {
+        box.innerHTML = memberResults.map((u, i) =>
+          `<div class="ac-item" onclick="window.pickMember(${i})">${escHtml(u.name)}${u.nickname ? `<span class="ac-sub">${escHtml(u.nickname)}</span>` : ''}</div>`
+        ).join('');
+      }
+      box.style.display = 'block';
+    } catch (e) {
+      box.style.display = 'none';
+    }
+  }, 250);
+};
+
+window.pickMember = function(idx) {
+  const u = memberResults[idx];
+  if (!u) return;
+  const box = document.getElementById('ac-member');
+  const input = document.getElementById('admin-member-input');
+  box.style.display = 'none';
+  input.value = '';
+  const isEmptyRoom = document.getElementById('admin-empty-room').value === '1';
+  if (!editingId && !isEmptyRoom && u.uid === currentUser?.uid) { showToast('주최자는 이미 참석자에 포함돼요'); return; }
+  if (memberList.some(m => m.uid === u.uid)) { showToast('이미 지정된 멤버입니다'); return; }
+  if (editingId) {
+    const j = joins.find(x => x.id === editingId);
+    if ((j?.participants || []).some(p => p.uid === u.uid && !p.addedByHost)) { showToast('이미 참여 중인 회원입니다'); return; }
+  }
+  memberList.push({ uid: u.uid, name: u.name });
+  renderMemberChips();
+};
+
+window.removeMember = function(idx) {
+  memberList.splice(idx, 1);
+  renderMemberChips();
+};
+
+function renderMemberChips() {
+  const el = document.getElementById('member-chips');
+  el.innerHTML = memberList.map((m, i) =>
+    `<div class="guest-chip member">${escHtml(m.name)}<button class="guest-chip-remove" onclick="window.removeMember(${i})">×</button></div>`
+  ).join('');
+}
+
+document.addEventListener('click', e => {
+  const box = document.getElementById('ac-member');
+  if (box && !e.target.closest('#ac-member') && e.target.id !== 'admin-member-input') box.style.display = 'none';
+});
 
 window.toggleEmptyRoom = function() {
   const btn = document.getElementById('toggle-empty-room');
@@ -2222,30 +2318,49 @@ window.saveJoin = async function() {
     joinedAt: new Date().toISOString(),
   }));
 
+  // 주최자가 지정한 회원 entries (동명이인은 홍길동2 식으로 구분)
+  const buildMemberEntries = (takenNames) => memberList.map(m => {
+    const name = getUniqueName(m.name, takenNames);
+    takenNames.push(name);
+    return { uid: m.uid, name, addedByHost: true, joinedAt: m.joinedAt || new Date().toISOString() };
+  });
+
   try {
     if (editingId) {
-      // 수정 시: 기존 일반 참여자 유지, 게스트만 교체
+      // 수정 시: 직접 참여한 일반 참여자 유지, 지정 멤버·게스트는 폼 내용으로 교체
       const joinSnap = await getDoc(doc(db, 'joins', editingId));
       const existing = joinSnap.exists() ? (joinSnap.data().participants || []) : [];
-      const regularParticipants = existing.filter(p => !p.isGuest);
-      data.participants = [...regularParticipants, ...guestEntries];
+      const memberUids = new Set(memberList.map(m => m.uid));
+      const selfJoined = existing.filter(p => !p.isGuest && !p.addedByHost && !memberUids.has(p.uid));
+      const memberEntries = buildMemberEntries(selfJoined.map(p => p.name));
+      data.participants = [...selfJoined, ...memberEntries, ...guestEntries];
+      if (data.participants.length > data.capacity) {
+        showToast(`참석 인원(${data.capacity}명)보다 참가자가 많아요 (${data.participants.length}명)`); return;
+      }
       await updateDoc(doc(db, 'joins', editingId), data);
       showToast('조인이 수정되었습니다');
     } else {
       data.createdAt = serverTimestamp();
       const isEmptyRoom = document.getElementById('admin-empty-room').value === '1';
       if (isEmptyRoom) {
-        data.participants = [...guestEntries];
+        const memberEntries = buildMemberEntries([]);
+        data.participants = [...memberEntries, ...guestEntries];
       } else {
         let creatorName = currentUser.displayName || '';
         try {
           const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
           if (userSnap.exists()) creatorName = userSnap.data().name || userSnap.data().nickname || creatorName;
         } catch (_) {}
+        const hostName = creatorName || (currentUser.email || '').split('@')[0] || '골퍼';
+        const memberEntries = buildMemberEntries([hostName]);
         data.participants = [
-          { uid: currentUser.uid, name: creatorName || (currentUser.email || '').split('@')[0] || '골퍼', joinedAt: new Date().toISOString() },
+          { uid: currentUser.uid, name: hostName, joinedAt: new Date().toISOString() },
+          ...memberEntries.filter(m => m.uid !== currentUser.uid),
           ...guestEntries,
         ];
+      }
+      if (data.participants.length > data.capacity) {
+        showToast(`참석 인원(${data.capacity}명)보다 참가자가 많아요 (${data.participants.length}명)`); return;
       }
       await addDoc(collection(db, 'joins'), data);
       showToast('조인이 만들어졌습니다!');
