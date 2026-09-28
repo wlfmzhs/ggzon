@@ -470,7 +470,7 @@ async function loadJoins() {
       </div>
       <div class="member-info">${j.date} · ${j.time} · ${participants.length}/${j.capacity}명</div>
       ${participants.map(p => `<div class="member-phone" style="margin-top:4px;">
-        ${p.name}${participants[0]?.uid === p.uid ? ' (주최자)' : ''}
+        ${p.name}${((j.hostUid && participants.some(x => x.uid === j.hostUid)) ? j.hostUid : participants[0]?.uid) === p.uid ? ' (주최자)' : ''}
         ${p.phone ? ` · <a href="tel:${p.phone}" style="color:var(--green-light);text-decoration:none;">📞 ${p.phone}</a>` : ''}
       </div>`).join('')}
     </div>`;

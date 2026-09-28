@@ -1543,7 +1543,7 @@ function renderPartySheet() {
     `${_partyJoin.course || '조인'} · ${players.length}${_partyJoin.capacity ? '/' + _partyJoin.capacity : ''}명 — 한 조는 최대 ${PARTY_MAX}명입니다. ` +
     `✕ 로 인원을 빼고, ＋킵 으로 섭외한 멤버 자리를 미리 잡아둘 수 있습니다.`;
 
-  const hostUid = (players[0] || {}).uid;
+  const hostUid = hostUidOf(_partyJoin);
   const rowHtml = (p) => {
     const cur = _partyAssign[p.uid];
     const isHost = p.uid === hostUid;
@@ -1605,7 +1605,7 @@ window.partyRemove = function(uid) {
   const players = _partyJoin.participants || [];
   const p = players.find(x => x.uid === uid);
   if (!p) return;
-  if (players[0] && players[0].uid === uid) { showToast('주최자는 뺄 수 없습니다'); return; }
+  if (uid === hostUidOf(_partyJoin)) { showToast('주최자는 뺄 수 없습니다'); return; }
 
   const what = p.isKeep ? '킵' : p.isGuest ? '게스트' : '참가자';
   showConfirm(what + ' 빼기', `"${p.name}" 님을 이 조인에서 뺍니다.`, async () => {
@@ -1840,13 +1840,22 @@ function buildPanelTable(players, scores, from, to) {
 
 // 참석자 칩. 조가 편성돼 있으면 1조부터 차례로 줄을 나눠 보여준다.
 // (칩 그리드가 4칸이라 한 조 4명이 정확히 한 줄에 들어온다)
+// 주최자. 예전엔 명단 맨 앞 사람 = 주최자였는데, 칩 순서를 바꿀 수 있게 되면서
+// 순서를 처음 바꿀 때 hostUid 로 따로 저장해 둔다. (hostUid 가 없거나 이미 빠진 사람이면 맨 앞 사람)
+function hostUidOf(j) {
+  const ps = (j && j.participants) || [];
+  if (j && j.hostUid && ps.some(p => p.uid === j.hostUid)) return j.hostUid;
+  return ps[0]?.uid;
+}
+
 // 주최자·관리자는 칩을 꾹 눌러(0.45초) 끌면 순서를 바꿀 수 있다 (같은 줄/조 안에서만).
 function buildParticipantChips(j, participants) {
-  const canReorder = currentUser && j.status !== 'closed' && participants.length > 2 &&
-    (isAdmin || j.creatorUid === currentUser.uid || participants[0]?.uid === currentUser.uid);
+  const hostUid = hostUidOf(j);
+  const canReorder = currentUser && j.status !== 'closed' && participants.length > 1 &&
+    (isAdmin || j.creatorUid === currentUser.uid || hostUid === currentUser.uid);
   const box = (grp, inner) =>
     `<div class="participant-chips${canReorder ? ' reorderable' : ''}" data-jid="${j.id}" data-grp="${grp}">${inner}</div>`;
-  const chip = (p, i) => {
+  const chip = (p) => {
     const isMe     = currentUser && p.uid === currentUser.uid;
     const isKeep   = p.isKeep === true;
     const isGuest  = p.isGuest === true && !isKeep;
@@ -1854,17 +1863,15 @@ function buildParticipantChips(j, participants) {
     const click    = canView ? `onclick="window.viewParticipant('${j.id}','${p.uid}')"` : '';
     const style    = canView ? 'cursor:pointer;' : '';
     const chipClass = isKeep ? ' keep' : isMe ? ' me' : isGuest ? ' guest' : '';
-    const label    = p.name + (i === 0 ? ' ★' : '') + (isKeep ? ' 킵' : isGuest ? ' G' : '');
-    const lock     = i === 0 ? ' data-lock="1"' : '';   // 주최자는 항상 맨 앞(★) — 움직이지 않음
-    return `<span class="participant-name-chip${chipClass}" data-uid="${p.uid}"${lock} ${click} style="${style}">${label}</span>`;
+    const label    = p.name + (p.uid === hostUid ? ' ★' : '') + (isKeep ? ' 킵' : isGuest ? ' G' : '');
+    return `<span class="participant-name-chip${chipClass}" data-uid="${p.uid}" ${click} style="${style}">${label}</span>`;
   };
 
   const parts = (Array.isArray(j.parties) ? j.parties : []).filter(g => ((g || {}).uids || []).length);
   if (!parts.length) {
-    return box('all', participants.map((p, i) => chip(p, i)).join(''));
+    return box('all', participants.map(chip).join(''));
   }
 
-  const idxOf = new Map(participants.map((p, i) => [p.uid, i]));   // ★(주최자) 표시는 원래 순서 기준
   const used  = new Set();
   let html = '';
   parts.forEach((g, gi) => {
@@ -1874,14 +1881,14 @@ function buildParticipantChips(j, participants) {
     members.forEach(p => used.add(p.uid));
     html += `<div class="pgrp">
       <div class="pgrp-tag">${g.name || `${gi + 1}조`}<span class="pgrp-num">${members.length}명</span></div>
-      ${box(pi, members.map(p => chip(p, idxOf.get(p.uid))).join(''))}
+      ${box(pi, members.map(chip).join(''))}
     </div>`;
   });
   const rest = participants.filter(p => !used.has(p.uid));
   if (rest.length) {
     html += `<div class="pgrp">
       <div class="pgrp-tag unassigned">미배정<span class="pgrp-num">${rest.length}명</span></div>
-      ${box('rest', rest.map(p => chip(p, idxOf.get(p.uid))).join(''))}
+      ${box('rest', rest.map(chip).join(''))}
     </div>`;
   }
   return html;
@@ -1900,7 +1907,7 @@ function buildParticipantChips(j, participants) {
   };
   document.addEventListener('pointerdown', e => {
     const chip = e.target.closest('.participant-chips.reorderable .participant-name-chip');
-    if (!chip || chip.dataset.lock || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if (!chip || (e.pointerType === 'mouse' && e.button !== 0)) return;
     reset();
     st = { chip, box: chip.parentElement, x: e.clientX, y: e.clientY, dragging: false };
     st.timer = setTimeout(() => {
@@ -1919,7 +1926,7 @@ function buildParticipantChips(j, participants) {
     }
     e.preventDefault();
     const over = document.elementFromPoint(e.clientX, e.clientY)?.closest('.participant-name-chip');
-    if (!over || over === st.chip || over.parentElement !== st.box || over.dataset.lock) return;
+    if (!over || over === st.chip || over.parentElement !== st.box) return;
     const kids = [...st.box.children];
     st.box.insertBefore(st.chip, kids.indexOf(over) > kids.indexOf(st.chip) ? over.nextSibling : over);
   }, { passive: false });
@@ -1951,15 +1958,19 @@ async function saveChipOrder(jid, grp, order) {
       if (!snap.exists()) throw new Error('조인을 찾을 수 없어요');
       const d = snap.data();
       if (grp === 'all' || grp === 'rest') {
-        // 칩으로 보인 사람들의 자리만 새 순서로 채운다. 주최자(맨 앞)와 그사이 새로 들어온 사람 자리는 그대로.
+        // 칩으로 보인 사람들의 자리만 새 순서로 채운다. 그사이 새로 들어온 사람 자리는 그대로.
         const parts = (d.participants || []).slice();
         const byUid = new Map(parts.map(p => [p.uid, p]));
-        const seq   = order.filter(u => byUid.has(u) && parts[0].uid !== u);
+        const seq   = order.filter(u => byUid.has(u));
         const set   = new Set(seq);
         const slots = parts.map((p, i) => set.has(p.uid) ? i : -1).filter(i => i >= 0);
+        const patch = {};
+        // 맨 앞 자리가 바뀌어도 주최자가 넘어가지 않도록, 처음 바꿀 때 원래 주최자를 고정해 둔다
+        if (!d.hostUid && parts[0]) patch.hostUid = parts[0].uid;
         slots.forEach((pos, k) => { parts[pos] = byUid.get(seq[k]); });
-        tx.update(ref, { participants: parts });
-        return { participants: parts };
+        patch.participants = parts;
+        tx.update(ref, patch);
+        return patch;
       }
       const parties = (d.parties || []).map(g => ({ ...g, uids: (g.uids || []).slice() }));
       const g = parties[Number(grp)];
@@ -2010,7 +2021,7 @@ function buildCard(j) {
   if (alreadyJoined) { joinBtnText = '✓ 참여중 (취소)'; joinBtnClass += ' joined'; }
   else if (isFull)   { joinBtnText = '마감'; joinBtnClass += ' full'; }
 
-  const isAuthor = currentUser && (j.creatorUid === currentUser.uid || (j.participants?.[0]?.uid === currentUser.uid));
+  const isAuthor = currentUser && (j.creatorUid === currentUser.uid || hostUidOf(j) === currentUser.uid);
   // 4명 이하(카트 1대)는 나눌 게 없으므로 조 편성 버튼을 안 보여준다
   const canParty = (isAdmin || isAuthor) && participants.length > 4;
   const adminRow = (isAdmin || isAuthor) ? `
@@ -2440,6 +2451,14 @@ window.saveJoin = async function() {
       const selfJoined = existing.filter(p => !p.isGuest && !p.addedByHost && !memberUids.has(p.uid));
       const memberEntries = buildMemberEntries(selfJoined.map(p => p.name));
       data.participants = [...selfJoined, ...memberEntries, ...guestEntries];
+      // 칩을 끌어서 정해둔 순서 유지 (게스트는 수정 때마다 uid 가 새로 생겨 이름으로 맞춘다)
+      const posOf = p => {
+        let k = existing.findIndex(x => x.uid === p.uid);
+        if (k < 0 && p.isGuest) k = existing.findIndex(x => x.isGuest && !x.isKeep && x.name === p.name);
+        return k < 0 ? Infinity : k;
+      };
+      data.participants = data.participants.map((p, k) => [posOf(p), k, p])
+        .sort((a, b) => (a[0] - b[0]) || (a[1] - b[1])).map(x => x[2]);
       if (data.participants.length > data.capacity) {
         showToast(`참석 인원(${data.capacity}명)보다 참가자가 많아요 (${data.participants.length}명)`); return;
       }
@@ -3159,7 +3178,7 @@ window.viewParticipant = function(joinId, uid) {
   if (!j) return;
   const p = (j.participants || []).find(x => x.uid === uid);
   if (!p) return;
-  const isHost = j.participants[0]?.uid === uid;
+  const isHost = hostUidOf(j) === uid;
   document.getElementById('participant-info-content').innerHTML = `
     <div style="margin-bottom:12px;">
       <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px;">이름</div>

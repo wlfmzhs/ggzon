@@ -123,9 +123,12 @@ service cloud.firestore {
         || (!isClosingJoin() && (
           (isAnyUser() && onlyAllowedJoinFields())
           || (isLoggedIn() && resource.data.creatorUid == request.auth.uid)
-          || (isLoggedIn() && resource.data.participants.size() > 0 && resource.data.participants[0].uid == request.auth.uid)
+          // 주최자: hostUid(참석자 순서를 바꾼 뒤 저장됨)가 있으면 그것, 없으면 명단 맨 앞 사람
+          || (isLoggedIn() && resource.data.get('hostUid', '') == request.auth.uid)
+          || (isLoggedIn() && !('hostUid' in resource.data) && resource.data.participants.size() > 0 && resource.data.participants[0].uid == request.auth.uid)
           || (isKakaoOwner(resource.data.creatorUid))
-          || (request.auth == null && resource.data.participants.size() > 0 && resource.data.participants[0].uid.matches('kakao_.+'))
+          || (request.auth == null && resource.data.get('hostUid', '').matches('kakao_.+'))
+          || (request.auth == null && !('hostUid' in resource.data) && resource.data.participants.size() > 0 && resource.data.participants[0].uid.matches('kakao_.+'))
         ));
 
       match /viewers/{viewerId} {
