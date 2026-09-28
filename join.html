@@ -2619,7 +2619,8 @@ async function readJoin(id) {
 
 // ── 마감 ─────────────────────────────────────────────
 window.confirmClose = function(id, name) {
-  showConfirm('조인 마감', `"${name}" 조인을 마감합니다.\n연결된 팀이 있다면 함께 마감되며, 입력된 스코어·포인트·랭킹이 자동 처리됩니다.`, async () => {
+  showConfirm('조인 마감', `"${name}" 조인을 마감합니다.\n연결된 팀이 있다면 함께 마감되며, 입력된 스코어·포인트·랭킹이 자동 처리됩니다.
+(티업 10시간이 지나면 이 과정이 자동으로 진행돼요)`, async () => {
     const { data: joinNow, error: readErr } = await readJoin(id);
     if (readErr) { showToast(closeErrorMessage(readErr)); return; }
     if (!joinNow) { showToast('이미 삭제된 조인입니다'); await loadJoins(); return; }

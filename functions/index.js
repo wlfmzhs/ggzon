@@ -246,3 +246,147 @@ export const expireCanceled = onSchedule(
     }
   }
 );
+
+// ───────────────────────────────────────────────────────────
+// 5) 30분마다 — 라운드 시작(티업) 10시간이 지난 조인 자동 마감 + 정산
+//    join.html 의 closeJoinAndAward 와 같은 규칙:
+//    스코어기록(scoreHistory)·핸디캡 갱신, 참여 +10P, 스코어 보너스, 월 4회 한도.
+//    참가자별 지급 원장(pointAwardedUids/scoreAwardedUids)으로 멱등 → 관리자 수동 마감과 겹쳐도 이중지급 없음.
+// ───────────────────────────────────────────────────────────
+const AUTO_CLOSE_AFTER_H = 10;
+
+const scoreBonusPts   = t => t < 0 ? 40 : t <= 5 ? 30 : t <= 9 ? 20 : t <= 15 ? 15 : 10;
+const scoreBonusLabel = t => t < 0 ? '언더파' : t <= 5 ? 'E~+5' : t <= 9 ? '+6~+9' : t <= 15 ? '+10~+15' : '+16이상';
+
+// 조인의 date(YYYY-MM-DD)·time(HH:MM)은 한국 시간
+function teeTimeOf(j) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(j.date || '')) return null;
+  const m = String(j.time || '').match(/(\d{1,2}):(\d{2})/);
+  const hhmm = m ? `${m[1].padStart(2, '0')}:${m[2]}` : '00:00';
+  const t = new Date(`${j.date}T${hhmm}:00+09:00`);
+  return isNaN(t) ? null : t;
+}
+
+function partyMembersOf(j, uid) {
+  const all   = j.participants || [];
+  const parts = (Array.isArray(j.parties) ? j.parties : []).filter(g => ((g || {}).uids || []).length);
+  if (!parts.length) return all;
+  const mine = parts.find(g => (g.uids || []).includes(uid));
+  if (!mine) {
+    const assigned = new Set(parts.flatMap(g => g.uids || []));
+    return all.filter(x => !assigned.has(x.uid));
+  }
+  return mine.uids.map(u => all.find(x => x.uid === u)).filter(Boolean);
+}
+
+async function ensureScoreHistory(j, joinId, p, holes, total) {
+  const histRef = db.doc(`users/${p.uid}/scoreHistory/${joinId}`);
+  if ((await histRef.get()).exists) return;
+  await histRef.set({
+    course: j.course || '', frontCourse: j.frontCourse || '', backCourse: j.backCourse || '',
+    date: j.date || '',
+    companions: partyMembersOf(j, p.uid).filter(x => x.uid !== p.uid).map(x => ({ name: x.name, uid: x.uid })),
+    totalScore: total, holes, parHoles: [], joinId,
+    submittedAt: FieldValue.serverTimestamp(),
+  });
+  try {
+    const all = await db.collection(`users/${p.uid}/scoreHistory`).orderBy('submittedAt', 'desc').get();
+    const scores = all.docs.map(d => d.data().totalScore ?? 0);
+    const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+    const recent10 = scores.slice(0, 10), recent3 = scores.slice(0, 3), prev3 = scores.slice(3, 6);
+    await db.doc(`users/${p.uid}`).update({
+      handicap: recent10.length ? Math.round(avg(recent10) * 10) / 10 : null,
+      bestScore: scores.length ? Math.min(...scores) : null,
+      roundCount: scores.length,
+      handicapTrend: (recent3.length === 3 && prev3.length === 3) ? Math.round((avg(recent3) - avg(prev3)) * 10) / 10 : null,
+      statsUpdatedAt: FieldValue.serverTimestamp(),
+    });
+  } catch (e) { logger.warn(`핸디캡 갱신 실패 uid=${p.uid}`, e); }
+}
+
+async function autoCloseOne(joinId) {
+  const ref = db.doc(`joins/${joinId}`);
+  // 상태 변경은 트랜잭션으로 — 이미 마감된 조인이면 건너뛴다
+  const j = await db.runTransaction(async tx => {
+    const s = await tx.get(ref);
+    if (!s.exists || s.data().status === 'closed') return null;
+    tx.update(ref, { status: 'closed', autoClosedAt: FieldValue.serverTimestamp() });
+    return s.data();
+  });
+  if (!j) return false;
+
+  const participants = j.participants || [];
+  const scores = j.scores || {};
+  const now = new Date().toISOString();
+  const hasLedger = Array.isArray(j.pointAwardedUids) || Array.isArray(j.scoreAwardedUids);
+  const legacy = !hasLedger && j.pointsAwarded === true;
+  const pointUids = new Set(j.pointAwardedUids || (legacy ? participants.map(p => p.uid) : []));
+  const scoreUids = new Set(j.scoreAwardedUids || (legacy ? participants.map(p => p.uid) : []));
+
+  // 같은 달 마감된 필드 조인 (월 4회 포인트 한도 계산용)
+  const month = (j.date || '').slice(0, 7);
+  const monthSnap = month
+    ? await db.collection('joins').where('date', '>=', `${month}-01`).where('date', '<=', `${month}-31`).get()
+    : { docs: [] };
+  const monthClosed = monthSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(x => x.id !== joinId && x.status === 'closed' && x.joinType !== 'screen');
+
+  for (const p of participants) {
+    if (!p.uid || p.isGuest) continue;
+    const holes = (scores[p.uid] || {}).holes || Array(18).fill(null);
+    const total = holes.reduce((a, v) => a + (v ?? 0), 0);
+    const hasScore = holes.some(v => v !== null);
+    try {
+      if (hasScore) await ensureScoreHistory(j, joinId, p, holes, total);
+      const prior = monthClosed.filter(x => (x.participants || []).some(px => px.uid === p.uid)).length;
+      if (prior >= 4) continue;
+      const userRef = db.doc(`users/${p.uid}`);
+      if (!pointUids.has(p.uid)) {
+        await userRef.update({ totalPoints: FieldValue.increment(10) });
+        pointUids.add(p.uid);
+        await db.collection('pointHistory').add({
+          uid: p.uid, name: p.name || '골퍼', type: '조인참여', amount: 10,
+          ref: j.course || '', date: now, roundDate: j.date || '', joinId,
+        });
+      }
+      if (hasScore && !scoreUids.has(p.uid)) {
+        const pts = scoreBonusPts(total);
+        await userRef.update({ totalPoints: FieldValue.increment(pts) });
+        scoreUids.add(p.uid);
+        await db.collection('pointHistory').add({
+          uid: p.uid, name: p.name || '골퍼', type: '스코어', amount: pts,
+          ref: `${j.course || '라운드'} (${scoreBonusLabel(total)})`, date: now, roundDate: j.date || '', joinId,
+        });
+      }
+    } catch (e) {
+      logger.error(`[자동마감] 참가자 처리 실패 join=${joinId} uid=${p.uid}`, e);
+    }
+  }
+
+  await ref.update({
+    pointsAwarded: true, scoreBonusAwarded: true,
+    pointAwardedUids: [...pointUids], scoreAwardedUids: [...scoreUids],
+  });
+  logger.info(`[자동마감] ${joinId} ${j.course || ''} ${j.date || ''} ${j.time || ''} — 참가자 ${participants.length}명`);
+  return true;
+}
+
+export const autoCloseJoins = onSchedule(
+  { region: REGION, schedule: 'every 30 minutes', timeZone: 'Asia/Seoul' },
+  async () => {
+    const cutoff = Date.now() - AUTO_CLOSE_AFTER_H * 3600 * 1000;
+    const snap = await db.collection('joins').where('status', '!=', 'closed').get();
+    const due = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(j => { const t = teeTimeOf(j); return t && t.getTime() <= cutoff; })
+      .sort((a, b) => teeTimeOf(a) - teeTimeOf(b));   // 월 4회 한도가 날짜순으로 적용되도록
+    for (const j of due) {
+      // 연결된 팀(partyIds)도 수동 마감처럼 함께 마감
+      const ids = [j.id, ...(j.partyIds || (j.partyId ? [j.partyId] : []))];
+      for (const id of ids) {
+        try { await autoCloseOne(id); }
+        catch (e) { logger.error(`[자동마감] 실패 join=${id}`, e); }
+      }
+    }
+  }
+);
