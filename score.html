@@ -67,7 +67,7 @@
     .live-tab { flex-shrink: 0; max-width: 150px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 7px 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); cursor: pointer; font-family: inherit; text-align: left; }
     .live-tab.active { background: rgba(62,160,102,0.2); border-color: rgba(62,160,102,0.6); color: #fff; }
     .live-tab-name { font-size: 12px; font-weight: 800; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .live-tab-meta { font-size: 10px; color: rgba(255,255,255,0.4); white-space: nowrap; }
+    .live-tab-meta { font-size: 10px; color: rgba(255,255,255,0.4); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .live-tab.active .live-tab-meta { color: var(--green-light); }
 
     /* 스크롤 */
@@ -631,11 +631,15 @@ function renderTabs() {
   const list = tabList();
   if (list.length < 2) { el.classList.remove('show'); el.innerHTML = ''; _centeredTab = null; return; }
   el.classList.add('show');
+  // 같은 골프장에 조인이 여러 개인 날이 흔해서, 티업 시간 + 멤버 이름으로 구분한다
+  const sameCourse = new Set(list.map(j => j.course || '')).size === 1;
   el.innerHTML = list.map(j => {
-    const n    = (j.participants || []).length;
-    const meta = [j.time || '', n ? `${n}명` : '', j.status === 'closed' ? '종료' : ''].filter(Boolean).join(' · ');
+    const names = (j.participants || []).map(p => p.name).filter(Boolean);
+    const who   = names.length > 2 ? `${names.slice(0, 2).join('·')} 외 ${names.length - 2}` : names.join('·');
+    const title = [j.time || '', sameCourse ? '' : (j.course || '조인')].filter(Boolean).join(' ') || (j.course || '조인');
+    const meta  = [who, j.status === 'closed' ? '종료' : ''].filter(Boolean).join(' · ');
     return `<button class="live-tab ${j.id === joinId ? 'active' : ''}" onclick="window._switchJoin('${j.id}')">
-      <span class="live-tab-name">${escHtml(j.course || '조인')}</span>
+      <span class="live-tab-name">${escHtml(title)}</span>
       <span class="live-tab-meta">${escHtml(meta)}</span>
     </button>`;
   }).join('');
