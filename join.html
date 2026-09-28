@@ -1300,6 +1300,10 @@ const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
 
 onAuthStateChanged(auth, async (user) => {
   const effectiveUser = user || _kakaoFbUser;
+  try {
+    if (user) localStorage.setItem('ggzon_last_auth', JSON.stringify({ uid: user.uid, email: user.email || '', displayName: user.displayName || '' }));
+    else localStorage.removeItem('ggzon_last_auth');
+  } catch (_) {}
   if (!effectiveUser) {
     if (window._inAppBrowser) return; // 인앱브라우저는 오버레이가 처리
     const p = new URLSearchParams(location.search);
@@ -1332,8 +1336,10 @@ onAuthStateChanged(auth, async (user) => {
   }
   document.getElementById('btn-new-join').style.display = 'block';
   document.getElementById('loading-overlay').classList.add('hidden');
-  await loadCourseDocs();
+  // 골프장 목록(전체 courses)은 조인 개설 자동완성에만 쓰인다. 예전엔 이걸 다 받을 때까지
+  // 조인 목록 요청을 시작조차 안 해 첫 화면이 한참 비어 있었다 → 뒤에서 병렬로 받는다.
   setupCourseAC();
+  loadCourseDocs();
   await loadJoins();
 });
 
@@ -1352,29 +1358,71 @@ function sortByDateDesc(list) {
   });
 }
 
-async function loadJoins() {
-  closedLastDoc = null;
-  closedHasMore = false;
-  try {
-    const today = todayStr();
+// 직전에 받은 목록을 기기에 저장해 두고 다음 방문 때 먼저 그린다 (새 데이터가 오면 교체).
+// 이 페이지는 Firestore 로컬 캐시를 안 쓰므로(위 initializeFirestore 주석) 이게 유일한 캐시다.
+const JOINS_SNAP_KEY  = 'ggzon_joins_snap_v1';
+const LAST_AUTH_KEY   = 'ggzon_last_auth';
+let _joinsFromNetwork = false;
 
-    // 오늘 이후(진행중) 조인 — 전체
-    const upcomingSnap = await getDocs(query(
-      collection(db, 'joins'),
-      where('date', '>=', today),
-      orderBy('date', 'asc')
-    ));
+function saveJoinsSnap() {
+  try {
+    localStorage.setItem(JOINS_SNAP_KEY, JSON.stringify({
+      day: todayStr(), joins, closedJoins, closedTotal, closedHasMore,
+    }));
+  } catch (_) {}
+}
+
+function paintJoinsSnap() {
+  try {
+    const s = JSON.parse(localStorage.getItem(JOINS_SNAP_KEY) || 'null');
+    if (!s || s.day !== todayStr() || !Array.isArray(s.joins)) return false;
+    joins = s.joins;
+    closedJoins = s.closedJoins || [];
+    closedTotal = s.closedTotal ?? null;
+    closedHasMore = false;   // '더보기'는 실제 데이터가 온 뒤에만
+    renderActiveList();
+    renderClosedList();
+    updateTabCounts();
+    return true;
+  } catch (_) { return false; }
+}
+
+// 로그인 확인(수백 ms~수 초)을 기다리지 않고 직전 목록부터 보여 준다.
+// 모듈 본문이 끝까지 실행된 뒤(뒤쪽 let 변수들이 준비된 뒤) 돌도록 microtask 로 미룬다.
+queueMicrotask(() => {
+  if (_joinsFromNetwork) return;
+  let last = null;
+  try { last = JSON.parse(localStorage.getItem(LAST_AUTH_KEY) || 'null'); } catch (_) {}
+  const provisional = _kakaoFbUser || last;
+  if (!provisional?.uid) return;
+  currentUser = currentUser || provisional;
+  isAdmin     = isAdmin || provisional.email === 'wlfmzhs@naver.com';
+  isPaidUser  = isPaidUser || !PAYWALL_ENABLED || isAdmin;
+  if (paintJoinsSnap()) document.getElementById('loading-overlay').classList.add('hidden');
+});
+
+async function loadJoins() {
+  const today = todayStr();
+  const col   = collection(db, 'joins');
+  // 세 요청을 한꺼번에 보낸다 (예전엔 하나 끝나면 다음을 보내 왕복 시간이 3배였다)
+  const upcomingP = getDocs(query(col, where('date', '>=', today), orderBy('date', 'asc')));
+  const closedP   = getDocs(query(col, where('date', '<', today), orderBy('date', 'desc'), limit(CLOSED_PAGE_SIZE)));
+  const countP    = getCountFromServer(query(col, where('date', '<', today)))
+    .then(s => s.data().count).catch(() => null);
+  closedP.catch(() => {});   // 앞 요청이 실패해 기다리지 않게 돼도 경고가 안 뜨게
+
+  try {
+    // 오늘 이후(진행중) 조인 — 전체. 오는 즉시 진행중 탭부터 그린다.
+    const upcomingSnap = await upcomingP;
     const upcoming = upcomingSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     joins = upcoming.filter(j => j.status !== 'closed');
     const closedToday = upcoming.filter(j => j.status === 'closed');
+    _joinsFromNetwork = true;
+    renderActiveList();
+    updateTabCounts();
 
     // 마감(오늘 이전) 조인 — 최근 N개만
-    const closedSnap = await getDocs(query(
-      collection(db, 'joins'),
-      where('date', '<', today),
-      orderBy('date', 'desc'),
-      limit(CLOSED_PAGE_SIZE)
-    ));
+    const closedSnap = await closedP;
     const pastClosed = closedSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     closedLastDoc = closedSnap.docs[closedSnap.docs.length - 1] || null;
     closedHasMore = closedSnap.docs.length === CLOSED_PAGE_SIZE;
@@ -1382,17 +1430,13 @@ async function loadJoins() {
     closedJoins = sortByDateDesc([...closedToday, ...pastClosed]);
 
     // 전체 마감 조인 개수 (오늘 이전 전체 + 오늘 이후 마감) — 데이터를 모두 불러오지 않고 count만 조회
-    try {
-      const pastCountSnap = await getCountFromServer(query(
-        collection(db, 'joins'),
-        where('date', '<', today)
-      ));
-      closedTotal = pastCountSnap.data().count + closedToday.length;
-    } catch (e) {
-      closedTotal = null;
-    }
+    const pastCount = await countP;
+    closedTotal = pastCount === null ? null : pastCount + closedToday.length;
+    saveJoinsSnap();
   } catch (e) {
-    joins = []; closedJoins = []; closedHasMore = false; closedTotal = null;
+    // 받아 둔 게 없을 때만 비운다 — 직전 목록을 보고 있었다면 그대로 둔다
+    if (!_joinsFromNetwork && !joins.length) { joins = []; closedJoins = []; closedTotal = null; }
+    closedHasMore = !!closedLastDoc && closedHasMore;
   }
   renderActiveList();
   renderClosedList();

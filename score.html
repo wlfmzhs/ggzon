@@ -60,6 +60,16 @@
     .live-dot { width: 6px; height: 6px; background: #e74c3c; border-radius: 50%; display: inline-block; animation: blink 1.2s ease-in-out infinite; }
     @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
 
+    /* 오늘의 다른 조인 탭 — 좌우 스와이프로도 넘긴다 */
+    .live-tabs { flex-shrink: 0; display: none; gap: 6px; padding: 2px 14px 10px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid rgba(62,160,102,0.15); }
+    .live-tabs.show { display: flex; }
+    .live-tabs::-webkit-scrollbar { display: none; }
+    .live-tab { flex-shrink: 0; max-width: 150px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 7px 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); cursor: pointer; font-family: inherit; text-align: left; }
+    .live-tab.active { background: rgba(62,160,102,0.2); border-color: rgba(62,160,102,0.6); color: #fff; }
+    .live-tab-name { font-size: 12px; font-weight: 800; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live-tab-meta { font-size: 10px; color: rgba(255,255,255,0.4); white-space: nowrap; }
+    .live-tab.active .live-tab-meta { color: var(--green-light); }
+
     /* 스크롤 */
     .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; }
     .scroll-area::-webkit-scrollbar { display: none; }
@@ -295,7 +305,6 @@
       #loading-overlay { border-radius: 0; }
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="phone">
@@ -330,7 +339,10 @@
     </div>
   </div>
 
-  <div class="scroll-area">
+  <!-- 같은 날 다른 조인 탭 (좌우로 쓸어서도 넘김) -->
+  <div class="live-tabs" id="live-tabs"></div>
+
+  <div class="scroll-area" id="scroll-area">
     <div class="notice-bar" id="notice-bar">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       참석자만 스코어를 입력할 수 있습니다.
@@ -431,8 +443,14 @@ const app = initializeApp({
 const auth = getAuth(app);
 const db   = makeDb(app);
 
-const joinId = new URLSearchParams(location.search).get('id');
+// 탭/스와이프로 같은 날 다른 조인으로 넘어가면 바뀐다 (switchJoin)
+let joinId = new URLSearchParams(location.search).get('id');
 if (!joinId) location.href = 'join.html';
+let joinUnsub        = null;
+let viewerCountUnsub = null;
+let todayUnsub       = null;
+let todayDate        = null;
+let todayJoins       = [];   // 같은 날 필드 조인 (탭 목록, 티업 시간순)
 
 let currentUser    = null;
 let isAdmin        = false;
@@ -519,11 +537,27 @@ onAuthStateChanged(auth, user => {
   currentUser = effectiveUser;
   isAdmin = currentUser.email === 'wlfmzhs@naver.com';
   document.getElementById('loading-overlay').classList.add('hidden');
-  onSnapshot(doc(db, 'joins', joinId), snap => {
-    if (!snap.exists()) return;
-    const newCourse = snap.data().course;
-    joinData = { id: snap.id, ...snap.data() };
+  if (joinData) applyJoin(joinData);   // 로그인 확인 전에 이미 받아 둔 스코어로 바로 그린다
+  else if (!joinUnsub) subscribeJoin();
+});
+
+// 로그인 확인(IndexedDB·토큰)과 스코어 요청을 동시에 시작 — 예전엔 로그인 확인이 끝나야 요청을 보냈다
+if (joinId) subscribeJoin();
+
+function subscribeJoin() {
+  if (joinUnsub) joinUnsub();
+  const myId = joinId;
+  joinUnsub = onSnapshot(doc(db, 'joins', myId), snap => {
+    if (myId !== joinId || !snap.exists()) return;   // 이미 다른 탭으로 넘어갔으면 무시
+    applyJoin({ id: snap.id, ...snap.data() });
+  });
+}
+
+function applyJoin(data) {
+    const newCourse = data.course;
+    joinData = data;
     document.getElementById('course-name').textContent = joinData.course || '스코어';
+    if (!currentUser) return;   // 로그인 확인이 끝나면 onAuthStateChanged 에서 다시 부른다
     const fc = joinData.frontCourse;
     const bc = joinData.backCourse;
     const courseSubEl = document.getElementById('course-sub');
@@ -545,7 +579,9 @@ onAuthStateChanged(auth, user => {
       if (!partyUnsubs.has(id)) loadParty(id);
     }
     updatePartyIndicator();
-    if (!partyCandidatesPromise) prefetchPartyCandidates();
+    // 같은 날 조인 목록(탭 + 팀 연결 후보)을 실시간으로 받아 둔다
+    if (!todayUnsub || todayDate !== joinData.date) startToday(joinData.date);
+    renderTabs();
     // 코스 파 데이터 로드 (골프장 변경시만)
     if (newCourse !== loadedCourse) {
       loadedCourse = newCourse;
@@ -557,8 +593,151 @@ onAuthStateChanged(auth, user => {
       registerViewer();
       startViewerCount();
     }
+}
+
+// ── 같은 날 다른 조인 탭 ─────────────────────────────
+function startToday(date) {
+  if (todayUnsub) { todayUnsub(); todayUnsub = null; }
+  todayDate = date;
+  if (!date) return;
+  todayUnsub = onSnapshot(query(collection(db, 'joins'), where('date', '==', date)), snap => {
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    partyCandidatesCache = all;
+    todayJoins = all
+      .filter(j => j.joinType !== 'screen')
+      .sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+    renderTabs();
+  }, () => {
+    todayUnsub = null;
+    if (!partyCandidatesPromise) prefetchPartyCandidates();
   });
-});
+}
+
+function tabList() {
+  if (!joinData) return todayJoins;
+  if (todayJoins.some(j => j.id === joinId)) return todayJoins;
+  return [joinData, ...todayJoins];
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+let _centeredTab = null;
+function renderTabs() {
+  const el = document.getElementById('live-tabs');
+  const list = tabList();
+  if (list.length < 2) { el.classList.remove('show'); el.innerHTML = ''; _centeredTab = null; return; }
+  el.classList.add('show');
+  el.innerHTML = list.map(j => {
+    const n    = (j.participants || []).length;
+    const meta = [j.time || '', n ? `${n}명` : '', j.status === 'closed' ? '종료' : ''].filter(Boolean).join(' · ');
+    return `<button class="live-tab ${j.id === joinId ? 'active' : ''}" onclick="window._switchJoin('${j.id}')">
+      <span class="live-tab-name">${escHtml(j.course || '조인')}</span>
+      <span class="live-tab-meta">${escHtml(meta)}</span>
+    </button>`;
+  }).join('');
+  // 선택된 탭이 바뀌었을 때만 가운데로 (사용자가 탭 줄을 스크롤하는 걸 방해하지 않게)
+  if (_centeredTab !== joinId) {
+    _centeredTab = joinId;
+    const a = el.querySelector('.live-tab.active');
+    if (a) el.scrollTo({ left: a.offsetLeft - (el.clientWidth - a.offsetWidth) / 2, behavior: 'smooth' });
+  }
+}
+
+function switchJoin(id) {
+  if (!id || id === joinId) return;
+  unregisterViewer();
+  if (viewerCountUnsub) { viewerCountUnsub(); viewerCountUnsub = null; }
+  for (const [, unsub] of partyUnsubs) unsub();
+  partyUnsubs.clear();
+  partyJoinDataMap.clear();
+  closePicker(); closeParPicker(); closeSubmitSheet(); closePartySheet();
+
+  joinId = id;
+  try { history.replaceState(history.state, '', 'score.html?id=' + encodeURIComponent(id)); } catch (_) {}
+  loadedCourse = null; parFront = null; parBack = null;
+  viewerStarted = false;
+  document.getElementById('notice-bar').style.display = 'none';
+  document.getElementById('submit-bar').classList.remove('show');
+  document.getElementById('viewer-count').style.display = 'none';
+  document.getElementById('scroll-area').scrollTop = 0;
+
+  // 목록에 이미 받아 둔 데이터로 즉시 그리고, 실시간 구독은 뒤에서 붙인다
+  const cached = todayJoins.find(j => j.id === id);
+  if (cached) applyJoin({ ...cached });
+  subscribeJoin();
+}
+window._switchJoin = switchJoin;
+
+// 스코어 영역을 좌우로 쓸어 이전/다음 조인으로
+(function setupSwipe() {
+  const area = document.getElementById('scroll-area');
+  let sx = 0, sy = 0, st = 0, dx = 0, lock = null, tracking = false, busy = false;
+
+  const neighbors = () => {
+    const list = tabList();
+    const i = list.findIndex(j => j.id === joinId);
+    return { prev: i > 0 ? list[i - 1] : null, next: i >= 0 && i < list.length - 1 ? list[i + 1] : null };
+  };
+  const reset = () => {
+    area.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
+    area.style.transform = '';
+    area.style.opacity = '';
+  };
+
+  area.addEventListener('touchstart', e => {
+    tracking = !busy && e.touches.length === 1 && tabList().length > 1;
+    if (!tracking) return;
+    lock = null; dx = 0; st = Date.now();
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    area.style.transition = 'none';
+  }, { passive: true });
+
+  area.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    const mx = e.touches[0].clientX - sx, my = e.touches[0].clientY - sy;
+    if (!lock) {
+      if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
+      lock = Math.abs(mx) > Math.abs(my) * 1.2 ? 'x' : 'y';
+    }
+    if (lock !== 'x') return;
+    e.preventDefault();   // 가로로 쓰는 동안 세로 스크롤 막기
+    dx = mx;
+    const { prev, next } = neighbors();
+    const atEdge = (dx > 0 && !prev) || (dx < 0 && !next);
+    area.style.transform = `translateX(${atEdge ? dx * 0.25 : dx}px)`;
+    area.style.opacity = String(1 - Math.min(Math.abs(dx) / 700, 0.35));
+  }, { passive: false });
+
+  const end = () => {
+    if (!tracking) return;
+    tracking = false;
+    if (lock !== 'x') return;
+    const { prev, next } = neighbors();
+    const w     = area.clientWidth || 360;
+    const fast  = Math.abs(dx) > 40 && Date.now() - st < 250;
+    const far   = Math.abs(dx) > Math.min(90, w * 0.25);
+    const target = (far || fast) ? (dx < 0 ? next : prev) : null;
+    if (!target) { reset(); return; }
+
+    busy = true;
+    const dir = dx < 0 ? -1 : 1;
+    area.style.transition = 'transform 0.16s ease-in, opacity 0.16s';
+    area.style.transform  = `translateX(${dir * w}px)`;
+    area.style.opacity    = '0.3';
+    setTimeout(() => {
+      switchJoin(target.id);
+      area.style.transition = 'none';
+      area.style.transform  = `translateX(${-dir * w * 0.35}px)`;
+      void area.offsetWidth;   // 위치를 먼저 확정시킨 뒤 들어오는 애니메이션
+      reset();
+      setTimeout(() => { area.style.transition = ''; busy = false; }, 220);
+    }, 160);
+  };
+  area.addEventListener('touchend', end, { passive: true });
+  area.addEventListener('touchcancel', end, { passive: true });
+})();
 
 // 팀 연결 함수들
 function loadParty(partyId) {
@@ -681,8 +860,10 @@ window._unlinkParty = doUnlinkParty;
 // ── 파 데이터 로드 / 저장 ─────────────────────────────
 async function loadCoursePar() {
   if (!joinData?.course) return;
+  const forId = joinId;
   try {
     const snap = await getDoc(doc(db, 'courses', joinData.course));
+    if (forId !== joinId) return;   // 받는 사이 다른 탭으로 넘어갔다
     if (!snap.exists()) { parFront = null; parBack = null; render(); return; }
     const nh = snap.data().nineHoles || {};
     parFront = joinData.frontCourse && nh[joinData.frontCourse] ? [...nh[joinData.frontCourse]] : null;
@@ -1289,11 +1470,15 @@ async function registerViewer() {
 
 async function unregisterViewer() {
   if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-  if (viewerDocRef) { try { await deleteDoc(viewerDocRef); } catch(_) {} viewerDocRef = null; }
+  // 탭 전환 시 곧바로 새 조인에 등록되므로, 삭제를 기다리기 전에 참조부터 떼어 낸다
+  const ref = viewerDocRef;
+  viewerDocRef = null;
+  if (ref) { try { await deleteDoc(ref); } catch(_) {} }
 }
 
 function startViewerCount() {
-  onSnapshot(collection(db, 'joins', joinId, 'viewers'), snap => {
+  if (viewerCountUnsub) viewerCountUnsub();
+  viewerCountUnsub = onSnapshot(collection(db, 'joins', joinId, 'viewers'), snap => {
     const now = Date.now();
     const count = snap.docs.filter(d => {
       const at = d.data().at;
@@ -1314,6 +1499,29 @@ document.addEventListener('visibilitychange', () => {
   else registerViewer();
 });
 
+// 캡처 라이브러리(약 200KB)는 공유를 누를 때만 필요하다.
+// 예전엔 <head>에서 동기로 받아 화면이 뜨는 걸 막고 있었다 → 화면이 뜬 뒤 여유 있을 때 미리 받아 둔다.
+const H2C_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+let _h2cPromise = null;
+function loadHtml2canvas() {
+  if (window.html2canvas) return Promise.resolve();
+  if (!_h2cPromise) {
+    _h2cPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = H2C_SRC; s.async = true;
+      s.onload = resolve;
+      s.onerror = () => { _h2cPromise = null; reject(new Error('html2canvas load failed')); };
+      document.head.appendChild(s);
+    });
+  }
+  return _h2cPromise;
+}
+window.addEventListener('load', () => {
+  const warm = () => loadHtml2canvas().catch(() => {});
+  if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 6000 });
+  else setTimeout(warm, 3000);
+});
+
 // 스코어 화면 이미지 공유
 window.shareScore = async function() {
   const btn = document.getElementById('btn-share');
@@ -1325,6 +1533,7 @@ window.shareScore = async function() {
   await new Promise(r => setTimeout(r, 50));
 
   try {
+    await loadHtml2canvas();
     const phone = document.querySelector('.phone');
     const canvas = await html2canvas(phone, {
       backgroundColor: '#0A2406',
