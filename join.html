@@ -1028,7 +1028,7 @@
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   initializeFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -1042,7 +1042,9 @@ const app = initializeApp({
   messagingSenderId: "774722580869",
   appId: "1:774722580869:web:5beecd26c0b76f753914ec"
 });
-const auth = getAuth(app);
+// getAuth() 는 쓰지도 않는 구글 로그인 팝업용 iframe(apis.google.com)을 매 페이지 받아 온다.
+// 저장 방식은 getAuth 기본값과 똑같이 두고 팝업 기능만 뺐다 (로그인 상태는 그대로 유지).
+const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] });
 // 로컬 캐시(IndexedDB)를 쓰지 않는다.
 // 사생활 보호 모드·카톡 등 인앱 브라우저·오래된 탭이 열려 있을 때 IndexedDB가 열리지 않는데,
 // 한 번 실패하면 그 뒤 모든 읽기/쓰기가 failed-precondition으로 막힌다.

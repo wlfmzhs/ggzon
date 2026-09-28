@@ -1089,7 +1089,7 @@
 </script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, deleteDoc, getCountFromServer, getAggregateFromServer, sum, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   import { PAYWALL_ENABLED } from "./ggzon-config.js";
@@ -1102,7 +1102,9 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
     messagingSenderId: "774722580869",
     appId: "1:774722580869:web:5beecd26c0b76f753914ec"
   });
-  const auth = getAuth(app);
+  // getAuth() 는 쓰지도 않는 구글 로그인 팝업용 iframe(apis.google.com)을 매 페이지 받아 온다.
+  // 저장 방식은 getAuth 기본값과 똑같이 두고 팝업 기능만 뺐다 (로그인 상태는 그대로 유지).
+  const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] });
   const db = makeDb(app);
 
   let _isAdmin = false;
