@@ -32,8 +32,8 @@
   <link rel="preconnect" href="https://www.gstatic.com" />
   <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
   <title>MY - GOLGAB ZONE</title>
-  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <!-- 인증서 카드 전용 글꼴 — 화면 표시를 막지 않도록 비동기로 받는다 -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root {
@@ -952,7 +952,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
+  doc, getDoc, getDocFromCache, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc,
   query, serverTimestamp, orderBy, where, arrayRemove, arrayUnion, limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { makeDb } from "./fs-cache.js";
@@ -1002,9 +1002,7 @@ onAuthStateChanged(auth, async (user) => {
   const achP = getDocs(query(collection(db, 'achievements'), where('uid', '==', effectiveUser.uid)));
   [userP, noticesP, achP].forEach(p => p.catch(() => {}));   // 나중에 각자 처리한다
 
-  try {
-    const userSnap = await userP;
-
+  const paintUser = (userSnap) => {
     if (userSnap.exists()) {
       userData = userSnap.data();
       document.getElementById('prof-nick').textContent = userData.name || userData.nickname || effectiveUser.displayName || effectiveUser.email?.split('@')[0] || '';
@@ -1017,6 +1015,19 @@ onAuthStateChanged(auth, async (user) => {
     if (effectiveUser.email === ADMIN_EMAIL || userData.isAdmin) {
       document.getElementById('admin-section').classList.remove('hidden');
     }
+  };
+
+  // 기기에 남은 회원 문서로 먼저 화면을 연다 (서버 왕복을 기다리지 않음)
+  try {
+    const cached = await getDocFromCache(doc(db, 'users', effectiveUser.uid));
+    if (cached.exists()) {
+      paintUser(cached);
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+  } catch (_) {}
+
+  try {
+    paintUser(await userP);
   } catch (e) {
     console.error('마이페이지 로딩 오류:', e.message);
   } finally {
@@ -1596,11 +1607,29 @@ window.saveAchievement = async () => {
   } catch (e) { showToast('저장 실패: ' + e.message); }
 };
 
+// 캡처 라이브러리는 인증서 저장 때만 필요하다. 예전엔 <head>에서 동기로(서비스워커 캐시도 안 되는
+// 외부 주소에서) 받느라 마이페이지가 매번 그만큼 늦게 떴다 → 누를 때 받는다(캐시되는 cdnjs 주소).
+let _h2cPromise = null;
+function loadHtml2canvas() {
+  if (window.html2canvas) return Promise.resolve();
+  if (!_h2cPromise) {
+    _h2cPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = resolve;
+      s.onerror = () => { _h2cPromise = null; reject(new Error('html2canvas load failed')); };
+      document.head.appendChild(s);
+    });
+  }
+  return _h2cPromise;
+}
+
 window.downloadCert = async (id) => {
   const card = document.querySelector(`.cert-card[data-id="${id}"]`);
   if (!card) return;
   showToast('저장 중...');
   try {
+    await loadHtml2canvas();
     const canvas = await html2canvas(card, {
       scale: 2,
       backgroundColor: '#f3f2f0',
