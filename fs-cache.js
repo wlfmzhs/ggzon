@@ -11,7 +11,27 @@
 // 다음 방문부터 정상 동작하게 한다. 관리자 작업이 걸린 join.html은 아예 캐시를 쓰지 않는다.
 import {
   initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
+  getDocs, getDocsFromCache,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// 로컬 캐시가 있어도 getDocs 는 항상 서버 응답을 기다린다(오프라인일 때만 캐시).
+// 그래서 캐시를 켜 놓고도 화면은 매번 네트워크 왕복만큼 비어 있었다.
+// → 기기에 남아 있는 결과로 먼저 그리고(수 ms), 서버 결과가 오면 한 번 더 그린다.
+//   paint 는 두 번 불려도 같은 결과가 나오게(innerHTML 교체 방식) 짜야 한다.
+export async function getDocsSWR(q, paint) {
+  let painted = false;
+  try {
+    const cached = await getDocsFromCache(q);
+    if (!cached.empty) { paint(cached, true); painted = true; }
+  } catch (_) {}
+  try {
+    const fresh = await getDocs(q);
+    paint(fresh, false);
+    return fresh;
+  } catch (e) {
+    if (!painted) throw e;   // 캐시로라도 그렸으면 조용히 그 화면을 유지
+  }
+}
 
 const OFF_KEY = 'ggzon-fs-cache-off';
 

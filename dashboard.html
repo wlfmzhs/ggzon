@@ -27,9 +27,7 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js" crossorigin />
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js" crossorigin />
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js" crossorigin />
-  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js" crossorigin />
   <link rel="preconnect" href="https://firestore.googleapis.com" />
-  <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
   <link rel="preconnect" href="https://www.gstatic.com" />
   <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
   <title>GOLGAB ZONE</title>
@@ -1093,8 +1091,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, deleteDoc, getCountFromServer, getAggregateFromServer, sum, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { makeDb } from "./fs-cache.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   import { PAYWALL_ENABLED } from "./ggzon-config.js";
 
   const app = initializeApp({
@@ -1107,9 +1104,11 @@ import { makeDb } from "./fs-cache.js";
   });
   const auth = getAuth(app);
   const db = makeDb(app);
-  const storage = getStorage(app);
 
   let _isAdmin = false;
+  // 카카오 회원은 onLoginReady() 가 모듈 중간에서 바로 불리므로, 로더들이 쓰는 값은 여기(맨 위)에 둔다
+  let _tournQ = null;
+  const tournamentsQuery = () => _tournQ || (_tournQ = query(collection(db, 'tournaments'), orderBy('createdAt', 'desc'), limit(20)));
 
   // Cloudinary 이미지는 URL에 옵션만 넣으면 서버가 알아서 크기·포맷(WebP/AVIF)을 줄여 보내준다.
   // 원본 312KB → w_600 기준 약 40KB. Cloudinary가 아닌 주소는 그대로 둔다.
@@ -1139,7 +1138,7 @@ import { makeDb } from "./fs-cache.js";
     loadTournamentList();
     loadGGLogGrid();
     loadGGPlayerList();
-    loadLatestTournamentChart();
+    loadChartWhenVisible();
     loadTabBadges();
     loadHioLike();
     // 유료화가 꺼져 있으면 모두 통과(현재 동작). 켜지면 관리자/유료회원만.
@@ -1384,7 +1383,7 @@ import { makeDb } from "./fs-cache.js";
   async function loadNotices() {
     const el = document.getElementById('notice-list');
     try {
-      const snap = await getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'), limit(3)));
+      await getDocsSWR(query(collection(db, 'notices'), orderBy('createdAt', 'desc'), limit(3)), snap => {
       if (snap.empty) { el.innerHTML = '<div class="notice-empty">등록된 공지사항이 없습니다</div>'; return; }
       el.innerHTML = snap.docs.map(d => {
         const n = d.data();
@@ -1398,6 +1397,7 @@ import { makeDb } from "./fs-cache.js";
           <div class="notice-arrow">›</div>
         </div>`;
       }).join('');
+      });
     } catch(e) { el.innerHTML = '<div class="notice-empty">불러오기 실패</div>'; }
   }
 
@@ -1410,7 +1410,7 @@ import { makeDb } from "./fs-cache.js";
   async function loadLiveList() {
     const el = document.getElementById('live-list');
     try {
-      const snap = await getDocs(query(collection(db, 'joins'), orderBy('createdAt', 'desc'), limit(10)));
+      await getDocsSWR(query(collection(db, 'joins'), orderBy('createdAt', 'desc'), limit(10)), snap => {
       const joinIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
       const today = todayStr();
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -1438,14 +1438,16 @@ import { makeDb } from "./fs-cache.js";
           <div class="live-card-arrow">›</div>
         </div>`;
       }).join('');
+      });
     } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
   }
 
-  // 대회 모집 로드
+  // 대회 모집 로드 — 아래 차트와 같은 쿼리(tournamentsQuery, 최근 20개)를 나눠 쓴다
   async function loadTournamentList() {
     const el = document.getElementById('tournament-list');
     try {
-      const snap = await getDocs(query(collection(db, 'tournaments'), orderBy('createdAt', 'desc'), limit(5)));
+      await getDocsSWR(tournamentsQuery(), snap0 => {
+      const snap = { docs: snap0.docs.slice(0, 5) };
       const tournIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>`;
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.status !== 'closed');
       if (items.length === 0) { el.innerHTML = '<div class="live-empty">현재 모집 중인 대회가 없습니다</div>'; return; }
@@ -1463,6 +1465,7 @@ import { makeDb } from "./fs-cache.js";
           <div class="live-card-arrow">›</div>
         </div>`;
       }).join('');
+      });
     } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
   }
 
@@ -1471,7 +1474,7 @@ import { makeDb } from "./fs-cache.js";
   async function loadGGLogGrid() {
     const el = document.getElementById('gglog-grid');
     try {
-      const snap = await getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(4)));
+      await getDocsSWR(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(4)), snap => {
       if (snap.empty) {
         el.innerHTML = '<div class="gglog-empty" style="grid-column:1/3;display:flex;align-items:center;justify-content:center;">아직 올라온 사진이 없습니다</div>';
         return;
@@ -1499,6 +1502,7 @@ import { makeDb } from "./fs-cache.js";
             ${i === 0 ? `<div class="gglog-cell-nick">${p.nickname || '멤버'}</div>` : ''}
           </div>`).join('');
       }
+      });
     } catch(e) {
       el.innerHTML = '<div class="gglog-empty" style="grid-column:1/3;display:flex;align-items:center;justify-content:center;">불러오기 실패</div>';
     }
@@ -1508,7 +1512,7 @@ import { makeDb } from "./fs-cache.js";
   async function loadGGPlayerList() {
     const el = document.getElementById('ggplayer-list');
     try {
-      const snap = await getDocs(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(50)));
+      await getDocsSWR(query(collection(db, 'users'), where('handicap', '>=', -100), orderBy('handicap'), limit(50)), snap => {
       // 미니 랭킹은 정식 랭커(5경기 이상)만 보여준다.
       // 5경기 미만 멤버는 전체 랭킹(members.html)에서만 번호 없이 표시된다.
       const MIN_ROUNDS = 5;
@@ -1545,6 +1549,7 @@ import { makeDb } from "./fs-cache.js";
       }).join('') + `<div style="text-align:center;padding:8px 0 2px;">
   <span style="font-size:11px;color:var(--green-light);cursor:pointer;" onclick="location.href='members.html'">전체 랭킹 보기 ›</span>
 </div>`;
+      });
     } catch(e) { el.innerHTML = '<div class="live-empty">불러오기 실패</div>'; }
   }
 
@@ -1650,9 +1655,22 @@ import { makeDb } from "./fs-cache.js";
     { label: '+21',   min: 21,  max: 999 },
   ];
 
+  // 차트는 화면 아래쪽이라 첫 화면에 안 보이는데, 대회 참가자 전원의 스코어 문서(수십~수백 건)를
+  // 받아야 해서 매 방문마다 가장 무거운 요청이었다 → 스크롤해서 가까워졌을 때만 받는다.
+  function loadChartWhenVisible() {
+    const sec = document.getElementById('chartSection');
+    if (!sec || !('IntersectionObserver' in window)) { loadLatestTournamentChart(); return; }
+    const io = new IntersectionObserver(entries => {
+      if (!entries.some(e => e.isIntersecting)) return;
+      io.disconnect();
+      loadLatestTournamentChart();
+    }, { root: sec.closest('.content'), rootMargin: '400px 0px' });
+    io.observe(sec);
+  }
+
   async function loadLatestTournamentChart() {
     try {
-      const snap = await getDocs(query(collection(db, 'tournaments'), orderBy('createdAt', 'desc'), limit(20)));
+      const snap = await getDocs(tournamentsQuery());
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       // status 'closed' 우선, 없으면 가장 최신 대회
       const target = all.find(t => t.status === 'closed') || all[0];
