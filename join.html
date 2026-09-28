@@ -349,6 +349,15 @@
       white-space: nowrap; overflow: hidden;
       text-overflow: ellipsis; text-align: center;
     }
+    .participant-chips.reorderable .participant-name-chip {
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    }
+    .participant-chips.sorting .participant-name-chip:not(.dragging) { opacity: 0.6; }
+    .participant-name-chip.dragging {
+      transform: scale(1.12); opacity: 1;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 0 2px var(--gold);
+      position: relative; z-index: 2;
+    }
     .participant-name-chip.me {
       background: rgba(240,192,64,0.2);
       border-color: rgba(240,192,64,0.45);
@@ -1021,7 +1030,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  initializeFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
+  initializeFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { PAYWALL_ENABLED } from "/ggzon-config.js";
 
@@ -1831,7 +1840,12 @@ function buildPanelTable(players, scores, from, to) {
 
 // 참석자 칩. 조가 편성돼 있으면 1조부터 차례로 줄을 나눠 보여준다.
 // (칩 그리드가 4칸이라 한 조 4명이 정확히 한 줄에 들어온다)
+// 주최자·관리자는 칩을 꾹 눌러(0.45초) 끌면 순서를 바꿀 수 있다 (같은 줄/조 안에서만).
 function buildParticipantChips(j, participants) {
+  const canReorder = currentUser && j.status !== 'closed' && participants.length > 2 &&
+    (isAdmin || j.creatorUid === currentUser.uid || participants[0]?.uid === currentUser.uid);
+  const box = (grp, inner) =>
+    `<div class="participant-chips${canReorder ? ' reorderable' : ''}" data-jid="${j.id}" data-grp="${grp}">${inner}</div>`;
   const chip = (p, i) => {
     const isMe     = currentUser && p.uid === currentUser.uid;
     const isKeep   = p.isKeep === true;
@@ -1841,34 +1855,126 @@ function buildParticipantChips(j, participants) {
     const style    = canView ? 'cursor:pointer;' : '';
     const chipClass = isKeep ? ' keep' : isMe ? ' me' : isGuest ? ' guest' : '';
     const label    = p.name + (i === 0 ? ' ★' : '') + (isKeep ? ' 킵' : isGuest ? ' G' : '');
-    return `<span class="participant-name-chip${chipClass}" ${click} style="${style}">${label}</span>`;
+    const lock     = i === 0 ? ' data-lock="1"' : '';   // 주최자는 항상 맨 앞(★) — 움직이지 않음
+    return `<span class="participant-name-chip${chipClass}" data-uid="${p.uid}"${lock} ${click} style="${style}">${label}</span>`;
   };
 
   const parts = (Array.isArray(j.parties) ? j.parties : []).filter(g => ((g || {}).uids || []).length);
   if (!parts.length) {
-    return `<div class="participant-chips">${participants.map((p, i) => chip(p, i)).join('')}</div>`;
+    return box('all', participants.map((p, i) => chip(p, i)).join(''));
   }
 
   const idxOf = new Map(participants.map((p, i) => [p.uid, i]));   // ★(주최자) 표시는 원래 순서 기준
   const used  = new Set();
   let html = '';
   parts.forEach((g, gi) => {
+    const pi = j.parties.indexOf(g);
     const members = (g.uids || []).map(uid => participants.find(p => p.uid === uid)).filter(Boolean);
     if (!members.length) return;
     members.forEach(p => used.add(p.uid));
     html += `<div class="pgrp">
       <div class="pgrp-tag">${g.name || `${gi + 1}조`}<span class="pgrp-num">${members.length}명</span></div>
-      <div class="participant-chips">${members.map(p => chip(p, idxOf.get(p.uid))).join('')}</div>
+      ${box(pi, members.map(p => chip(p, idxOf.get(p.uid))).join(''))}
     </div>`;
   });
   const rest = participants.filter(p => !used.has(p.uid));
   if (rest.length) {
     html += `<div class="pgrp">
       <div class="pgrp-tag unassigned">미배정<span class="pgrp-num">${rest.length}명</span></div>
-      <div class="participant-chips">${rest.map(p => chip(p, idxOf.get(p.uid))).join('')}</div>
+      ${box('rest', rest.map(p => chip(p, idxOf.get(p.uid))).join(''))}
     </div>`;
   }
   return html;
+}
+
+// ── 참석자 칩 꾹 눌러 순서 바꾸기 ─────────────────────
+(() => {
+  let st = null;            // { chip, box, timer, x, y, dragging }
+  let eatClick = false;
+  const reset = () => {
+    if (!st) return;
+    clearTimeout(st.timer);
+    st.chip.classList.remove('dragging');
+    st.box.classList.remove('sorting');
+    st = null;
+  };
+  document.addEventListener('pointerdown', e => {
+    const chip = e.target.closest('.participant-chips.reorderable .participant-name-chip');
+    if (!chip || chip.dataset.lock || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    reset();
+    st = { chip, box: chip.parentElement, x: e.clientX, y: e.clientY, dragging: false };
+    st.timer = setTimeout(() => {
+      if (!st) return;
+      st.dragging = true;
+      chip.classList.add('dragging');
+      st.box.classList.add('sorting');
+      try { navigator.vibrate && navigator.vibrate(25); } catch (_) {}
+    }, 450);
+  });
+  document.addEventListener('pointermove', e => {
+    if (!st) return;
+    if (!st.dragging) {   // 꾹 누르기 전에 움직이면 스크롤로 보고 취소
+      if (Math.abs(e.clientX - st.x) > 8 || Math.abs(e.clientY - st.y) > 8) reset();
+      return;
+    }
+    e.preventDefault();
+    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest('.participant-name-chip');
+    if (!over || over === st.chip || over.parentElement !== st.box || over.dataset.lock) return;
+    const kids = [...st.box.children];
+    st.box.insertBefore(st.chip, kids.indexOf(over) > kids.indexOf(st.chip) ? over.nextSibling : over);
+  }, { passive: false });
+  // 끄는 중에는 화면이 같이 스크롤되지 않게
+  document.addEventListener('touchmove', e => { if (st && st.dragging) e.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', e => { if (st) e.preventDefault(); });
+  const finish = () => {
+    if (!st) return;
+    const { dragging, box } = st;
+    reset();
+    if (!dragging) return;
+    eatClick = true; setTimeout(() => { eatClick = false; }, 400);
+    const order = [...box.querySelectorAll('.participant-name-chip')].map(c => c.dataset.uid);
+    saveChipOrder(box.dataset.jid, box.dataset.grp, order);
+  };
+  document.addEventListener('pointerup', finish);
+  document.addEventListener('pointercancel', finish);
+  // 끌기를 마친 직후의 클릭(참석자 정보 열기)은 무시
+  document.addEventListener('click', e => { if (eatClick) { eatClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
+})();
+
+async function saveChipOrder(jid, grp, order) {
+  const local = joins.find(x => x.id === jid);
+  if (!local) return;
+  try {
+    const next = await runTransaction(db, async tx => {
+      const ref  = doc(db, 'joins', jid);
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error('조인을 찾을 수 없어요');
+      const d = snap.data();
+      if (grp === 'all' || grp === 'rest') {
+        // 칩으로 보인 사람들의 자리만 새 순서로 채운다. 주최자(맨 앞)와 그사이 새로 들어온 사람 자리는 그대로.
+        const parts = (d.participants || []).slice();
+        const byUid = new Map(parts.map(p => [p.uid, p]));
+        const seq   = order.filter(u => byUid.has(u) && parts[0].uid !== u);
+        const set   = new Set(seq);
+        const slots = parts.map((p, i) => set.has(p.uid) ? i : -1).filter(i => i >= 0);
+        slots.forEach((pos, k) => { parts[pos] = byUid.get(seq[k]); });
+        tx.update(ref, { participants: parts });
+        return { participants: parts };
+      }
+      const parties = (d.parties || []).map(g => ({ ...g, uids: (g.uids || []).slice() }));
+      const g = parties[Number(grp)];
+      if (!g) throw new Error('조 편성이 바뀌었어요. 다시 시도해주세요');
+      const seq = order.filter(u => g.uids.includes(u));
+      g.uids = [...seq, ...g.uids.filter(u => !seq.includes(u))];
+      tx.update(ref, { parties });
+      return { parties };
+    });
+    Object.assign(local, next);
+    showToast('순서를 바꿨어요');
+  } catch (e) {
+    showToast('순서 저장 실패: ' + (e.code || e.message));
+  }
+  renderActiveList();
 }
 
 // ── 카드 빌드 ─────────────────────────────────────────
