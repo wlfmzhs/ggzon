@@ -605,6 +605,36 @@
       color: #8899ff;
     }
 
+    /* 단체라운드 */
+    .group-label {
+      font-size: 11px; font-weight: 700; color: #6fd39a;
+      background: rgba(62,160,102,0.14);
+      border: 1px solid rgba(62,160,102,0.35);
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .group-only { display: none; }
+    .group-mode .group-only { display: block; }
+    .group-hint { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; margin-top: 6px; }
+    .group-hint b { color: var(--green-light); }
+    .tee-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tee-preset {
+      padding: 6px 12px; border-radius: 16px; cursor: pointer;
+      font-size: 12px; font-weight: 700; font-family: inherit;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.7);
+    }
+    .group-course-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .group-course-badge {
+      width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900; color: var(--green-light);
+      background: rgba(62,160,102,0.15); border: 1px solid rgba(62,160,102,0.35);
+    }
+    .group-course-row .admin-input { flex: 1; min-width: 0; }
+    .group-course-row .admin-input[type="time"] { flex: 0 0 112px; padding: 11px 8px; }
+    .pgrp-tee { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.55); }
+    .party-group-tee { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.45); margin-left: 6px; }
+
     .admin-save-btn {
       width: 100%; padding: 14px; margin-top: 20px;
       background: linear-gradient(90deg, var(--green), var(--green-light));
@@ -854,6 +884,15 @@
       <div class="admin-section-title">기본 정보</div>
 
       <div class="admin-form-group">
+        <label class="admin-label">라운드 방식</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active-day" id="toggle-normal" onclick="setRoundMode('normal')">👥 일반 조인</button>
+          <button class="toggle-btn" id="toggle-group" onclick="setRoundMode('group')">🏌️ 단체라운드</button>
+        </div>
+        <div class="group-hint group-only">여러 조가 함께 나가는 라운드예요. 조 간격대로 조별 티타임이 자동 계산됩니다.</div>
+      </div>
+
+      <div class="admin-form-group" id="jointype-group">
         <label class="admin-label">필드 / 스크린</label>
         <div class="toggle-group">
           <button class="toggle-btn active-day" id="toggle-field" onclick="setJoinType('field')">⛳ 필드</button>
@@ -901,14 +940,47 @@
       </div>
 
       <div class="admin-form-group">
-        <label class="admin-label">시간 *</label>
-        <input class="admin-input" id="admin-time" type="time" />
+        <label class="admin-label" id="label-time">시간 *</label>
+        <input class="admin-input" id="admin-time" type="time" oninput="updateGroupPreview()" onchange="updateGroupPreview()" />
       </div>
 
-      <div class="admin-form-group">
-        <label class="admin-label">참석 인원 *</label>
-        <input class="admin-input" id="admin-capacity" type="number" placeholder="4" min="1" max="20" />
+      <div class="admin-form-group group-only">
+        <label class="admin-label">조 간격 (분) *</label>
+        <input class="admin-input" id="admin-tee-interval" type="text" inputmode="numeric"
+          placeholder="예) 7 또는 8,7" oninput="updateGroupPreview()" />
+        <div class="tee-presets">
+          <button type="button" class="tee-preset" onclick="setTeeInterval('7')">7분</button>
+          <button type="button" class="tee-preset" onclick="setTeeInterval('8')">8분</button>
+          <button type="button" class="tee-preset" onclick="setTeeInterval('8,7')">8·7 반복</button>
+          <button type="button" class="tee-preset" onclick="setTeeInterval('7,8')">7·8 반복</button>
+        </div>
+        <div class="group-hint">간격이 들쭉날쭉하면 <b>8,7</b> 처럼 입력하면 번갈아 적용됩니다</div>
       </div>
+
+      <div class="admin-section-title group-only" style="margin-top:22px;">참가 인원 & 코스</div>
+
+      <div class="admin-form-group">
+        <label class="admin-label" id="label-capacity">참석 인원 *</label>
+        <input class="admin-input" id="admin-capacity" type="number" placeholder="4" min="1" max="20" oninput="updateGroupPreview()" />
+      </div>
+
+      <div class="admin-form-group group-only">
+        <label class="admin-label">코스 수 *</label>
+        <select class="admin-input" id="admin-course-count" onchange="renderGroupCourseInputs()">
+          <option value="1">1코스 (한 코스에서 순서대로)</option>
+          <option value="2" selected>2코스 (18홀 동시 출발)</option>
+          <option value="3">3코스 (27홀 동시 출발)</option>
+        </select>
+      </div>
+
+      <div class="admin-form-group group-only">
+        <label class="admin-label">코스명 / 시작 시간</label>
+        <div id="group-course-inputs"></div>
+        <div class="group-hint">시작 시간을 비우면 티업 시간과 같이 출발합니다</div>
+        <div class="group-hint" id="group-preview"></div>
+      </div>
+
+      <div class="admin-section-title group-only" style="margin-top:22px;">비용 · 기타</div>
 
       <div class="admin-form-group" id="greenfee-group">
         <label class="admin-label">그린피 *</label>
@@ -1066,6 +1138,7 @@ let closedTotal = null; // 전체 마감 조인 개수 (서버 count)
 const CLOSED_PAGE_SIZE = 10;
 let currentTimeType = 'day';
 let currentJoinType = 'field';
+let currentRoundMode = 'normal';   // 'normal' | 'group'(단체라운드)
 let currentFilter = 'all';
 let editingId = null;
 let isPaidUser = false;
@@ -2209,6 +2282,137 @@ window.setTimeType = function(type) {
   document.getElementById('toggle-night').className = 'toggle-btn' + (type === 'night' ? ' active-night' : '');
 };
 
+// ── 단체라운드 (대회 만들기의 티업시간·조간격·코스 배정만 가져온 것) ──
+// 조(카트)는 코스별로 나눠 동시 출발하고, 코스 안에서는 조 간격만큼 뒤로 밀린다.
+window.setRoundMode = function(mode) {
+  currentRoundMode = mode === 'group' ? 'group' : 'normal';
+  const isGroup = currentRoundMode === 'group';
+  document.getElementById('toggle-normal').className = 'toggle-btn' + (!isGroup ? ' active-day' : '');
+  document.getElementById('toggle-group').className  = 'toggle-btn' + (isGroup ? ' active-day' : '');
+  document.getElementById('admin-overlay').classList.toggle('group-mode', isGroup);
+  // 단체라운드는 필드 전용
+  document.getElementById('jointype-group').style.display = isGroup ? 'none' : 'block';
+  if (isGroup && currentJoinType !== 'field') window.setJoinType('field');
+  document.getElementById('label-time').textContent     = isGroup ? '티업 시간 (첫 조) *' : '시간 *';
+  document.getElementById('label-capacity').textContent = isGroup ? '총 인원 *' : '참석 인원 *';
+  const cap = document.getElementById('admin-capacity');
+  cap.max = isGroup ? 200 : 20;
+  cap.placeholder = isGroup ? '예) 24' : '4';
+  if (isGroup && !document.getElementById('group-course-inputs').children.length) renderGroupCourseInputs();
+  updateGroupPreview();
+};
+
+// 조 간격 파싱 — "7" 또는 "8,7"(8분·7분 반복)
+function parseTeeIntervals(v) {
+  if (Array.isArray(v)) v = v.join(',');
+  return String(v == null ? '' : v).split(/[^0-9]+/)
+    .map(x => parseInt(x, 10)).filter(x => Number.isFinite(x) && x > 0 && x <= 60);
+}
+
+// 코스별 조 수 배분 (나머지는 앞 코스에 1개씩)
+function groupCourseCarts(totalCarts, courseCount) {
+  const base = Math.floor(totalCarts / courseCount), extra = totalCarts % courseCount;
+  return Array.from({ length: courseCount }, (_, i) => i < extra ? base + 1 : base);
+}
+
+function hhmmToMin(s) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(s || '');
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+function fmtClock(totalMin) {
+  const hh = Math.floor(totalMin / 60) % 24, mm = totalMin % 60;
+  return `${hh < 12 ? 'AM' : 'PM'} ${hh === 0 ? 12 : hh > 12 ? hh - 12 : hh}:${String(mm).padStart(2, '0')}`;
+}
+
+// 단체라운드 조인의 조별 티타임표: [{ course, time }] (gi 번째 조)
+function groupTeeSheet(j, cartsOverride) {
+  if (!j || j.roundMode !== 'group') return [];
+  const list  = parseTeeIntervals(j.teeIntervals);
+  const count = Math.max(1, Number(j.courseCount) || 1);
+  const names = groupCourseNamesOf(j);
+  const parties = (Array.isArray(j.parties) ? j.parties : []).length;
+  const total = cartsOverride || Math.max(Math.ceil((Number(j.capacity) || 0) / PARTY_MAX), parties, 1);
+  const cc = groupCourseCarts(total, count);
+  const base0 = hhmmToMin(j.time);
+  const out = [];
+  cc.forEach((n, ci) => {
+    const t0 = hhmmToMin((j.courseTimes || [])[ci]);
+    const base = t0 != null ? t0 : base0;
+    let acc = 0;
+    for (let k = 0; k < n; k++) {
+      if (k > 0 && list.length) acc += list[(k - 1) % list.length];
+      out.push({ course: names[ci], time: base == null ? '' : fmtClock(base + acc) });
+    }
+  });
+  return out;
+}
+
+function groupCourseNamesOf(j) {
+  const count = Math.max(1, Number(j.courseCount) || 1);
+  const fallback = [j.frontCourse, j.backCourse];
+  return Array.from({ length: count }, (_, i) =>
+    ((j.courseNames || [])[i] || fallback[i] || `${String.fromCharCode(65 + i)}코스`).trim());
+}
+
+window.renderGroupCourseInputs = function(names, times) {
+  const box = document.getElementById('group-course-inputs');
+  const count = parseInt(document.getElementById('admin-course-count').value, 10) || 1;
+  // 다시 그릴 때 이미 적어둔 값은 살린다
+  const curNames = names || Array.from(box.querySelectorAll('.gc-name')).map(el => el.value);
+  const curTimes = times || Array.from(box.querySelectorAll('.gc-time')).map(el => el.value);
+  const esc = s => String(s || '').replace(/"/g, '&quot;');
+  const ph = ['예) 전반 코스', '예) 후반 코스', '예) 3번째 코스'];
+  box.innerHTML = Array.from({ length: count }, (_, i) => `
+    <div class="group-course-row">
+      <div class="group-course-badge">${String.fromCharCode(65 + i)}</div>
+      <input class="admin-input gc-name" placeholder="${ph[i]}" value="${esc(curNames[i])}" oninput="updateGroupPreview()" />
+      <input class="admin-input gc-time" type="time" value="${esc(curTimes[i])}" oninput="updateGroupPreview()" onchange="updateGroupPreview()" />
+    </div>`).join('');
+  updateGroupPreview();
+};
+
+function readGroupForm() {
+  const box = document.getElementById('group-course-inputs');
+  const count = parseInt(document.getElementById('admin-course-count').value, 10) || 1;
+  const names = Array.from(box.querySelectorAll('.gc-name')).map(el => el.value.trim()).slice(0, count);
+  const times = Array.from(box.querySelectorAll('.gc-time')).map(el => el.value).slice(0, count);
+  while (names.length < count) names.push('');
+  while (times.length < count) times.push('');
+  return {
+    roundMode: 'group',
+    teeIntervals: parseTeeIntervals(document.getElementById('admin-tee-interval').value),
+    courseCount: count,
+    courseNames: names,
+    courseTimes: times,
+    time: document.getElementById('admin-time').value,
+    capacity: Number(document.getElementById('admin-capacity').value) || 0,
+    frontCourse: document.getElementById('admin-front-course').value.trim(),
+    backCourse: document.getElementById('admin-back-course').value.trim(),
+  };
+}
+
+function updateGroupPreview() {
+  const el = document.getElementById('group-preview');
+  if (!el || currentRoundMode !== 'group') return;
+  const g = readGroupForm();
+  if (!g.time || !g.teeIntervals.length || !g.capacity) {
+    el.innerHTML = '티업 시간·조 간격·총 인원을 넣으면 조별 티타임이 미리 보입니다';
+    return;
+  }
+  const carts = Math.ceil(g.capacity / PARTY_MAX);
+  const sheet = groupTeeSheet(g, carts);
+  const byCourse = {};
+  sheet.forEach((s, gi) => { (byCourse[s.course] = byCourse[s.course] || []).push(`${gi + 1}조 ${s.time}`); });
+  el.innerHTML = `총 <b>${carts}개 조</b> — ` + Object.entries(byCourse)
+    .map(([c, arr]) => `<br><b>${c}</b> ${arr.slice(0, 4).join(' → ')}${arr.length > 4 ? ' …' : ''}`).join('');
+}
+window.updateGroupPreview = updateGroupPreview;
+
+window.setTeeInterval = function(v) {
+  document.getElementById('admin-tee-interval').value = v;
+  updateGroupPreview();
+};
+
 // ── 관리자 모달 ───────────────────────────────────────
 window.openAdminModal = function(id) {
   editingId = id;
@@ -2228,6 +2432,11 @@ window.openAdminModal = function(id) {
       document.getElementById('admin-back-course').value = j.backCourse || '';
       window.setJoinType(j.joinType || 'field');
       window.setTimeType(j.timeType || 'day');
+      const isGroup = j.roundMode === 'group';
+      document.getElementById('admin-tee-interval').value = isGroup ? parseTeeIntervals(j.teeIntervals).join(',') : '';
+      document.getElementById('admin-course-count').value = String(isGroup ? (Number(j.courseCount) || 1) : 2);
+      window.renderGroupCourseInputs(isGroup ? (j.courseNames || []) : [], isGroup ? (j.courseTimes || []) : []);
+      window.setRoundMode(isGroup ? 'group' : 'normal');
       if (j.course) updateSubCourseChips(j.course);
       courseConfirmed = true;   // 기존 조인의 코스명은 그대로 인정
       updateCourseStatus();
@@ -2245,6 +2454,10 @@ window.openAdminModal = function(id) {
     document.getElementById('admin-back-course').value = '';
     window.setJoinType('field');
     window.setTimeType('day');
+    document.getElementById('admin-tee-interval').value = '';
+    document.getElementById('admin-course-count').value = '2';
+    window.renderGroupCourseInputs([], []);
+    window.setRoundMode('normal');
     updateCourseStatus();
   }
   // 빈방 토글 초기화
@@ -2470,8 +2683,23 @@ window.saveJoin = async function() {
     showToast('필드 조인은 그린피·전반·후반 코스를 모두 입력해주세요'); return;
   }
 
+  const isGroup = currentRoundMode === 'group';
+  if (isGroup) {
+    if (!parseTeeIntervals(document.getElementById('admin-tee-interval').value).length) {
+      showToast('단체라운드는 조 간격(분)을 입력해주세요'); document.getElementById('admin-tee-interval').focus(); return;
+    }
+    if (Number(capacity) < 2 || Number(capacity) > 200) { showToast('총 인원은 2~200명으로 입력해주세요'); return; }
+  }
+
   const data = { course, date, time, capacity: Number(capacity), kakaoUrl, memo, timeType: currentTimeType, joinType: currentJoinType, status: 'recruiting', updatedAt: serverTimestamp(), creatorUid: currentUser.uid };
   if (currentJoinType === 'field') { data.greenfee = greenfee; data.frontCourse = frontCourse; data.backCourse = backCourse; }
+  if (isGroup) {
+    const g = readGroupForm();
+    Object.assign(data, { roundMode: 'group', teeIntervals: g.teeIntervals, courseCount: g.courseCount,
+      courseNames: g.courseNames, courseTimes: g.courseTimes });
+  } else {
+    data.roundMode = 'normal';
+  }
 
   // 게스트 entries 생성
   const guestEntries = guestList.map((name, i) => ({
