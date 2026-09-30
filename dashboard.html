@@ -551,6 +551,26 @@
     @media (prefers-reduced-motion: reduce) {
       .hio-like, .hio-like::after, .hio-like-fx i { animation: none !important; }
     }
+    /* GG ISSUE 보관함 */
+    .gi-archive { margin-top: 18px; }
+    .gi-archive-label { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.4); letter-spacing: 0.04em; margin-bottom: 8px; }
+    .gi-archive-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .gi-archive-list::-webkit-scrollbar { display: none; }
+    .gi-thumb {
+      position: relative; flex: 0 0 auto; width: 88px; height: 88px; padding: 0;
+      border-radius: 12px; overflow: hidden; cursor: pointer; font-family: inherit; text-align: left;
+      border: 1.5px solid rgba(255,255,255,0.12); background: #06170e;
+    }
+    .gi-thumb.on { border-color: rgba(245,200,66,0.85); box-shadow: 0 0 0 2px rgba(245,200,66,0.18); }
+    .gi-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
+    .gi-thumb.on img { opacity: 1; }
+    .gi-thumb::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(3,14,8,0.92) 0%, rgba(3,14,8,0) 62%); }
+    .gi-thumb-badge {
+      position: absolute; top: 5px; left: 5px; z-index: 1; padding: 2px 6px; border-radius: 999px;
+      background: rgba(0,0,0,0.55); font-size: 9px; font-weight: 800; color: #ffe89a;
+    }
+    .gi-thumb-name { position: absolute; left: 7px; bottom: 17px; z-index: 1; font-size: 11.5px; font-weight: 900; color: #fff; }
+    .gi-thumb-date { position: absolute; left: 7px; bottom: 5px; z-index: 1; font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,0.55); }
     /* 히스토그램 */
     .chart-section {
       width: 100%; background: rgba(255,255,255,0.04);
@@ -849,12 +869,12 @@
         <div class="notice-empty">불러오는 중...</div>
       </div>
 
-      <!-- GG ISSUE (홀인원) -->
+      <!-- GG ISSUE (축하 카드) — 내용은 아래 GG_ISSUES 목록에서 그린다 -->
       <div class="section-header section-gap" style="margin-top:22px;">
         <span class="section-title">GG ISSUE</span>
       </div>
       <div class="hio-card" id="hio-card" onclick="replayHio()">
-        <img class="hio-photo" src="image/ggissue-hio-20260906.jpg" alt="김경운 홀인원 - 서라벌CC 파인코스 6번홀" loading="lazy" />
+        <img class="hio-photo" id="hio-photo" src="image/ggissue-lucky-20260930.jpg" alt="" loading="lazy" />
         <div class="hio-scrim-top"></div>
         <div class="hio-scrim-bot"></div>
         <div class="hio-glow"></div>
@@ -866,24 +886,18 @@
 
         <div class="hio-top">
           <div class="hio-kicker">GOLGAB ZONE</div>
-          <div class="hio-title">
-            <b style="--i:0">H</b><b style="--i:1">O</b><b style="--i:2">L</b><b style="--i:3">E</b><b class="sp" style="--i:4"></b><b style="--i:5">I</b><b style="--i:6">N</b><b class="sp" style="--i:7"></b><b style="--i:8">O</b><b style="--i:9">N</b><b style="--i:10">E</b>
-          </div>
+          <div class="hio-title" id="hio-title"></div>
           <div class="hio-sub">
-            <span class="hio-date">2026.09.06</span>
+            <span class="hio-date" id="hio-date"></span>
             <span class="hio-bar"></span>
             <span class="hio-name">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.7 1.2 6.6L12 17.2 6.1 20.3l1.2-6.6L2.5 9l6.6-.9L12 2z"/></svg>
-              김경운
+              <span id="hio-name"></span>
             </span>
           </div>
         </div>
 
-        <div class="hio-info">
-          <div class="hio-line hio-l1" style="--i:0">서라벌CC 파인코스 <em>6번홀</em> · PAR 3</div>
-          <div class="hio-line hio-l2" style="--i:1">타이틀리스트 PRO V1 2번</div>
-          <div class="hio-line hio-l3" style="--i:2">동반자 <b>김양애 · 박영철 · 하준경</b></div>
-        </div>
+        <div class="hio-info" id="hio-info"></div>
       </div>
 
       <div class="hio-like-wrap">
@@ -897,11 +911,85 @@
         <div class="hio-like-count" id="hio-like-count"><b>0</b>번 축하했어요</div>
       </div>
 
+      <!-- 지난 GG ISSUE 보관함: 눌러서 위 카드로 다시 보기 -->
+      <div class="gi-archive" id="gi-archive" style="display:none;">
+        <div class="gi-archive-label">GG ISSUE 보관함</div>
+        <div class="gi-archive-list" id="gi-archive-list"></div>
+      </div>
+
       <script>
       (function(){
         var card = document.getElementById('hio-card');
         var fx   = document.getElementById('hio-fx');
         if (!card || !fx) return;
+        // ── GG ISSUE 목록 (최신이 맨 위) ──
+        // 새 이슈는 맨 위에 추가만 하면 된다. 지난 이슈는 자동으로 보관함에 남고,
+        // 하트는 id 별로 ggissues/{id}/likes 에 따로 쌓인다(그래서 id 는 바꾸면 안 된다).
+        var GG_ISSUES = [
+          {
+            id: 'lucky-20260930', title: 'LUCKY PRIZE', badge: '행운상',
+            date: '2026.09.30', name: '조정우',
+            photo: 'image/ggissue-lucky-20260930.jpg',
+            alt: '조정우 행운상 - 롯데상품권 100만원',
+            lines: [
+              '행운상 · 롯데상품권 <em>100만원</em>',
+              '창원컨트리클럽 · 아마추어 골프대회'
+            ]
+          },
+          {
+            id: 'hio-20260906', title: 'HOLE IN ONE', badge: '홀인원',
+            date: '2026.09.06', name: '김경운',
+            photo: 'image/ggissue-hio-20260906.jpg',
+            alt: '김경운 홀인원 - 서라벌CC 파인코스 6번홀',
+            lines: [
+              '서라벌CC 파인코스 <em>6번홀</em> · PAR 3',
+              '타이틀리스트 PRO V1 2번',
+              '동반자 <b>김양애 · 박영철 · 하준경</b>'
+            ]
+          }
+        ];
+        window.GG_ISSUE_ID = GG_ISSUES[0].id;
+        var cur = 0;
+        function renderIssue(idx){
+          var it = GG_ISSUES[idx];
+          cur = idx;
+          window.GG_ISSUE_ID = it.id;
+          var ph = document.getElementById('hio-photo');
+          ph.src = it.photo; ph.alt = it.alt;
+          document.getElementById('hio-title').innerHTML = it.title.split('').map(function(ch, i){
+            return ch === ' ' ? '<b class="sp" style="--i:' + i + '"></b>' : '<b style="--i:' + i + '">' + ch + '</b>';
+          }).join('');
+          document.getElementById('hio-date').textContent = it.date;
+          document.getElementById('hio-name').textContent = it.name;
+          document.getElementById('hio-info').innerHTML = it.lines.map(function(t, i){
+            return '<div class="hio-line hio-l' + (i + 1) + '" style="--i:' + i + '">' + t + '</div>';
+          }).join('');
+          renderArchive();
+        }
+        function renderArchive(){
+          var wrap = document.getElementById('gi-archive');
+          var list = document.getElementById('gi-archive-list');
+          if (!wrap || !list) return;
+          if (GG_ISSUES.length < 2) { wrap.style.display = 'none'; return; }
+          wrap.style.display = '';
+          list.innerHTML = GG_ISSUES.map(function(it, i){
+            return '<button type="button" class="gi-thumb' + (i === cur ? ' on' : '') + '" onclick="showGGIssue(' + i + ')">'
+                 + '<img src="' + it.photo + '" alt="" loading="lazy" />'
+                 + '<span class="gi-thumb-badge">' + it.badge + '</span>'
+                 + '<span class="gi-thumb-name">' + it.name + '</span>'
+                 + '<span class="gi-thumb-date">' + it.date.slice(2) + '</span>'
+                 + '</button>';
+          }).join('');
+        }
+        window.showGGIssue = function(idx){
+          if (idx === cur) { play(); return; }
+          renderIssue(idx);
+          play();
+          if (window._switchHioIssue) window._switchHioIssue(GG_ISSUES[idx].id);
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+        renderIssue(0);
+
         var COLORS = ['#f5c842','#fff0b8','#3ea066','#ffffff','#e8a71a','#7ee0a6'];
         function buildFx(){
           var h = '';
@@ -1150,7 +1238,8 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   // ===== GG ISSUE 하트(축하) =====
   // 하트는 누를 때마다 누적된다. ggissues/{id}/likes/{uid} 문서에 "내가 누른 횟수(count)"를
   // 저장하고, 전체 숫자는 서버 집계(sum)로 센다. 연타는 모아서 한 번만 저장한다.
-  const HIO_ISSUE_ID = 'hio-20260906';
+  let HIO_ISSUE_ID = window.GG_ISSUE_ID || 'lucky-20260930';   // 지금 카드에 보이는 이슈
+  let _hioGen = 0;                  // 이슈를 바꿀 때마다 +1 → 이전 이슈의 늦은 응답은 무시
   const HIO_MAX_PER_USER = 50;      // 한 사람이 누를 수 있는 최대(연타 도배 방지)
   const HIO_SAVE_DELAY  = 650;      // 연타가 멈춘 뒤 저장까지 기다리는 시간(ms)
   let _hioMine = 0, _hioTotal = 0, _hioSaved = 0, _hioTimer = null, _hioSaving = false;
@@ -1178,6 +1267,7 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   async function loadHioLike() {
     if (!document.getElementById('hio-like-btn')) return;
     const uid = hioUid();
+    const gen = _hioGen;
     const likesCol = collection(db, 'ggissues', HIO_ISSUE_ID, 'likes');
     try {
       const [agg, docCnt, withCnt, mineSnap] = await Promise.all([
@@ -1187,6 +1277,7 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
         uid ? getDoc(doc(likesCol, uid)) : Promise.resolve(null),
       ]);
       // count 필드가 없던 초기(1인 1하트) 문서는 1번으로 친다.
+      if (gen !== _hioGen) return;
       const legacy = Math.max(0, docCnt.data().count - withCnt.data().count);
       _hioTotal = (agg.data().total || 0) + legacy;
       _hioMine  = mineSnap && mineSnap.exists() ? (mineSnap.data().count || 1) : 0;
@@ -1237,27 +1328,42 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
     const uid = hioUid();
     if (!uid || _hioSaving || _hioMine === _hioSaved) return;
     _hioSaving = true;
+    const gen = _hioGen, issueId = HIO_ISSUE_ID;
     const target = _hioMine, first = _hioSaved === 0;
     const data = { uid, count: target, updatedAt: serverTimestamp() };
     if (first) data.createdAt = serverTimestamp();
     try {
-      await setDoc(doc(db, 'ggissues', HIO_ISSUE_ID, 'likes', uid), data, { merge: true });
-      _hioSaved = target;
+      await setDoc(doc(db, 'ggissues', issueId, 'likes', uid), data, { merge: true });
+      if (gen === _hioGen) _hioSaved = target;
     } catch (e) {
+      if (gen !== _hioGen) return;
       // 저장 실패 — 화면을 서버에 저장된 값으로 되돌린다.
       _hioTotal = Math.max(0, _hioTotal - (_hioMine - _hioSaved));
       _hioMine  = _hioSaved;
       renderHioLike();
       showToast('하트 저장에 실패했어요. 잠시 후 다시 시도해 주세요');
     } finally {
-      _hioSaving = false;
+      if (gen === _hioGen) _hioSaving = false;
       // 저장하는 동안 더 눌렀으면 한 번 더.
-      if (_hioMine !== _hioSaved) {
+      if (gen === _hioGen && _hioMine !== _hioSaved) {
         clearTimeout(_hioTimer);
         _hioTimer = setTimeout(saveHioLike, HIO_SAVE_DELAY);
       }
     }
   }
+
+  // 보관함에서 다른 이슈를 고르면: 이전 이슈에 누른 하트는 저장해 두고, 새 이슈 하트를 불러온다.
+  window._switchHioIssue = function(id) {
+    if (id === HIO_ISSUE_ID) return;
+    clearTimeout(_hioTimer);
+    if (_hioMine !== _hioSaved) { _hioSaving = false; saveHioLike(); }
+    _hioGen++;
+    _hioSaving = false;
+    HIO_ISSUE_ID = id;
+    _hioMine = 0; _hioTotal = 0; _hioSaved = 0;
+    renderHioLike();
+    loadHioLike();
+  };
 
   // 저장 전에 화면을 벗어나도 누른 만큼은 남긴다.
   document.addEventListener('visibilitychange', () => {
