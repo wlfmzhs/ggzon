@@ -482,7 +482,11 @@
     }
     .sp-wall.anim.in .sp-title-box::after { animation: sp-shine 1.1s ease .2s 1; }
     @keyframes sp-shine { 0% { left: -60%; opacity: 1; } 100% { left: 130%; opacity: 1; } }
+    /* 퐁당퐁당: 무작위 로고가 짧게 커졌다 돌아옴 (JS 가 .pop 을 붙임) */
+    .detail-sponsor-logo-box.pop { animation: sp-pop .55s cubic-bezier(.3,1.6,.5,1) 1; }
+    @keyframes sp-pop { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
     @media (prefers-reduced-motion: reduce) {
+      .detail-sponsor-logo-box.pop { animation: none; }
       .sp-wall.anim .sp-sub, .sp-wall.anim .detail-sponsor-item { opacity: 1; transform: none; }
       .sp-wall.anim .sp-sub-line { transform: none; }
       .sp-wall.anim.in .sp-title-box::after { animation: none; }
@@ -4262,13 +4266,34 @@ let _sponsorWallSeen = false;
 function observeSponsorWall(root) {
   const wall = root.querySelector('.sp-wall.anim');
   if (!wall) return;
-  if (_sponsorWallSeen || !('IntersectionObserver' in window)) { wall.classList.remove('anim'); return; }
+  if (_sponsorWallSeen || !('IntersectionObserver' in window)) { wall.classList.remove('anim'); startSponsorPop(); return; }
   const io = new IntersectionObserver(entries => {
     if (entries.some(en => en.isIntersecting)) {
       _sponsorWallSeen = true; wall.classList.add('in'); io.disconnect();
+      setTimeout(startSponsorPop, 1200); // 등장 액션 끝난 뒤 시작
     }
   }, { threshold: 0.25 });
   io.observe(wall);
+}
+
+// 퐁당퐁당 — 0.5~1.2초마다 무작위 로고 하나가 톡 커졌다 돌아옴 (직전 로고는 피함)
+let _sponsorPopTimer = null;
+function startSponsorPop() {
+  if (_sponsorPopTimer || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let last = -1;
+  const tick = () => {
+    const boxes = document.querySelectorAll('#detail-scroll .detail-sponsor-logo-box');
+    if (!boxes.length || boxes[0].offsetParent === null) { _sponsorPopTimer = null; return; } // 상세 닫힘/다른 화면 → 멈춤 (다시 열면 재시작)
+    if (!document.hidden && boxes.length > 1) {
+      let i; do { i = Math.floor(Math.random() * boxes.length); } while (i === last);
+      last = i;
+      const b = boxes[i];
+      b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+      setTimeout(() => b.classList.remove('pop'), 600);
+    }
+    _sponsorPopTimer = setTimeout(tick, 500 + Math.random() * 700);
+  };
+  tick();
 }
 
 // 스폰서 노출 여부 — sponsorOn 없는 옛 대회는 원래 5개 전부 노출,
