@@ -1956,6 +1956,11 @@
           <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/창원수신경외과.png" class="sponsor-logo sp-cws" alt="창원수신경외과" /></div>
           <input class="sponsor-input" id="sponsor-text-5" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
+        <div class="sponsor-item" id="sponsor-item-6">
+          <label class="sponsor-check"><input type="checkbox" id="sponsor-on-6" checked onchange="toggleSponsor(6)" /><span>선택</span></label>
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/바른렌트카.png" class="sponsor-logo" alt="바른렌트카" /></div>
+          <input class="sponsor-input" id="sponsor-text-6" type="text" placeholder="짧은 문구" maxlength="20" />
+        </div>
       </div>
 
       <button class="admin-save-btn" onclick="saveTournament()">저장하기</button>
@@ -2806,7 +2811,7 @@ function renderDetailHeader(t) {
     </div>
 
     ${(() => {
-      const allNames = ['Ayserleather','Drun','swingpod','ytour','RODEO','창원수신경외과'];
+      const allNames = ['Ayserleather','Drun','swingpod','ytour','RODEO','창원수신경외과','바른렌트카'];
       const texts = t.sponsorTexts || [];
       // sponsorOn 없으면 기존 대회 호환 위해 전부 노출
       const items = allNames
@@ -4199,7 +4204,7 @@ function clearAdminForm() {
   document.getElementById('admin-tee-interval').value = '7';
   document.getElementById('admin-cart-hint').textContent = '총인원 ÷ 4 = 카트 수, 코스별로 균등 배분됩니다';
   document.getElementById('tee-interval-preview').textContent = '';
-  [0,1,2,3,4,5].forEach(i => {
+  [0,1,2,3,4,5,6].forEach(i => {
     const el = document.getElementById(`sponsor-text-${i}`); if (el) el.value = '';
     const chk = document.getElementById(`sponsor-on-${i}`); if (chk) chk.checked = true;
     document.getElementById(`sponsor-item-${i}`)?.classList.remove('off');
@@ -4250,7 +4255,7 @@ function fillAdminForm(t) {
     if (el) el.value = text || '';
   });
   // 스폰서 선택 상태 복원 (sponsorOn 없으면 기존 대회 호환 위해 전부 선택)
-  [0,1,2,3,4,5].forEach(i => {
+  [0,1,2,3,4,5,6].forEach(i => {
     const on = sponsorOnAt(t, i);
     const chk = document.getElementById(`sponsor-on-${i}`);
     if (chk) chk.checked = on;
@@ -4486,8 +4491,8 @@ window.saveTournament = async function() {
     prizesData: getPrizesData(),
     teeInterval: isScreen ? 0 : teeIntervalList[0],
     teeIntervals: isScreen ? [] : teeIntervalList,
-    sponsorTexts: [0,1,2,3,4,5].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
-    sponsorOn: [0,1,2,3,4,5].map(i => document.getElementById(`sponsor-on-${i}`)?.checked !== false),
+    sponsorTexts: [0,1,2,3,4,5,6].map(i => document.getElementById(`sponsor-text-${i}`).value.trim()),
+    sponsorOn: [0,1,2,3,4,5,6].map(i => document.getElementById(`sponsor-on-${i}`)?.checked !== false),
   };
 
   const editingId = document.getElementById('admin-editing-id').value;
