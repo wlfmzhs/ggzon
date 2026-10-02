@@ -822,6 +822,10 @@
       color: #fff; white-space: nowrap;
     }
     /* 백팀 자리는 흰 바탕이라 금색을 진하게 */
+    .gc-yt {
+      height: 8px; width: auto; flex-shrink: 0; vertical-align: middle;
+      margin-left: 2px; display: inline-block;
+    }
     .seat.baek .gc-stars { color: #b8860b; }
     .seat.baek .gc-champ { color: #111; }
     .pairing-dnd-slot.baek.gc-star .gc-champ { color: #111; }
@@ -1295,6 +1299,7 @@
     .pairing-dnd-slot.baek.gc-star { background: rgba(255,236,236,0.95) !important; border-color: #d40000 !important; }
     .pairing-dnd-slot.baek.gc-star .pairing-dnd-name { color: #111; }
     .pairing-dnd-name .gc-stars { font-size: 9px; }
+    .pairing-dnd-name .gc-yt { height: 9px; }
     .pairing-dnd-slot.baek.gc-star .gc-stars { color: #b8860b; }
     /* 관리자 인원 빼기 ✕ — 슬롯이 작아 탭 영역을 따로 넉넉히 준다 */
     .pairing-del-btn {
@@ -2048,7 +2053,7 @@
 </div><!-- /phone -->
 
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
-<script src="data-golchelin.js"></script>
+<script src="data-golchelin.js?v=2"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -2088,11 +2093,16 @@ function getCourseNamesFor(t) {
 function golchelinMark(name) {
   const st = window.golchelinStarsOf ? window.golchelinStarsOf(name) : 0;
   const champ = window.isGolchelinChampion ? window.isGolchelinChampion(name) : false;
-  if (!st && !champ) return null;
+  const yt = window.youtuberChannelOf ? window.youtuberChannelOf(name) : '';
+  if (!st && !champ && !yt) return null;
+  // PDF 는 about:blank 새 탭에 쓰므로 절대 주소로
+  const ytImg = yt
+    ? `<img class="gc-yt" src="${new URL('image/유튜브로고.png', location.href).href}" alt="유튜버" title="유튜버 · ${yt}">`
+    : '';
   return {
-    st, champ,
-    // 1스타 = ★, 2스타 = ★★ … 스타 개수만큼 노란 별
-    stars: st ? `<span class="gc-stars" title="골슐랭 ${st}스타">${'★'.repeat(st)}</span>` : '',
+    st, champ, yt, ytImg,
+    // 1스타 = ★, 2스타 = ★★ … 스타 개수만큼 노란 별, 유튜버는 그 옆에 유튜브 로고
+    stars: (st ? `<span class="gc-stars" title="골슐랭 ${st}스타">${'★'.repeat(st)}</span>` : '') + ytImg,
     champLabel: champ ? '<span class="gc-champ">CHAMPION</span>' : '',
   };
 }
@@ -5109,7 +5119,7 @@ window.downloadDetailPDF = function() {
         const gm = reg ? golchelinMark(reg.name) : null;
         const gcCell = (gm && gm.st) ? ' gc-star' : '';
         const gcMark = gm
-          ? `${gm.st ? ` <span class="gc-stars">${'★'.repeat(gm.st)}</span>` : ''}${gm.champ ? '<div class="gc-champ">CHAMPION</div>' : ''}`
+          ? `${gm.st ? ` <span class="gc-stars">${'★'.repeat(gm.st)}</span>` : ''}${gm.yt ? ' ' + gm.ytImg : ''}${gm.champ ? '<div class="gc-champ">CHAMPION</div>' : ''}`
           : '';
         const nameCell = reg
           ? `<td class="name-cell${gcCell}">${reg.name || '-'}${gcMark}</td>`
@@ -5169,6 +5179,7 @@ window.downloadDetailPDF = function() {
     .name-cell { font-weight: 600; }
     .name-cell.gc-star { background: #fff0f0; }
     .name-cell .gc-stars { color: #d4a017; font-size: 11px; letter-spacing: -0.5px; }
+    .name-cell .gc-yt { height: 10px; width: auto; vertical-align: -1px; margin-left: 2px; }
     .name-cell .gc-champ {
       margin-top: 2px;
       font-size: 8px; font-weight: 900; letter-spacing: 0.8px; color: #444;

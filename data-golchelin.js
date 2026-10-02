@@ -24,6 +24,21 @@ const GOLCHELIN_STARS = {
 // 현 챔피언 — 1st GPGA OPEN 우승 (data-gpga-2025.js 의 winner 와 같은 사람)
 const GOLCHELIN_CHAMPION = '김도영';
 
+// 유튜버 — 대회 자리배치 / 조편성 / 출력물에서 이름 옆에 유튜브 로고 표시 (이름: 채널명)
+const GGZON_YOUTUBERS = {
+  '성갑': '골갑',
+  '박찬웅': '불혹의독학골퍼',
+  '오정석': '골프는정석',
+  '김유주': '공치는유주',
+  '박건영': '공치는유주',
+  '서현성': '필드공방',
+  '어정우': '필드공방',
+  '윤수민': '버디하는백돌이',
+  '조명진': '드만언',
+  '김도영': '언더아마',
+  '차종학': '차해병',
+};
+
 // 이름 비교용 정규화.
 // 자리배치에서 동명이인은 "김도영2" 처럼 뒤에 숫자가 붙으므로 떼어내고 비교한다.
 function golchelinKey(name) {
@@ -33,6 +48,11 @@ function golchelinKey(name) {
 // 골슐랭 스타 개수 (아니면 0)
 function golchelinStarsOf(name) {
   return GOLCHELIN_STARS[golchelinKey(name)] || 0;
+}
+
+// 유튜버면 채널명, 아니면 ''
+function youtuberChannelOf(name) {
+  return GGZON_YOUTUBERS[golchelinKey(name)] || '';
 }
 
 function isGolchelinChampion(name) {
@@ -48,4 +68,6 @@ if (typeof window !== 'undefined') {
   window.golchelinKey = golchelinKey;
   window.golchelinStarsOf = golchelinStarsOf;
   window.isGolchelinChampion = isGolchelinChampion;
+  window.GGZON_YOUTUBERS = GGZON_YOUTUBERS;
+  window.youtuberChannelOf = youtuberChannelOf;
 }
