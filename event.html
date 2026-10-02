@@ -452,13 +452,14 @@
     .detail-sponsor-wrap { margin: 28px 14px 32px; }
     .sp-wall {
       background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: 14px; padding: 14px 12px 16px; overflow: hidden;
+      border-radius: 14px; padding: 16px; overflow: hidden;
     }
-    .sp-title-img {
-      display: block; width: 100%; height: auto; border-radius: 10px;
-      position: relative; overflow: hidden;
+    .sp-title-img { display: block; width: 100%; height: auto; }
+    /* 이미지 자체 테두리는 잘라냈고, 둥근 모서리에 맞춰 CSS 로 고르게 다시 그림 */
+    .sp-title-box {
+      position: relative; overflow: hidden; margin-bottom: 16px;
+      border: 1.5px solid #d15316; border-radius: 10px;
     }
-    .sp-title-box { position: relative; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
     /* 타이틀 이미지에 한 번 스치는 빛 */
     .sp-title-box::after {
       content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
@@ -4252,7 +4253,7 @@ function clearAdminForm() {
 
 // 스폰서 영역 타이틀 이미지 (대회 id → 이미지)
 const SPONSOR_TITLE_IMG = {
-  'uoLAb4oGaA6WoSXAVxId': 'image/2nd-gpga-open-title.webp', // 2nd GPGA OPEN
+  'uoLAb4oGaA6WoSXAVxId': 'image/2nd-gpga-open-title.webp?v=2', // 2nd GPGA OPEN
 };
 
 // 스폰서 영역이 화면에 들어오면 한 번 등장 액션 (실시간 갱신으로 다시 그려져도 이미 본 뒤엔 바로 표시)
