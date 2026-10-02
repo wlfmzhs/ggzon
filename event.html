@@ -448,32 +448,70 @@
     .detail-name { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; }
     .detail-slogan { font-size: 13px; color: rgba(255,255,255,0.5); }
 
-    /* ── Detail sponsor strip ── */
-    .detail-sponsor-wrap {
-      border-top: 1px solid rgba(62,160,102,0.12);
-      margin: 28px 14px 32px;
-      padding-top: 24px;
+    /* ── Detail sponsor wall (행사 포토존 백월 스타일) ── */
+    .detail-sponsor-wrap { margin: 28px 14px 32px; }
+    .sp-wall {
+      position: relative; overflow: hidden; border-radius: 16px;
+      padding: 26px 12px 20px;
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 0%, rgba(240,192,64,0.20), transparent 70%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(62,160,102,0.14), transparent 70%),
+        linear-gradient(180deg, #13251a 0%, #0a140e 100%);
+      border: 1px solid rgba(240,192,64,0.38);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,236,170,0.18);
     }
-    .detail-sponsor-headline {
-      text-align: center; font-size: 12px; color: rgba(255,255,255,0.4);
-      margin-bottom: 16px; line-height: 1.5; letter-spacing: -0.2px;
+    /* 뒤에 은은하게 반복되는 대회 워터마크 (step & repeat) */
+    .sp-wall::before {
+      content: ''; position: absolute; inset: -40%;
+      background-image: var(--sp-pattern); background-size: 210px 60px;
+      transform: rotate(-12deg); opacity: 0.035; pointer-events: none;
     }
+    /* 모서리 금색 꺾쇠 */
+    .sp-corner { position: absolute; width: 14px; height: 14px; border-color: var(--gold); border-style: solid; opacity: 0.8; }
+    .sp-corner.tl { top: 8px; left: 8px; border-width: 1.5px 0 0 1.5px; }
+    .sp-corner.tr { top: 8px; right: 8px; border-width: 1.5px 1.5px 0 0; }
+    .sp-corner.bl { bottom: 8px; left: 8px; border-width: 0 0 1.5px 1.5px; }
+    .sp-corner.br { bottom: 8px; right: 8px; border-width: 0 1.5px 1.5px 0; }
+    .sp-head { position: relative; text-align: center; margin-bottom: 18px; }
+    .sp-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 800; letter-spacing: 2.5px; color: var(--gold);
+      text-transform: uppercase;
+    }
+    .sp-eyebrow::before, .sp-eyebrow::after {
+      content: ''; width: 26px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold));
+    }
+    .sp-eyebrow::after { transform: scaleX(-1); }
+    .sp-title {
+      margin-top: 6px; font-size: 26px; font-weight: 900; letter-spacing: 6px; line-height: 1;
+      padding-left: 6px; /* letter-spacing 오른쪽 여백 보정 */
+      background: linear-gradient(180deg, #fff6d8 0%, #f0c040 55%, #b8860b 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 0 18px rgba(240,192,64,0.18);
+    }
+    .sp-sub { margin-top: 8px; font-size: 10px; letter-spacing: 1px; color: rgba(255,255,255,0.38); }
     .detail-sponsor-strip {
-      display: flex; flex-wrap: wrap; justify-content: center;
-      /* 줄 간격: 로고 아래 문구칸(14px)·여백 포함 체감 38px → 27px (약 30% 축소) */
-      gap: 5px 8px; align-items: stretch;
+      position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
     }
     .detail-sponsor-item {
-      flex: 0 0 calc((100% - 24px) / 4); display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      flex: 0 0 calc((100% - 18px) / 4); display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 50px; padding: 6px 2px; border-radius: 8px;
+      background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07);
     }
     .detail-sponsor-logo-box {
-      flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 4px 0;
+      flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 2px 0;
     }
-    .detail-sponsor-logo { width: 80%; max-height: 29px; object-fit: contain; filter: brightness(0) invert(1); opacity: 1; }
+    .detail-sponsor-logo { width: 80%; max-height: 27px; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.95; }
     /* 작아 보이는 로고 확대 — ytour 는 이미지 둘레 투명 여백이 커서, 수신경외과는 가로로 긴 글자 로고라서 */
     .sponsor-logo.sp-ytour, .detail-sponsor-logo.sp-ytour { transform: scale(1.3); }
     .sponsor-logo.sp-cws, .detail-sponsor-logo.sp-cws { transform: scale(1.25); }
-    .detail-sponsor-text { font-size: 10px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.3; min-height: 14px; }
+    .detail-sponsor-text { font-size: 9px; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.3; margin-top: 3px; }
+    .detail-sponsor-text:empty { display: none; }
+    .sp-foot {
+      position: relative; margin-top: 16px; text-align: center;
+      font-size: 9px; font-weight: 700; letter-spacing: 3px; color: rgba(240,192,64,0.55);
+    }
 
     .info-grid {
       display: grid; grid-template-columns: 1fr 1fr;
@@ -2818,8 +2856,17 @@ function renderDetailHeader(t) {
         .map((n, i) => ({ n, text: texts[i], on: sponsorOnAt(t, i) }))
         .filter(s => s.on);
       if (!items.length) return '';
+      // 백월 워터마크: 대회명을 반복 (SVG 패턴)
+      const wm = String(t.name || 'GG ZON').replace(/[<>&"']/g, '');
+      const pat = `<svg xmlns='http://www.w3.org/2000/svg' width='210' height='60'><g fill='white' font-family='sans-serif' font-size='11' font-weight='900' letter-spacing='1'><text x='4' y='18'>${wm}</text><text x='109' y='48'>${wm}</text></g></svg>`;
       return `<div class="detail-sponsor-wrap">
-        <div class="detail-sponsor-headline">${escHtml(t.name)}은 아래 스폰서와 함께 합니다.</div>
+        <div class="sp-wall" style="--sp-pattern:url(&quot;data:image/svg+xml,${encodeURIComponent(pat)}&quot;)">
+        <span class="sp-corner tl"></span><span class="sp-corner tr"></span><span class="sp-corner bl"></span><span class="sp-corner br"></span>
+        <div class="sp-head">
+          <div class="sp-eyebrow">${escHtml(t.name)}</div>
+          <div class="sp-title">SPONSORS</div>
+          <div class="sp-sub">${escHtml(t.name)}을 함께 만들어 주신 분들</div>
+        </div>
         <div class="detail-sponsor-strip">
           ${items.map(s => `<div class="detail-sponsor-item">
             <div class="detail-sponsor-logo-box">
@@ -2827,6 +2874,8 @@ function renderDetailHeader(t) {
             </div>
             <div class="detail-sponsor-text">${s.text ? escHtml(s.text) : ''}</div>
           </div>`).join('')}
+        </div>
+        <div class="sp-foot">THANK YOU FOR YOUR SUPPORT</div>
         </div>
       </div>`;
     })()}
