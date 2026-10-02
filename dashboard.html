@@ -1179,6 +1179,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, updateDoc, deleteDoc, getCountFromServer, getAggregateFromServer, sum, increment, serverTimestamp, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { showEventPopup } from "./event-popup.js?v=1";
 import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   import { PAYWALL_ENABLED } from "./ggzon-config.js";
 
@@ -1424,6 +1425,8 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
   if (ggzonUser && ggzonUser.loginType === 'kakao') {
     setNick(ggzonUser.nickname || '멤버');
+    // 대회 참가자 안내 팝업 (신청자만, 하루 1번) — 화면 먼저 띄우고 살짝 뒤에
+    setTimeout(() => showEventPopup(db, ggzonUser.uid), 700);
 
     // 닉네임은 이미 localStorage에 있으므로 화면을 먼저 띄우고, 회원정보는 백그라운드로 받아
     // 도착하면 닉네임·관리자·유료 상태만 갱신한다.
@@ -1453,6 +1456,7 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
       if (!user) { window.location.href = 'login.html?auto=1&return=dashboard.html'; return; }
       _isAdmin = user.email === 'wlfmzhs@naver.com';
       onLoginReady();
+      setTimeout(() => showEventPopup(db, user.uid), 700);
       const fallbackName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '멤버';
       try {
         const snap = await getDoc(doc(db, 'users', user.uid));
