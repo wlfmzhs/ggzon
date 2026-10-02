@@ -470,6 +470,9 @@
       flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 4px 0;
     }
     .detail-sponsor-logo { width: 80%; max-height: 29px; object-fit: contain; filter: brightness(0) invert(1); opacity: 1; }
+    /* 작아 보이는 로고 확대 — ytour 는 이미지 둘레 투명 여백이 커서, 수신경외과는 가로로 긴 글자 로고라서 */
+    .sponsor-logo.sp-ytour, .detail-sponsor-logo.sp-ytour { transform: scale(1.3); }
+    .sponsor-logo.sp-cws, .detail-sponsor-logo.sp-cws { transform: scale(1.25); }
     .detail-sponsor-text { font-size: 10px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.3; min-height: 14px; }
 
     .info-grid {
@@ -1940,7 +1943,7 @@
         </div>
         <div class="sponsor-item" id="sponsor-item-3">
           <label class="sponsor-check"><input type="checkbox" id="sponsor-on-3" checked onchange="toggleSponsor(3)" /><span>선택</span></label>
-          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/ytour.png" class="sponsor-logo" alt="ytour" /></div>
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/ytour.png" class="sponsor-logo sp-ytour" alt="ytour" /></div>
           <input class="sponsor-input" id="sponsor-text-3" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
         <div class="sponsor-item" id="sponsor-item-4">
@@ -1950,7 +1953,7 @@
         </div>
         <div class="sponsor-item" id="sponsor-item-5">
           <label class="sponsor-check"><input type="checkbox" id="sponsor-on-5" checked onchange="toggleSponsor(5)" /><span>선택</span></label>
-          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/창원수신경외과.png" class="sponsor-logo" alt="창원수신경외과" /></div>
+          <div class="sponsor-logo-box"><img src="Logo &amp; Banner image/창원수신경외과.png" class="sponsor-logo sp-cws" alt="창원수신경외과" /></div>
           <input class="sponsor-input" id="sponsor-text-5" type="text" placeholder="짧은 문구" maxlength="20" />
         </div>
       </div>
@@ -2815,7 +2818,7 @@ function renderDetailHeader(t) {
         <div class="detail-sponsor-strip">
           ${items.map(s => `<div class="detail-sponsor-item">
             <div class="detail-sponsor-logo-box">
-              <img src="Logo &amp; Banner image/${s.n}.png" class="detail-sponsor-logo" alt="${s.n}" />
+              <img src="Logo &amp; Banner image/${s.n}.png" class="detail-sponsor-logo${({ytour:' sp-ytour','창원수신경외과':' sp-cws'})[s.n] || ''}" alt="${s.n}" />
             </div>
             <div class="detail-sponsor-text">${s.text ? escHtml(s.text) : ''}</div>
           </div>`).join('')}
