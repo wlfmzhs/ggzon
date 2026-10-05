@@ -9,6 +9,7 @@
 
 import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
@@ -248,12 +249,16 @@ export const expireCanceled = onSchedule(
 );
 
 // ───────────────────────────────────────────────────────────
-// 5) 30분마다 — 라운드 시작(티업) 10시간이 지난 조인 자동 마감 + 정산
+// 5) 5분마다 — 조인 자동 마감 + 정산
+//    ① 스코어 입력이 끝난 조인: 마지막 스코어 입력(lastScoreAt) 후 30분 동안 입력이 없고,
+//       스코어를 입력한 참가자 전원이 18홀을 다 채웠으면 마감 (그늘집 휴식 중 9홀에서 끊기지 않게)
+//    ② 안전망: 라운드 시작(티업) 10시간이 지난 조인은 스코어와 상관없이 마감
 //    join.html 의 closeJoinAndAward 와 같은 규칙:
 //    스코어기록(scoreHistory)·핸디캡 갱신, 참여 +10P, 스코어 보너스, 월 4회 한도.
 //    참가자별 지급 원장(pointAwardedUids/scoreAwardedUids)으로 멱등 → 관리자 수동 마감과 겹쳐도 이중지급 없음.
 // ───────────────────────────────────────────────────────────
 const AUTO_CLOSE_AFTER_H = 10;
+const AUTO_CLOSE_AFTER_LAST_SCORE_MIN = 30;
 
 const scoreBonusPts   = t => t < 0 ? 40 : t <= 5 ? 30 : t <= 9 ? 20 : t <= 15 ? 15 : 10;
 const scoreBonusLabel = t => t < 0 ? '언더파' : t <= 5 ? 'E~+5' : t <= 9 ? '+6~+9' : t <= 15 ? '+10~+15' : '+16이상';
@@ -371,20 +376,58 @@ async function autoCloseOne(joinId) {
   return true;
 }
 
+// 스코어를 입력한 참가자가 있고, 그 전원이 18홀을 다 채웠는가
+function scoresComplete(j) {
+  const started = Object.values(j.scores || {})
+    .map(s => (s || {}).holes || [])
+    .filter(h => h.some(v => v !== null && v !== undefined));
+  return started.length > 0 &&
+    started.every(h => h.length >= 18 && h.slice(0, 18).every(v => v !== null && v !== undefined));
+}
+
+// 스코어가 바뀔 때마다 서버가 '마지막 스코어 입력 시각'을 기록한다.
+// (앱 수정 없이 동작 — 예전 버전 앱에서 입력해도 기록됨. lastScoreAt 만 바뀐 갱신은 scores 가 같아 다시 쓰지 않음)
+export const markLastScore = onDocumentUpdated(
+  { region: REGION, document: 'joins/{joinId}' },
+  async (event) => {
+    const before = event.data?.before?.data() || {};
+    const after  = event.data?.after?.data()  || {};
+    if (after.status === 'closed') return;
+    if (JSON.stringify(before.scores || {}) === JSON.stringify(after.scores || {})) return;
+    await event.data.after.ref.update({ lastScoreAt: FieldValue.serverTimestamp() });
+  }
+);
+
 export const autoCloseJoins = onSchedule(
-  { region: REGION, schedule: 'every 30 minutes', timeZone: 'Asia/Seoul' },
+  { region: REGION, schedule: 'every 5 minutes', timeZone: 'Asia/Seoul' },
   async () => {
-    const cutoff = Date.now() - AUTO_CLOSE_AFTER_H * 3600 * 1000;
+    const nowMs = Date.now();
+    const cutoff = nowMs - AUTO_CLOSE_AFTER_H * 3600 * 1000;
+    const scoreCutoff = nowMs - AUTO_CLOSE_AFTER_LAST_SCORE_MIN * 60 * 1000;
     const snap = await db.collection('joins').where('status', '!=', 'closed').get();
-    const due = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(j => { const t = teeTimeOf(j); return t && t.getTime() <= cutoff; })
-      .sort((a, b) => teeTimeOf(a) - teeTimeOf(b));   // 월 4회 한도가 날짜순으로 적용되도록
-    for (const j of due) {
-      // 연결된 팀(partyIds)도 수동 마감처럼 함께 마감
-      const ids = [j.id, ...(j.partyIds || (j.partyId ? [j.partyId] : []))];
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // ② 티업 10시간 경과 — 연결된 팀(partyIds)도 수동 마감처럼 함께 마감
+    const dueByTee = all.filter(j => { const t = teeTimeOf(j); return t && t.getTime() <= cutoff; });
+    // ① 마지막 스코어 입력 30분 경과 + 입력 완료 — 팀마다 진행 속도가 달라 이 조인만 마감
+    const teeIds = new Set(dueByTee.map(j => j.id));
+    const dueByScore = all.filter(j => {
+      if (teeIds.has(j.id)) return false;
+      const last = j.lastScoreAt?.toMillis ? j.lastScoreAt.toMillis() : null;
+      const t = teeTimeOf(j);
+      return last && last <= scoreCutoff && (!t || t.getTime() <= nowMs) && scoresComplete(j);
+    });
+
+    const due = [
+      ...dueByTee.map(j => ({ j, ids: [j.id, ...(j.partyIds || (j.partyId ? [j.partyId] : []))] })),
+      ...dueByScore.map(j => ({ j, ids: [j.id] })),
+    ].sort((a, b) => (teeTimeOf(a.j) || 0) - (teeTimeOf(b.j) || 0));   // 월 4회 한도가 날짜순으로 적용되도록
+    for (const { j, ids } of due) {
       for (const id of ids) {
-        try { await autoCloseOne(id); }
+        try {
+          if (await autoCloseOne(id) && !teeIds.has(j.id))
+            logger.info(`[자동마감] 마지막 스코어 입력 ${AUTO_CLOSE_AFTER_LAST_SCORE_MIN}분 경과로 마감: ${id}`);
+        }
         catch (e) { logger.error(`[자동마감] 실패 join=${id}`, e); }
       }
     }
