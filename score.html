@@ -1240,8 +1240,8 @@ function render() {
   const canEdit = isParticipant || isAdmin;
 
   document.getElementById('notice-bar').style.display = canEdit ? 'none' : 'flex';
-  document.getElementById('submit-bar').classList.toggle('show', isParticipant);
-  document.getElementById('btn-submit-open').textContent = joinData.tournamentId ? '대회 스코어 제출' : '라운드 기록 제출';
+  // 대회 방은 제출 버튼 없음 — 대회 결과는 주최자가 끝나고 일괄 정리한다 (경기 중 누가 눌러 버리는 일 방지)
+  document.getElementById('submit-bar').classList.toggle('show', isParticipant && !joinData.tournamentId);
 
   const groups = groupTeams();
   const showLabels = groups.length > 1;
@@ -1464,7 +1464,7 @@ document.getElementById('btn-reset-confirm').onclick = async () => {
 };
 
 function openSubmitSheet() {
-  if (!joinData || !currentUser) return;
+  if (!joinData || !currentUser || joinData.tournamentId) return;
   const players  = joinData.participants || [];
   const scores   = joinData.scores || {};
   const myHoles  = (scores[currentUser.uid] || {}).holes || Array(18).fill(null);
@@ -1499,14 +1499,7 @@ function closeSubmitSheet() {
 
 async function submitScore() {
   if (!joinData || !currentUser) return;
-  if (joinData.tournamentId) {
-    const holes = ((joinData.scores || {})[currentUser.uid] || {}).holes || [];
-    const rel   = holes.reduce((a, v) => a + (v ?? 0), 0);
-    const pars  = [...(parFront || []), ...(parBack || [])];
-    const par   = pars.length === 18 && pars.every(v => v) ? pars.reduce((a, v) => a + v, 0) : (Number(tournInfo?.coursePar) || 72);
-    location.href = `tournament-score.html?id=${encodeURIComponent(joinData.tournamentId)}&strokes=${par + rel}`;
-    return;
-  }
+  if (joinData.tournamentId) return;   // 대회 방은 제출하지 않는다
   const btn = document.getElementById('btn-submit-confirm');
   btn.disabled = true;
   btn.textContent = '저장 중...';
