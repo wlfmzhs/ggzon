@@ -1489,7 +1489,8 @@ async function loadJoins() {
   try {
     // 오늘 이후(진행중) 조인 — 전체. 오는 즉시 진행중 탭부터 그린다.
     const upcomingSnap = await upcomingP;
-    const upcoming = upcomingSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 대회 라이브 스코어 방(tournamentId)은 조인이 아니므로 목록에서 뺀다
+    const upcoming = upcomingSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(j => !j.tournamentId);
     joins = upcoming.filter(j => j.status !== 'closed');
     const closedToday = upcoming.filter(j => j.status === 'closed');
     _joinsFromNetwork = true;
@@ -1498,7 +1499,7 @@ async function loadJoins() {
 
     // 마감(오늘 이전) 조인 — 최근 N개만
     const closedSnap = await closedP;
-    const pastClosed = closedSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const pastClosed = closedSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(j => !j.tournamentId);
     closedLastDoc = closedSnap.docs[closedSnap.docs.length - 1] || null;
     closedHasMore = closedSnap.docs.length === CLOSED_PAGE_SIZE;
 

@@ -587,6 +587,52 @@ onAuthStateChanged(auth, user => {
 // 로그인 확인(IndexedDB·토큰)과 스코어 요청을 동시에 시작 — 예전엔 로그인 확인이 끝나야 요청을 보냈다
 if (joinId) subscribeJoin();
 
+// ── 대회(tournaments) 연결 라이브 스코어 ─────────────────
+// 조인 문서에 tournamentId 가 있으면 참가자·조 편성을 대회 신청 명단(registrations)에서 실시간으로 만든다.
+// 자리 교체·대기자 승격이 그대로 반영되고, 조인 문서에는 스코어만 저장된다
+// (참가자를 조인 문서에 넣지 않으므로 서버 자동마감이 조인 포인트를 따로 주지 않는다 — 대회 포인트는 대회 제출에서).
+let tournId = null, tournInfo = null, tournRegs = null, tournUnsubs = [];
+function startTournament(id) {
+  if (tournId === id) return;
+  tournUnsubs.forEach(u => u()); tournUnsubs = [];
+  tournId = id; tournInfo = null; tournRegs = null;
+  const rerender = () => { if (joinData && joinData.tournamentId === id) applyJoin(joinData); };
+  tournUnsubs.push(onSnapshot(doc(db, 'tournaments', id), snap => { tournInfo = snap.exists() ? snap.data() : {}; rerender(); }, () => {}));
+  tournUnsubs.push(onSnapshot(collection(db, 'tournaments', id, 'registrations'), snap => {
+    tournRegs = snap.docs.map(d => ({ id: d.id, ...d.data() })); rerender();
+  }, () => {}));
+}
+function tournTeeOf(t, c, k) {
+  const list = (Array.isArray(t.teeIntervals) ? t.teeIntervals : [t.teeInterval]).map(Number).filter(x => x > 0 && x <= 60);
+  const m = /^(\d{1,2}):(\d{2})/.exec((t.courseTimes || [])[c] || t.teeUpTime || '');
+  if (!m) return '';
+  let n = Number(m[1]) * 60 + Number(m[2]);
+  for (let i = 1; i <= k; i++) n += list.length ? list[(i - 1) % list.length] : 0;
+  const hh = Math.floor(n / 60) % 24, mm = n % 60;
+  return `${hh < 12 ? 'AM' : 'PM'} ${hh === 0 ? 12 : hh > 12 ? hh - 12 : hh}:${String(mm).padStart(2, '0')}`;
+}
+function mergeTournament(data) {
+  const t = tournInfo || {};
+  const names = t.courseNames || [data.frontCourse || 'A', data.backCourse || 'B'];
+  const regs = (tournRegs || []).filter(r => r.name)
+    .sort((a, b) => (a.courseIndex ?? 99) - (b.courseIndex ?? 99) || (a.cartIndex ?? 99) - (b.cartIndex ?? 99) || (a.seatIndex ?? 9) - (b.seatIndex ?? 9));
+  const participants = regs.map(r => ({ uid: r.userId || `reg_${r.id}`, name: r.name, isGuest: !r.userId }));
+  const parties = [];
+  const byCart = new Map();
+  regs.forEach((r, i) => {
+    if (r.courseIndex == null || r.cartIndex == null) return;
+    const key = r.courseIndex + '-' + r.cartIndex;
+    if (!byCart.has(key)) {
+      const c = Number(r.courseIndex), k = Number(r.cartIndex);
+      const g = { name: `${names[c] || ''} ${k + 1}조`.trim(), uids: [],
+                  tee: { time: tournTeeOf(t, c, k), course: (names[c] || '') + (c > 0 ? ' · 10번홀' : '') } };
+      byCart.set(key, g); parties.push(g);
+    }
+    byCart.get(key).uids.push(participants[i].uid);
+  });
+  return { ...data, participants, parties, roundMode: 'group' };
+}
+
 function subscribeJoin() {
   if (joinUnsub) joinUnsub();
   const myId = joinId;
@@ -597,6 +643,10 @@ function subscribeJoin() {
 }
 
 function applyJoin(data) {
+    if (data.tournamentId) {
+      startTournament(data.tournamentId);
+      data = mergeTournament(data);
+    }
     const newCourse = data.course;
     joinData = data;
     document.getElementById('course-name').textContent = joinData.course || '스코어';
@@ -612,7 +662,7 @@ function applyJoin(data) {
     }
     // 단체 라운드 연결은 주최자만 가능
     const isHost = isHostOf(joinData);
-    document.getElementById('btn-party').style.display = isHost ? '' : 'none';
+    document.getElementById('btn-party').style.display = isHost && !joinData.tournamentId ? '' : 'none';
     document.getElementById('reset-wrap').classList.toggle('show', isHost || isAdmin);
     // 파티 동기화
     const pids = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
@@ -978,7 +1028,7 @@ function splitByParties(d) {
   parts.forEach((g, i) => {
     const players = (g.uids || []).map(uid => all.find(p => p.uid === uid)).filter(Boolean);
     players.forEach(p => used.add(p.uid));
-    if (players.length) out.push({ label: g.name || `${i + 1}조`, players, pidx: i });
+    if (players.length) out.push({ label: g.name || `${i + 1}조`, players, pidx: i, tee: g.tee || null });
   });
   const rest = all.filter(p => !used.has(p.uid));
   if (rest.length) out.push({ label: '미배정', players: rest });
@@ -1008,7 +1058,7 @@ function groupTeams() {
       if (!g) {
         g = { key, courseKey, course: d.course, frontCourse: d.frontCourse, backCourse: d.backCourse,
               label: sub.label, players: [], scores: {}, isMine: false, isMyParty: false,
-              tee: d._isMine && sub.pidx != null ? (groupTeeSheet(d)[sub.pidx] || null) : null };
+              tee: sub.tee || (d._isMine && sub.pidx != null ? (groupTeeSheet(d)[sub.pidx] || null) : null) };
         groupMap.set(key, g);
         groups.push(g);
       }
@@ -1189,8 +1239,9 @@ function render() {
   const isParticipant = myPlayers.some(p => p.uid === currentUser.uid);
   const canEdit = isParticipant || isAdmin;
 
-  if (!canEdit) document.getElementById('notice-bar').style.display = 'flex';
-  if (isParticipant) document.getElementById('submit-bar').classList.add('show');
+  document.getElementById('notice-bar').style.display = canEdit ? 'none' : 'flex';
+  document.getElementById('submit-bar').classList.toggle('show', isParticipant);
+  document.getElementById('btn-submit-open').textContent = joinData.tournamentId ? '대회 스코어 제출' : '라운드 기록 제출';
 
   const groups = groupTeams();
   const showLabels = groups.length > 1;
@@ -1364,6 +1415,7 @@ window._hsSet = async function(uid, val) {
 
 // 주최자: hostUid(참석자 순서를 바꾸면 저장됨)가 명단에 있으면 그 사람, 아니면 명단 맨 앞 사람 (join.html hostUidOf 와 동일)
 function isHostOf(j) {
+  if (j && j.tournamentId) return !!currentUser && j.creatorUid === currentUser.uid;
   const ps = (j && j.participants) || [];
   const host = (j && j.hostUid && ps.some(p => p.uid === j.hostUid)) ? j.hostUid : ps[0]?.uid;
   return !!currentUser && (host === currentUser.uid || j.creatorUid === currentUser.uid);
@@ -1447,6 +1499,14 @@ function closeSubmitSheet() {
 
 async function submitScore() {
   if (!joinData || !currentUser) return;
+  if (joinData.tournamentId) {
+    const holes = ((joinData.scores || {})[currentUser.uid] || {}).holes || [];
+    const rel   = holes.reduce((a, v) => a + (v ?? 0), 0);
+    const pars  = [...(parFront || []), ...(parBack || [])];
+    const par   = pars.length === 18 && pars.every(v => v) ? pars.reduce((a, v) => a + v, 0) : (Number(tournInfo?.coursePar) || 72);
+    location.href = `tournament-score.html?id=${encodeURIComponent(joinData.tournamentId)}&strokes=${par + rel}`;
+    return;
+  }
   const btn = document.getElementById('btn-submit-confirm');
   btn.disabled = true;
   btn.textContent = '저장 중...';

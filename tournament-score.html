@@ -176,6 +176,8 @@ async function load() {
     const existing = scoreSnap.exists() ? scoreSnap.data() : null;
 
     const coursePar = t.coursePar || null;
+    // 라이브 스코어에서 넘어오면 홀별 입력 합계로 총 타수를 미리 채운다
+    const liveStrokes = parseInt(new URLSearchParams(location.search).get('strokes'), 10) || '';
 
     document.getElementById('app').innerHTML = `
       <div class="content">
@@ -199,7 +201,7 @@ async function load() {
           <div class="score-input-row">
             <input class="score-num" id="stroke-input" type="number" min="54" max="200"
               placeholder="${coursePar ? coursePar : '72'}"
-              value="${existing ? existing.totalStrokes : ''}"
+              value="${liveStrokes || (existing ? existing.totalStrokes : '')}"
               oninput="updateRelScore()" />
             ${coursePar ? `
             <div class="par-display">
@@ -216,7 +218,7 @@ async function load() {
     window._coursePar = coursePar;
     window._currentNick = currentNick;
     window._tournData = t;
-    if (existing) updateRelScore();
+    if (existing || liveStrokes) updateRelScore();
 
   } catch(e) {
     document.getElementById('app').innerHTML = `<div class="loading-wrap" style="color:rgba(255,255,255,0.4);font-size:13px;">불러오기 실패: ${e.message}</div>`;

@@ -2403,6 +2403,7 @@ function buildActiveCard(t) {
         <div class="card-progress-fill" id="progress-fill-${t.id}" style="width:0%"></div>
       </div>
     </div>
+    ${t.liveJoinId && (isAdmin || (t.date && t.date <= new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10))) ? `<button class="card-action-btn" style="background:#e84c1e;margin-bottom:8px;" onclick="event.stopPropagation();location.href='score.html?id=${t.liveJoinId}'">● 라이브 스코어 (홀별 입력 · 전체 순위)</button>` : ''}
     <button class="card-action-btn">신청하기</button>
     <div class="card-bottom-row">
       <button class="card-share-btn" onclick="event.stopPropagation(); window.shareTournamentCard('${t.id}')">공유용 이미지 저장</button>
@@ -2590,7 +2591,7 @@ async function renderPastList() {
   }
 
   const allPast = [
-    ...closedFromDB.map(t => ({ id: t.id, name: t.name, slogan: t.slogan, year: t.date ? t.date.slice(0,4) : '', icon: '', fromDB: true, requireRegistration: t.requireRegistration })),
+    ...closedFromDB.map(t => ({ id: t.id, name: t.name, slogan: t.slogan, year: t.date ? t.date.slice(0,4) : '', icon: '', fromDB: true, requireRegistration: t.requireRegistration, liveJoinId: t.liveJoinId })),
     ...PAST_TOURNAMENTS
   ];
 
@@ -2608,6 +2609,7 @@ async function renderPastList() {
       <div class="past-btn-row">
         ${showScoreBtn ? `<button class="past-score-btn" onclick="event.stopPropagation();location.href='tournament-score.html?id=${t.id}'">내 스코어 작성</button>` : ''}
         <button class="past-result-btn" onclick="event.stopPropagation();location.href='tournament-result.html?id=${t.id}'">결과 보기</button>
+        ${t.liveJoinId ? `<button class="past-result-btn" onclick="event.stopPropagation();location.href='score.html?id=${t.liveJoinId}'">라이브 스코어표</button>` : ''}
       </div>` : '';
     return `
     <div class="past-card">
