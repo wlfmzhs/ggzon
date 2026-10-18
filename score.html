@@ -98,6 +98,15 @@
     .summary-score.even  { color: rgba(255,255,255,0.8); }
 
     /* 전체 순위 (모든 조 통합) */
+    /* 조 바로가기 (조가 많은 단체라운드) — 스크롤해도 위에 붙어 있다 */
+    .jump-bar { display: none; position: sticky; top: 0; z-index: 20; background: rgba(10,36,6,0.96); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 8px 14px; gap: 6px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid rgba(62,160,102,0.18); }
+    .jump-bar::-webkit-scrollbar { display: none; }
+    .jump-bar.show { display: flex; }
+    .jump-chip { flex-shrink: 0; padding: 6px 11px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
+    .jump-chip.mine { background: var(--green-light); border-color: var(--green-light); color: #fff; }
+    .my-group-head { margin: 12px 14px 0; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.45); }
+    .ov-more { display: block; width: 100%; padding: 11px; background: none; border: none; border-top: 1px solid rgba(255,255,255,0.07); color: var(--green-light); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .ov-gap { text-align: center; color: rgba(255,255,255,0.25); font-size: 11px; padding: 2px 0; }
     .overall-card { margin: 10px 14px 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(62,160,102,0.22); border-radius: 14px; overflow: hidden; }
     .overall-head { display: flex; align-items: center; gap: 7px; padding: 11px 14px 9px; border-bottom: 1px solid rgba(255,255,255,0.07); }
     .overall-title { font-size: 12px; font-weight: 900; color: var(--green-light); letter-spacing: 0.02em; }
@@ -357,6 +366,10 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       참석자만 스코어를 입력할 수 있습니다.
     </div>
+
+    <!-- 조 바로가기 + 내 조 (조가 많은 단체라운드에서 내 카트를 바로 찾게) -->
+    <div class="jump-bar" id="jump-bar"></div>
+    <div id="mygroup-container"></div>
 
     <!-- 전체 순위 (모든 조 통합) -->
     <div id="overall-container"></div>
@@ -964,7 +977,7 @@ function splitByParties(d) {
   parts.forEach((g, i) => {
     const players = (g.uids || []).map(uid => all.find(p => p.uid === uid)).filter(Boolean);
     players.forEach(p => used.add(p.uid));
-    if (players.length) out.push({ label: g.name || `${i + 1}조`, players });
+    if (players.length) out.push({ label: g.name || `${i + 1}조`, players, pidx: i });
   });
   const rest = all.filter(p => !used.has(p.uid));
   if (rest.length) out.push({ label: '미배정', players: rest });
@@ -993,7 +1006,8 @@ function groupTeams() {
       let g = groupMap.get(key);
       if (!g) {
         g = { key, courseKey, course: d.course, frontCourse: d.frontCourse, backCourse: d.backCourse,
-              label: sub.label, players: [], scores: {}, isMine: false, isMyParty: false };
+              label: sub.label, players: [], scores: {}, isMine: false, isMyParty: false,
+              tee: d._isMine && sub.pidx != null ? (groupTeeSheet(d)[sub.pidx] || null) : null };
         groupMap.set(key, g);
         groups.push(g);
       }
@@ -1034,6 +1048,34 @@ function getGroupPar(g) {
   return empty;
 }
 
+// 단체라운드 조별 티타임 — join.html groupTeeSheet 와 같은 계산 (gi 번째 조 → { course, time })
+function groupTeeSheet(j) {
+  if (!j || j.roundMode !== 'group') return [];
+  const list  = String(Array.isArray(j.teeIntervals) ? j.teeIntervals.join(',') : (j.teeIntervals ?? ''))
+    .split(/[^0-9]+/).map(x => parseInt(x, 10)).filter(x => Number.isFinite(x) && x > 0 && x <= 60);
+  const count = Math.max(1, Number(j.courseCount) || 1);
+  const fb    = [j.frontCourse, j.backCourse];
+  const names = Array.from({ length: count }, (_, i) => ((j.courseNames || [])[i] || fb[i] || `${String.fromCharCode(65 + i)}코스`).trim());
+  const total = Math.max(Math.ceil((Number(j.capacity) || 0) / 4), (Array.isArray(j.parties) ? j.parties : []).length, 1);
+  const base  = Math.floor(total / count), extra = total % count;
+  const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(t || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  const clock = n => { const hh = Math.floor(n / 60) % 24, mm = n % 60; return `${hh < 12 ? 'AM' : 'PM'} ${hh === 0 ? 12 : hh > 12 ? hh - 12 : hh}:${String(mm).padStart(2, '0')}`; };
+  const out = [];
+  for (let ci = 0; ci < count; ci++) {
+    const t0 = toMin((j.courseTimes || [])[ci]), b = t0 != null ? t0 : toMin(j.time);
+    let acc = 0;
+    for (let k = 0; k < (ci < extra ? base + 1 : base); k++) {
+      if (k > 0 && list.length) acc += list[(k - 1) % list.length];
+      out.push({ course: names[ci], time: b == null ? '' : clock(b + acc) });
+    }
+  }
+  return out;
+}
+
+// 전체 순위가 길면(84명 등) 상위 10명 + 내 순위만 보이고 펼치기 버튼
+let overallExpanded = false;
+window._toggleOverall = () => { overallExpanded = !overallExpanded; render(); };
+
 // 모든 조를 합쳐 1위부터 줄세운 전체 순위.
 // 조가 여러 개면 자기 조 안에서만 등수를 알 수 있어, 맨 위에 통합 리더보드를 얹는다.
 function buildOverall(groups) {
@@ -1068,14 +1110,19 @@ function buildOverall(groups) {
   rows.forEach(r => { if (r.rank) rankCount[r.rank] = (rankCount[r.rank] || 0) + 1; });
 
   const scored = rows.filter(r => r.entered).length;
-  const list = rows.map(r => {
+  const TOP = 10;
+  const collapse = rows.length > TOP + 2 && !overallExpanded;
+  const meIdx = currentUser ? rows.findIndex(r => r.uid === currentUser.uid) : -1;
+  const shown = collapse ? rows.filter((r, i) => i < TOP || i === meIdx) : rows;
+  const list = shown.map(r => {
     const isMe    = currentUser && r.uid === currentUser.uid;
     const label   = r.tot === null ? '-' : r.tot === 0 ? 'E' : r.tot > 0 ? `+${r.tot}` : String(r.tot);
     const cls     = r.tot === null ? '' : r.tot < 0 ? 'under' : r.tot === 0 ? 'even' : '';
     const rankCls = r.rank === 1 ? 'r1' : r.rank === 2 ? 'r2' : r.rank === 3 ? 'r3' : '';
     const tie     = r.rank && rankCount[r.rank] > 1 ? 'T' : '';
     const rankTxt = r.rank ? `${tie}${r.rank}` : '-';
-    return `<div class="ov-row ${r.rank === 1 ? 'top1' : ''} ${isMe ? 'is-me' : ''}" onclick="window._goGroup(${r.gi})">
+    const gap = collapse && isMe && meIdx > TOP ? '<div class="ov-gap">⋯</div>' : '';
+    return gap + `<div class="ov-row ${r.rank === 1 ? 'top1' : ''} ${isMe ? 'is-me' : ''}" onclick="window._goGroup(${r.gi})">
       <div class="ov-rank ${rankCls}">${rankTxt}</div>
       <div class="ov-name">${r.name}${isMe ? '<span class="me-tag">나</span>' : ''}${r.tag ? `<span class="ov-tag">${r.tag}</span>` : ''}</div>
       <div class="ov-holes">${r.entered ? `${r.entered}H` : '-'}</div>
@@ -1089,13 +1136,18 @@ function buildOverall(groups) {
       <div class="overall-sub">${rows.length}명 중 ${scored}명 입력</div>
     </div>
     ${list}
+    ${rows.length > TOP + 2 ? `<button class="ov-more" onclick="window._toggleOverall()">${overallExpanded ? '접기' : `전체 ${rows.length}명 순위 보기`}</button>` : ''}
   </div>`;
 }
 
 // 전체 순위에서 이름을 누르면 해당 조 스코어표로 이동
 window._goGroup = function(gi) {
   const el = document.getElementById('grp-' + gi);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (!el) return;
+  const area = document.getElementById('scroll-area');
+  const bar  = document.getElementById('jump-bar');
+  const off  = bar.classList.contains('show') ? bar.offsetHeight + 6 : 0;
+  area.scrollTo({ top: area.scrollTop + el.getBoundingClientRect().top - area.getBoundingClientRect().top - off, behavior: 'smooth' });
 };
 
 function buildSummary(players, scores) {
@@ -1146,7 +1198,16 @@ function render() {
   // 조가 둘 이상일 때만 통합 순위를 보여준다 (한 조면 아래 요약과 중복)
   document.getElementById('overall-container').innerHTML = groups.length > 1 ? buildOverall(groups) : '';
 
-  document.getElementById('groups-container').innerHTML = groups.map((g, gi) => {
+  // 조가 많으면(단체라운드 21카트 등) 조 바로가기 줄을 띄우고, 내 조를 전체 순위보다 위에 올린다
+  const many = groups.length >= 4;
+  const myGi = groups.findIndex(g => g.isMyParty);
+  const jumpEl = document.getElementById('jump-bar');
+  jumpEl.classList.toggle('show', many);
+  jumpEl.innerHTML = many ? groups.map((g, gi) =>
+    `<button class="jump-chip ${gi === myGi ? 'mine' : ''}" onclick="window._goGroup(${gi})">${escHtml(g.label || g.course || `${gi + 1}팀`)}${gi === myGi ? ' · 내 조' : ''}</button>`
+  ).join('') : '';
+
+  const groupHtml = groups.map((g, gi) => {
     const par = g.isMine ? { parFront, parBack } : getGroupPar(g);
     // 조가 편성돼 있으면 내가 속한 조(카트)만 입력할 수 있다. 관리자는 전부 가능.
     const groupCanEdit = g.isMine && canEdit && (!hasParties || g.isMyParty || isAdmin);
@@ -1159,13 +1220,21 @@ function render() {
     const courseDetail = (g.frontCourse && g.backCourse) ? ` · ${g.frontCourse} → ${g.backCourse}`
       : (g.frontCourse || g.backCourse) ? ` · ${g.frontCourse || g.backCourse}` : '';
     const partyLabel = g.label ? `${g.label}${g.isMyParty ? ' (내 조)' : ''} · ` : '';
+    // 단체라운드는 조마다 티타임·출발 코스가 다르니 그걸 보여준다
+    const labelText = g.tee
+      ? `${partyLabel}${[g.tee.time, g.tee.course ? `${g.tee.course} 출발` : ''].filter(Boolean).join(' · ')}`
+      : `${partyLabel}${g.course || '코스 미정'}${courseDetail}`;
     return `<div class="course-group" id="grp-${gi}">
-      ${showLabels ? `<div class="course-group-label">${partyLabel}${g.course || '코스 미정'}${courseDetail}</div>` : ''}
+      ${showLabels ? `<div class="course-group-label">${escHtml(labelText)}</div>` : ''}
       <div class="summary-bar">${summaryHtml}</div>
       <div class="score-section"><table class="sc-table">${frontHtml}</table></div>
       <div class="score-section"><table class="sc-table">${backHtml}</table></div>
     </div>`;
-  }).join('');
+  });
+  const pinMine = many && myGi >= 0;
+  document.getElementById('mygroup-container').innerHTML = pinMine
+    ? `<div class="my-group-head">내 조 스코어 · 내 카트만 입력할 수 있어요</div>${groupHtml[myGi]}` : '';
+  document.getElementById('groups-container').innerHTML = groupHtml.filter((_, gi) => !(pinMine && gi === myGi)).join('');
 
   if (pickerHole !== null) renderHoleSheet();   // 시트 열려 있으면 실시간 반영
 }
