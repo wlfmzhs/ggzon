@@ -2721,9 +2721,24 @@ window.saveJoin = async function() {
       // 수정 시: 직접 참여한 일반 참여자 유지, 지정 멤버·게스트는 폼 내용으로 교체
       const joinSnap = await getDoc(doc(db, 'joins', editingId));
       const existing = joinSnap.exists() ? (joinSnap.data().participants || []) : [];
+      const existingScores = joinSnap.exists() ? (joinSnap.data().scores || {}) : {};
       const memberUids = new Set(memberList.map(m => m.uid));
       const selfJoined = existing.filter(p => !p.isGuest && !p.addedByHost && !memberUids.has(p.uid));
       const memberEntries = buildMemberEntries(selfJoined.map(p => p.name));
+      // 게스트는 예전 uid 를 그대로 쓴다. 수정할 때마다 uid 가 새로 생기면
+      // 이미 입력한 게스트 스코어가 옛 uid 에 남아 화면에서 사라졌다 (10/16 청도 김현익).
+      const oldGuests = existing.filter(p => p.isGuest && !p.isKeep);
+      const usedGuest = new Set();
+      guestEntries.forEach(g => {
+        const old = oldGuests.find(x => x.name === g.name && !usedGuest.has(x.uid));
+        if (old) { usedGuest.add(old.uid); g.uid = old.uid; g.joinedAt = old.joinedAt || g.joinedAt; }
+      });
+      // 게스트였던 사람을 회원으로 지정하면 게스트 시절 스코어를 회원 쪽으로 옮긴다
+      oldGuests.forEach(old => {
+        if (usedGuest.has(old.uid) || !existingScores[old.uid]) return;
+        const m = memberEntries.find(x => x.name === old.name || x.name.replace(/\d+$/, '') === old.name);
+        if (m && !existingScores[m.uid]) data[`scores.${m.uid}`] = existingScores[old.uid];
+      });
       data.participants = [...selfJoined, ...memberEntries, ...guestEntries];
       // 칩을 끌어서 정해둔 순서 유지 (게스트는 수정 때마다 uid 가 새로 생겨 이름으로 맞춘다)
       const posOf = p => {
@@ -3368,7 +3383,14 @@ window.participateJoin = async function(id) {
       } catch (e) { showToast('오류: ' + e.message); }
     });
   } else {
-    if (participants.length >= j.capacity) { showToast('정원이 마감되었습니다'); return; }
+    if (participants.length >= j.capacity) {
+      // 내 이름으로 게스트 자리가 잡혀 있으면 그 자리를 이어받으므로 정원과 무관
+      let myName = currentUser.displayName || '';
+      if (participants.some(p => p.isGuest && !p.isKeep)) {
+        try { const us = await getDoc(doc(db, 'users', currentUser.uid)); if (us.exists()) myName = us.data().name || us.data().nickname || myName; } catch (_) {}
+      }
+      if (!participants.some(p => p.isGuest && !p.isKeep && p.name === myName)) { showToast('정원이 마감되었습니다'); return; }
+    }
 
     // 이번 달 참여 횟수 체크
     const now = new Date();
@@ -3431,12 +3453,28 @@ window.confirmConsent = async function() {
       const d = userSnap.data();
       realName = d.name || d.nickname || realName;
     }
-    const existingNames = joinSnap.exists() ? (joinSnap.data().participants || []).map(p => p.name) : [];
-    const uniqueName = getUniqueName(realName, existingNames);
+    const jd = joinSnap.exists() ? joinSnap.data() : {};
+    const curParts = jd.participants || [];
+    // 주최자가 게스트로 먼저 넣어 둔 사람이 가입 후 직접 참여하면, 게스트 자리를 회원으로 바꾼다.
+    // (예전엔 게스트가 그대로 남아 같은 사람이 두 번 들어가고 스코어도 게스트 쪽에 쌓였다)
+    const guestIdx = curParts.findIndex(p => p.isGuest && !p.isKeep && p.name === realName);
     // 프로필에 전화번호 저장 (문서 없어도 생성)
     await setDoc(doc(db, 'users', currentUser.uid), { phone }, { merge: true });
-    const entry = { uid: currentUser.uid, name: uniqueName, phone, joinedAt: new Date().toISOString(), consentGiven: true };
-    await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
+    if (guestIdx >= 0) {
+      const guest = curParts[guestIdx];
+      const entry = { uid: currentUser.uid, name: realName, phone, joinedAt: guest.joinedAt || new Date().toISOString(), consentGiven: true };
+      const upd = { participants: curParts.map((p, k) => k === guestIdx ? entry : p) };
+      if (Array.isArray(jd.parties)) {
+        upd.parties = jd.parties.map(g => ({ ...g, uids: (g.uids || []).map(u => u === guest.uid ? currentUser.uid : u) }));
+      }
+      const gs = (jd.scores || {})[guest.uid];
+      if (gs && !(jd.scores || {})[currentUser.uid]) upd[`scores.${currentUser.uid}`] = gs;
+      await updateDoc(doc(db, 'joins', id), upd);
+    } else {
+      const uniqueName = getUniqueName(realName, curParts.map(p => p.name));
+      const entry = { uid: currentUser.uid, name: uniqueName, phone, joinedAt: new Date().toISOString(), consentGiven: true };
+      await updateDoc(doc(db, 'joins', id), { participants: arrayUnion(entry) });
+    }
     showToast('참여 신청이 완료되었습니다!');
     await loadJoins();
   } catch (e) { showToast('오류: ' + e.message); }

@@ -231,6 +231,16 @@
       cursor: pointer; font-family: inherit;
     }
 
+    /* 스코어 전체 초기화 (주최자 전용 · 맨 아래에 작게) */
+    .reset-wrap { display: none; text-align: center; margin: 0 14px 28px; }
+    .reset-wrap.show { display: block; }
+    .reset-link { background: none; border: none; color: rgba(255,255,255,0.28); font-size: 11px; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 8px; }
+    .reset-warn { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.35); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.85); }
+    .reset-warn b { color: #ff6b5b; }
+    .reset-input { width: 100%; box-sizing: border-box; padding: 13px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #fff; font-size: 15px; font-family: inherit; margin-bottom: 14px; outline: none; }
+    .btn-reset-confirm { width: 100%; padding: 14px; border-radius: 12px; background: #c0392b; color: #fff; font-size: 15px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+    .btn-reset-confirm:disabled { opacity: 0.3; cursor: default; }
+
     .toast { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(20,20,20,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -360,6 +370,11 @@
       <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:8px;">R&amp;A &amp; USGA – 골프 규칙 서문 (Spirit of the Game)</div>
       <div style="font-size:12px;font-weight:700;color:var(--green-light);">우리는 골갑 멤버를 믿습니다</div>
     </div>
+
+    <!-- 스코어 전체 초기화: 주최자·관리자만 보이고, 잘못 누르지 않게 맨 아래 작게 둔다 -->
+    <div class="reset-wrap" id="reset-wrap">
+      <button class="reset-link" id="btn-reset-open">스코어 전체 초기화 (주최자 전용)</button>
+    </div>
   </div>
 
   <!-- 제출 버튼 -->
@@ -420,6 +435,18 @@
         <button class="par-opt" onclick="window._selectPar(6)">Par 6</button>
       </div>
       <button class="picker-cancel" onclick="closeParPicker()">취소</button>
+    </div>
+  </div>
+
+  <!-- 스코어 전체 초기화 확인 시트 -->
+  <div class="submit-sheet-overlay" id="reset-sheet-overlay">
+    <div class="submit-sheet">
+      <div class="submit-sheet-title">스코어 전체 초기화</div>
+      <div class="submit-sheet-sub">이 조인에 입력된 모든 스코어를 지웁니다</div>
+      <div class="reset-warn" id="reset-warn"></div>
+      <input class="reset-input" id="reset-input" placeholder="확인을 위해 '초기화' 를 입력하세요" autocomplete="off">
+      <button class="btn-reset-confirm" id="btn-reset-confirm" disabled>전체 초기화</button>
+      <button class="btn-submit-cancel" id="btn-reset-cancel">취소</button>
     </div>
   </div>
 
@@ -570,8 +597,9 @@ function applyJoin(data) {
       return;
     }
     // 단체 라운드 연결은 주최자만 가능
-    const isHost = (joinData.participants || [])[0]?.uid === currentUser.uid;
+    const isHost = isHostOf(joinData);
     document.getElementById('btn-party').style.display = isHost ? '' : 'none';
+    document.getElementById('reset-wrap').classList.toggle('show', isHost || isAdmin);
     // 파티 동기화
     const pids = joinData.partyIds || (joinData.partyId ? [joinData.partyId] : []);
     for (const [id, unsub] of partyUnsubs) {
@@ -658,7 +686,7 @@ function switchJoin(id) {
   for (const [, unsub] of partyUnsubs) unsub();
   partyUnsubs.clear();
   partyJoinDataMap.clear();
-  closePicker(); closeParPicker(); closeSubmitSheet(); closePartySheet();
+  closePicker(); closeParPicker(); closeSubmitSheet(); closePartySheet(); closeResetSheet();
 
   joinId = id;
   try { history.replaceState(history.state, '', 'score.html?id=' + encodeURIComponent(id)); } catch (_) {}
@@ -1260,6 +1288,55 @@ window._hsSet = async function(uid, val) {
       [`scores.${uid}.holes`]: holes
     });
   } catch (e) { showToast('저장 오류: ' + e.message); }
+};
+
+// 주최자: hostUid(참석자 순서를 바꾸면 저장됨)가 명단에 있으면 그 사람, 아니면 명단 맨 앞 사람 (join.html hostUidOf 와 동일)
+function isHostOf(j) {
+  const ps = (j && j.participants) || [];
+  const host = (j && j.hostUid && ps.some(p => p.uid === j.hostUid)) ? j.hostUid : ps[0]?.uid;
+  return !!currentUser && (host === currentUser.uid || j.creatorUid === currentUser.uid);
+}
+
+// ── 스코어 전체 초기화 (주최자 전용, 두 번 확인) ──────────
+// 1) 맨 아래 작은 링크 → 2) 확인 시트에서 '초기화' 를 직접 입력해야 버튼이 켜진다
+document.getElementById('btn-reset-open').onclick = () => {
+  if (!joinData || !(isHostOf(joinData) || isAdmin)) return;
+  const scores  = joinData.scores || {};
+  const players = joinData.participants || [];
+  const entered = players.filter(p => ((scores[p.uid] || {}).holes || []).some(v => v !== null)).length;
+  document.getElementById('reset-warn').innerHTML =
+    `참가자 <b>${players.length}명</b> 중 <b>${entered}명</b>의 스코어가 입력돼 있습니다.<br>
+     초기화하면 <b>모든 홀 스코어가 지워지고 되돌릴 수 없습니다.</b><br>
+     <span style="color:rgba(255,255,255,0.5);font-size:12px;">파 설정·참가자·조 편성은 그대로 남습니다.</span>`;
+  const input = document.getElementById('reset-input');
+  input.value = '';
+  document.getElementById('btn-reset-confirm').disabled = true;
+  document.getElementById('reset-sheet-overlay').classList.add('open');
+};
+document.getElementById('reset-input').oninput = e => {
+  document.getElementById('btn-reset-confirm').disabled = e.target.value.trim() !== '초기화';
+};
+function closeResetSheet() { document.getElementById('reset-sheet-overlay').classList.remove('open'); }
+document.getElementById('btn-reset-cancel').onclick = closeResetSheet;
+document.getElementById('reset-sheet-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('reset-sheet-overlay')) closeResetSheet();
+});
+document.getElementById('btn-reset-confirm').onclick = async () => {
+  if (document.getElementById('reset-input').value.trim() !== '초기화') return;
+  if (!joinData || !(isHostOf(joinData) || isAdmin)) return;
+  const btn = document.getElementById('btn-reset-confirm');
+  btn.disabled = true; btn.textContent = '초기화 중...';
+  try {
+    await updateDoc(doc(db, 'joins', joinId), { scores: {} });
+    joinData.scores = {};
+    render();
+    closeResetSheet();
+    showToast('스코어가 전체 초기화되었습니다');
+  } catch (e) {
+    showToast('초기화 실패: ' + e.message);
+  } finally {
+    btn.textContent = '전체 초기화';
+  }
 };
 
 function openSubmitSheet() {
