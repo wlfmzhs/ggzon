@@ -1323,6 +1323,27 @@
       text-align: center; word-break: keep-all; line-height: 1.2;
     }
     .pairing-dnd-empty { font-size: 9px; color: rgba(255,255,255,0.18); }
+    .pairing-dnd-slot.selected {
+      background: rgba(212,175,55,0.22); border: 2px solid var(--gold);
+      box-shadow: 0 0 0 3px rgba(212,175,55,0.25);
+    }
+    #pairing-content.pair-selecting .pairing-dnd-slot:not(.selected) { cursor: pointer; }
+    #pairing-content.pair-selecting .pairing-dnd-slot:not(.selected):not(.has-person) {
+      border-color: rgba(212,175,55,0.45);
+    }
+    .pairing-sel-bar {
+      position: sticky; top: 0; z-index: 5;
+      align-items: center; justify-content: space-between; gap: 8px;
+      margin: 0 0 6px; padding: 9px 12px; border-radius: 10px;
+      background: #2a2410; border: 1px solid var(--gold);
+      font-size: 12px; color: #fff;
+    }
+    .pairing-sel-bar b { color: var(--gold); }
+    .pairing-sel-cancel {
+      flex-shrink: 0; padding: 5px 10px; border-radius: 7px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
     .pairing-dnd-hint {
       font-size: 10px; color: rgba(255,255,255,0.3); text-align: center;
       padding: 8px 0 4px; letter-spacing: 0.3px;
@@ -4710,7 +4731,10 @@ function renderPairingContent(t, registrations) {
   });
 
   const isBW = t.tournamentType === 'black-white';
-  let html = `<div class="pairing-dnd-hint">카드를 0.5초 길게 눌러서 드래그하면 자리가 바뀝니다${
+  // 선택된 사람이 사라졌으면(삭제 등) 선택 해제
+  if (_pairSel && !registrations.some(r => r.id === _pairSel)) _pairSel = null;
+  let html = `<div class="pairing-sel-bar" id="pairing-sel-bar" style="display:none;"></div>
+    <div class="pairing-dnd-hint">이름을 누르고 바꿀 자리를 누르면 교체됩니다 (길게 눌러 드래그도 가능)${
     isAdmin ? ' · ✕ 로 인원을 빼고, 빈자리를 눌러 추가·킵 할 수 있습니다' : ''}</div>`;
 
   for (let ci = 0; ci < courseCount; ci++) {
@@ -4774,6 +4798,87 @@ function renderPairingContent(t, registrations) {
 
   el.innerHTML = html;
   _initPairingDnD(t);
+  _updatePairSelUI();
+}
+
+// ── 탭 두 번으로 자리 교체 (사람 탭 → 바꿀 자리 탭) ──────────
+let _pairSel = null;      // 선택된 reg id
+let _pairSelT = null;
+function _updatePairSelUI() {
+  const el = document.getElementById('pairing-content');
+  if (!el) return;
+  el.querySelectorAll('.pairing-dnd-slot.selected').forEach(s => s.classList.remove('selected'));
+  el.classList.toggle('pair-selecting', !!_pairSel);
+  const bar = document.getElementById('pairing-sel-bar');
+  const src = _pairSel ? el.querySelector(`.pairing-dnd-slot[data-reg-id="${_pairSel}"]`) : null;
+  if (!src) {
+    _pairSel = null;
+    el.classList.remove('pair-selecting');
+    if (bar) bar.style.display = 'none';
+    return;
+  }
+  src.classList.add('selected');
+  if (bar) {
+    const r = (allRegistrations || []).find(x => x.id === _pairSel);
+    bar.innerHTML = `<span><b>${escHtml((r && r.name) || '?')}</b> 선택됨 · 바꿀 자리를 누르세요</span>
+      <button type="button" class="pairing-sel-cancel">취소</button>`;
+    bar.style.display = 'flex';
+  }
+}
+function _onPairingClick(e) {
+  const el = e.currentTarget;
+  if (e.target.closest('.pairing-del-btn')) return;
+  if (e.target.closest('.pairing-sel-cancel')) {
+    _pairSel = null; _updatePairSelUI(); return;
+  }
+  const slot = e.target.closest('.pairing-dnd-slot');
+  if (!slot) return;
+  if (!_pairSel) {
+    // 빈자리는 기존 동작(추가·킵 시트) 그대로
+    if (!slot.dataset.regId) return;
+    e.stopPropagation();
+    _pairSel = slot.dataset.regId;
+    _updatePairSelUI();
+    return;
+  }
+  // 선택 중: 다음 탭은 교체/이동 대상
+  e.stopPropagation(); e.preventDefault();
+  const src = el.querySelector(`.pairing-dnd-slot[data-reg-id="${_pairSel}"]`);
+  _pairSel = null;
+  _updatePairSelUI();
+  if (src && src !== slot) _doSeatSwap(_pairSelT, src, slot);
+}
+
+// ── 드래그 중 가장자리 자동 스크롤 ────────────────────
+let _pairLastPt = null;
+let _pairScrollRaf = null;
+function _pairEdgeSpeed(sc, y) {
+  const r = sc.getBoundingClientRect();
+  const EDGE = 80, MAX = 18;
+  if (y < r.top + EDGE)    return -Math.min(MAX, Math.ceil((r.top + EDGE - y) / EDGE * MAX));
+  if (y > r.bottom - EDGE) return  Math.min(MAX, Math.ceil((y - (r.bottom - EDGE)) / EDGE * MAX));
+  return 0;
+}
+function _pairHighlight(pt, srcSlot) {
+  const target = _slotFromTouch(pt);
+  document.querySelectorAll('.pairing-dnd-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+  if (target && target !== srcSlot) target.classList.add('drag-over');
+}
+function _pairAutoScrollLoop() {
+  const sc = document.getElementById('pairing-content');
+  if (!_longPressDragActive || !_pairLastPt || !sc) { _pairScrollRaf = null; return; }
+  const v = _pairEdgeSpeed(sc, _pairLastPt.clientY);
+  if (v) {
+    const before = sc.scrollTop;
+    sc.scrollTop += v;
+    if (sc.scrollTop !== before) _pairHighlight(_pairLastPt, _pairDragSrc);
+  }
+  _pairScrollRaf = requestAnimationFrame(_pairAutoScrollLoop);
+}
+function _stopPairAutoScroll() {
+  if (_pairScrollRaf) cancelAnimationFrame(_pairScrollRaf);
+  _pairScrollRaf = null;
+  _pairLastPt = null;
 }
 
 // ── DnD 상태 ─────────────────────────────────────────
@@ -4788,6 +4893,19 @@ const DRAG_THRESHOLD = 8;
 
 function _initPairingDnD(t) {
   const slots = document.querySelectorAll('#pairing-content .pairing-dnd-slot');
+  _pairSelT = t;
+  const sc = document.getElementById('pairing-content');
+  if (sc && !sc._pairBound) {
+    sc._pairBound = true;
+    // capture 단계: 선택 중일 때 빈자리의 '추가' onclick 보다 먼저 가로챈다
+    sc.addEventListener('click', _onPairingClick, true);
+    // 데스크탑 드래그도 가장자리에서 자동 스크롤
+    sc.addEventListener('dragover', e => {
+      if (!_pairDragSrc) return;
+      const v = _pairEdgeSpeed(sc, e.clientY);
+      if (v) sc.scrollTop += v;
+    });
+  }
 
   slots.forEach(slot => {
     // 데스크탑 드래그 소스
@@ -4831,6 +4949,9 @@ function _initPairingDnD(t) {
           slot.classList.remove('long-press-hold');
           slot.classList.add('dragging');
           _createPairGhost(slot, touch);
+          if (_pairSel) { _pairSel = null; _updatePairSelUI(); }
+          _pairLastPt = { clientX: touch.clientX, clientY: touch.clientY };
+          if (!_pairScrollRaf) _pairScrollRaf = requestAnimationFrame(_pairAutoScrollLoop);
           if (navigator.vibrate) navigator.vibrate(30);
         }, LONG_PRESS_DELAY);
       }, { passive: true });
@@ -4849,9 +4970,8 @@ function _initPairingDnD(t) {
         }
         e.preventDefault();
         _movePairGhost(touch);
-        const target = _slotFromTouch(touch);
-        document.querySelectorAll('.pairing-dnd-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
-        if (target && target !== slot) target.classList.add('drag-over');
+        _pairLastPt = { clientX: touch.clientX, clientY: touch.clientY };
+        _pairHighlight(touch, slot);
       }, { passive: false });
 
       slot.addEventListener('touchend', e => {
@@ -4860,6 +4980,7 @@ function _initPairingDnD(t) {
         slot.classList.remove('long-press-hold');
         if (!_longPressDragActive) return;
         e.preventDefault();
+        _stopPairAutoScroll();
         const touch = e.changedTouches[0];
         _removePairGhost();
         slot.classList.remove('dragging');
@@ -4874,6 +4995,7 @@ function _initPairingDnD(t) {
         clearTimeout(_longPressTimer);
         _longPressTimer = null;
         slot.classList.remove('long-press-hold');
+        _stopPairAutoScroll();
         if (_longPressDragActive) {
           _removePairGhost();
           slot.classList.remove('dragging');
