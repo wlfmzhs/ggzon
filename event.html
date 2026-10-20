@@ -1366,7 +1366,7 @@
     @property --ci-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
     @keyframes ciSpin { to { --ci-ang: 360deg; } }
     .seat.checked-in, .pairing-dnd-slot.checked-in {
-      border: 2px solid transparent !important;
+      border: 1px solid transparent !important;
       background:
         linear-gradient(160deg, #23a35d, #0d6b38) padding-box,
         conic-gradient(from var(--ci-ang), #6b4e0c 0deg, #ffd65a 50deg, #fff7d1 80deg, #ffd65a 110deg, #6b4e0c 170deg,
@@ -1379,7 +1379,7 @@
     .seat.checked-in .gc-champ, .pairing-dnd-slot.checked-in .gc-champ { color: #fff !important; }
     .pairing-dnd-slot.checked-in .pairing-dnd-seat-letter { color: #ffe27a; }
     .ci-tag {
-      font-size: 8px; font-weight: 900; color: #3a2a00; background: #ffd65a;
+      font-size: 8px; font-weight: 900; color: #3a2a00; background: #ffd65a; white-space: nowrap;
       border-radius: 4px; padding: 1px 4px; letter-spacing: 0.3px; line-height: 1.3;
     }
     .checkin-bar {
@@ -3107,7 +3107,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         if (reg && reg.checkedIn) {
           cls = (isMine ? 'mine' : 'taken') + ' checked-in';
           const nm = isMine ? '나' : (reg.name || '?');
-          content = `<span class="ci-tag">입장</span>
+          content = `<span class="ci-tag">플레이어 입장</span>
             <span class="seat-line"><span class="seat-name" style="font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? nm + 'ㆍ' + reg.lotteryNum : nm}</span>${gcStars}</span>${gcChamp}`;
         } else if (isMine) {
           cls = 'mine';
@@ -4889,7 +4889,7 @@ function renderPairingContent(t, registrations) {
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
             draggable="${canEdit}" style="position:relative;">
             ${keepTag}${delBtn}
-            <div class="pairing-dnd-seat-letter">${seatLetters[si]}${reg.checkedIn ? ' <span class="ci-tag">입장</span>' : ''}</div>
+            <div class="pairing-dnd-seat-letter">${seatLetters[si]}${reg.checkedIn ? ' <span class="ci-tag">플레이어 입장</span>' : ''}</div>
             <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}${gm ? ' ' + gm.stars : ''}</div>
             ${gm ? gm.champLabel : ''}
           </div>`;
