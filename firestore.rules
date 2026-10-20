@@ -25,6 +25,11 @@ service cloud.firestore {
       return true;
     }
 
+    function onlyCheckinFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['checkedIn', 'checkedInAt', 'checkedInBy']);
+    }
+
     // 찬조를 등록한 본인인지 (카카오 로그인은 auth 없이 uid 문자열만 저장된다)
     function isDonationOwner() {
       return resource.data.userId is string && resource.data.userId != '' && (
@@ -203,7 +208,9 @@ service cloud.firestore {
       match /registrations/{regId} {
         allow read: if isAnyUser();
         allow create: if isAnyUser();
-        allow update, delete: if isAdmin();
+        // 대회 당일 입장 확인 — 확인 담당 회원이 카카오(비인증) 계정이라 입장 필드만 열어둔다
+        allow update: if isAdmin() || onlyCheckinFields();
+        allow delete: if isAdmin();
       }
 
       // 대기자 — 누구나 신청/열람, 순서(order) 변경은 관리자만,

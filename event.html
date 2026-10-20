@@ -1361,6 +1361,48 @@
     .pairing-dnd-name .gc-stars { font-size: 9px; }
     .pairing-dnd-name .gc-yt { height: 9px; }
     .pairing-dnd-slot.baek.gc-star .gc-stars { color: #b8860b; }
+
+    /* ── 대회 당일 입장 확인: 바탕을 밝은 초록으로, 금색 테두리가 빙글빙글 돈다 ── */
+    @property --ci-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+    @keyframes ciSpin { to { --ci-ang: 360deg; } }
+    .seat.checked-in, .pairing-dnd-slot.checked-in {
+      border: 2px solid transparent !important;
+      background:
+        linear-gradient(160deg, #23a35d, #0d6b38) padding-box,
+        conic-gradient(from var(--ci-ang), #6b4e0c 0deg, #ffd65a 50deg, #fff7d1 80deg, #ffd65a 110deg, #6b4e0c 170deg,
+          #6b4e0c 190deg, #ffd65a 240deg, #fff7d1 270deg, #ffd65a 300deg, #6b4e0c 360deg) border-box !important;
+      animation: ciSpin 2.2s linear infinite;
+      box-shadow: 0 0 10px rgba(255,205,70,0.55);
+      cursor: default;
+    }
+    .seat.checked-in .seat-name, .pairing-dnd-slot.checked-in .pairing-dnd-name { color: #fff !important; }
+    .seat.checked-in .gc-champ, .pairing-dnd-slot.checked-in .gc-champ { color: #fff !important; }
+    .pairing-dnd-slot.checked-in .pairing-dnd-seat-letter { color: #ffe27a; }
+    .ci-tag {
+      font-size: 8px; font-weight: 900; color: #3a2a00; background: #ffd65a;
+      border-radius: 4px; padding: 1px 4px; letter-spacing: 0.3px; line-height: 1.3;
+    }
+    .checkin-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin: 0 0 10px; padding: 10px 12px; border-radius: 12px;
+      background: rgba(35,163,93,0.14); border: 1px solid rgba(255,214,90,0.45);
+    }
+    .checkin-bar-count { font-size: 13px; font-weight: 800; color: #fff; }
+    .checkin-bar-count b { color: #ffd65a; font-size: 15px; }
+    .checkin-bar-sub { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+    .checkin-bar-btn {
+      flex-shrink: 0; padding: 8px 12px; border-radius: 9px; border: none;
+      background: #ffd65a; color: #2a1e00; font-size: 12px; font-weight: 900;
+      cursor: pointer; font-family: inherit;
+    }
+    .pairing-mode-tabs { display: flex; gap: 6px; margin: 4px 0 6px; }
+    .pairing-mode-tab {
+      flex: 1; padding: 9px 0; border-radius: 9px; font-size: 12px; font-weight: 800;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.6); cursor: pointer; font-family: inherit;
+    }
+    .pairing-mode-tab.active { background: rgba(255,214,90,0.18); border-color: #ffd65a; color: #ffd65a; }
+    #pairing-content.checkin-mode .pairing-dnd-slot.has-person { cursor: pointer; }
     /* 관리자 인원 빼기 ✕ — 슬롯이 작아 탭 영역을 따로 넉넉히 준다 */
     .pairing-del-btn {
       position: absolute; top: 0; right: 0; z-index: 3;
@@ -2061,6 +2103,16 @@
         <button onclick="window._closeManualSheet()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">취소</button>
       </div>
     </div>
+
+    <!-- 입장 확인 시트 -->
+    <div id="checkin-sheet" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:flex-end;" onclick="if(event.target===this)window._closeCheckinSheet()">
+      <div style="width:100%;background:#0f2e1a;border-radius:24px 24px 0 0;padding:24px 20px 36px;">
+        <div id="checkin-sheet-name" style="font-size:18px;font-weight:900;margin-bottom:4px;"></div>
+        <div id="checkin-sheet-sub" style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:18px;"></div>
+        <div id="checkin-sheet-btns"></div>
+        <button onclick="window._closeCheckinSheet()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">닫기</button>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════════════════════ DEPOSIT MODAL (참가비 입금 확인) ══════════════════════════ -->
@@ -2197,6 +2249,9 @@ function getCourseCarts(totalCarts, courseCount) {
 // ── State ──────────────────────────────────────────────
 let currentUser = null;
 let isAdmin = false;
+// 대회 당일 입장 확인을 할 수 있는 사람 (관리자 + 아래 회원). 나머지 회원은 현황만 본다.
+const CHECKIN_UIDS = ['kakao_4894166245'];  // 조명진
+let canCheckIn = false;
 let currentTournamentType = 'general';
 
 window.setTournamentType = function(type) {
@@ -2269,6 +2324,7 @@ onAuthStateChanged(auth, async (user) => {
   }
   currentUser = effectiveUser;
   isAdmin = effectiveUser.email === 'wlfmzhs@naver.com';
+  canCheckIn = isAdmin || CHECKIN_UIDS.includes(effectiveUser.uid);
   if (isAdmin) {
     document.getElementById('btn-new-tournament').style.display = 'block';
   }
@@ -2910,6 +2966,7 @@ function renderDetailHeader(t) {
         <div class="legend-item"><div class="legend-dot mine"></div>내 자리</div>
       </div>
 
+      <div id="checkin-bar"></div>
       <div id="seat-map-content"></div>
     </div>
 
@@ -3047,7 +3104,12 @@ function renderSeatGrid(t, registrations, _courseIdx) {
         const gcChamp = gm ? gm.champLabel : '';
 
         let cls, content;
-        if (isMine) {
+        if (reg && reg.checkedIn) {
+          cls = (isMine ? 'mine' : 'taken') + ' checked-in';
+          const nm = isMine ? '나' : (reg.name || '?');
+          content = `<span class="ci-tag">입장</span>
+            <span class="seat-line"><span class="seat-name" style="font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? nm + 'ㆍ' + reg.lotteryNum : nm}</span>${gcStars}</span>${gcChamp}`;
+        } else if (isMine) {
           cls = 'mine';
           content = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
             <span class="seat-line"><span class="seat-name" style="color:#f0c040; font-weight:800;">${(t.lotteryAssigned && reg.lotteryNum) ? '나ㆍ' + reg.lotteryNum : '나'}</span>${gcStars}</span>${gcChamp}`;
@@ -3078,7 +3140,24 @@ function renderSeatGrid(t, registrations, _courseIdx) {
   }
 
   el.innerHTML = allHtml;
+  renderCheckinBar(t, registrations);
   updateRegisterButton();
+}
+
+// 좌석표 위 입장 현황 줄 — 입장자가 생기면 모두에게 보이고, 확인 권한자에겐 항상 버튼과 함께 보인다
+function renderCheckinBar(t, registrations) {
+  const bar = document.getElementById('checkin-bar');
+  if (!bar) return;
+  const people = registrations.filter(r => !r.isKeep);
+  const inCount = people.filter(r => r.checkedIn).length;
+  if (!canCheckIn && inCount === 0) { bar.innerHTML = ''; return; }
+  bar.innerHTML = `<div class="checkin-bar">
+    <div>
+      <div class="checkin-bar-count">입장 현황 <b>${inCount}</b> / ${people.length}명</div>
+      <div class="checkin-bar-sub">${canCheckIn ? '조편성에서 이름을 눌러 입장을 확인합니다' : '금색 테두리가 도는 자리가 입장 완료입니다'}</div>
+    </div>
+    ${canCheckIn ? `<button class="checkin-bar-btn" onclick="openCheckinModal()">입장 확인</button>` : ''}
+  </div>`;
 }
 
 window.selectSeat = function(courseIdx, cartIdx, seatIdx) {
@@ -4701,14 +4780,34 @@ window.confirmDeletePast = function(id, name, fromDB) {
 // 조편성 관리 (Admin only)
 // ═══════════════════════════════════════════════════════
 
+let _checkinMode = false;   // true 면 조편성 화면이 '입장 확인' 용으로 동작 (자리 이동·삭제 없음)
+
 window.openPairingModal = function() {
   if (!isAdmin) return;
+  _openPairingOverlay(false);
+};
+
+// 입장 확인 권한자(관리자 + 조명진) 전용 — 같은 조편성 화면을 입장 확인 모드로 연다
+window.openCheckinModal = function() {
+  if (!canCheckIn) return;
+  _openPairingOverlay(true);
+};
+
+function _openPairingOverlay(checkin) {
   const t = currentTournament;
   if (!t) return;
+  _checkinMode = checkin;
+  _pairSel = null;
   document.getElementById('pairing-appbar-sub').textContent = t.name;
   renderPairingContent(t, allRegistrations);
   document.getElementById('pairing-overlay').classList.add('open');
-  document.getElementById('lottery-admin-row').classList.add('visible');
+}
+
+window._setPairingMode = function(checkin) {
+  if (!isAdmin) return;
+  _checkinMode = checkin;
+  _pairSel = null;
+  renderPairingContent(currentTournament, allRegistrations);
 };
 
 window.closePairingModal = function() {
@@ -4731,11 +4830,24 @@ function renderPairingContent(t, registrations) {
   });
 
   const isBW = t.tournamentType === 'black-white';
+  // 입장 확인 모드에선 자리 편집(✕·추가·교체)을 모두 끈다
+  const canEdit = isAdmin && !_checkinMode;
+  el.classList.toggle('checkin-mode', _checkinMode);
+  document.querySelector('#pairing-overlay .pairing-appbar-title').textContent = _checkinMode ? '입장 확인' : '조편성 관리';
+  document.getElementById('lottery-admin-row').classList.toggle('visible', canEdit);
   // 선택된 사람이 사라졌으면(삭제 등) 선택 해제
   if (_pairSel && !registrations.some(r => r.id === _pairSel)) _pairSel = null;
-  let html = `<div class="pairing-sel-bar" id="pairing-sel-bar" style="display:none;"></div>
-    <div class="pairing-dnd-hint">이름을 누르고 바꿀 자리를 누르면 교체됩니다 (길게 눌러 드래그도 가능)${
-    isAdmin ? ' · ✕ 로 인원을 빼고, 빈자리를 눌러 추가·킵 할 수 있습니다' : ''}</div>`;
+  const people = registrations.filter(r => !r.isKeep);
+  const inCount = people.filter(r => r.checkedIn).length;
+  let html = (isAdmin ? `<div class="pairing-mode-tabs">
+      <button type="button" class="pairing-mode-tab ${_checkinMode ? '' : 'active'}" onclick="window._setPairingMode(false)">자리 편성</button>
+      <button type="button" class="pairing-mode-tab ${_checkinMode ? 'active' : ''}" onclick="window._setPairingMode(true)">입장 확인 (${inCount}/${people.length})</button>
+    </div>` : '')
+    + `<div class="pairing-sel-bar" id="pairing-sel-bar" style="display:none;"></div>`
+    + (_checkinMode
+      ? `<div class="pairing-dnd-hint">이름을 누르면 입장 확인 · 입장한 분을 다시 누르면 취소할 수 있습니다${isAdmin ? '' : ` · 입장 ${inCount}/${people.length}명`}</div>`
+      : `<div class="pairing-dnd-hint">이름을 누르고 바꿀 자리를 누르면 교체됩니다 (길게 눌러 드래그도 가능)${
+    isAdmin ? ' · ✕ 로 인원을 빼고, 빈자리를 눌러 추가·킵 할 수 있습니다' : ''}</div>`);
 
   for (let ci = 0; ci < courseCount; ci++) {
     html += `<div class="pairing-course-section">
@@ -4768,26 +4880,27 @@ function renderPairingContent(t, registrations) {
           const isKeep   = reg.isKeep === true;
           const isManual = isKeep ? 'keep' : reg.isManual ? 'manual' : '';
           // 관리자는 신청자·수동 추가·킵 가리지 않고 자리에서 뺄 수 있다
-          const delBtn = isAdmin
+          const delBtn = canEdit
             ? `<div class="pairing-del-btn" onclick="event.stopPropagation();window._removeReg('${reg.id}')" title="이 인원 빼기">×</div>` : '';
           const keepTag = isKeep ? `<div class="pairing-keep-tag">킵</div>` : '';
           const gm = golchelinMark(reg.name);
-          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''}"
+          const ciCls = reg.checkedIn ? 'checked-in' : '';
+          html += `<div class="pairing-dnd-slot has-person ${isManual} ${teamCls} ${(gm && gm.st) ? 'gc-star' : ''} ${ciCls}"
             data-reg-id="${reg.id}" data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}"
-            draggable="true" style="position:relative;">
+            draggable="${canEdit}" style="position:relative;">
             ${keepTag}${delBtn}
-            <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
+            <div class="pairing-dnd-seat-letter">${seatLetters[si]}${reg.checkedIn ? ' <span class="ci-tag">입장</span>' : ''}</div>
             <div class="pairing-dnd-name">${(t.lotteryAssigned && reg.lotteryNum) ? (reg.name || '?') + 'ㆍ' + reg.lotteryNum : (reg.name || '?')}${gm ? ' ' + gm.stars : ''}</div>
             ${gm ? gm.champLabel : ''}
           </div>`;
         } else {
-          const addAttr = isAdmin
+          const addAttr = canEdit
             ? `class="pairing-dnd-slot empty-clickable ${teamCls}" onclick="window._openManualSheet(${ci},${cartIdx},${si})"`
             : `class="pairing-dnd-slot ${teamCls}"`;
           html += `<div ${addAttr}
             data-course="${ci}" data-cart="${cartIdx}" data-seat="${si}">
             <div class="pairing-dnd-seat-letter">${seatLetters[si]}</div>
-            <div class="pairing-dnd-empty">${isAdmin ? '+ 추가' : '빈자리'}</div>
+            <div class="pairing-dnd-empty">${canEdit ? '+ 추가' : '빈자리'}</div>
           </div>`;
         }
       }
@@ -4799,7 +4912,82 @@ function renderPairingContent(t, registrations) {
   el.innerHTML = html;
   _initPairingDnD(t);
   _updatePairSelUI();
+  // 입장 확인 시트가 열려 있으면 최신 상태로 다시 그린다 (다른 기기에서 확인/취소한 경우)
+  if (_ciRegId && document.getElementById('checkin-sheet').style.display === 'flex') _renderCheckinSheet();
 }
+
+// ── 입장 확인 (관리자 + 조명진) ───────────────────────
+let _ciRegId = null;
+
+function _openCheckinSheet(regId) {
+  if (!canCheckIn) return;
+  _ciRegId = regId;
+  _renderCheckinSheet();
+  document.getElementById('checkin-sheet').style.display = 'flex';
+}
+window._closeCheckinSheet = function() {
+  document.getElementById('checkin-sheet').style.display = 'none';
+  _ciRegId = null;
+};
+
+function _renderCheckinSheet() {
+  const t = currentTournament;
+  const r = (allRegistrations || []).find(x => x.id === _ciRegId);
+  if (!t || !r) { window._closeCheckinSheet(); return; }
+  const btn = (bg, color, label, fn) =>
+    `<button onclick="${fn}" style="width:100%;padding:14px;border-radius:12px;background:${bg};color:${color};font-size:15px;font-weight:800;border:none;cursor:pointer;font-family:inherit;margin-bottom:8px;">${label}</button>`;
+  document.getElementById('checkin-sheet-name').textContent = `${r.name || '?'} 님`;
+  const seat = seatLabelFor(t, r.courseIndex, r.cartIndex, r.seatIndex);
+  if (r.checkedIn) {
+    const at = r.checkedInAt && r.checkedInAt.toDate ? r.checkedInAt.toDate() : null;
+    const atStr = at ? ` · ${String(at.getHours()).padStart(2,'0')}:${String(at.getMinutes()).padStart(2,'0')} 입장` : ' · 입장 완료';
+    document.getElementById('checkin-sheet-sub').textContent = seat + atStr + (r.checkedInBy ? ` (확인: ${r.checkedInBy})` : '');
+    document.getElementById('checkin-sheet-btns').innerHTML =
+      btn('#FEE500', '#191919', '카톡 단체방에 다시 알리기', 'window._shareCheckin()') +
+      btn('rgba(255,100,100,0.14)', 'rgba(255,140,140,0.95)', '입장 취소', 'window._setCheckin(false)');
+  } else {
+    document.getElementById('checkin-sheet-sub').textContent = seat + ' · 아직 입장 전';
+    document.getElementById('checkin-sheet-btns').innerHTML =
+      btn('#FEE500', '#191919', '입장 확인 + 카톡 단체방 알림', 'window._setCheckin(true, true)') +
+      btn('#2d7a4f', '#fff', '입장 확인만 (알림 없이)', 'window._setCheckin(true, false)');
+  }
+}
+
+window._setCheckin = function(on, share) {
+  const t = currentTournament;
+  const r = (allRegistrations || []).find(x => x.id === _ciRegId);
+  if (!canCheckIn || !t || !r) return;
+  if (!on && !confirm(`${r.name || '?'} 님 입장을 취소할까요?`)) return;
+  const by = (currentUser && (currentUser.displayName || currentUser.email)) || '';
+  // 카톡 공유는 버튼 누른 직후에 바로 띄워야 막히지 않는다 → 저장 완료를 기다리지 않는다
+  updateDoc(doc(db, 'tournaments', t.id, 'registrations', r.id), on
+    ? { checkedIn: true, checkedInAt: serverTimestamp(), checkedInBy: by }
+    : { checkedIn: false, checkedInAt: null, checkedInBy: null })
+    .then(() => showToast(on ? `${r.name} 님 입장 확인` : `${r.name} 님 입장 취소`))
+    .catch(e => showToast('저장 오류: ' + e.message));
+  if (on && share) _shareCheckin(r);
+  window._closeCheckinSheet();
+};
+
+function _shareCheckin(reg) {
+  const t = currentTournament;
+  const r = reg || (allRegistrations || []).find(x => x.id === _ciRegId);
+  if (!t || !r) return;
+  if (!window.Kakao || !Kakao.isInitialized()) {
+    showToast('카카오 SDK 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+  const people = (allRegistrations || []).filter(x => !x.isKeep);
+  const inCount = people.filter(x => x.checkedIn || x.id === r.id).length;
+  const appLink = `${APP_BASE}/event.html?eventId=${encodeURIComponent(t.id)}`;
+  Kakao.Share.sendDefault({
+    objectType: 'text',
+    text: `⛳ ${r.name} 님이 ${t.name} 구장에 입장하셨습니다.\n\n현재 입장 ${inCount} / ${people.length}명`,
+    link: { mobileWebUrl: appLink, webUrl: appLink },
+    buttonTitle: '입장 현황 보기',
+  });
+}
+window._shareCheckin = function() { _shareCheckin(null); };
 
 // ── 탭 두 번으로 자리 교체 (사람 탭 → 바꿀 자리 탭) ──────────
 let _pairSel = null;      // 선택된 reg id
@@ -4833,6 +5021,12 @@ function _onPairingClick(e) {
   }
   const slot = e.target.closest('.pairing-dnd-slot');
   if (!slot) return;
+  if (_checkinMode) {
+    e.stopPropagation(); e.preventDefault();
+    const r = slot.dataset.regId && (allRegistrations || []).find(x => x.id === slot.dataset.regId);
+    if (r && !r.isKeep) _openCheckinSheet(r.id);
+    return;
+  }
   if (!_pairSel) {
     // 빈자리는 기존 동작(추가·킵 시트) 그대로
     if (!slot.dataset.regId) return;
@@ -4907,6 +5101,7 @@ function _initPairingDnD(t) {
     });
   }
 
+  if (_checkinMode) return;   // 입장 확인 모드에선 자리 이동 없음
   slots.forEach(slot => {
     // 데스크탑 드래그 소스
     if (slot.dataset.regId) {
