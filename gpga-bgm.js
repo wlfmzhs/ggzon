@@ -138,6 +138,8 @@
     document.body.appendChild(btn);
     paint();
     tryPlay(showGate);
+    // 아이폰(특히 카톡 인앱)은 재생 거부 신호가 늦거나 아예 안 오기도 한다 → 잠시 뒤에도 멈춰 있으면 입장 화면
+    setTimeout(function () { if (audio.paused && !off) showGate(); }, 1200);
   }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
 })();
