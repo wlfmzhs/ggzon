@@ -10,6 +10,9 @@
   var SRC = '/audio/gpga-open.mp3';
   var K_OFF = 'gpga_bgm_off', K_POS = 'gpga_bgm_pos', K_GATE = 'gpga_bgm_gate';
   if (Date.now() >= END) return;
+  // 첫 화면(로그인 전 랜딩)에서는 틀지 않는다 — 여기서 입장하면 카카오 로그인으로 화면이 바뀌며 끊긴다
+  var path = location.pathname.replace(/\/+$/, '');
+  if (path === '' || /\/(index\.html|ggzon)$/.test(path)) return;
 
   function get(store, k) { try { return store.getItem(k); } catch (_) { return null; } }
   function set(store, k, v) { try { store.setItem(k, v); } catch (_) {} }
@@ -64,9 +67,32 @@
   }
 
   // 자동재생이 막혔을 때 세션 첫 화면에 한 번 띄우는 대회 입장 화면 — 누르면 음악과 함께 입장
+  // 로그인한 회원인지: 카카오는 ggzon_user, 이메일 회원은 Firebase 가 IndexedDB 에 남긴 로그인 정보
+  function isLoggedIn(cb) {
+    try {
+      var u = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+      if (u && u.uid) return cb(true);
+    } catch (_) {}
+    try {
+      var req = indexedDB.open('firebaseLocalStorageDb');
+      req.onerror = function () { cb(false); };
+      req.onsuccess = function () {
+        var db = req.result;
+        try {
+          var c = db.transaction('firebaseLocalStorage', 'readonly').objectStore('firebaseLocalStorage').count();
+          c.onsuccess = function () { db.close(); cb(c.result > 0); };
+          c.onerror = function () { db.close(); cb(false); };
+        } catch (_) { db.close(); cb(false); }
+      };
+    } catch (_) { cb(false); }
+  }
+
   function showGate() {
     if (off || get(sessionStorage, K_GATE) === '1' || document.getElementById('gpga-gate')) return;
-    set(sessionStorage, K_GATE, '1');
+    isLoggedIn(function (ok) { if (ok && audio.paused && !off) mountGate(); });
+  }
+  function mountGate() {
+    if (document.getElementById('gpga-gate')) return;
     var g = document.createElement('div');
     g.id = 'gpga-gate';
     g.innerHTML = '<img src="/image/2nd-gpga-open-title.webp?v=2" alt="2nd GPGA OPEN">' +
@@ -75,6 +101,8 @@
     function close() { g.classList.add('bye'); setTimeout(function () { g.remove(); }, 500); }
     g.addEventListener('click', function (e) {
       e.stopPropagation();
+      set(sessionStorage, K_GATE, '1');   // 실제로 눌러 입장했을 때만 기억
+
       if (e.target.classList.contains('g-skip')) {
         off = true; set(localStorage, K_OFF, '1'); audio.pause(); paint();
       } else tryPlay();
@@ -137,8 +165,9 @@
     document.head.appendChild(style);
     document.body.appendChild(btn);
     paint();
-    tryPlay(showGate);
-    // 아이폰(특히 카톡 인앱)은 재생 거부 신호가 늦거나 아예 안 오기도 한다 → 잠시 뒤에도 멈춰 있으면 입장 화면
+    tryPlay();
+    // 자동재생이 막혀 멈춰 있으면 입장 화면. 아이폰은 거부 신호가 안 오기도 해서 시간으로 판단하고,
+    // 로그인 안 된 페이지가 로그인 화면으로 넘어가는 시간도 벌어 준다.
     setTimeout(function () { if (audio.paused && !off) showGate(); }, 1200);
   }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
