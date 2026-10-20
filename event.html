@@ -1368,7 +1368,7 @@
     .seat.checked-in, .pairing-dnd-slot.checked-in {
       border: 1px solid transparent !important;
       background:
-        linear-gradient(160deg, #23a35d, #0d6b38) padding-box,
+        linear-gradient(160deg, #1d6939, #124d26) padding-box,
         conic-gradient(from var(--ci-ang), #6b4e0c 0deg, #ffd65a 50deg, #fff7d1 80deg, #ffd65a 110deg, #6b4e0c 170deg,
           #6b4e0c 190deg, #ffd65a 240deg, #fff7d1 270deg, #ffd65a 300deg, #6b4e0c 360deg) border-box !important;
       animation: ciSpin 2.2s linear infinite;
@@ -1407,7 +1407,7 @@
     .ci-prism-wrap { width: 100%; height: 38px; perspective: 220px; flex-shrink: 0; }
     .ci-prism {
       position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
-      animation: ciRoll 9s infinite cubic-bezier(.55,-0.25,.3,1.3);
+      animation: ciRoll 6.3s infinite cubic-bezier(.55,-0.25,.3,1.3);
     }
     @keyframes ciRoll {
       0%, 25%        { transform: translateZ(-11px) rotateX(0deg); }
@@ -1419,7 +1419,7 @@
       position: absolute; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 1px; padding: 0 2px;
       backface-visibility: hidden; -webkit-backface-visibility: hidden;
-      background: linear-gradient(180deg, #1f9654, #0f6f3b);
+      background: linear-gradient(180deg, #1c6537, #134e27);
       border-top: 1px solid rgba(255,214,90,0.35); border-bottom: 1px solid rgba(0,0,0,0.25);
     }
     .ci-face.f1 { transform: rotateX(0deg) translateZ(11px); }
@@ -3176,7 +3176,7 @@ function renderSeatGrid(t, registrations, _courseIdx) {
 // 입장한 자리의 굴러가는 삼각기둥. 시작 위치를 현재 시각 기준으로 잡아
 // 실시간 갱신으로 다시 그려져도 처음부터 다시 돌지 않고, 칸마다 조금씩 어긋나 물결처럼 돈다.
 function ciPrismHtml(t, nameHtml, offsetMs) {
-  const delay = -(((Date.now() + offsetMs) % 9000) / 1000).toFixed(2);
+  const delay = -(((Date.now() + offsetMs) % 6300) / 1000).toFixed(2);
   return `<div class="ci-prism-wrap"><div class="ci-prism" style="animation-delay:${delay}s">
     <div class="ci-face f1">${nameHtml}</div>
     <div class="ci-face f2"><span class="ci-t">${escHtml(t.name || '')}</span></div>
