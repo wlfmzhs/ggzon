@@ -492,8 +492,9 @@ if (window.Kakao && !Kakao.isInitialized()) Kakao.init('a14a8368381df22cac7c0fd0
 // 휴대폰은 '누른 직후'에만 카톡 앱 전환·공유창을 허락한다. 캡처·업로드를 기다렸다 보내면
 // 몇 초 사이에 그 허락이 사라져 아무 반응이 없었다 → 공유 창을 열 때 미리 만들어 두고,
 // 버튼을 누르면 기다림 없이 바로 보낸다.
-const SHARE_FALLBACK = { url: 'https://www.ggzon.co.kr/image/overseas-danang-2702.png', w: 520, h: 742 };
-let kakaoImg = null, kakaoImgJob = null;   // 카톡 메시지용 업로드 이미지
+// 카톡 메시지 이미지는 골갑존 디자인으로 미리 만들어 둔 고정 파일을 쓴다.
+// (화면 캡처를 Kakao.Share.uploadImage 로 올리던 방식은 폰에서 실패해 여행사 원본 일정표가 대신 나갔다)
+const SHARE_IMG = { url: 'https://www.ggzon.co.kr/image/overseas-danang-2702-share.png', w: 800, h: 800 };
 let screenFile = null, screenJob = null;   // 화면 전체 캡처 파일
 
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
@@ -502,23 +503,6 @@ function setShareBtn(id, ready, label) {
   const b = document.getElementById(id);
   b.style.opacity = ready ? '1' : '0.55';
   b.querySelector('.s').textContent = label;
-}
-
-function prepareKakaoImg() {
-  if (kakaoImg || kakaoImgJob) return;
-  setShareBtn('opt-kakao', false, '공유 이미지 준비 중...');
-  kakaoImgJob = withTimeout((async () => {
-    const canvas = await captureEl(document.getElementById('share-top'));
-    const file = new File([await toBlob(canvas)], 'ggzon-overseas.png', { type: 'image/png' });
-    const res = await Kakao.Share.uploadImage({ file: [file] });
-    return { url: res.infos.original.url, w: canvas.width, h: canvas.height };
-  })(), 12000).then(img => { kakaoImg = img; }).catch(e => {
-    console.warn('캡처 이미지 업로드 실패 → 원본 일정표 이미지로 공유', e);
-    kakaoImg = SHARE_FALLBACK;
-  }).finally(() => {
-    kakaoImgJob = null;
-    setShareBtn('opt-kakao', true, '달력·행사 요약 이미지 + 참가하기 버튼으로 보내기');
-  });
 }
 
 function prepareScreenFile() {
@@ -538,7 +522,6 @@ function prepareScreenFile() {
 
 window.openShare  = () => {
   document.getElementById('share-sheet').classList.add('open');
-  prepareKakaoImg();
   prepareScreenFile();
 };
 window.closeShare = () => document.getElementById('share-sheet').classList.remove('open');
@@ -576,10 +559,8 @@ const toBlob = c => new Promise(r => c.toBlob(r, 'image/png'));
 
 window.kakaoShare = () => {
   if (!window.Kakao || !Kakao.isInitialized()) return showToast('카카오 로딩 중입니다. 잠시 후 다시 눌러주세요');
-  if (kakaoImgJob) return showToast('공유 이미지 준비 중이에요. 잠시 후 다시 눌러주세요');
   const total = applicants.reduce((s, a) => s + (a.people || 1), 0);
-  const img = kakaoImg || SHARE_FALLBACK;
-  const imageUrl = img.url, imageWidth = img.w, imageHeight = img.h;
+  const imageUrl = SHARE_IMG.url, imageWidth = SHARE_IMG.w, imageHeight = SHARE_IMG.h;
   const applyLink = `${APP_BASE}/overseas.html?apply=1`;
   const viewLink  = `${APP_BASE}/overseas.html`;
   Kakao.Share.sendDefault({
