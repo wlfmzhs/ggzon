@@ -159,6 +159,38 @@
     .img-overlay img { width: 100%; border-radius: 8px; display: block; }
     .img-close { position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; }
 
+    /* 여행 달력 (3주) */
+    .cal { background: linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%); border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; padding: 16px 12px 12px; margin-bottom: 12px; }
+    .cal-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 12px; }
+    .cal-month { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+    .cal-month small { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.45); margin-right: 4px; }
+    .cal-dday { font-size: 12px; font-weight: 900; color: var(--gold); background: rgba(240,192,64,0.12); border: 1px solid rgba(240,192,64,0.35); padding: 3px 10px; border-radius: 12px; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 6px; }
+    .cal-wd { text-align: center; font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.4); padding-bottom: 4px; }
+    .cal-wd.sun, .cal-d.sun .num { color: #ff7b6b; }
+    .cal-wd.sat, .cal-d.sat .num { color: #7fb8ff; }
+    .cal-d { height: 54px; display: flex; flex-direction: column; align-items: center; padding-top: 6px; position: relative; }
+    .cal-d .num { font-size: 14px; font-weight: 800; color: rgba(255,255,255,0.8); line-height: 1; }
+    .cal-d .lbl { font-size: 9px; font-weight: 800; margin-top: 5px; text-align: center; line-height: 1.2; letter-spacing: -0.3px; }
+    .cal-d.trip { background: linear-gradient(180deg, rgba(94,200,242,0.32), rgba(62,160,102,0.32)); }
+    .cal-d.trip .num { color: #fff !important; }
+    .cal-d.trip .lbl { color: #fff; }
+    .cal-d.t-start { border-radius: 14px 0 0 14px; margin-left: 2px; }
+    .cal-d.t-end { border-radius: 0 14px 14px 0; margin-right: 2px; }
+    .cal-d.t-start.t-end { border-radius: 14px; margin: 0 2px; }
+    .cal-d.fly .lbl { color: var(--sky); }
+    .cal-d.golf .lbl { color: #b6ffcf; }
+    .cal-legend { display: flex; justify-content: center; gap: 14px; margin-top: 10px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); }
+
+    /* 공유 */
+    .share-btn { display: flex; align-items: center; gap: 5px; background: #fee500; color: #191919; border: none; border-radius: 16px; padding: 6px 12px; font-size: 12px; font-weight: 900; cursor: pointer; font-family: inherit; }
+    .share-opt { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 8px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: #fff; font-family: inherit; text-align: left; cursor: pointer; }
+    .share-opt .ic { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .share-opt .t { font-size: 14px; font-weight: 900; }
+    .share-opt .s { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .cta-row { display: flex; gap: 8px; }
+    .cta-kakao { flex-shrink: 0; width: 54px; border-radius: 14px; border: none; background: #fee500; color: #191919; font-size: 11px; font-weight: 900; font-family: inherit; cursor: pointer; line-height: 1.2; }
+
     .toast { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(30,30,30,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; pointer-events: none; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
@@ -172,10 +204,24 @@
       <button id="btn-back" onclick="history.length > 1 ? history.back() : location.href='dashboard.html'">‹</button>
       <span class="appbar-title">해외라운드</span>
     </div>
+    <button class="share-btn" onclick="openShare()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#191919"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.83 1.84 5.32 4.62 6.74l-.96 3.52c-.08.3.26.54.52.37l4.2-2.78c.53.07 1.07.1 1.62.1 5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>
+      카톡 공유
+    </button>
   </div>
 
   <div class="scroll-area">
-    <div class="content">
+    <div class="content" id="share-content">
+
+      <div id="share-top">
+      <div class="cal">
+        <div class="cal-head">
+          <div class="cal-month"><small>2027</small>2월 다낭 라운드</div>
+          <div class="cal-dday" id="cal-dday"></div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-legend"><span>✈ 출국·귀국</span><span>⛳ 라운드 54홀</span></div>
+      </div>
 
       <div class="hero">
         <div class="hero-host">골프치는 갑이 &amp; 블록의 독학골퍼</div>
@@ -188,6 +234,7 @@
         <div class="hero-price">
           <span class="lbl">1인</span><span class="num">155만원</span><span class="opt">노팁 / 노옵션</span>
         </div>
+      </div>
       </div>
 
       <div class="card">
@@ -289,7 +336,27 @@
     </div>
   </div>
 
-  <div class="cta-wrap"><button class="cta" id="cta" onclick="openApply()">참가 신청하기</button></div>
+  <div class="cta-wrap"><div class="cta-row">
+    <button class="cta-kakao" onclick="openShare()">카톡<br>공유</button>
+    <button class="cta" id="cta" onclick="openApply()">참가 신청하기</button>
+  </div></div>
+
+  <!-- 공유 시트 -->
+  <div class="sheet-overlay" id="share-sheet" onclick="if(event.target===this)closeShare()">
+    <div class="sheet">
+      <div class="sheet-title">카톡방에 공유하기</div>
+      <div class="sheet-sub">공유받은 사람이 <b>참가하기</b>를 누르면 이 해외라운드 화면으로 바로 들어옵니다.</div>
+      <button class="share-opt" onclick="kakaoShare()">
+        <span class="ic" style="background:#fee500;color:#191919">💬</span>
+        <span><div class="t">카톡 공유 (참가하기 버튼)</div><div class="s">달력·행사 요약 이미지 + 참가하기 버튼으로 보내기</div></span>
+      </button>
+      <button class="share-opt" onclick="shareScreenImage()">
+        <span class="ic" style="background:rgba(94,200,242,0.2)">🖼</span>
+        <span><div class="t">화면 그대로 이미지로 보내기</div><div class="s">일정 전체를 한 장 이미지로 캡처해 카톡방에 전송·저장</div></span>
+      </button>
+      <button class="btn-cancel" style="width:100%;margin-top:4px" onclick="closeShare()">닫기</button>
+    </div>
+  </div>
 
   <!-- 신청 시트 -->
   <div class="sheet-overlay" id="sheet" onclick="if(event.target===this)closeApply()">
@@ -339,6 +406,7 @@
   <div class="toast" id="toast"></div>
 </div>
 
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -374,14 +442,142 @@ const _kakaoFbUser = (_ggzonUser?.loginType === 'kakao')
 onAuthStateChanged(auth, async user => {
   const effectiveUser = user || _kakaoFbUser;
   if (!effectiveUser) {
-    location.href = 'login.html?auto=1&return=' + encodeURIComponent('overseas.html');
+    location.href = 'login.html?auto=1&return=' + encodeURIComponent('overseas.html' + location.search);
     return;
   }
   currentUser = effectiveUser;
   isAdmin = currentUser.email === 'wlfmzhs@naver.com';
   document.getElementById('loading-overlay').classList.add('hidden');
   await loadApplicants();
+  // 카톡 공유 메시지의 '참가하기' 로 들어오면 신청 창을 바로 연다
+  if (new URLSearchParams(location.search).get('apply') === '1') openApply();
 });
+
+// ── 3주 달력 (2/7 ~ 2/27, 여행 2/17 ~ 2/21) ─────────────
+const TRIP_START = new Date(2027, 1, 17);
+const CAL_MARKS = {
+  17: { lbl: '✈ 출국', cls: 'fly' },
+  18: { lbl: '⛳ 빈펄', cls: 'golf' },
+  19: { lbl: '⛳ 몽고<br>메리', cls: 'golf' },
+  20: { lbl: '⛳ 바나<br>힐스', cls: 'golf' },
+  21: { lbl: '✈ 귀국', cls: 'fly' },
+};
+(function renderCalendar() {
+  const wd = ['일','월','화','수','목','금','토'];
+  let html = wd.map((w, i) => `<div class="cal-wd${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${w}</div>`).join('');
+  for (let day = 7; day <= 27; day++) {
+    const dow = (day - 7) % 7;
+    const m = CAL_MARKS[day];
+    const cls = ['cal-d', dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''];
+    if (m) {
+      cls.push('trip', m.cls);
+      // 줄이 바뀌는 곳(토/일)과 여행 시작·끝에서 띠를 둥글게 끊는다
+      if (!CAL_MARKS[day - 1] || dow === 0) cls.push('t-start');
+      if (!CAL_MARKS[day + 1] || dow === 6) cls.push('t-end');
+    }
+    html += `<div class="${cls.join(' ')}"><span class="num">${day}</span>${m ? `<span class="lbl">${m.lbl}</span>` : ''}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dd = Math.round((TRIP_START - today) / 86400000);
+  document.getElementById('cal-dday').textContent = dd > 0 ? `출발 D-${dd}` : dd === 0 ? '오늘 출발!' : '여행 완료';
+})();
+
+// ── 카톡 공유 ─────────────────────────────────────────
+// 카카오 공유 링크는 반드시 github.io/ggzon — 등록 도메인이 아니면 카카오가 도메인만 바꿔
+// wlfmzhs.github.io/overseas.html (= /ggzon 없는 경로) 로 열려 404가 난다.
+const APP_BASE = 'https://wlfmzhs.github.io/ggzon';
+if (window.Kakao && !Kakao.isInitialized()) Kakao.init('a14a8368381df22cac7c0fd0841fd28e');
+
+window.openShare  = () => document.getElementById('share-sheet').classList.add('open');
+window.closeShare = () => document.getElementById('share-sheet').classList.remove('open');
+
+let _h2c = null;
+function loadH2C() {
+  if (window.html2canvas) return Promise.resolve();
+  return _h2c || (_h2c = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = resolve;
+    s.onerror = () => { _h2c = null; reject(new Error('html2canvas load failed')); };
+    document.head.appendChild(s);
+  }));
+}
+
+// 화면 일부를 화면 밖에 복제해 그대로 캡처 (스크롤 영역에 잘리지 않게)
+async function captureEl(el, removeSel) {
+  await loadH2C();
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:390px;padding:16px;background:#0A2406;color:#fff;font-family:inherit;';
+  const clone = el.cloneNode(true);
+  clone.style.padding = '0';
+  if (removeSel) clone.querySelectorAll(removeSel).forEach(x => x.remove());
+  clone.querySelectorAll('.badge.open').forEach(x => x.style.animation = 'none');
+  wrap.appendChild(clone);
+  document.body.appendChild(wrap);
+  try {
+    return await html2canvas(wrap, { backgroundColor: '#0A2406', scale: 2, useCORS: true, logging: false });
+  } finally {
+    wrap.remove();
+  }
+}
+const toBlob = c => new Promise(r => c.toBlob(r, 'image/png'));
+
+window.kakaoShare = async () => {
+  if (!window.Kakao || !Kakao.isInitialized()) return showToast('카카오 로딩 중입니다. 잠시 후 다시 눌러주세요');
+  showToast('공유 이미지 만드는 중...');
+  const total = applicants.reduce((s, a) => s + (a.people || 1), 0);
+  let imageUrl = 'https://www.ggzon.co.kr/image/overseas-danang-2702.png', imageWidth = 520, imageHeight = 742;
+  try {
+    const canvas = await captureEl(document.getElementById('share-top'));
+    const file = new File([await toBlob(canvas)], 'ggzon-overseas.png', { type: 'image/png' });
+    const res = await Kakao.Share.uploadImage({ file: [file] });
+    imageUrl = res.infos.original.url;
+    imageWidth = canvas.width; imageHeight = canvas.height;
+  } catch (e) {
+    console.warn('캡처 이미지 업로드 실패 → 원본 일정표 이미지로 공유', e);
+  }
+  const applyLink = `${APP_BASE}/overseas.html?apply=1`;
+  const viewLink  = `${APP_BASE}/overseas.html`;
+  Kakao.Share.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: '[골갑존 해외라운드] 베트남 다낭 3박5일 54홀',
+      description: `2027.2.17(수)~2.21(일) · 1인 155만원 노팁/노옵션 · 신청 ${total}/${CAPACITY}명`,
+      imageUrl, imageWidth, imageHeight,
+      link: { mobileWebUrl: viewLink, webUrl: viewLink },
+    },
+    buttons: [
+      { title: '참가하기',  link: { mobileWebUrl: applyLink, webUrl: applyLink } },
+      { title: '일정 보기', link: { mobileWebUrl: viewLink,  webUrl: viewLink } },
+    ],
+  });
+  closeShare();
+};
+
+window.shareScreenImage = async () => {
+  showToast('화면 캡처 중...');
+  try {
+    const canvas = await captureEl(document.getElementById('share-content'), '#admin-card, .orig-btn');
+    const blob = await toBlob(canvas);
+    const file = new File([blob], 'ggzon-다낭-해외라운드.png', { type: 'image/png' });
+    closeShare();
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: '골갑존 해외라운드 - 다낭 3박5일', text: `참가하기 👉 ${APP_BASE}/overseas.html?apply=1` });
+        return;
+      } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.download = file.name;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    showToast('이미지를 저장했습니다 — 카톡방에 올려주세요');
+  } catch (e) {
+    console.error(e);
+    showToast('캡처 실패: ' + e.message);
+  }
+};
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const docId = () => TRIP_ID + '_' + currentUser.uid;
