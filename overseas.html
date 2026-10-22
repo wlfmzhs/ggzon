@@ -29,6 +29,13 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js" crossorigin />
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js" crossorigin />
   <title>해외라운드 - GOLGAB ZONE</title>
+  <!-- 카톡 등 링크 미리보기 대표 이미지 -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="[골갑존 해외라운드] 베트남 다낭 3박5일 54홀" />
+  <meta property="og:description" content="2027.2.17(수)~2.21(일) · 1인 155만원 노팁/노옵션 · 참가자 모집중" />
+  <meta property="og:image" content="https://www.ggzon.co.kr/image/overseas-danang-2702-share.png" />
+  <meta property="og:image:width" content="800" />
+  <meta property="og:image:height" content="800" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root {
@@ -400,7 +407,8 @@
 
   <div class="img-overlay" id="img-overlay" onclick="closeImg()">
     <button class="img-close" onclick="closeImg()">✕</button>
-    <img src="image/overseas-danang-2702.png" alt="다낭 3박5일 일정표" loading="lazy" />
+    <!-- src 를 미리 넣어 두면 카톡 링크 미리보기가 이 여행사 원본을 대표 이미지로 집어 간다 → 열 때만 넣는다 -->
+    <img id="orig-img" data-src="image/overseas-danang-2702.png" alt="다낭 3박5일 일정표" />
   </div>
 
   <div class="toast" id="toast"></div>
@@ -561,8 +569,9 @@ window.kakaoShare = () => {
   if (!window.Kakao || !Kakao.isInitialized()) return showToast('카카오 로딩 중입니다. 잠시 후 다시 눌러주세요');
   const total = applicants.reduce((s, a) => s + (a.people || 1), 0);
   const imageUrl = SHARE_IMG.url, imageWidth = SHARE_IMG.w, imageHeight = SHARE_IMG.h;
-  const applyLink = `${APP_BASE}/overseas.html?apply=1`;
-  const viewLink  = `${APP_BASE}/overseas.html`;
+  // s=2: 카카오가 예전 주소로 긁어 둔 미리보기(여행사 원본 이미지) 캐시를 피하려고 붙인 꼬리표
+  const applyLink = `${APP_BASE}/overseas.html?apply=1&s=2`;
+  const viewLink  = `${APP_BASE}/overseas.html?s=2`;
   Kakao.Share.sendDefault({
     objectType: 'feed',
     content: {
@@ -589,7 +598,8 @@ window.shareScreenImage = async () => {
   closeShare();
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: '골갑존 해외라운드 - 다낭 3박5일', text: `참가하기 👉 ${APP_BASE}/overseas.html?apply=1` });
+      // 조인 탭과 똑같이 파일만 보낸다. 링크 글을 같이 넣으면 카톡이 이미지 대신 링크 미리보기를 붙인다.
+      await navigator.share({ files: [file], title: '골갑존 해외라운드 - 다낭 3박5일' });
       return;
     } catch (e) { if (e.name === 'AbortError') return; }
   }
@@ -751,7 +761,11 @@ window.withdraw = async () => {
   } catch (e) { console.error(e); showToast('취소 실패'); }
 };
 
-window.openImg  = () => document.getElementById('img-overlay').classList.add('open');
+window.openImg  = () => {
+  const img = document.getElementById('orig-img');
+  if (!img.src) img.src = img.dataset.src;
+  document.getElementById('img-overlay').classList.add('open');
+};
 window.closeImg = () => document.getElementById('img-overlay').classList.remove('open');
 
 let toastTimer;
