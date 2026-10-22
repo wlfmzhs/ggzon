@@ -247,7 +247,7 @@
       <div class="card">
         <div class="card-h">행사 개요 <button class="orig-btn" onclick="openImg()">원본 일정표</button></div>
         <div class="row"><span class="k">출발일</span><span class="v">2027년 2월 17일(수) ~ 2월 21일(일)</span></div>
-        <div class="row"><span class="k">인원</span><span class="v">120명 · 30조 · 샷건플레이</span></div>
+        <div class="row"><span class="k">인원</span><span class="v">40명 · 10조 · 샷건플레이</span></div>
         <div class="row"><span class="k">행사가</span><span class="v"><b>1인 155만원</b> (노팁/노옵션)</span></div>
         <div class="row"><span class="k">포함</span><span class="v">
           · 호텔: 시내특급(노보텔 2인1실), 호텔조식, 한국인가이드<br>
@@ -330,7 +330,7 @@
 
       <div class="card">
         <div class="card-h">함께 가는 사람들 <span id="apl-count" style="color:#fff"></span></div>
-        <div class="bar-top"><span class="l">신청 인원</span><span class="r" id="bar-num">0 / 120명</span></div>
+        <div class="bar-top"><span class="l">신청 인원</span><span class="r" id="bar-num">0 / 40명</span></div>
         <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
         <div class="apl-chips" id="apl-chips"><div class="apl-empty" style="grid-column:1/4">불러오는 중...</div></div>
       </div>
@@ -435,7 +435,7 @@ const db   = getFirestore(app);
 
 // 지금 모집 중인 해외라운드. 다음 여행은 TRIP_ID 와 화면 내용만 바꾸면 신청 명단이 따로 쌓인다.
 const TRIP_ID  = 'danang-2702';
-const CAPACITY = 120;
+const CAPACITY = 40;
 
 let currentUser = null;
 let isAdmin     = false;
