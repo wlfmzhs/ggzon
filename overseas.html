@@ -346,11 +346,11 @@
     <div class="sheet">
       <div class="sheet-title">카톡방에 공유하기</div>
       <div class="sheet-sub">공유받은 사람이 <b>참가하기</b>를 누르면 이 해외라운드 화면으로 바로 들어옵니다.</div>
-      <button class="share-opt" onclick="kakaoShare()">
+      <button class="share-opt" id="opt-kakao" onclick="kakaoShare()">
         <span class="ic" style="background:#fee500;color:#191919">💬</span>
         <span><div class="t">카톡 공유 (참가하기 버튼)</div><div class="s">달력·행사 요약 이미지 + 참가하기 버튼으로 보내기</div></span>
       </button>
-      <button class="share-opt" onclick="shareScreenImage()">
+      <button class="share-opt" id="opt-screen" onclick="shareScreenImage()">
         <span class="ic" style="background:rgba(94,200,242,0.2)">🖼</span>
         <span><div class="t">화면 그대로 이미지로 보내기</div><div class="s">일정 전체를 한 장 이미지로 캡처해 카톡방에 전송·저장</div></span>
       </button>
@@ -489,7 +489,58 @@ const CAL_MARKS = {
 const APP_BASE = 'https://wlfmzhs.github.io/ggzon';
 if (window.Kakao && !Kakao.isInitialized()) Kakao.init('a14a8368381df22cac7c0fd0841fd28e');
 
-window.openShare  = () => document.getElementById('share-sheet').classList.add('open');
+// 휴대폰은 '누른 직후'에만 카톡 앱 전환·공유창을 허락한다. 캡처·업로드를 기다렸다 보내면
+// 몇 초 사이에 그 허락이 사라져 아무 반응이 없었다 → 공유 창을 열 때 미리 만들어 두고,
+// 버튼을 누르면 기다림 없이 바로 보낸다.
+const SHARE_FALLBACK = { url: 'https://www.ggzon.co.kr/image/overseas-danang-2702.png', w: 520, h: 742 };
+let kakaoImg = null, kakaoImgJob = null;   // 카톡 메시지용 업로드 이미지
+let screenFile = null, screenJob = null;   // 화면 전체 캡처 파일
+
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+function setShareBtn(id, ready, label) {
+  const b = document.getElementById(id);
+  b.style.opacity = ready ? '1' : '0.55';
+  b.querySelector('.s').textContent = label;
+}
+
+function prepareKakaoImg() {
+  if (kakaoImg || kakaoImgJob) return;
+  setShareBtn('opt-kakao', false, '공유 이미지 준비 중...');
+  kakaoImgJob = withTimeout((async () => {
+    const canvas = await captureEl(document.getElementById('share-top'));
+    const file = new File([await toBlob(canvas)], 'ggzon-overseas.png', { type: 'image/png' });
+    const res = await Kakao.Share.uploadImage({ file: [file] });
+    return { url: res.infos.original.url, w: canvas.width, h: canvas.height };
+  })(), 12000).then(img => { kakaoImg = img; }).catch(e => {
+    console.warn('캡처 이미지 업로드 실패 → 원본 일정표 이미지로 공유', e);
+    kakaoImg = SHARE_FALLBACK;
+  }).finally(() => {
+    kakaoImgJob = null;
+    setShareBtn('opt-kakao', true, '달력·행사 요약 이미지 + 참가하기 버튼으로 보내기');
+  });
+}
+
+function prepareScreenFile() {
+  if (screenFile || screenJob) return;
+  setShareBtn('opt-screen', false, '화면 캡처 중...');
+  screenJob = withTimeout((async () => {
+    const canvas = await captureEl(document.getElementById('share-content'), '#admin-card, .orig-btn');
+    return { file: new File([await toBlob(canvas)], 'ggzon-다낭-해외라운드.png', { type: 'image/png' }), dataUrl: canvas.toDataURL('image/png') };
+  })(), 15000).then(f => {
+    screenFile = f;
+    setShareBtn('opt-screen', true, '일정 전체를 한 장 이미지로 캡처해 카톡방에 전송·저장');
+  }).catch(e => {
+    console.error(e);
+    setShareBtn('opt-screen', true, '캡처 실패 — 다시 누르면 재시도');
+  }).finally(() => { screenJob = null; });
+}
+
+window.openShare  = () => {
+  document.getElementById('share-sheet').classList.add('open');
+  prepareKakaoImg();
+  prepareScreenFile();
+};
 window.closeShare = () => document.getElementById('share-sheet').classList.remove('open');
 
 let _h2c = null;
@@ -523,20 +574,12 @@ async function captureEl(el, removeSel) {
 }
 const toBlob = c => new Promise(r => c.toBlob(r, 'image/png'));
 
-window.kakaoShare = async () => {
+window.kakaoShare = () => {
   if (!window.Kakao || !Kakao.isInitialized()) return showToast('카카오 로딩 중입니다. 잠시 후 다시 눌러주세요');
-  showToast('공유 이미지 만드는 중...');
+  if (kakaoImgJob) return showToast('공유 이미지 준비 중이에요. 잠시 후 다시 눌러주세요');
   const total = applicants.reduce((s, a) => s + (a.people || 1), 0);
-  let imageUrl = 'https://www.ggzon.co.kr/image/overseas-danang-2702.png', imageWidth = 520, imageHeight = 742;
-  try {
-    const canvas = await captureEl(document.getElementById('share-top'));
-    const file = new File([await toBlob(canvas)], 'ggzon-overseas.png', { type: 'image/png' });
-    const res = await Kakao.Share.uploadImage({ file: [file] });
-    imageUrl = res.infos.original.url;
-    imageWidth = canvas.width; imageHeight = canvas.height;
-  } catch (e) {
-    console.warn('캡처 이미지 업로드 실패 → 원본 일정표 이미지로 공유', e);
-  }
+  const img = kakaoImg || SHARE_FALLBACK;
+  const imageUrl = img.url, imageWidth = img.w, imageHeight = img.h;
   const applyLink = `${APP_BASE}/overseas.html?apply=1`;
   const viewLink  = `${APP_BASE}/overseas.html`;
   Kakao.Share.sendDefault({
@@ -556,27 +599,24 @@ window.kakaoShare = async () => {
 };
 
 window.shareScreenImage = async () => {
-  showToast('화면 캡처 중...');
-  try {
-    const canvas = await captureEl(document.getElementById('share-content'), '#admin-card, .orig-btn');
-    const blob = await toBlob(canvas);
-    const file = new File([blob], 'ggzon-다낭-해외라운드.png', { type: 'image/png' });
-    closeShare();
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: '골갑존 해외라운드 - 다낭 3박5일', text: `참가하기 👉 ${APP_BASE}/overseas.html?apply=1` });
-        return;
-      } catch (e) { if (e.name === 'AbortError') return; }
-    }
-    const a = document.createElement('a');
-    a.download = file.name;
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-    showToast('이미지를 저장했습니다 — 카톡방에 올려주세요');
-  } catch (e) {
-    console.error(e);
-    showToast('캡처 실패: ' + e.message);
+  if (!screenFile) {
+    if (screenJob) return showToast('화면 캡처 중이에요. 잠시 후 다시 눌러주세요');
+    prepareScreenFile();
+    return;
   }
+  const { file, dataUrl } = screenFile;
+  closeShare();
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: '골갑존 해외라운드 - 다낭 3박5일', text: `참가하기 👉 ${APP_BASE}/overseas.html?apply=1` });
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.download = file.name;
+  a.href = dataUrl;
+  a.click();
+  showToast('이미지를 저장했습니다 — 카톡방에 올려주세요');
 };
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
