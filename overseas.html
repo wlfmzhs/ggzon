@@ -457,8 +457,6 @@ onAuthStateChanged(auth, async user => {
   isAdmin = currentUser.email === 'wlfmzhs@naver.com';
   document.getElementById('loading-overlay').classList.add('hidden');
   await loadApplicants();
-  // 카톡 공유 메시지의 '참가하기' 로 들어오면 신청 창을 바로 연다
-  if (new URLSearchParams(location.search).get('apply') === '1') openApply();
 });
 
 // ── 3주 달력 (2/7 ~ 2/27, 여행 2/17 ~ 2/21) ─────────────
@@ -570,7 +568,7 @@ window.kakaoShare = () => {
   const total = applicants.reduce((s, a) => s + (a.people || 1), 0);
   const imageUrl = SHARE_IMG.url, imageWidth = SHARE_IMG.w, imageHeight = SHARE_IMG.h;
   // s=2: 카카오가 예전 주소로 긁어 둔 미리보기(여행사 원본 이미지) 캐시를 피하려고 붙인 꼬리표
-  const applyLink = `${APP_BASE}/overseas.html?apply=1&s=2`;
+  // 참가하기로 들어와도 신청 창을 띄우지 않고 본 페이지부터 보여 준다
   const viewLink  = `${APP_BASE}/overseas.html?s=2`;
   Kakao.Share.sendDefault({
     objectType: 'feed',
@@ -581,8 +579,7 @@ window.kakaoShare = () => {
       link: { mobileWebUrl: viewLink, webUrl: viewLink },
     },
     buttons: [
-      { title: '참가하기',  link: { mobileWebUrl: applyLink, webUrl: applyLink } },
-      { title: '일정 보기', link: { mobileWebUrl: viewLink,  webUrl: viewLink } },
+      { title: '참가하기', link: { mobileWebUrl: viewLink, webUrl: viewLink } },
     ],
   });
   closeShare();
