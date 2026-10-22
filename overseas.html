@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d7a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://firestore.googleapis.com" />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js" crossorigin />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js" crossorigin />
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js" crossorigin />
+  <title>해외라운드 - GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --green: #2d7a4f; --green-light: #3ea066; --green-dark: #0A2406;
+      --gold: #f0c040; --sky: #5ec8f2; --border: rgba(62,160,102,0.18);
+    }
+    html, body { width: 100%; height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #fff; overscroll-behavior: none; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .phone { width: 390px; height: 844px; background: var(--green-dark); border-radius: 40px; box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+    .phone::before { content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 100; }
+    @media (max-width: 768px) {
+      html, body { background: var(--green-dark); overflow: hidden; height: 100%; }
+      body { align-items: flex-start; min-height: unset; }
+      .phone { position: fixed; top: 0; left: 0; right: 0; height: 100svh; width: 100%; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+
+    #loading-overlay { position: absolute; inset: 0; background: var(--green-dark); display: flex; align-items: center; justify-content: center; z-index: 999; border-radius: 40px; }
+    #loading-overlay.hidden { display: none; }
+    .spinner { width: 32px; height: 32px; border: 3px solid rgba(62,160,102,0.3); border-top-color: var(--green-light); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .appbar { flex-shrink: 0; padding: 32px 18px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 10; }
+    .appbar-left { display: flex; align-items: center; gap: 8px; }
+    #btn-back { background: none; border: none; cursor: pointer; padding: 4px 8px 4px 0; color: var(--green-light); font-size: 20px; line-height: 1; }
+    .appbar-title { font-size: 16px; font-weight: 900; }
+
+    .hidden { display: none !important; }
+    .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: none; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+    .content { padding: 6px 16px 110px; }
+
+    /* 히어로 */
+    .hero { background: linear-gradient(140deg, rgba(40,120,170,0.45) 0%, rgba(10,36,6,0.6) 100%); border: 1px solid rgba(94,200,242,0.35); border-radius: 22px; padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; background: radial-gradient(circle, rgba(94,200,242,0.22) 0%, transparent 70%); border-radius: 50%; }
+    .hero-host { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.55); margin-bottom: 8px; }
+    .hero-badges { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .badge { font-size: 10px; font-weight: 900; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 10px; border: 1.5px solid; }
+    .badge.sky { color: var(--sky); border-color: rgba(94,200,242,0.6); background: rgba(94,200,242,0.1); }
+    .badge.open { color: #fff; border-color: rgba(255,255,255,0.7); animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .hero-title { font-size: 23px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.3; margin-bottom: 8px; }
+    .hero-tags { font-size: 12px; font-weight: 700; color: var(--sky); margin-bottom: 16px; line-height: 1.6; }
+    .hero-price { display: flex; align-items: baseline; gap: 6px; }
+    .hero-price .lbl { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .hero-price .num { font-size: 26px; font-weight: 900; color: var(--gold); }
+    .hero-price .opt { font-size: 11px; font-weight: 800; color: #ff7b6b; }
+
+    /* 정보 카드 */
+    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+    .card-h { font-size: 12px; font-weight: 900; color: var(--green-light); letter-spacing: 0.3px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .row { display: flex; gap: 10px; font-size: 12.5px; line-height: 1.6; padding: 4px 0; }
+    .row + .row { border-top: 1px dashed rgba(255,255,255,0.07); }
+    .row .k { color: rgba(255,255,255,0.4); min-width: 56px; flex-shrink: 0; font-weight: 700; }
+    .row .v { color: #fff; font-weight: 600; flex: 1; }
+    .v b { color: var(--gold); }
+    .excl { color: #ff9b8b !important; }
+    .remarks { padding-left: 16px; font-size: 12px; line-height: 1.7; color: rgba(255,255,255,0.75); }
+    .remarks b { color: #ff7b6b; }
+
+    /* 일정 */
+    .day { display: flex; gap: 12px; padding: 12px 0; }
+    .day + .day { border-top: 1px solid rgba(255,255,255,0.07); }
+    .day-no { flex-shrink: 0; width: 44px; text-align: center; }
+    .day-no .d { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 700; }
+    .day-no .n { font-size: 18px; font-weight: 900; color: var(--sky); line-height: 1.1; }
+    .day-no .dt { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .day-body { flex: 1; font-size: 12.5px; line-height: 1.65; color: rgba(255,255,255,0.8); }
+    .day-body .flight { font-size: 11px; font-weight: 800; color: var(--sky); }
+    .day-body .golf { color: var(--green-light); font-weight: 800; }
+    .day-body .golf-opt { color: #ff7b6b; font-weight: 800; }
+    .day-meta { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+    .chip.hotel { color: var(--gold); border-color: rgba(240,192,64,0.3); background: rgba(240,192,64,0.08); }
+    .note { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 8px; line-height: 1.6; }
+    .orig-btn { font-size: 11px; font-weight: 700; color: var(--sky); background: none; border: 1px solid rgba(94,200,242,0.4); border-radius: 12px; padding: 3px 9px; cursor: pointer; font-family: inherit; }
+
+    /* 신청 현황 */
+    .bar-top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+    .bar-top .l { color: rgba(255,255,255,0.5); }
+    .bar-top .r { color: var(--green-light); font-weight: 800; }
+    .bar-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+    .bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--green), var(--sky)); border-radius: 3px; transition: width 0.5s ease; }
+    .apl-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .apl-chip { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; padding: 5px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+    .apl-chip.me { color: var(--green-light); background: rgba(62,160,102,0.15); border-color: rgba(62,160,102,0.4); }
+    .apl-empty { font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; padding: 10px 0; }
+
+    /* 관리자 명단 */
+    .adm-item { font-size: 12px; line-height: 1.6; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 8px; align-items: flex-start; }
+    .adm-item .info { flex: 1; }
+    .adm-item .nm { font-weight: 900; }
+    .adm-item .sub { color: rgba(255,255,255,0.55); font-size: 11px; }
+    .adm-del { font-size: 10px; color: #ff7b6b; background: none; border: 1px solid rgba(255,123,107,0.4); border-radius: 10px; padding: 2px 8px; cursor: pointer; font-family: inherit; }
+    .adm-copy { font-size: 10px; color: var(--green-light); background: none; border: 1px solid rgba(62,160,102,0.4); border-radius: 10px; padding: 2px 8px; cursor: pointer; font-family: inherit; }
+
+    /* 하단 신청 버튼 */
+    .cta-wrap { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--green-dark) 70%, transparent); z-index: 20; }
+    .cta { width: 100%; padding: 15px; border-radius: 14px; border: none; font-size: 15px; font-weight: 900; font-family: inherit; cursor: pointer; background: linear-gradient(90deg, var(--green-light), #2fa7d6); color: #fff; box-shadow: 0 6px 20px rgba(47,167,214,0.3); }
+    .cta.applied { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); box-shadow: none; border: 1px solid rgba(255,255,255,0.15); }
+
+    /* 신청 시트 */
+    .sheet-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: flex-end; z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sheet-overlay.open { opacity: 1; pointer-events: all; }
+    .sheet { width: 100%; max-height: 88%; overflow-y: auto; background: #1a2e1a; border-radius: 24px 24px 0 0; padding: 22px 20px 28px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+    .sheet-overlay.open .sheet { transform: translateY(0); }
+    .sheet-title { font-size: 17px; font-weight: 900; margin-bottom: 4px; }
+    .sheet-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 16px; line-height: 1.5; }
+    .f-label { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.55); margin: 12px 0 6px; }
+    .f-label em { color: #ff7b6b; font-style: normal; }
+    .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #fff; font-size: 14px; font-family: inherit; outline: none; }
+    .f-input:focus { border-color: var(--green-light); }
+    textarea.f-input { resize: none; height: 70px; }
+    .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+    .seg button { flex: 1; min-width: 60px; padding: 10px 6px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); font-size: 13px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .seg button.on { background: rgba(62,160,102,0.25); border-color: var(--green-light); color: #fff; }
+    .privacy { font-size: 10.5px; color: rgba(255,255,255,0.35); margin-top: 12px; line-height: 1.5; }
+    .sheet-btns { display: flex; gap: 8px; margin-top: 18px; }
+    .btn-cancel { flex: 1; padding: 13px; border-radius: 12px; background: rgba(255,255,255,0.08); border: none; color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-ok { flex: 2; padding: 13px; border-radius: 12px; background: var(--green-light); border: none; color: #fff; font-size: 14px; font-weight: 900; cursor: pointer; font-family: inherit; }
+    .btn-ok.red { background: #e74c3c; }
+    .btn-ok:disabled { opacity: 0.5; }
+
+    /* 원본 이미지 */
+    .img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.92); z-index: 400; display: none; overflow-y: auto; padding: 50px 10px 20px; }
+    .img-overlay.open { display: block; }
+    .img-overlay img { width: 100%; border-radius: 8px; display: block; }
+    .img-close { position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; }
+
+    .toast { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(30,30,30,0.95); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div id="loading-overlay"><div class="spinner"></div></div>
+
+  <div class="appbar">
+    <div class="appbar-left">
+      <button id="btn-back" onclick="history.length > 1 ? history.back() : location.href='dashboard.html'">‹</button>
+      <span class="appbar-title">해외라운드</span>
+    </div>
+  </div>
+
+  <div class="scroll-area">
+    <div class="content">
+
+      <div class="hero">
+        <div class="hero-host">골프치는 갑이 &amp; 블록의 독학골퍼</div>
+        <div class="hero-badges">
+          <span class="badge open">모집중</span>
+          <span class="badge sky">베트남 · 다낭</span>
+        </div>
+        <div class="hero-title">시내특급 3박5일 54홀</div>
+        <div class="hero-tags">#특급호텔 #명문CC-아시아TOP100 #수하물23키로</div>
+        <div class="hero-price">
+          <span class="lbl">1인</span><span class="num">155만원</span><span class="opt">노팁 / 노옵션</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">행사 개요 <button class="orig-btn" onclick="openImg()">원본 일정표</button></div>
+        <div class="row"><span class="k">출발일</span><span class="v">2027년 2월 17일(수) ~ 2월 21일(일)</span></div>
+        <div class="row"><span class="k">인원</span><span class="v">120명 · 30조 · 샷건플레이</span></div>
+        <div class="row"><span class="k">행사가</span><span class="v"><b>1인 155만원</b> (노팁/노옵션)</span></div>
+        <div class="row"><span class="k">포함</span><span class="v">
+          · 호텔: 시내특급(노보텔 2인1실), 호텔조식, 한국인가이드<br>
+          · 골프: 18홀×3회 (그린피/캐디피/전동카-2인1카)<br>
+          · 기타: 1억원 여행자보험, 전용차량(대형), 기사/가이드 경비
+        </span></div>
+        <div class="row"><span class="k">불포함</span><span class="v excl">클럽중식($20~/인/끼), 캐디팁($15~/18홀/인), 기타 개인경비, 추가라운드 비용</span></div>
+        <div class="row"><span class="k">연락망</span><span class="v">피켓명: "골프치는 갑이" "블록의 독학골퍼"<br>가이드: 추후 배정 (로컬가이드)</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">꼭 확인하세요</div>
+        <ol class="remarks">
+          <li>여권 유효기간은 현지 입국일 기준으로 <b>6개월 이상</b> 남아 있어야 합니다. (하루라도 부족할 경우 입국 불가)</li>
+          <li>베트남 입국시 전자담배는 불허됩니다.</li>
+          <li>다낭 가이드 단속으로 인해 관광지나 공항에 가이드 동행이 제한될 수 있습니다. (현지가이드 동행)</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <div class="card-h">일정</div>
+
+        <div class="day">
+          <div class="day-no"><div class="d">DAY</div><div class="n">1</div><div class="dt">2/17 수</div></div>
+          <div class="day-body">
+            <div class="flight">✈ BX779 · 22:05 출발 → 01:00 도착</div>
+            부산/인천/청주 공항 출발<br>
+            다낭 국제공항 도착 후 가이드 미팅<br>
+            숙소 투숙 및 휴식
+            <div class="day-meta"><span class="chip">석: 불포함</span><span class="chip hotel">🏨 다낭 노보텔 또는 동급</span></div>
+          </div>
+        </div>
+
+        <div class="day">
+          <div class="day-no"><div class="d">DAY</div><div class="n">2</div><div class="dt">2/18 목</div></div>
+          <div class="day-body">
+            호텔 조식 후<br>
+            <span class="golf">⛳ 빈펄CC 18홀 · TEE OFF 12:30</span> (예정/샷건)<br>
+            라운드 후 자유시간<br>
+            석식 후 호텔 투숙 및 휴식
+            <div class="day-meta"><span class="chip">조: 호텔식</span><span class="chip">중·석: 불포함</span><span class="chip hotel">🏨 다낭 노보텔 또는 동급</span></div>
+          </div>
+        </div>
+
+        <div class="day">
+          <div class="day-no"><div class="d">DAY</div><div class="n">3</div><div class="dt">2/19 금</div></div>
+          <div class="day-body">
+            호텔 조식 후<br>
+            <span class="golf">⛳ 몽고메리CC 18홀 · TEE OFF 07:30</span> (예정/샷건)<br>
+            <span class="golf-opt">＋ 다낭CC(야간) 플레이시 $120/18홀 추가 (차량포함)</span><br>
+            라운드 후 자유시간<br>
+            석식 후 호텔 투숙 및 휴식
+            <div class="day-meta"><span class="chip">조: 호텔식</span><span class="chip">중·석: 불포함</span><span class="chip hotel">🏨 다낭 노보텔 또는 동급</span></div>
+          </div>
+        </div>
+
+        <div class="day">
+          <div class="day-no"><div class="d">DAY</div><div class="n">4</div><div class="dt">2/20 토</div></div>
+          <div class="day-body">
+            호텔 조식 후<br>
+            <span class="golf">⛳ 바나힐스CC 18홀 · TEE OFF 12:30</span> (예정/샷건)<br>
+            라운드 후 선물가게 방문<br>
+            석식 후 공항으로 이동
+            <div class="day-meta"><span class="chip">조: 호텔식</span><span class="chip">중·석: 불포함</span></div>
+          </div>
+        </div>
+
+        <div class="day">
+          <div class="day-no"><div class="d">DAY</div><div class="n">5</div><div class="dt">2/21 일</div></div>
+          <div class="day-body">
+            <div class="flight">✈ BX780 · 02:00 출발 → 07:55 도착</div>
+            다낭 국제공항 출발<br>
+            부산/인천 김해국제공항 도착 후 해산<br>
+            즐거운 여행 되셨기를 바랍니다 ^^
+          </div>
+        </div>
+
+        <div class="note">※ 상기 일정은 항공 및 현지 사정에 의하여 변동될 수 있사오니 양해하여 주시기 바랍니다.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">함께 가는 사람들 <span id="apl-count" style="color:#fff"></span></div>
+        <div class="bar-top"><span class="l">신청 인원</span><span class="r" id="bar-num">0 / 120명</span></div>
+        <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+        <div class="apl-chips" id="apl-chips"><div class="apl-empty" style="grid-column:1/4">불러오는 중...</div></div>
+      </div>
+
+      <div class="card hidden" id="admin-card">
+        <div class="card-h">관리자 · 신청자 연락처 <button class="adm-copy" onclick="copyAdminList()">명단 복사</button></div>
+        <div id="admin-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="cta-wrap"><button class="cta" id="cta" onclick="openApply()">참가 신청하기</button></div>
+
+  <!-- 신청 시트 -->
+  <div class="sheet-overlay" id="sheet" onclick="if(event.target===this)closeApply()">
+    <div class="sheet">
+      <div class="sheet-title" id="sheet-title">다낭 해외라운드 참가 신청</div>
+      <div class="sheet-sub">신청 후 주최측에서 개별 연락드려 예약금·여권 정보를 안내해 드립니다.</div>
+
+      <div class="f-label">이름 <em>*</em></div>
+      <input class="f-input" id="f-name" maxlength="20" placeholder="실명 또는 닉네임" />
+
+      <div class="f-label">연락처 <em>*</em></div>
+      <input class="f-input" id="f-phone" type="tel" maxlength="13" placeholder="010-0000-0000" />
+
+      <div class="f-label">인원 (본인 포함)</div>
+      <div class="seg" id="seg-people">
+        <button data-v="1" class="on">1명</button><button data-v="2">2명</button><button data-v="3">3명</button><button data-v="4">4명</button>
+      </div>
+
+      <div class="f-label">출발 공항</div>
+      <div class="seg" id="seg-airport">
+        <button data-v="부산" class="on">부산</button><button data-v="인천">인천</button><button data-v="청주">청주</button>
+      </div>
+
+      <div class="f-label">객실 (2인 1실)</div>
+      <div class="seg" id="seg-room">
+        <button data-v="동반자와 같은 방" class="on">동반자와 같은 방</button><button data-v="룸메이트 매칭 희망">룸메이트 매칭</button>
+      </div>
+
+      <div class="f-label">동반자 이름 · 요청사항</div>
+      <textarea class="f-input" id="f-memo" maxlength="300" placeholder="예) 홍길동, 김철수 함께 갑니다 / 야간 다낭CC 추가 희망"></textarea>
+
+      <div class="privacy">연락처는 주최측(관리자)만 볼 수 있고, 다른 회원에게는 이름과 인원만 보입니다.</div>
+
+      <div class="sheet-btns">
+        <button class="btn-cancel" onclick="closeApply()">닫기</button>
+        <button class="btn-ok" id="btn-submit" onclick="submitApply()">신청하기</button>
+      </div>
+      <button class="btn-cancel hidden" id="btn-withdraw" style="width:100%;margin-top:8px;color:#ff7b6b" onclick="withdraw()">참가 신청 취소</button>
+    </div>
+  </div>
+
+  <div class="img-overlay" id="img-overlay" onclick="closeImg()">
+    <button class="img-close" onclick="closeImg()">✕</button>
+    <img src="image/overseas-danang-2702.png" alt="다낭 3박5일 일정표" loading="lazy" />
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDocs, setDoc, deleteDoc, query, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
+  authDomain: "ggzon-b33cb.firebaseapp.com",
+  projectId: "ggzon-b33cb",
+  storageBucket: "ggzon-b33cb.firebasestorage.app",
+  messagingSenderId: "774722580869",
+  appId: "1:774722580869:web:5beecd26c0b76f753914ec"
+});
+const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] });
+const db   = getFirestore(app);
+
+// 지금 모집 중인 해외라운드. 다음 여행은 TRIP_ID 와 화면 내용만 바꾸면 신청 명단이 따로 쌓인다.
+const TRIP_ID  = 'danang-2702';
+const CAPACITY = 120;
+
+let currentUser = null;
+let isAdmin     = false;
+let applicants  = [];
+let myApply     = null;
+
+const _ggzonUser   = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
+const _kakaoFbUser = (_ggzonUser?.loginType === 'kakao')
+  ? { uid: _ggzonUser.uid, displayName: _ggzonUser.nickname, email: '' }
+  : null;
+
+onAuthStateChanged(auth, async user => {
+  const effectiveUser = user || _kakaoFbUser;
+  if (!effectiveUser) {
+    location.href = 'login.html?auto=1&return=' + encodeURIComponent('overseas.html');
+    return;
+  }
+  currentUser = effectiveUser;
+  isAdmin = currentUser.email === 'wlfmzhs@naver.com';
+  document.getElementById('loading-overlay').classList.add('hidden');
+  await loadApplicants();
+});
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const docId = () => TRIP_ID + '_' + currentUser.uid;
+
+async function loadApplicants() {
+  try {
+    const snap = await getDocs(query(collection(db, 'overseasApply'), where('tripId', '==', TRIP_ID)));
+    applicants = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+    myApply = applicants.find(a => a.userId === currentUser.uid) || null;
+    renderApplicants();
+    if (isAdmin) await loadAdmin();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('apl-chips').innerHTML = '<div class="apl-empty" style="grid-column:1/4">불러오기 실패</div>';
+  }
+}
+
+function renderApplicants() {
+  const total = applicants.reduce((s, a) => s + (a.people || 1), 0);
+  document.getElementById('bar-num').textContent = `${total} / ${CAPACITY}명`;
+  document.getElementById('bar-fill').style.width = Math.min(100, total / CAPACITY * 100) + '%';
+  document.getElementById('apl-count').textContent = applicants.length ? `${applicants.length}팀` : '';
+  document.getElementById('apl-chips').innerHTML = applicants.length
+    ? applicants.map(a => `<div class="apl-chip${a.userId === currentUser.uid ? ' me' : ''}">${esc(a.name)}${a.people > 1 ? ` +${a.people - 1}` : ''}</div>`).join('')
+    : '<div class="apl-empty" style="grid-column:1/4">첫 번째로 신청해 보세요!</div>';
+
+  const cta = document.getElementById('cta');
+  cta.textContent = myApply ? `신청 완료 (${myApply.people}명) · 수정/취소` : '참가 신청하기';
+  cta.classList.toggle('applied', !!myApply);
+}
+
+async function loadAdmin() {
+  document.getElementById('admin-card').classList.remove('hidden');
+  const el = document.getElementById('admin-list');
+  try {
+    const snap = await getDocs(query(collection(db, 'overseasApplyContacts'), where('tripId', '==', TRIP_ID)));
+    const phones = {};
+    snap.docs.forEach(d => { phones[d.id] = d.data().phone; });
+    applicants.forEach(a => { a.phone = phones[a.id] || '-'; });
+    el.innerHTML = applicants.length ? applicants.map((a, i) => `
+      <div class="adm-item">
+        <div class="info">
+          <div class="nm">${i + 1}. ${esc(a.name)} · ${a.people}명 · ${esc(a.phone)}</div>
+          <div class="sub">${esc(a.airport)} 출발 · ${esc(a.room)}${a.memo ? '<br>' + esc(a.memo) : ''}</div>
+        </div>
+        <button class="adm-del" onclick="adminDelete('${a.id}')">삭제</button>
+      </div>`).join('') : '<div class="apl-empty">아직 신청자가 없습니다</div>';
+  } catch (e) {
+    console.error(e);
+    el.innerHTML = '<div class="apl-empty">연락처를 불러오지 못했습니다</div>';
+  }
+}
+
+window.copyAdminList = async () => {
+  const text = applicants.map((a, i) =>
+    `${i + 1}. ${a.name} / ${a.people}명 / ${a.phone} / ${a.airport} / ${a.room}${a.memo ? ' / ' + a.memo.replace(/\n/g, ' ') : ''}`
+  ).join('\n');
+  try { await navigator.clipboard.writeText(text); showToast('명단을 복사했습니다'); }
+  catch { showToast('복사 실패'); }
+};
+
+window.adminDelete = async id => {
+  const a = applicants.find(x => x.id === id);
+  if (!a || !confirm(`${a.name} 님의 신청을 삭제할까요?`)) return;
+  try {
+    await deleteDoc(doc(db, 'overseasApply', id));
+    await deleteDoc(doc(db, 'overseasApplyContacts', id)).catch(() => {});
+    showToast('삭제했습니다');
+    await loadApplicants();
+  } catch (e) { console.error(e); showToast('삭제 실패'); }
+};
+
+// 선택 버튼 묶음
+function seg(id) {
+  const box = document.getElementById(id);
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  });
+  return {
+    get: () => box.querySelector('button.on')?.dataset.v,
+    set: v => box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === String(v))),
+  };
+}
+const segPeople = seg('seg-people'), segAirport = seg('seg-airport'), segRoom = seg('seg-room');
+
+document.getElementById('f-phone').addEventListener('input', e => {
+  const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+  e.target.value = d.length < 4 ? d : d.length < 8 ? `${d.slice(0,3)}-${d.slice(3)}` : `${d.slice(0,3)}-${d.slice(3, d.length - 4)}-${d.slice(-4)}`;
+});
+
+window.openApply = () => {
+  if (!currentUser) return;
+  document.getElementById('f-name').value  = myApply?.name || _ggzonUser?.nickname || currentUser.displayName || '';
+  document.getElementById('f-phone').value = '';
+  document.getElementById('f-phone').placeholder = myApply ? '변경할 때만 입력 (비우면 기존 번호 유지)' : '010-0000-0000';
+  document.getElementById('f-memo').value  = myApply?.memo || '';
+  segPeople.set(myApply?.people || 1);
+  segAirport.set(myApply?.airport || '부산');
+  segRoom.set(myApply?.room || '동반자와 같은 방');
+  document.getElementById('sheet-title').textContent = myApply ? '참가 신청 수정' : '다낭 해외라운드 참가 신청';
+  document.getElementById('btn-submit').textContent  = myApply ? '수정하기' : '신청하기';
+  document.getElementById('btn-withdraw').classList.toggle('hidden', !myApply);
+  document.getElementById('sheet').classList.add('open');
+};
+window.closeApply = () => document.getElementById('sheet').classList.remove('open');
+
+window.submitApply = async () => {
+  const name  = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const memo  = document.getElementById('f-memo').value.trim();
+  if (!name) return showToast('이름을 입력해 주세요');
+  if (!myApply && !/^01\d-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
+  if (myApply && phone && !/^01\d-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  try {
+    const id = docId();
+    const base = { tripId: TRIP_ID, userId: currentUser.uid };
+    await setDoc(doc(db, 'overseasApply', id), {
+      ...base, name, memo,
+      people: Number(segPeople.get()) || 1,
+      airport: segAirport.get(),
+      room: segRoom.get(),
+      createdAt: myApply?.createdAt || serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    if (phone) await setDoc(doc(db, 'overseasApplyContacts', id), { ...base, name, phone, updatedAt: serverTimestamp() });
+    showToast(myApply ? '신청 내용을 수정했습니다' : '참가 신청 완료! 곧 연락드릴게요');
+    closeApply();
+    await loadApplicants();
+  } catch (e) {
+    console.error(e);
+    showToast('신청 실패 — 잠시 후 다시 시도해 주세요');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+window.withdraw = async () => {
+  if (!myApply || !confirm('참가 신청을 취소할까요?')) return;
+  try {
+    await deleteDoc(doc(db, 'overseasApply', docId()));
+    showToast('신청을 취소했습니다');
+    closeApply();
+    await loadApplicants();
+  } catch (e) { console.error(e); showToast('취소 실패'); }
+};
+
+window.openImg  = () => document.getElementById('img-overlay').classList.add('open');
+window.closeImg = () => document.getElementById('img-overlay').classList.remove('open');
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

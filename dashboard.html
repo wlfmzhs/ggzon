@@ -96,6 +96,7 @@
     .top-tab.active { color: #fff; border-bottom-color: var(--green-light); }
     .ggcup-tab { color: #f0c040 !important; }
     .ggcup-tab.active { border-bottom-color: #f0c040; }
+    .overseas-tab { color: #5ec8f2 !important; }
     /* GGLOG 탭 애니메이션 */
     .gglog-tab { color: #fff !important; position: relative; display: inline-flex; align-items: center; justify-content: center; }
     .gglog-wrap {
@@ -747,6 +748,7 @@
         <span class="gglog-txt">GGLOG</span>
       </span>
     </button>
+    <button class="top-tab overseas-tab" onclick="location.href='overseas.html'">✈ 해외라운드</button>
     <button class="top-tab" id="tab-event" onclick="markSeen('event');checkPaidAndGo('event.html')">단체라운드 대회</button>
     <button class="top-tab" id="tab-join" onclick="markSeen('join');checkPaidAndGo('join.html')">조인</button>
     <button class="top-tab" onclick="location.href='golchelin-star.html'">골슐랭스타</button>

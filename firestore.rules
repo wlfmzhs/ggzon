@@ -148,6 +148,29 @@ service cloud.firestore {
         (isAnyUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['entries']));
     }
 
+    // 해외라운드 참가 신청 — 문서 id 는 '{tripId}_{userId}' 로 고정해 1인 1신청
+    function isOverseasApplyId(id) {
+      return request.resource.data.userId is string && request.resource.data.tripId is string &&
+        id == request.resource.data.tripId + '_' + request.resource.data.userId;
+    }
+    function isApplicant(userId) {
+      return isOwner(userId) || isKakaoOwner(userId);
+    }
+
+    match /overseasApply/{applyId} {
+      allow read: if isAnyUser();
+      allow create: if isAdmin() || (isOverseasApplyId(applyId) && isApplicant(request.resource.data.userId));
+      allow update: if isAdmin() || (isOverseasApplyId(applyId) && isApplicant(resource.data.userId) &&
+        request.resource.data.userId == resource.data.userId);
+      allow delete: if isAdmin() || isApplicant(resource.data.userId);
+    }
+
+    // 신청자 연락처는 관리자만 읽는다
+    match /overseasApplyContacts/{applyId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isOverseasApplyId(applyId) && isApplicant(request.resource.data.userId);
+    }
+
     match /courses/{courseId} {
       allow read, write: if isAnyUser();
     }
