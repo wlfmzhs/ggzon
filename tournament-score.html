@@ -162,6 +162,16 @@ async function load() {
     const snap = await getDoc(doc(db, 'tournaments', tournId));
     if (!snap.exists()) throw new Error('대회 정보를 찾을 수 없습니다');
     const t = snap.data();
+    // 스코어 입력은 대회 후 7일까지만 — 몇 달 전 지난 대회에 다른 라운드 스코어가 들어가던 문제
+    // (2nd GPGA OPEN 스코어를 '골갑 3차 흑백대전'의 내 스코어 작성으로 입력해 GG 플레이어 기록에 잘못 남음)
+    const daysAfter = t.date ? (Date.now() - Date.parse(t.date + 'T00:00:00+09:00')) / 864e5 : Infinity;
+    if (!(daysAfter < 8)) {
+      document.getElementById('app').innerHTML = `<div class="loading-wrap" style="flex-direction:column;gap:10px;color:rgba(255,255,255,0.5);font-size:13px;text-align:center;line-height:1.7;">
+        <div style="font-size:15px;font-weight:800;color:#fff;">${t.name || '대회'}</div>
+        스코어 입력 기간(대회 후 7일)이 지났습니다.<br>다른 라운드 스코어는 조인 라운드에서 입력해주세요.
+        <button class="submit-btn" style="max-width:220px;margin-top:8px;" onclick="location.href='tournament-result.html?id=${tournId}'">결과 보기</button></div>`;
+      return;
+    }
     // 본명: 등록 데이터에서 가져옴 (없으면 닉네임 유지)
     try {
       const regSnap = await getDocs(query(
