@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wgn7dwi9ex");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E7NWHXJ0FF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-E7NWHXJ0FF');
+</script>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0a1f0a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GGZON" />
+  <link rel="apple-touch-icon" href="/image/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>2nd GPGA OPEN 결과 — GOLGAB ZONE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a1f0a; --bg2: #0f2a0f; --card: rgba(255,255,255,0.04); --line: rgba(255,255,255,0.08);
+      --orange: #e84c1e; --gold: #f0c040; --white: #ffffff; --green-light: #3ea066;
+      --dim: rgba(255,255,255,0.45); --dimmer: rgba(255,255,255,0.3);
+    }
+    html, body { width: 100%; min-height: 100%; background: #1a1a1a; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: var(--white); }
+    body { display: flex; align-items: flex-start; justify-content: center; padding: 24px; }
+    .phone-frame {
+      width: 390px; background: var(--bg); border-radius: 40px;
+      box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 11px #3a3a3a, 0 30px 80px rgba(0,0,0,0.7);
+      overflow: hidden; position: relative;
+    }
+    /* 탭 고정(sticky)이 화면 기준으로 붙도록 — clip 은 스크롤 영역을 만들지 않는다 */
+    @supports (overflow: clip) { .phone-frame { overflow: clip; } }
+    .phone-frame::before {
+      content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 6px; background: #2a2a2a; border-radius: 10px; z-index: 10;
+    }
+
+    /* 헤더 */
+    .hero { padding: 52px 24px 26px; border-bottom: 1px solid rgba(255,255,255,0.06); position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at top right, rgba(232,76,30,0.14) 0%, transparent 60%); pointer-events: none; }
+    .hero-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; position: relative; }
+    .back-btn { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 600; cursor: pointer; background: none; border: none; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+    .year-badge { font-size: 13px; font-weight: 800; color: var(--orange); background: rgba(232,76,30,0.15); border: 1px solid rgba(232,76,30,0.3); border-radius: 20px; padding: 4px 12px; }
+    .hero-title { font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -0.5px; margin-bottom: 8px; position: relative; }
+    .hero-sub { font-size: 12px; color: var(--dimmer); margin-bottom: 18px; position: relative; }
+    .hero-stats { display: flex; gap: 14px; position: relative; }
+    .stat-item { display: flex; flex-direction: column; gap: 2px; }
+    .stat-label { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 600; letter-spacing: 0.5px; }
+    .stat-value { font-size: 19px; font-weight: 900; }
+    .stat-value.orange { color: var(--orange); }
+    .stat-divider { width: 1px; background: rgba(255,255,255,0.1); }
+
+    /* 탭 */
+    .tabs { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; padding: 12px 16px; background: rgba(10,31,10,0.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .tab { flex: 1; padding: 9px 0; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); background: none; color: var(--dim); font-size: 13px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .tab.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+    .pane { padding: 20px 16px 48px; }
+    .pane.hide { display: none; }
+    .section-label { font-size: 11px; font-weight: 800; color: var(--orange); letter-spacing: 1.5px; margin: 26px 0 12px 4px; }
+    .section-label:first-child { margin-top: 0; }
+
+    /* 뉴스 */
+    .headline { border-radius: 18px; padding: 20px 18px; background: linear-gradient(160deg, rgba(232,76,30,0.22), rgba(240,192,64,0.08) 70%); border: 1px solid rgba(232,76,30,0.35); margin-bottom: 14px; }
+    .kicker { display: inline-block; font-size: 10px; font-weight: 900; letter-spacing: 1px; color: var(--gold); margin-bottom: 8px; }
+    .headline h2 { font-size: 21px; line-height: 1.35; font-weight: 900; margin-bottom: 10px; word-break: keep-all; }
+    .headline p, .news p { font-size: 13.5px; line-height: 1.75; color: rgba(255,255,255,0.72); word-break: keep-all; }
+    .headline .big { display: flex; gap: 10px; margin-top: 14px; }
+    .headline .big div { flex: 1; background: rgba(0,0,0,0.22); border-radius: 12px; padding: 10px 8px; text-align: center; }
+    .headline .big b { display: block; font-size: 18px; font-weight: 900; color: var(--gold); }
+    .headline .big span { font-size: 10px; color: var(--dim); font-weight: 700; }
+    .news { border-radius: 16px; padding: 16px; background: var(--card); border: 1px solid var(--line); margin-bottom: 12px; }
+    .news h3 { font-size: 16px; line-height: 1.4; font-weight: 900; margin-bottom: 8px; word-break: keep-all; }
+    .news .kicker { color: var(--orange); }
+    .news .kicker.down { color: #7aa7ff; }
+    .news .kicker.up { color: #7dd87d; }
+    .news em { font-style: normal; color: var(--gold); font-weight: 800; }
+    .line-pill { display: inline-block; margin-top: 10px; font-size: 11px; font-weight: 800; color: var(--dim); background: rgba(255,255,255,0.06); border-radius: 8px; padding: 5px 9px; }
+    .spark { display: flex; align-items: flex-end; gap: 2px; height: 42px; margin-top: 12px; }
+    .spark i { flex: 1; border-radius: 2px 2px 0 0; background: rgba(255,255,255,0.18); }
+    .spark i.lead { background: var(--orange); }
+    .spark-cap { display: flex; justify-content: space-between; font-size: 9px; color: var(--dimmer); margin-top: 4px; }
+
+    /* 리더 변천사 */
+    .timeline { border-radius: 16px; background: var(--card); border: 1px solid var(--line); padding: 6px 14px; }
+    .tl-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); }
+    .tl-row:last-child { border-bottom: none; }
+    .tl-h { width: 64px; font-size: 11px; font-weight: 800; color: var(--dimmer); flex-shrink: 0; }
+    .tl-n { flex: 1; font-size: 14px; font-weight: 800; }
+    .tl-n small { font-size: 11px; color: var(--dim); font-weight: 600; }
+    .tl-s { font-size: 13px; font-weight: 900; color: var(--orange); }
+
+    /* 기록실 */
+    .awards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .award { border-radius: 16px; padding: 14px 13px; background: var(--card); border: 1px solid var(--line); }
+    .award.wide { grid-column: 1 / -1; }
+    .award .t { font-size: 11px; font-weight: 800; color: var(--orange); margin-bottom: 8px; }
+    .award .v { font-size: 26px; font-weight: 900; color: var(--gold); line-height: 1; }
+    .award .v small { font-size: 13px; color: var(--dim); margin-left: 2px; }
+    .award .n { font-size: 14px; font-weight: 800; margin-top: 8px; word-break: keep-all; line-height: 1.4; }
+    .award .d { font-size: 11px; color: var(--dim); margin-top: 4px; line-height: 1.5; word-break: keep-all; }
+    .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .totals div { border-radius: 12px; background: var(--card); border: 1px solid var(--line); padding: 10px 4px; text-align: center; }
+    .totals b { display: block; font-size: 18px; font-weight: 900; }
+    .totals span { font-size: 10px; color: var(--dim); font-weight: 700; }
+
+    /* 홀 난이도 */
+    .hole-row { display: grid; grid-template-columns: 74px 1fr 44px; gap: 8px; align-items: center; padding: 6px 0; }
+    .hole-name { font-size: 12px; font-weight: 800; }
+    .hole-name small { color: var(--dimmer); font-weight: 600; margin-left: 2px; }
+    .hole-bar { height: 10px; border-radius: 5px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .hole-bar i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #3ea066, var(--gold) 55%, var(--orange)); }
+    .hole-avg { font-size: 12px; font-weight: 900; text-align: right; }
+    .hole-note { font-size: 11px; color: var(--dimmer); margin: 4px 0 0 4px; }
+
+    /* 스코어보드 */
+    .score-header, .score-row { display: grid; grid-template-columns: 34px 1fr 36px 44px; gap: 0 6px; align-items: center; }
+    .score-header { padding: 8px 12px; font-size: 10px; font-weight: 700; color: var(--dimmer); border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .score-row { padding: 10px 12px; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .score-row.top3 { background: rgba(232,76,30,0.08); }
+    .score-row.open { background: rgba(255,255,255,0.06); }
+    .rank { font-size: 13px; font-weight: 800; color: var(--dimmer); text-align: center; }
+    .rank.gold { color: var(--gold); font-size: 15px; } .rank.silver { color: #c0c0c0; font-size: 14px; } .rank.bronze { color: #cd7f32; font-size: 14px; }
+    .player-name { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+    .player-name small { font-size: 10px; color: var(--dimmer); font-weight: 600; white-space: nowrap; }
+    .strokes { font-size: 16px; font-weight: 900; text-align: right; }
+    .par-diff { font-size: 13px; font-weight: 800; text-align: right; }
+    .under { color: var(--orange); } .even { color: #7dd87d; } .over { color: rgba(255,255,255,0.45); }
+    .card { display: none; margin: 2px 4px 10px; padding: 12px 10px; border-radius: 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); }
+    .card.show { display: block; }
+    .card table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .card th, .card td { font-size: 10px; text-align: center; padding: 3px 0; }
+    .card th { color: var(--dimmer); font-weight: 700; }
+    .card td.lbl, .card th.lbl { width: 34px; text-align: left; color: var(--dim); font-weight: 800; }
+    .card .gap td { height: 6px; }
+    .sc { display: inline-flex; width: 18px; height: 18px; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; }
+    .sc.e { border-radius: 50%; background: var(--gold); color: #1a1a1a; }
+    .sc.b { border-radius: 50%; border: 1.5px solid var(--orange); color: var(--orange); }
+    .sc.p { color: #fff; }
+    .sc.bo { border: 1px solid rgba(255,255,255,0.35); border-radius: 3px; color: rgba(255,255,255,0.8); }
+    .sc.d { background: rgba(122,167,255,0.25); border-radius: 3px; color: #b9cfff; }
+    .sc.t { background: rgba(122,167,255,0.55); border-radius: 3px; color: #fff; }
+    .card-sum { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 11px; color: var(--dim); font-weight: 700; }
+    .card-sum b { color: #fff; }
+    .note { font-size: 11px; color: var(--dimmer); line-height: 1.6; margin-top: 16px; padding: 0 4px; }
+    .avg-row { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding: 16px; background: rgba(232,76,30,0.1); border: 1px solid rgba(232,76,30,0.25); border-radius: 14px; }
+    .avg-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6); }
+    .avg-value { font-size: 22px; font-weight: 900; color: var(--orange); }
+
+    @media (max-width: 480px) {
+      html, body { background: var(--bg); padding: 0; }
+      .phone-frame { width: 100%; border-radius: 0; box-shadow: none; min-height: 100vh; }
+      .phone-frame::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="hero">
+    <div class="hero-top">
+      <button class="back-btn" onclick="goBack()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        지난 대회
+      </button>
+      <span class="year-badge">2026</span>
+    </div>
+    <div class="hero-title">2nd GPGA OPEN</div>
+    <div class="hero-sub">2026.10.21 · 다이아몬드CC North / South · 파 72</div>
+    <div class="hero-stats">
+      <div class="stat-item"><div class="stat-label">완주</div><div class="stat-value" id="st-n">-</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><div class="stat-label">평균 타수</div><div class="stat-value orange" id="st-avg">-</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><div class="stat-label">우승</div><div class="stat-value" id="st-win">-</div></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="news">GG 뉴스</button>
+    <button class="tab" data-tab="records">기록실</button>
+    <button class="tab" data-tab="board">스코어보드</button>
+  </div>
+
+  <!-- ══════ GG 뉴스 ══════ -->
+  <div class="pane" id="pane-news">
+    <div class="headline">
+      <span class="kicker">HEADLINE · 우승</span>
+      <h2>어정우, 83명 중 유일한 언더파 70타… 2nd GPGA OPEN 정상</h2>
+      <p>이날 언더파를 친 선수는 단 한 명이었다. 어정우가 버디 3개, 파 14개, 보기 1개로 <em>2언더파 70타</em>를 적어 우승했다. 더블보기는 한 번도 없었다. 10번째 홀까지는 4명이 공동 선두였지만 11번째 홀부터 마지막 홀까지 <em>8홀 연속 단독 선두</em>를 지켰다. 마지막 18번째 홀은 이날 가장 어려웠던 South 9번(평균 +1.02, 버디 2개)이었고, 어정우는 이 홀을 버디로 끝냈다.</p>
+      <div class="big">
+        <div><b>-2</b><span>70타</span></div>
+        <div><b>14</b><span>파 (최다)</span></div>
+        <div><b>13</b><span>연속 파 이하</span></div>
+      </div>
+    </div>
+
+    <div class="news">
+      <span class="kicker">타이브레이크</span>
+      <h3>73타가 3명… South 9번 한 홀로 갈린 2·3·4위</h3>
+      <p>배석한·임종우·황우익이 나란히 <em>1오버파 73타</em>로 경기를 마쳤다. 순위는 로컬룰 백카운트(South 9번 → 8번 → 7번)로 정했고, 첫 홀인 South 9번에서 바로 갈렸다. 배석한은 <em>버디</em>, 임종우는 파, 황우익은 보기였다. 그래서 2위 배석한, 3위 임종우, 4위 황우익이 됐다. 이날 South 9번에서 버디를 잡은 선수는 우승자와 준우승자 둘뿐이었다.</p>
+      <span class="line-pill">2위 배석한 · 3위 임종우 · 4위 황우익 — 모두 +1</span>
+    </div>
+
+    <div class="news">
+      <span class="kicker up">대역전</span>
+      <h3>46위에서 4위까지 — 황우익의 롤러코스터</h3>
+      <p>출발은 좋지 않았다. 이날 가장 쉬웠던 North 3번(평균 +0.24)에서 더블보기를 해 3번째 홀에서 <em>46위</em>까지 떨어졌다. 8번째 홀에서 더블보기를 한 번 더 했지만, 사이사이 버디 4개를 잡았다. 이는 대회 최다 버디 타이 기록이다. 후반 South는 <em>-2</em>로 마쳐 이 대회 9홀 최저타 타이를 기록했다. 순위는 42계단 올랐지만 마지막 홀 보기로 백카운트에서 밀려 시상대에는 오르지 못했다.</p>
+      <div class="spark" id="spark-hwang"></div>
+      <div class="spark-cap"><span>1번째 홀</span><span>홀별 순위 (막대가 높을수록 상위)</span><span>18번째</span></div>
+    </div>
+
+    <div class="news">
+      <span class="kicker up">후반 대약진</span>
+      <h3>이글 한 방, 박종후 후반에만 19계단 상승</h3>
+      <p>South에서 출발한 박종후는 전반을 +4, 29위로 마쳤다. 후반 North 6번(파5)에서 이날 나온 이글 2개 중 하나를 기록했고, 후반 9홀을 <em>이븐파</em>로 막아 최종 <em>10위</em>에 올랐다. 반환점 기준으로 가장 많이 순위를 끌어올린 선수다. 같은 조의 김무관도 후반 이븐파로 29위에서 14위까지 올랐다.</p>
+      <span class="line-pill">반환점 29위 → 최종 10위 (+19)</span>
+    </div>
+
+    <div class="news">
+      <span class="kicker down">무너진 후반</span>
+      <h3>전반 언더파 6명, 끝까지 지킨 건 단 한 명</h3>
+      <p>반환점에서 언더파였던 선수는 임종우·조현국(-2), 어정우·배석한·이상훈·이윤화(-1) 6명이었다. 18홀을 언더파로 마친 선수는 어정우뿐이다. 가장 크게 흔들린 선수는 이윤화로, 전반 -1로 <em>공동 3위</em>였다가 후반 South에서 +8을 쳤다. 마지막 South 9번에서는 트리플보기가 나와 최종 <em>28위</em>로 마쳤다. 반환점 공동 선두였던 조현국(+4)과 임종우(+3)도 후반에 타수를 잃었다.</p>
+      <span class="line-pill">이윤화 반환점 공동 3위 → 최종 28위 (−25)</span>
+    </div>
+
+    <div class="news">
+      <span class="kicker">버디 쇼</span>
+      <h3>버디 4개 공동 1위… 조명진은 버디 4개에도 82타</h3>
+      <p>이날 최다 버디는 4개로, 배석한·황우익·조현국·조명진 네 명이 기록했다. 그중 조명진의 라운드가 가장 오르내림이 컸다. 버디를 4개나 잡았지만 North 4번에서 8타(+4)가 나왔고 보기도 8개를 해 최종 +10이었다. 이 대회 이글은 2개였다. 박종후가 North 6번, 한성용이 South 2번에서 기록했고 둘 다 파5다.</p>
+    </div>
+
+    <div class="news">
+      <span class="kicker up">반등</span>
+      <h3>전반 +18 → 후반 +8, 김상우가 10타를 줄였다</h3>
+      <p>South에서 출발한 김상우는 첫 홀부터 11홀 연속 보기 이상을 기록했고, 파5 South 8번에서는 이날 한 홀 최다 타수인 10타가 나왔다. 그래도 경기를 포기하지 않았다. 후반 North 9홀을 +8로 마쳐 전반보다 <em>10타</em>를 줄였다. 이 대회에서 전반과 후반의 차이가 가장 큰 반등이다.</p>
+    </div>
+
+    <div class="news">
+      <span class="kicker">핸디 대비 최고</span>
+      <h3>신고 핸디 30, 실제 +9 — 이미진의 21타 초과 달성</h3>
+      <p>신청 때 적은 핸디캡과 비교하면 이미진이 가장 잘 쳤다. 핸디 30을 적었는데 실제 스코어는 <em>+9(81타)</em>로, 핸디보다 21타 적게 쳤다. 다음은 김무관(핸디 17 → +4), 조현국(핸디 13 → +2) 순이다.</p>
+    </div>
+
+    <div class="section-label">리더 변천사</div>
+    <div class="timeline" id="timeline"></div>
+    <div class="hole-note">※ N번째 홀 = 각자 실제로 친 순서 (South 출발 조는 South 1번이 1번째 홀)</div>
+  </div>
+
+  <!-- ══════ 기록실 ══════ -->
+  <div class="pane hide" id="pane-records">
+    <div class="section-label">대회 기록</div>
+    <div class="awards">
+      <div class="award wide"><div class="t">🏆 우승</div><div class="v">70<small>타 (-2)</small></div><div class="n">어정우</div><div class="d">유일한 언더파 · 11번째 홀부터 끝까지 단독 선두</div></div>
+      <div class="award"><div class="t">최다 버디</div><div class="v">4<small>개</small></div><div class="n">배석한 · 황우익<br>조현국 · 조명진</div></div>
+      <div class="award"><div class="t">최다 파</div><div class="v">14<small>개</small></div><div class="n">어정우</div><div class="d">다음은 임종우 · 정석봉 · 황대환 13개</div></div>
+      <div class="award"><div class="t">이글</div><div class="v">2<small>개</small></div><div class="n">박종후 · 한성용</div><div class="d">North 6번 · South 2번 (모두 파5)</div></div>
+      <div class="award"><div class="t">최장 파 행진</div><div class="v">13<small>홀</small></div><div class="n">어정우</div><div class="d">1번째 홀부터 13홀 연속 파 이하</div></div>
+      <div class="award"><div class="t">9홀 베스트</div><div class="v">-2</div><div class="n">North 임종우 · 조현국<br>South 황우익</div></div>
+      <div class="award"><div class="t">대역전</div><div class="v">42<small>계단</small></div><div class="n">황우익</div><div class="d">3번째 홀 46위 → 최종 4위</div></div>
+      <div class="award"><div class="t">후반 대약진</div><div class="v">+19<small>계단</small></div><div class="n">박종후</div><div class="d">반환점 29위 → 최종 10위</div></div>
+      <div class="award"><div class="t">무너진 후반</div><div class="v">−25<small>계단</small></div><div class="n">이윤화</div><div class="d">반환점 공동 3위(-1) → 최종 28위</div></div>
+      <div class="award"><div class="t">핸디 대비 최고</div><div class="v">21<small>타</small></div><div class="n">이미진</div><div class="d">핸디 30 → 실제 +9</div></div>
+      <div class="award"><div class="t">최고의 반등</div><div class="v">10<small>타</small></div><div class="n">김상우</div><div class="d">전반 +18 → 후반 +8</div></div>
+      <div class="award wide"><div class="t">노 더블 클럽 (더블보기 없이 18홀) · 11명</div><div class="n" style="font-size:13px;">어정우 · 배석한 · 임종우 · 김경운 · 이상훈 · 박현용 · 김무관 · 황대환 · 권성민 · 배근효 · 윤수민</div></div>
+      <div class="award wide"><div class="t">베스트 조 (조 평균)</div><div class="v">+5.75</div><div class="n">North 5조 — 임종우 · 오병석 · 강모탁 · 김효수</div><div class="d">2위 South 4조 +6.75 (박종후 · 김무관 · 이미진 · 이동현)</div></div>
+    </div>
+
+    <div class="section-label">전체 스탯</div>
+    <div class="totals" id="totals"></div>
+    <div class="hole-note">파3 평균 +0.39 · 파5 평균 +0.52 · 파4 평균 +0.74 — 이날은 파4가 가장 어려웠다</div>
+
+    <div class="section-label">홀별 난이도 (평균 타수, 어려운 순)</div>
+    <div id="holes"></div>
+  </div>
+
+  <!-- ══════ 스코어보드 ══════ -->
+  <div class="pane hide" id="pane-board">
+    <div class="section-label">스코어보드 <span style="font-weight:500;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0;">이름을 누르면 홀별 스코어</span></div>
+    <div class="score-header"><div>순위</div><div>선수</div><div style="text-align:right">타수</div><div style="text-align:right">파대비</div></div>
+    <div id="scoreList"></div>
+    <div class="avg-row"><div class="avg-label">전체 평균 타수</div><div class="avg-value" id="avg2">-</div></div>
+    <div class="note">· 동타는 로컬룰 백카운트(South 9번 → 8번 → 7번 … 순)로 순위를 정했습니다.<br>· 라이브 스코어표 마감 기록 기준입니다. 스코어 미입력 1명은 제외했습니다.</div>
+  </div>
+</div>
+
+<script src="data-gpga-2026.js"></script>
+<script>
+  window.goBack = function () {
+    if (document.referrer && document.referrer.indexOf(location.host) >= 0 && history.length > 1) history.back();
+    else location.href = 'event.html';
+  };
+
+  const D = GPGA2026;
+  const PAR = [...D.par.N, ...D.par.S];
+  const LAB = i => (i < 9 ? 'North ' : 'South ') + (i % 9 + 1) + '번';
+  const fmt = s => s < 0 ? String(s) : s === 0 ? 'E' : '+' + s;
+  const cls = s => s < 0 ? 'under' : s === 0 ? 'even' : 'over';
+  const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
+
+  const players = D.players.map(p => {
+    const tot = p.holes.reduce((a, b) => a + b, 0);
+    // 실제 친 순서: South 출발이면 South 1~9 → North 1~9
+    const order = p.start === 'S' ? [9,10,11,12,13,14,15,16,17,0,1,2,3,4,5,6,7,8] : [...Array(18).keys()];
+    let c = 0; const cum = order.map(i => (c += p.holes[i]));
+    return { ...p, tot, order, cum };
+  });
+  // 홀별 순위 (k번째 홀까지의 누적 타수 기준, 동타는 같은 순위)
+  for (let k = 0; k < 18; k++) {
+    players.forEach(p => { p.rk = p.rk || []; p.rk[k] = 1 + players.filter(q => q.cum[k] < p.cum[k]).length; });
+  }
+  const n = players.length;
+  const avg = players.reduce((a, p) => a + p.tot, 0) / n;
+
+  document.getElementById('st-n').textContent = n + '명';
+  document.getElementById('st-avg').textContent = fmt(Math.round(avg));
+  document.getElementById('avg2').textContent = fmt(Math.round(avg)) + ' (' + Math.round(72 + avg) + '타)';
+  document.getElementById('st-win').textContent = players[0].name;
+
+  // ── 탭 ──
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+    ['news', 'records', 'board'].forEach(t => document.getElementById('pane-' + t).classList.toggle('hide', t !== b.dataset.tab));
+    window.scrollTo(0, 0);
+  }));
+
+  // ── 황우익 순위 그래프 ──
+  (function () {
+    const p = players.find(x => x.name === '황우익');
+    if (!p) return;
+    const worst = Math.max(...p.rk);
+    document.getElementById('spark-hwang').innerHTML = p.rk.map((r, k) =>
+      `<i class="${r <= 4 ? 'lead' : ''}" style="height:${Math.max(6, Math.round((worst - r + 1) / worst * 100))}%" title="${k + 1}번째 홀 ${r}위"></i>`).join('');
+  })();
+
+  // ── 리더 변천사 ──
+  (function () {
+    const seg = [];
+    for (let k = 0; k < 18; k++) {
+      const m = Math.min(...players.map(p => p.cum[k]));
+      const who = players.filter(p => p.cum[k] === m).map(p => p.name);
+      const key = who.join(',');
+      const last = seg[seg.length - 1];
+      if (last && last.key === key) { last.to = k; last.score = m; }
+      else seg.push({ key, who, from: k, to: k, score: m });
+    }
+    document.getElementById('timeline').innerHTML = seg.map(s => {
+      const h = s.from === s.to ? `${s.from + 1}번째` : `${s.from + 1}~${s.to + 1}번째`;
+      const name = s.who.length > 2 ? `${s.who.length}명 공동 <small>${s.who.join(' · ')}</small>` : s.who.join(' · ') + (s.who.length > 1 ? ' <small>공동</small>' : '');
+      return `<div class="tl-row"><div class="tl-h">${h}</div><div class="tl-n">${name}</div><div class="tl-s">${fmt(s.score)}</div></div>`;
+    }).join('');
+  })();
+
+  // ── 전체 스탯 ──
+  (function () {
+    const all = players.flatMap(p => p.holes);
+    const c = f => all.filter(f).length;
+    const items = [['이글', c(x => x <= -2)], ['버디', c(x => x === -1)], ['파', c(x => x === 0)],
+                   ['보기', c(x => x === 1)], ['더블보기', c(x => x === 2)], ['트리플+', c(x => x >= 3)]];
+    document.getElementById('totals').innerHTML = items.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
+  })();
+
+  // ── 홀별 난이도 ──
+  (function () {
+    const hs = PAR.map((par, i) => {
+      const v = players.map(p => p.holes[i]);
+      return { i, par, avg: v.reduce((a, b) => a + b, 0) / v.length, bird: v.filter(x => x < 0).length, dbl: v.filter(x => x >= 2).length };
+    }).sort((a, b) => b.avg - a.avg);
+    const max = hs[0].avg;
+    document.getElementById('holes').innerHTML = hs.map(h => `
+      <div class="hole-row">
+        <div class="hole-name">${LAB(h.i)}<small>P${h.par}</small></div>
+        <div class="hole-bar"><i style="width:${Math.round(h.avg / max * 100)}%"></i></div>
+        <div class="hole-avg">${'+' + h.avg.toFixed(2)}</div>
+      </div>`).join('') +
+      `<div class="hole-note">가장 어려운 홀 ${LAB(hs[0].i)} — 더블보기 이상 ${hs[0].dbl}명 · 가장 쉬운 홀 ${LAB(hs[hs.length - 1].i)} — 버디 ${hs[hs.length - 1].bird}개</div>`;
+  })();
+
+  // ── 스코어보드 ──
+  (function () {
+    const scCls = x => x <= -2 ? 'e' : x === -1 ? 'b' : x === 0 ? 'p' : x === 1 ? 'bo' : x === 2 ? 'd' : 't';
+    const nine = (label, idx) => `
+      <tr><th class="lbl">${label}</th>${idx.map(i => `<th>${i % 9 + 1}</th>`).join('')}<th>계</th></tr>
+      <tr><td class="lbl">파</td>${idx.map(i => `<td style="color:rgba(255,255,255,0.35)">${PAR[i]}</td>`).join('')}<td style="color:rgba(255,255,255,0.35)">36</td></tr>`;
+    const row = (p, idx) => `<tr><td class="lbl">타수</td>${idx.map(i => `<td><span class="sc ${scCls(p.holes[i])}">${PAR[i] + p.holes[i]}</span></td>`).join('')}<td style="font-weight:900">${36 + idx.reduce((a, i) => a + p.holes[i], 0)}</td></tr>`;
+    const N = [0,1,2,3,4,5,6,7,8], S = [9,10,11,12,13,14,15,16,17];
+    const list = document.getElementById('scoreList');
+    list.innerHTML = players.map((p, idx) => {
+      const cnt = f => p.holes.filter(f).length;
+      const first = p.start === 'S' ? [S, 'South'] : [N, 'North'];
+      const second = p.start === 'S' ? [N, 'North'] : [S, 'South'];
+      const tie = players.filter(q => q.tot === p.tot).length > 1;
+      return `
+      <div class="score-row${p.rank <= 3 ? ' top3' : ''}" data-i="${idx}">
+        <div class="rank ${rankClass(p.rank)}">${p.rank}</div>
+        <div class="player-name">${p.name}<small>${p.start === 'S' ? 'South' : 'North'} ${p.group}조${tie && p.rank <= 10 ? ' · 백카운트' : ''}</small></div>
+        <span class="strokes">${72 + p.tot}</span>
+        <span class="par-diff ${cls(p.tot)}">${fmt(p.tot)}</span>
+      </div>
+      <div class="card" id="card-${idx}">
+        <table>${nine(first[1], first[0])}${row(p, first[0])}<tr class="gap"><td></td></tr>${nine(second[1], second[0])}${row(p, second[0])}</table>
+        <div class="card-sum">
+          ${cnt(x => x <= -2) ? `<span>이글 <b>${cnt(x => x <= -2)}</b></span>` : ''}
+          <span>버디 <b>${cnt(x => x === -1)}</b></span><span>파 <b>${cnt(x => x === 0)}</b></span>
+          <span>보기 <b>${cnt(x => x === 1)}</b></span><span>더블+ <b>${cnt(x => x >= 2)}</b></span>
+          <span>반환점 <b>${p.rk[8]}위</b></span>
+        </div>
+      </div>`;
+    }).join('');
+    list.addEventListener('click', e => {
+      const r = e.target.closest('.score-row');
+      if (!r) return;
+      const c = document.getElementById('card-' + r.dataset.i);
+      const show = !c.classList.contains('show');
+      c.classList.toggle('show', show); r.classList.toggle('open', show);
+    });
+  })();
+</script>
+</body>
+</html>

@@ -2694,7 +2694,7 @@ async function renderPastList() {
   }
 
   const allPast = [
-    ...closedFromDB.map(t => ({ id: t.id, name: t.name, slogan: t.slogan, year: t.date ? t.date.slice(0,4) : '', icon: '', fromDB: true, requireRegistration: t.requireRegistration, liveJoinId: t.liveJoinId })),
+    ...closedFromDB.map(t => ({ id: t.id, name: t.name, slogan: t.slogan, year: t.date ? t.date.slice(0,4) : '', icon: '', fromDB: true, requireRegistration: t.requireRegistration, liveJoinId: t.liveJoinId, resultUrl: t.resultUrl || null })),
     ...PAST_TOURNAMENTS
   ];
 
@@ -2708,10 +2708,11 @@ async function renderPastList() {
       ? '<span class="past-badge" style="background:rgba(232,76,30,0.2);color:#e84c1e;border-color:rgba(232,76,30,0.3);">결과보기</span>'
       : '<span class="past-badge">종료</span>';
     const showScoreBtn = t.fromDB && !t.resultUrl && (!t.requireRegistration || myTournIds.has(t.id) || isAdmin);
-    const btnRow = (showScoreBtn || (t.fromDB && !t.resultUrl)) ? `
+    // 결과 페이지(resultUrl)가 따로 있는 DB 대회는 그 페이지로 결과 보기, 라이브 스코어표 버튼은 그대로
+    const btnRow = (showScoreBtn || t.fromDB) ? `
       <div class="past-btn-row">
         ${showScoreBtn ? `<button class="past-score-btn" onclick="event.stopPropagation();location.href='tournament-score.html?id=${t.id}'">내 스코어 작성</button>` : ''}
-        <button class="past-result-btn" onclick="event.stopPropagation();location.href='tournament-result.html?id=${t.id}'">결과 보기</button>
+        <button class="past-result-btn" onclick="event.stopPropagation();location.href='${t.resultUrl || `tournament-result.html?id=${t.id}`}'">${t.resultUrl ? '결과 · 대회 뉴스' : '결과 보기'}</button>
         ${t.liveJoinId ? `<button class="past-result-btn" onclick="event.stopPropagation();location.href='score.html?id=${t.liveJoinId}'">라이브 스코어표</button>` : ''}
       </div>` : '';
     return `
