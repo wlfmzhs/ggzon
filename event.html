@@ -2674,7 +2674,9 @@ function updateCardProgress(tournamentId, count, total) {
 // ── Render past list ──────────────────────────────────
 async function renderPastList() {
   const el = document.getElementById('past-list');
-  const closedFromDB = activeTournaments.filter(t => t.status === 'closed' || t.status === 'past');
+  // 최근 대회가 맨 위 (서버 목록은 문서 ID 순이라 날짜와 무관하게 섞여 온다)
+  const closedFromDB = activeTournaments.filter(t => t.status === 'closed' || t.status === 'past')
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
   // requireRegistration 대회에 한해 내 참석 여부 확인
   const myTournIds = new Set();
