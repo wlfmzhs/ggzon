@@ -1758,6 +1758,7 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   // ── 최신 마감 대회 차트 ────────────────────────────────
   let _chartTournId = null;
   let _chartCoursePar = 72;
+  let _chartLiveJoinId = null;   // 라이브 스코어표로 치른 대회(2nd GPGA OPEN~)는 스코어가 joins/{liveJoinId}.scores 에 있다
 
   const BINS = [
     { label: '언더',  min: -99, max: -1  },
@@ -1792,9 +1793,10 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
 
       _chartTournId   = target.id;
       _chartCoursePar = target.coursePar || 72;
+      _chartLiveJoinId = target.liveJoinId || null;
 
       document.getElementById('chartTitle').textContent = `${target.name} 타수 분포`;
-      document.getElementById('chartLink').href = `tournament-result.html?id=${target.id}`;
+      document.getElementById('chartLink').href = target.resultUrl || `tournament-result.html?id=${target.id}`;
       document.getElementById('chartLink').style.display = '';
       if (_isAdmin) document.getElementById('chartAdminBtn').style.display = '';
 
@@ -1806,6 +1808,15 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
   }
 
   async function renderChart() {
+    if (_chartLiveJoinId) {
+      // 18홀을 다 입력한 사람만 (holes 는 홀별 파 대비 타수)
+      const js = await getDoc(doc(db, 'joins', _chartLiveJoinId));
+      const scores = js.exists() ? (js.data().scores || {}) : {};
+      const rels = Object.values(scores).map(s => s && s.holes)
+        .filter(h => Array.isArray(h) && h.length === 18 && h.every(v => typeof v === 'number'))
+        .map(h => h.reduce((a, b) => a + b, 0));
+      return drawChart(rels);
+    }
     const [scoresSnap, tournSnap] = await Promise.all([
       getDocs(collection(db, 'tournaments', _chartTournId, 'scores')),
       getDoc(doc(db, 'tournaments', _chartTournId)),
@@ -1823,7 +1834,10 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
       .filter(s => s > 0);
     const rels = [...registeredStrokes, ...pendingStrokes]
       .map(s => s - _chartCoursePar);
+    drawChart(rels);
+  }
 
+  function drawChart(rels) {
     if (!rels.length) {
       document.getElementById('chartTitle').textContent += ' (제출 없음)';
       return;
