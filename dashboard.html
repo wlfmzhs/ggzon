@@ -925,7 +925,8 @@
         var fx   = document.getElementById('hio-fx');
         if (!card || !fx) return;
         // ── GG ISSUE 목록 (최신이 맨 위) ──
-        // 새 이슈는 맨 위에 추가만 하면 된다. 지난 이슈는 자동으로 보관함에 남고,
+        // 관리자가 GG LOG 에서 등록한 이슈는 Firestore ggissues 문서로 저장되고, 아래 mergeGGIssues 로 합쳐진다.
+        // 아래 목록은 예전에 코드로 넣은 이슈. 새 이슈는 맨 위에 추가만 하면 된다. 지난 이슈는 자동으로 보관함에 남고,
         // 하트는 id 별로 ggissues/{id}/likes 에 따로 쌓인다(그래서 id 는 바꾸면 안 된다).
         var GG_ISSUES = [
           {
@@ -951,15 +952,20 @@
           }
         ];
         window.GG_ISSUE_ID = GG_ISSUES[0].id;
-        var cur = 0;
+        var cur = 0, played = false, picked = false;
+        function esc(v){
+          return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+            return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+          });
+        }
         function renderIssue(idx){
           var it = GG_ISSUES[idx];
           cur = idx;
           window.GG_ISSUE_ID = it.id;
           var ph = document.getElementById('hio-photo');
-          ph.src = it.photo; ph.alt = it.alt;
+          ph.src = it.photo; ph.alt = it.alt || '';
           document.getElementById('hio-title').innerHTML = it.title.split('').map(function(ch, i){
-            return ch === ' ' ? '<b class="sp" style="--i:' + i + '"></b>' : '<b style="--i:' + i + '">' + ch + '</b>';
+            return ch === ' ' ? '<b class="sp" style="--i:' + i + '"></b>' : '<b style="--i:' + i + '">' + esc(ch) + '</b>';
           }).join('');
           document.getElementById('hio-date').textContent = it.date;
           document.getElementById('hio-name').textContent = it.name;
@@ -976,14 +982,15 @@
           wrap.style.display = '';
           list.innerHTML = GG_ISSUES.map(function(it, i){
             return '<button type="button" class="gi-thumb' + (i === cur ? ' on' : '') + '" onclick="showGGIssue(' + i + ')">'
-                 + '<img src="' + it.photo + '" alt="" loading="lazy" />'
-                 + '<span class="gi-thumb-badge">' + it.badge + '</span>'
-                 + '<span class="gi-thumb-name">' + it.name + '</span>'
-                 + '<span class="gi-thumb-date">' + it.date.slice(2) + '</span>'
+                 + '<img src="' + esc(it.photo) + '" alt="" loading="lazy" />'
+                 + '<span class="gi-thumb-badge">' + esc(it.badge) + '</span>'
+                 + '<span class="gi-thumb-name">' + esc(it.name) + '</span>'
+                 + '<span class="gi-thumb-date">' + esc(it.date.slice(2)) + '</span>'
                  + '</button>';
           }).join('');
         }
         window.showGGIssue = function(idx){
+          picked = true;
           if (idx === cur) { play(); return; }
           renderIssue(idx);
           play();
@@ -991,6 +998,41 @@
           card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         };
         renderIssue(0);
+
+        // Firestore ggissues 문서(관리자가 GG LOG 에서 등록)를 목록에 합친다. 날짜 최신순.
+        // 문서의 안내줄은 일반 글자라 이스케이프하고, [[강조]] 만 <em> 으로 바꾼다.
+        var BASE_ISSUES = GG_ISSUES.slice();
+        var topSig = JSON.stringify(GG_ISSUES[0]);
+        window.mergeGGIssues = function(docs){
+          var curId = GG_ISSUES[cur].id;
+          var byId = {};
+          BASE_ISSUES.forEach(function(it){ byId[it.id] = it; });
+          docs.forEach(function(d){
+            byId[d.id] = {
+              id: d.id, title: String(d.title || '').toUpperCase(), badge: d.badge || '', date: d.date || '',
+              name: d.name || '', photo: d.photo, alt: d.alt || '', sortKey: d.sortKey || 0,
+              lines: (d.lines || []).map(function(t){ return esc(t).replace(/\[\[(.+?)\]\]/g, '<em>$1</em>'); })
+            };
+          });
+          GG_ISSUES = Object.keys(byId).map(function(k){ return byId[k]; }).sort(function(a, b){
+            return b.date.localeCompare(a.date) || (b.sortKey || 0) - (a.sortKey || 0);
+          });
+          // 보관함에서 직접 골라 보던 중이면 그 카드는 그대로 두고 보관함만 새로 그린다.
+          if (picked) {
+            cur = Math.max(0, GG_ISSUES.findIndex(function(it){ return it.id === curId; }));
+            renderArchive();
+            return;
+          }
+          // 맨 위 카드가 그대로면 다시 그리지 않는다(글자 애니메이션이 다시 튀지 않게).
+          var sig = JSON.stringify(GG_ISSUES[0]);
+          if (sig === topSig) { cur = 0; renderArchive(); return; }
+          topSig = sig;
+          renderIssue(0);
+          if (GG_ISSUES[0].id !== curId) {
+            if (window._switchHioIssue) window._switchHioIssue(GG_ISSUES[0].id);
+            if (played) play();
+          }
+        };
 
         var COLORS = ['#f5c842','#fff0b8','#3ea066','#ffffff','#e8a71a','#7ee0a6'];
         function buildFx(){
@@ -1013,6 +1055,7 @@
           fx.innerHTML = h;
         }
         function play(){
+          played = true;
           buildFx();
           card.classList.remove('play');
           void card.offsetWidth;   // 리플로우 강제 → 애니메이션 재생
@@ -1234,8 +1277,23 @@ import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
     loadChartWhenVisible();
     loadTabBadges();
     loadHioLike();
+    loadGGIssues();
     // 유료화가 꺼져 있으면 모두 통과(현재 동작). 켜지면 관리자/유료회원만.
     window._isPaidUser = !PAYWALL_ENABLED || _isAdmin;
+  }
+
+  // ===== GG ISSUE 목록 (관리자가 GG LOG 에서 등록한 이슈) =====
+  async function loadGGIssues() {
+    if (!window.mergeGGIssues) return;
+    try {
+      await getDocsSWR(query(collection(db, 'ggissues'), orderBy('createdAt', 'desc'), limit(20)), snap => {
+        const list = snap.docs.map(d => {
+          const v = d.data();
+          return { ...v, id: d.id, sortKey: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : 0 };
+        }).filter(v => v.title && v.photo);
+        window.mergeGGIssues(list);
+      });
+    } catch (_) {}
   }
 
   // ===== GG ISSUE 하트(축하) =====

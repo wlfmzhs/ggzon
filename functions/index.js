@@ -13,12 +13,18 @@ import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import Anthropic from '@anthropic-ai/sdk';
 import { logger } from 'firebase-functions';
 
 initializeApp();
 const db = getFirestore();
 
 const TOSS_SECRET_KEY = defineSecret('TOSS_SECRET_KEY');
+// GG ISSUE 자동 요약용 Claude API 키. 미설정이면 'NOT_SET' → 화면이 자체 요약으로 대신한다.
+//   firebase functions:secrets:set ANTHROPIC_API_KEY  → firebase deploy --only functions:summarizeGGIssue
+const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
+const ADMIN_EMAIL = 'wlfmzhs@naver.com';
 
 // ── 요금제 (ggzon-config.js 의 PLAN 과 값을 맞춰두세요) ──
 const PRICE = 9900;                 // 월 구독료(원) — 서버가 결정하는 진짜 금액
@@ -430,6 +436,80 @@ export const autoCloseJoins = onSchedule(
         }
         catch (e) { logger.error(`[자동마감] 실패 join=${id}`, e); }
       }
+    }
+  }
+);
+
+// ───────────────────────────────────────────────────────────
+// 6) GG ISSUE 자동 요약 (관리자 전용)
+//    GG LOG 사진 + 멘트를 Claude 가 보고 메인 GG ISSUE 카드 문구(타이틀·배지·안내줄)를 만든다.
+//    저장은 하지 않는다. 관리자가 화면에서 고친 뒤 ggissues 에 직접 저장한다.
+//    body: { photoURL, caption, nickname, date }  헤더: Authorization: Bearer <Firebase ID 토큰>
+// ───────────────────────────────────────────────────────────
+const ISSUE_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: '카드 큰 제목. 영문 대문자 1~3단어, 14자 이내. 예: HOLE IN ONE, CHAMPION, EAGLE, LUCKY PRIZE, BEST SCORE' },
+    badge: { type: 'string', description: '보관함 배지용 한글 2~5자. 예: 홀인원, 우승, 이글, 행운상, 베스트' },
+    name: { type: 'string', description: '주인공 이름. 멘트에 실명이 있으면 실명, 없으면 올린 사람 닉네임' },
+    lines: {
+      type: 'array', items: { type: 'string' },
+      description: '카드 안내줄 1~3개, 각 30자 이내. 골프장·코스·홀·파·대회명·상품·동반자 등 사실만. 가장 중요한 단어 하나는 [[ ]] 로 감싼다'
+    },
+    alt: { type: 'string', description: '사진 대체텍스트 한 줄. 예: 김경운 홀인원 - 서라벌CC 파인코스 6번홀' },
+  },
+  required: ['title', 'badge', 'name', 'lines', 'alt'],
+  additionalProperties: false,
+};
+
+const ISSUE_SYSTEM = `너는 골프 커뮤니티 '골갑존'의 메인 화면 축하 카드(GG ISSUE) 문구를 쓰는 편집자다.
+회원이 올린 사진과 멘트를 보고 무슨 경사(홀인원·우승·이글·베스트스코어·행운상 등)인지 파악해 카드 문구를 만든다.
+- 사진 속 스코어카드·현수막·트로피·상패·공 글씨도 읽어서 골프장, 코스, 홀, 파, 대회명, 상품을 찾는다.
+- 확인되지 않는 사실은 지어내지 않는다. 모르면 그 줄을 빼라.
+- 안내줄은 짧게, '·' 로 항목을 이어 쓴다. 예: "서라벌CC 파인코스 [[6번홀]] · PAR 3"`;
+
+export const summarizeGGIssue = onRequest(
+  { region: REGION, cors: true, secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 120 },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false }); return; }
+      const token = (req.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+      let email = '';
+      try { email = (await getAuth().verifyIdToken(token)).email || ''; } catch (_) {}
+      if (email !== ADMIN_EMAIL) { res.status(403).json({ ok: false, error: '관리자만 사용할 수 있어요' }); return; }
+
+      const key = ANTHROPIC_API_KEY.value();
+      if (!key || !key.startsWith('sk-ant-')) { res.json({ ok: false, error: 'NO_KEY' }); return; }
+
+      const { photoURL, caption = '', nickname = '', date = '' } = req.body || {};
+      if (!photoURL || !/^https:\/\//.test(photoURL)) { res.status(400).json({ ok: false, error: '사진 주소 필요' }); return; }
+
+      const client = new Anthropic({ apiKey: key });
+      const msg = await client.beta.messages.create({
+        model: 'claude-opus-5-5',
+        max_tokens: 16000,
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        output_config: { effort: 'medium', format: { type: 'json_schema', schema: ISSUE_SCHEMA } },
+        system: ISSUE_SYSTEM,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'url', url: photoURL } },
+            { type: 'text', text: `올린 사람: ${String(nickname).slice(0, 30)}
+올린 날짜: ${String(date).slice(0, 20)}
+멘트: ${String(caption).slice(0, 300) || '(없음)'}` },
+          ],
+        }],
+      });
+      if (msg.stop_reason === 'refusal') { res.json({ ok: false, error: 'REFUSED' }); return; }
+      const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      const issue = JSON.parse(text);
+      issue.lines = (issue.lines || []).slice(0, 3);
+      res.json({ ok: true, issue });
+    } catch (e) {
+      logger.error('summarizeGGIssue 예외', e);
+      res.status(500).json({ ok: false, error: e instanceof Anthropic.APIError ? `API ${e.status}` : 'ERROR' });
     }
   }
 );

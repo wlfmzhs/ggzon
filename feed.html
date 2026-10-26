@@ -220,14 +220,59 @@
     <button id="upload-btn" onclick="doUpload()" style="width:100%;padding:15px;border-radius:14px;background:#2d7a4f;color:#fff;font-size:15px;font-weight:900;border:none;cursor:pointer;font-family:inherit;">올리기</button>
   </div>
 </div>
+<!-- GG ISSUE 등록 (관리자 전용) -->
+<style>
+  .gi-adm-btn { background:rgba(245,200,66,0.92);border:none;color:#3a2a00;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;padding:0 10px;height:24px;line-height:24px;border-radius:20px;margin-right:6px;letter-spacing:0.2px; }
+  .gi-adm-btn.on { background:#3ea066;color:#fff; }
+  #gi-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9100;align-items:flex-end;justify-content:center; }
+  #gi-overlay .gi-sheet { width:100%;max-width:430px;max-height:92vh;overflow-y:auto;background:#0f2e1a;border-radius:24px 24px 0 0;padding:22px 20px 36px;box-sizing:border-box; }
+  #gi-overlay label { display:block;font-size:11px;font-weight:800;color:rgba(255,255,255,0.5);margin:10px 0 4px; }
+  #gi-overlay input { width:100%;box-sizing:border-box;background:rgba(255,255,255,0.07);border:1px solid rgba(62,160,102,0.3);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;padding:10px 12px;outline:none; }
+  #gi-overlay .gi-row { display:flex;gap:8px; }
+  #gi-overlay .gi-row > div { flex:1;min-width:0; }
+  #gi-status { font-size:12px;color:#f5c842;margin:10px 0 0;min-height:16px;line-height:1.5; }
+  #gi-overlay .gi-btns { display:flex;gap:8px;margin-top:16px; }
+  #gi-overlay .gi-btns button { flex:1;padding:14px 0;border-radius:14px;border:none;font-size:14px;font-weight:900;cursor:pointer;font-family:inherit; }
+  #gi-overlay .gi-btns button:disabled { opacity:0.45; }
+</style>
+<div id="gi-overlay">
+  <div class="gi-sheet">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:16px;font-weight:900;color:#fff;">GG ISSUE 등록</span>
+      <button onclick="closeGGIssue()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:24px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <img id="gi-photo" src="" alt="" style="width:92px;height:92px;object-fit:cover;border-radius:12px;flex-shrink:0;background:rgba(255,255,255,0.05);" />
+      <div id="gi-caption" style="white-space:pre-line;font-size:12px;color:rgba(255,255,255,0.65);line-height:1.5;word-break:break-all;"></div>
+    </div>
+    <div id="gi-status"></div>
+    <label>큰 제목 (영문)</label>
+    <input id="gi-title" maxlength="16" placeholder="HOLE IN ONE" />
+    <div class="gi-row">
+      <div><label>배지</label><input id="gi-badge" maxlength="6" placeholder="홀인원" /></div>
+      <div><label>주인공</label><input id="gi-name" maxlength="20" /></div>
+      <div><label>날짜</label><input id="gi-date" maxlength="10" placeholder="2026.10.26" /></div>
+    </div>
+    <label>안내줄 (강조할 단어는 [[ ]] 로 감싸기)</label>
+    <input id="gi-line1" maxlength="40" />
+    <input id="gi-line2" maxlength="40" style="margin-top:6px;" />
+    <input id="gi-line3" maxlength="40" style="margin-top:6px;" />
+    <div class="gi-btns">
+      <button id="gi-ai-btn" onclick="summarizeGGIssue()" style="background:rgba(255,255,255,0.1);color:#fff;">다시 요약</button>
+      <button id="gi-del-btn" onclick="removeGGIssue()" style="display:none;background:rgba(220,60,60,0.85);color:#fff;">내리기</button>
+      <button id="gi-save-btn" onclick="saveGGIssue()" style="background:#2d7a4f;color:#fff;flex:1.4;">메인에 등록</button>
+    </div>
+  </div>
+</div>
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" />
 <input type="file" id="gallery-input" accept="image/*" style="display:none;" />
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { collection, query, orderBy, limit, getDocs, getDoc, setDoc, addDoc, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { makeDb, getDocsSWR } from "./fs-cache.js?v=2";
+import { FUNCTIONS } from "./ggzon-config.js";
 const CLOUDINARY_CLOUD = 'da9tzfmg0';
 const CLOUDINARY_PRESET = 'GG ZON';
 
@@ -248,16 +293,18 @@ const db = makeDb(app);
 const ggzonUser = JSON.parse(localStorage.getItem('ggzon_user') || 'null');
 let currentUid = ggzonUser?.uid || null;
 let isAdmin = false;
+const _posts = new Map();   // 지금 피드에 그려진 포스트 (GG ISSUE 등록용)
 
 if (!ggzonUser) {
   onAuthStateChanged(auth, (user) => {
     if (!user) { window.location.href = 'login.html?auto=1&return=feed.html'; return; }
     currentUid = user.uid;
     isAdmin = user.email === 'wlfmzhs@naver.com';
+    applyIssueButtons();
   });
 } else {
   onAuthStateChanged(auth, (user) => {
-    if (user && user.email === 'wlfmzhs@naver.com') isAdmin = true;
+    if (user && user.email === 'wlfmzhs@naver.com') { isAdmin = true; applyIssueButtons(); }
   });
 }
 
@@ -294,8 +341,10 @@ async function loadFeed() {
       el.innerHTML = '<div class="feed-empty">아직 올라온 사진이 없습니다.<br>첫 번째 사진을 올려보세요!</div>';
       return;
     }
+    _posts.clear();
     el.innerHTML = snap.docs.map((d, idx) => {
       const p = d.data();
+      _posts.set(d.id, p);
       const canDelete = (currentUid && currentUid === p.uid) || isAdmin;
       // 처음 2장만 즉시 받고 나머지는 스크롤해서 보일 때 받는다 (20장 × 200KB 동시 수신 방지)
       const eager = idx < 2;
@@ -311,6 +360,7 @@ async function loadFeed() {
               <div class="feed-nick">${p.nickname || '멤버'}</div>
               <div class="feed-date">${formatDate(p.createdAt)}</div>
             </div>
+            <span class="gi-adm-slot" data-postid="${d.id}"></span>
             ${delBtn}
           </div>
           ${p.caption ? `<div class="feed-caption">${p.caption}</div>` : ''}
@@ -332,6 +382,8 @@ async function loadFeed() {
         </div>
       </div>`;
     }).join('');
+
+    applyIssueButtons();
 
     // 모든 포스트 댓글 자동 로드
     snap.docs.forEach(d => loadComments(d.id));
@@ -539,6 +591,194 @@ window.deletePost = async function(postId) {
     if (card) card.remove();
   } catch(e) {
     alert('삭제 실패: ' + e.message);
+  }
+};
+
+// ── GG ISSUE 등록 (관리자 전용) ───────────────────────
+// GG LOG 사진을 메인 GG ISSUE 카드로 올린다. 문구는 Claude 가 사진·멘트를 보고 요약하고
+// (Cloud Function summarizeGGIssue), 안 되면 멘트 키워드로 대신 요약한다. 관리자가 고친 뒤 저장.
+// 저장 위치: ggissues/post-{postId}  → dashboard.html 이 읽어서 GG ISSUE 에 띄운다.
+const _issuePostIds = new Set();
+let _issueLoaded = false, _giPostId = null, _giBusy = false;
+
+const issueIdOf = postId => 'post-' + postId;
+
+async function applyIssueButtons() {
+  if (!isAdmin) return;
+  if (!_issueLoaded) {
+    _issueLoaded = true;
+    try {
+      const snap = await getDocs(collection(db, 'ggissues'));
+      snap.docs.forEach(d => { if (d.data().postId) _issuePostIds.add(d.data().postId); });
+    } catch (_) { _issueLoaded = false; }
+  }
+  document.querySelectorAll('.gi-adm-slot').forEach(slot => {
+    const id = slot.dataset.postid;
+    const on = _issuePostIds.has(id);
+    slot.innerHTML = `<button class="gi-adm-btn${on ? ' on' : ''}" onclick="openGGIssue('${id}')">${on ? 'ISSUE ✓' : 'GG ISSUE'}</button>`;
+  });
+}
+
+const ymd = ts => {
+  const d = ts && ts.toDate ? ts.toDate() : new Date();
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// 멘트 키워드로 만드는 대체 요약 (AI 키가 없거나 실패했을 때)
+const ISSUE_KINDS = [
+  [/홀\s*인\s*원|hole\s*in\s*one/i, 'HOLE IN ONE', '홀인원'],
+  [/알바트로스|albatross/i, 'ALBATROSS', '알바트로스'],
+  [/준우승/, 'RUNNER-UP', '준우승'],
+  [/우승|챔피언|champion/i, 'CHAMPION', '우승'],
+  [/메달리스트|medalist/i, 'MEDALIST', '메달리스트'],
+  [/행운상/, 'LUCKY PRIZE', '행운상'],
+  [/롱기스트/, 'LONGEST', '롱기스트'],
+  [/니어리스트/, 'NEAREST', '니어리스트'],
+  [/이글|eagle/i, 'EAGLE', '이글'],
+  [/언더파/, 'UNDER PAR', '언더파'],
+  [/싱글/, 'SINGLE', '싱글'],
+  [/라베|베스트\s*스코어|best/i, 'BEST SCORE', '라베'],
+  [/버디/, 'BIRDIE', '버디'],
+];
+function localIssueSummary(p) {
+  const cap = (p.caption || '').replace(/\s+/g, ' ').trim();
+  const kind = ISSUE_KINDS.find(k => k[0].test(cap)) || [null, 'GG MOMENT', 'GG 이슈'];
+  const course = (cap.match(/[가-힣A-Za-z0-9]+\s?(?:CC|C\.C|GC|cc|컨트리클럽|골프클럽|골프장|골프앤리조트|골프리조트)/) || [''])[0];
+  const sub = (cap.match(/([가-힣A-Za-z]+)\s*코스/) || [])[1] || '';
+  const hole = (cap.match(/(\d{1,2})\s*번\s*홀/) || cap.match(/(\d{1,2})\s*홀/) || [])[1] || '';
+  const par = (cap.match(/par\s*([3-5])/i) || cap.match(/파\s*([3-5])/) || [])[1] || '';
+  const lines = [];
+  const where = [course, sub && sub + '코스', hole && `[[${hole}번홀]]`].filter(Boolean).join(' ');
+  if (where) lines.push(par ? `${where} · PAR ${par}` : where);
+  if (cap) lines.push(cap.length > 30 ? cap.slice(0, 29) + '…' : cap);
+  if (!lines.length) lines.push('축하합니다!');
+  const name = p.nickname || '멤버';
+  return {
+    title: kind[1], badge: kind[2], name, date: ymd(p.createdAt),
+    lines, alt: `${name} ${kind[2]}${course ? ' - ' + course : ''}`,
+  };
+}
+
+function fillIssueForm(it) {
+  document.getElementById('gi-title').value = it.title || '';
+  document.getElementById('gi-badge').value = it.badge || '';
+  document.getElementById('gi-name').value = it.name || '';
+  document.getElementById('gi-date').value = it.date || '';
+  for (let i = 0; i < 3; i++) document.getElementById('gi-line' + (i + 1)).value = (it.lines || [])[i] || '';
+  document.getElementById('gi-overlay').dataset.alt = it.alt || '';
+}
+const giStatus = t => { document.getElementById('gi-status').textContent = t; };
+function giLock(on) {
+  _giBusy = on;
+  ['gi-ai-btn', 'gi-del-btn', 'gi-save-btn'].forEach(id => { document.getElementById(id).disabled = on; });
+}
+
+window.openGGIssue = async function(postId) {
+  if (!isAdmin) return;
+  const p = _posts.get(postId);
+  if (!p) return;
+  _giPostId = postId;
+  document.getElementById('gi-photo').src = cdnImg(p.photoURL, 300);
+  document.getElementById('gi-caption').textContent = `${p.nickname || '멤버'} · ${ymd(p.createdAt)}\n${p.caption || '(멘트 없음)'}`;
+  document.getElementById('gi-del-btn').style.display = 'none';
+  giStatus('');
+  fillIssueForm(localIssueSummary(p));
+  document.getElementById('gi-overlay').style.display = 'flex';
+  // 이미 등록된 사진이면 저장된 문구를 불러와 수정/내리기
+  try {
+    const snap = await getDoc(doc(db, 'ggissues', issueIdOf(postId)));
+    if (_giPostId !== postId) return;
+    if (snap.exists()) {
+      fillIssueForm(snap.data());
+      document.getElementById('gi-del-btn').style.display = '';
+      giStatus('메인에 올라가 있는 이슈예요. 고친 뒤 다시 등록하면 바뀝니다.');
+      return;
+    }
+  } catch (_) {}
+  summarizeGGIssue();
+};
+
+window.closeGGIssue = function() {
+  document.getElementById('gi-overlay').style.display = 'none';
+  _giPostId = null;
+  giStatus('');
+};
+
+window.summarizeGGIssue = async function() {
+  const postId = _giPostId;
+  const p = _posts.get(postId);
+  if (!p || _giBusy) return;
+  giLock(true);
+  giStatus('Claude 가 사진과 멘트를 읽고 요약하는 중… (10~30초)');
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${FUNCTIONS.baseUrl}/summarizeGGIssue`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ photoURL: cdnImg(p.photoURL, 1200), caption: p.caption || '', nickname: p.nickname || '', date: ymd(p.createdAt) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (_giPostId !== postId) return;
+    if (!data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    fillIssueForm({ ...data.issue, date: ymd(p.createdAt) });
+    giStatus('AI 요약 완료. 확인하고 고칠 곳이 있으면 고쳐서 등록하세요.');
+  } catch (e) {
+    if (_giPostId !== postId) return;
+    fillIssueForm(localIssueSummary(p));
+    giStatus(e.message === 'NO_KEY'
+      ? 'AI 키가 아직 없어서 멘트 키워드로 요약했어요. 확인 후 등록하세요.'
+      : `AI 요약 실패(${e.message}) → 멘트 키워드로 요약했어요. 확인 후 등록하세요.`);
+  } finally {
+    giLock(false);
+  }
+};
+
+window.saveGGIssue = async function() {
+  const postId = _giPostId;
+  const p = _posts.get(postId);
+  if (!p || _giBusy) return;
+  const v = id => document.getElementById(id).value.trim();
+  const title = v('gi-title').toUpperCase(), badge = v('gi-badge'), name = v('gi-name'), date = v('gi-date');
+  const lines = [v('gi-line1'), v('gi-line2'), v('gi-line3')].filter(Boolean);
+  if (!title || !badge || !name) { giStatus('큰 제목·배지·주인공은 꼭 채워주세요.'); return; }
+  if (!/^\d{4}\.\d{2}\.\d{2}$/.test(date)) { giStatus('날짜는 2026.10.26 형식으로 적어주세요.'); return; }
+  giLock(true);
+  giStatus('저장 중…');
+  try {
+    const ref = doc(db, 'ggissues', issueIdOf(postId));
+    const old = await getDoc(ref);
+    await setDoc(ref, {
+      title, badge, name, date, lines,
+      alt: document.getElementById('gi-overlay').dataset.alt || `${name} ${badge}`,
+      photo: cdnImg(p.photoURL, 1000),
+      postId, uid: p.uid || null,
+      createdAt: old.exists() && old.data().createdAt ? old.data().createdAt : serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    _issuePostIds.add(postId);
+    applyIssueButtons();
+    closeGGIssue();
+    alert('메인 GG ISSUE 에 등록했어요!');
+  } catch (e) {
+    giStatus('저장 실패: ' + e.message);
+  } finally {
+    giLock(false);
+  }
+};
+
+window.removeGGIssue = async function() {
+  const postId = _giPostId;
+  if (!postId || _giBusy || !confirm('메인 GG ISSUE 에서 내릴까요? (하트 기록은 남아요)')) return;
+  giLock(true);
+  try {
+    await deleteDoc(doc(db, 'ggissues', issueIdOf(postId)));
+    _issuePostIds.delete(postId);
+    applyIssueButtons();
+    closeGGIssue();
+  } catch (e) {
+    giStatus('내리기 실패: ' + e.message);
+  } finally {
+    giLock(false);
   }
 };
 
