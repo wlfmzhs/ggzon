@@ -1107,7 +1107,10 @@ function groupTeeSheet(j) {
   const count = Math.max(1, Number(j.courseCount) || 1);
   const fb    = [j.frontCourse, j.backCourse];
   const names = Array.from({ length: count }, (_, i) => ((j.courseNames || [])[i] || fb[i] || `${String.fromCharCode(65 + i)}코스`).trim());
-  const total = Math.max(Math.ceil((Number(j.capacity) || 0) / 4), (Array.isArray(j.parties) ? j.parties : []).length, 1);
+  // 5인 플레이 조는 자리를 5개 차지한다 (총 17명이라도 4+4+4+5 면 4개 조)
+  const ps    = Array.isArray(j.parties) ? j.parties : [];
+  const seats = ps.reduce((a, g) => a + Math.max(4, ((g || {}).uids || []).length), 0);
+  const total = Math.max(1, ps.length + Math.ceil(Math.max(0, (Number(j.capacity) || 0) - seats) / 4));
   const base  = Math.floor(total / count), extra = total % count;
   const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(t || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
   const clock = n => { const hh = Math.floor(n / 60) % 24, mm = n % 60; return `${hh < 12 ? 'AM' : 'PM'} ${hh === 0 ? 12 : hh > 12 ? hh - 12 : hh}:${String(mm).padStart(2, '0')}`; };

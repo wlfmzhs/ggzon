@@ -332,6 +332,7 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
     }
+    .participant-chips.five { grid-template-columns: repeat(5, 1fr); gap: 4px; }
     .pgrp + .pgrp { margin-top: 10px; }
     .pgrp-tag {
       display: flex; align-items: center; gap: 6px;
@@ -655,7 +656,7 @@
     .bottom-modal.show { display: flex !important; }
 
     /* 컨펌 */
-    /* 조(카트) 편성 시트 — 주최자가 참가자를 4명씩 나눈다 */
+    /* 조(카트) 편성 시트 — 주최자가 참가자를 조로 나눈다 (기본 4명, 5인 플레이 가능) */
     .party-overlay {
       position: absolute; inset: 0; background: rgba(0,0,0,0.7);
       display: flex; align-items: flex-end; z-index: 320; opacity: 0;
@@ -1608,9 +1609,10 @@ function renderClosedList() {
 
 // ── 조(카트) 편성 ─────────────────────────────────────
 // 단체 라운드에서 참가자가 많으면 스코어 입력 화면에 전원이 한꺼번에 떠서
-// 자기 카트 사람을 찾기가 어렵다. 주최자가 여기서 4명씩 조를 나누면
-// score.html 이 자기 조 4명만 입력하도록 나눠서 보여준다.
-const PARTY_MAX = 4;          // 카트 한 대 정원
+// 자기 카트 사람을 찾기가 어렵다. 주최자가 여기서 조를 나누면
+// score.html 이 자기 조 사람만 입력하도록 나눠서 보여준다.
+const PARTY_SIZE = 4;         // 기본 한 조 인원 (자동 편성·조 수 계산 기준)
+const PARTY_MAX  = 5;         // 한 조 최대 인원 (5인 플레이 허용)
 let _partyJoin   = null;      // 편성 중인 조인 데이터
 let _partyAssign = {};        // uid → 조 index(0부터), 미배정이면 키 없음
 let _partyCount  = 0;         // 조 개수
@@ -1632,8 +1634,8 @@ window.openPartySheet = function(id) {
     saved.forEach((g, i) => ((g || {}).uids || []).forEach(uid => { _partyAssign[uid] = i; }));
     _partyCount = Math.max(saved.length, Math.ceil(players.length / PARTY_MAX));
   } else {
-    players.forEach((p, i) => { _partyAssign[p.uid] = Math.floor(i / PARTY_MAX); });
-    _partyCount = Math.max(1, Math.ceil(players.length / PARTY_MAX));
+    players.forEach((p, i) => { _partyAssign[p.uid] = Math.floor(i / PARTY_SIZE); });
+    _partyCount = Math.max(1, Math.ceil(players.length / PARTY_SIZE));
   }
   _partyDirty = false;
   const kf = document.getElementById('keep-form');
@@ -1660,7 +1662,7 @@ function renderPartySheet() {
   const unassigned = players.filter(p => _partyAssign[p.uid] === undefined);
 
   document.getElementById('party-desc').textContent =
-    `${_partyJoin.course || '조인'} · ${players.length}${_partyJoin.capacity ? '/' + _partyJoin.capacity : ''}명 — 한 조는 최대 ${PARTY_MAX}명입니다. ` +
+    `${_partyJoin.course || '조인'} · ${players.length}${_partyJoin.capacity ? '/' + _partyJoin.capacity : ''}명 — 한 조는 기본 ${PARTY_SIZE}명, 5인 플레이는 최대 ${PARTY_MAX}명까지 넣을 수 있습니다. ` +
     `✕ 로 인원을 빼고, ＋킵 으로 섭외한 멤버 자리를 미리 잡아둘 수 있습니다.`;
 
   const hostUid = hostUidOf(_partyJoin);
@@ -1688,10 +1690,10 @@ function renderPartySheet() {
   for (let gi = 0; gi < _partyCount; gi++) {
     const members = players.filter(p => _partyAssign[p.uid] === gi);
     const n = members.length;
-    html += `<div class="party-group-box${n >= PARTY_MAX ? ' full' : ''}">
+    html += `<div class="party-group-box${n >= PARTY_SIZE ? ' full' : ''}">
       <div class="party-group-head">
         <span>${gi + 1}조</span>
-        <span class="party-group-count">${n} / ${PARTY_MAX}명</span>
+        <span class="party-group-count">${n > PARTY_SIZE ? `${n}명 · 5인 플레이` : `${n} / ${PARTY_SIZE}명`}</span>
       </div>
       ${n ? members.map(rowHtml).join('') : '<div class="party-note">아직 비어 있습니다</div>'}
     </div>`;
@@ -1779,8 +1781,9 @@ window.partyAddKeep = async function() {
   }
 
   partyReflectLocal([...players, entry]);
-  for (let gi = 0; gi < _partyCount; gi++) {          // 빈자리 있는 첫 조에 자동 배정
-    if (partyCountOf(gi) < PARTY_MAX) { _partyAssign[entry.uid] = gi; break; }
+  // 4명 안 찬 첫 조에 자동 배정 (5인 플레이는 주최자가 직접 고를 때만)
+  for (let gi = 0; gi < _partyCount; gi++) {
+    if (partyCountOf(gi) < PARTY_SIZE) { _partyAssign[entry.uid] = gi; break; }
   }
   input.value = '';
   renderPartySheet();
@@ -1801,8 +1804,8 @@ window.partyAuto = function() {
   if (!_partyJoin) return;
   const players = _partyJoin.participants || [];
   _partyAssign = {};
-  players.forEach((p, i) => { _partyAssign[p.uid] = Math.floor(i / PARTY_MAX); });
-  _partyCount = Math.max(1, Math.ceil(players.length / PARTY_MAX));
+  players.forEach((p, i) => { _partyAssign[p.uid] = Math.floor(i / PARTY_SIZE); });
+  _partyCount = Math.max(1, Math.ceil(players.length / PARTY_SIZE));
   renderPartySheet();
 };
 
@@ -1959,7 +1962,7 @@ function buildPanelTable(players, scores, from, to) {
 }
 
 // 참석자 칩. 조가 편성돼 있으면 1조부터 차례로 줄을 나눠 보여준다.
-// (칩 그리드가 4칸이라 한 조 4명이 정확히 한 줄에 들어온다)
+// (칩 그리드가 4칸이라 한 조 4명이 정확히 한 줄에 들어온다. 5인 플레이 조는 5칸으로 그린다)
 // 주최자. 예전엔 명단 맨 앞 사람 = 주최자였는데, 칩 순서를 바꿀 수 있게 되면서
 // 순서를 처음 바꿀 때 hostUid 로 따로 저장해 둔다. (hostUid 가 없거나 이미 빠진 사람이면 맨 앞 사람)
 function hostUidOf(j) {
@@ -1973,8 +1976,8 @@ function buildParticipantChips(j, participants) {
   const hostUid = hostUidOf(j);
   const canReorder = currentUser && j.status !== 'closed' && participants.length > 1 &&
     (isAdmin || j.creatorUid === currentUser.uid || hostUid === currentUser.uid);
-  const box = (grp, inner) =>
-    `<div class="participant-chips${canReorder ? ' reorderable' : ''}" data-jid="${j.id}" data-grp="${grp}">${inner}</div>`;
+  const box = (grp, inner, five) =>
+    `<div class="participant-chips${five ? ' five' : ''}${canReorder ? ' reorderable' : ''}" data-jid="${j.id}" data-grp="${grp}">${inner}</div>`;
   const chip = (p) => {
     const isMe     = currentUser && p.uid === currentUser.uid;
     const isKeep   = p.isKeep === true;
@@ -2001,7 +2004,7 @@ function buildParticipantChips(j, participants) {
     members.forEach(p => used.add(p.uid));
     html += `<div class="pgrp">
       <div class="pgrp-tag">${g.name || `${gi + 1}조`}<span class="pgrp-num">${members.length}명</span></div>
-      ${box(pi, members.map(chip).join(''))}
+      ${box(pi, members.map(chip).join(''), members.length === 5)}
     </div>`;
   });
   const rest = participants.filter(p => !used.has(p.uid));
@@ -2325,14 +2328,21 @@ function fmtClock(totalMin) {
   return `${hh < 12 ? 'AM' : 'PM'} ${hh === 0 ? 12 : hh > 12 ? hh - 12 : hh}:${String(mm).padStart(2, '0')}`;
 }
 
+// 전체 조 수 = 편성된 조 + 남은 인원을 4명씩 나눈 조.
+// 5인 플레이 조는 자리를 5개 차지하므로, 총 인원 17명이라도 4+4+4+5 면 4개 조다.
+function groupCartTotal(j) {
+  const ps = Array.isArray(j.parties) ? j.parties : [];
+  const seats = ps.reduce((a, g) => a + Math.max(PARTY_SIZE, ((g || {}).uids || []).length), 0);
+  return Math.max(1, ps.length + Math.ceil(Math.max(0, (Number(j.capacity) || 0) - seats) / PARTY_SIZE));
+}
+
 // 단체라운드 조인의 조별 티타임표: [{ course, time }] (gi 번째 조)
 function groupTeeSheet(j, cartsOverride) {
   if (!j || j.roundMode !== 'group') return [];
   const list  = parseTeeIntervals(j.teeIntervals);
   const count = Math.max(1, Number(j.courseCount) || 1);
   const names = groupCourseNamesOf(j);
-  const parties = (Array.isArray(j.parties) ? j.parties : []).length;
-  const total = cartsOverride || Math.max(Math.ceil((Number(j.capacity) || 0) / PARTY_MAX), parties, 1);
+  const total = cartsOverride || groupCartTotal(j);
   const cc = groupCourseCarts(total, count);
   const base0 = hhmmToMin(j.time);
   const out = [];
@@ -2400,7 +2410,9 @@ function updateGroupPreview() {
     el.innerHTML = '티업 시간·조 간격·총 인원을 넣으면 조별 티타임이 미리 보입니다';
     return;
   }
-  const carts = Math.ceil(g.capacity / PARTY_MAX);
+  // 수정 중이면 이미 편성된 조(5인 플레이 포함)까지 반영해 조 수를 센다
+  const editing = editingId ? findJoinById(editingId) : null;
+  const carts = groupCartTotal({ capacity: g.capacity, parties: editing ? editing.parties : null });
   const sheet = groupTeeSheet(g, carts);
   const byCourse = {};
   sheet.forEach((s, gi) => { (byCourse[s.course] = byCourse[s.course] || []).push(`${gi + 1}조 ${s.time}`); });
