@@ -3,7 +3,7 @@
   "description": "골갑존 정기결제(토스페이먼츠 빌링) Cloud Functions",
   "type": "module",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "scripts": {
