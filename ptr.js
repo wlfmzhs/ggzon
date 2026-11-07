@@ -112,3 +112,20 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
+
+// 라운드 알림 권유 팝업 — 화면이 다 뜬 뒤 잠깐 있다가 확인한다.
+// 로그인 여부·알림 상태 판단과 팝업은 ggzon-push.js 가 한다. 여기서는 Firebase 를 받을 필요도 없는
+// 경우(이번 세션에 이미 띄움, [나중에] 7일 이내, 권한 차단, 이미 켬)만 미리 거른다.
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    try {
+      if (sessionStorage.getItem('ggzon_push_prompt_shown')) return;
+      const later = Number(localStorage.getItem('ggzon_push_prompt_later') || 0);
+      if (later && Date.now() - later < 7 * 24 * 3600 * 1000) return;
+      if (window.Notification && Notification.permission === 'denied') return;
+      // 아이폰 사파리(홈 화면 앱 아님)에는 Notification 자체가 없다 → 홈 화면 안내를 위해 통과시킨다
+      if (window.Notification && Notification.permission === 'granted' && localStorage.getItem('ggzon_push')) return;
+    } catch (_) {}
+    import('/ggzon-push.js?v=1').then(m => m.maybeShowPushPrompt()).catch(() => {});
+  }, 1500);
+});

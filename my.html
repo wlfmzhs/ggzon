@@ -1047,7 +1047,9 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   // 라운드 알림 받기 (이 기기 웹 푸시 켜기·끄기)
-  mountPushToggle({ app, db, uid: effectiveUser.uid, el: document.getElementById('push-toggle'), onToast: showToast });
+  const pushToggle = mountPushToggle({ app, db, uid: effectiveUser.uid, el: document.getElementById('push-toggle'), onToast: showToast });
+  // 권유 팝업(ptr.js)에서 켜면 이 화면의 상태 표시도 바로 바꾼다
+  window.addEventListener('ggzon-push-change', () => pushToggle?.refresh());
 
   // 아래는 화면이 뜬 뒤 채워진다
   try {
@@ -2067,7 +2069,7 @@ function showToast(msg) {
   setTimeout(() => el.classList.remove('show'), 2500);
 }
 </script>
-<script src="/ptr.js"></script>
+<script src="/ptr.js?v=2"></script>
 <script src="/gpga-bgm.js?v=4"></script>
 </body>
 </html>

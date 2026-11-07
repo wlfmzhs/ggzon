@@ -862,11 +862,6 @@
   <!-- 스크롤 -->
   <div class="scroll-area">
     <div id="tab-content-active" class="list-content">
-      <!-- 라운드 알림 받기 안내 (아직 안 켠 회원에게만, 닫으면 다시 안 뜸) -->
-      <div id="push-banner" style="display:none;position:relative;margin:4px 0 12px;padding:12px 40px 12px 14px;background:rgba(62,160,102,0.12);border:1px solid rgba(62,160,102,0.35);border-radius:14px;">
-        <div id="push-banner-body"></div>
-        <button type="button" id="push-banner-close" aria-label="닫기" style="position:absolute;top:6px;right:6px;width:28px;height:28px;border:0;background:none;color:rgba(255,255,255,0.45);font-size:18px;cursor:pointer;">×</button>
-      </div>
       <div id="active-list"><div class="empty-state"><div class="spinner"></div></div></div>
     </div>
     <div id="tab-content-closed" class="list-content hidden">
@@ -1111,7 +1106,6 @@ import {
   initializeFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { PAYWALL_ENABLED } from "/ggzon-config.js";
-import { mountPushToggle, pushState } from "/ggzon-push.js?v=1";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -1380,21 +1374,6 @@ const _kakaoFbUser = (_ggzonKakao?.loginType === 'kakao')
   ? { uid: _ggzonKakao.uid, displayName: _ggzonKakao.nickname, email: '' }
   : null;
 
-// 라운드 알림 받기 배너: 이 기기에서 켤 수 있는데 아직 안 켰거나(off), 아이폰이라 홈 화면 추가가 필요할 때만.
-// 닫으면 이 기기에서는 다시 띄우지 않는다 (마이페이지 '알림'에서 언제든 켤 수 있다).
-async function showPushBanner(uid) {
-  const box = document.getElementById('push-banner');
-  try { if (localStorage.getItem('ggzon_push_banner_closed')) return; } catch (_) {}
-  const st = await pushState(uid).catch(() => 'unsupported');
-  if (st !== 'off' && st !== 'ios-install') return;
-  box.style.display = 'block';
-  mountPushToggle({ app, db, uid, el: document.getElementById('push-banner-body'), onToast: showToast });
-  document.getElementById('push-banner-close').onclick = () => {
-    box.style.display = 'none';
-    try { localStorage.setItem('ggzon_push_banner_closed', '1'); } catch (_) {}
-  };
-}
-
 onAuthStateChanged(auth, async (user) => {
   const effectiveUser = user || _kakaoFbUser;
   try {
@@ -1433,7 +1412,6 @@ onAuthStateChanged(auth, async (user) => {
   }
   document.getElementById('btn-new-join').style.display = 'block';
   document.getElementById('loading-overlay').classList.add('hidden');
-  showPushBanner(currentUser.uid);
   // 골프장 목록(전체 courses)은 조인 개설 자동완성에만 쓰인다. 예전엔 이걸 다 받을 때까지
   // 조인 목록 요청을 시작조차 안 해 첫 화면이 한참 비어 있었다 → 뒤에서 병렬로 받는다.
   setupCourseAC();
@@ -3835,7 +3813,7 @@ function showToast(msg) {
 // Safari 바디 스크롤 차단
 window.addEventListener('scroll', () => window.scrollTo(0, 0), { passive: false });
 </script>
-<script src="/ptr.js"></script>
+<script src="/ptr.js?v=2"></script>
 <script src="/gpga-bgm.js?v=4"></script>
 </body>
 </html>
