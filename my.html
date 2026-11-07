@@ -611,6 +611,15 @@
       </div>
     </div>
 
+    <!-- 알림 -->
+    <div class="section">
+      <div class="section-label">알림</div>
+      <div class="menu-item" style="cursor:default;">
+        <div class="menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div id="push-toggle" style="flex:1;min-width:0;"></div>
+      </div>
+    </div>
+
     <!-- 계정 -->
     <div class="section">
       <div class="section-label">계정</div>
@@ -956,6 +965,7 @@ import {
   query, serverTimestamp, orderBy, where, arrayRemove, arrayUnion, limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { makeDb } from "./fs-cache.js";
+import { mountPushToggle } from "/ggzon-push.js?v=1";
 
 
 const app = initializeApp({
@@ -1035,6 +1045,9 @@ onAuthStateChanged(auth, async (user) => {
   } finally {
     document.getElementById('loading-overlay').classList.add('hidden');
   }
+
+  // 라운드 알림 받기 (이 기기 웹 푸시 켜기·끄기)
+  mountPushToggle({ app, db, uid: effectiveUser.uid, el: document.getElementById('push-toggle'), onToast: showToast });
 
   // 아래는 화면이 뜬 뒤 채워진다
   try {

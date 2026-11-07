@@ -120,3 +120,41 @@ self.addEventListener('fetch', e => {
 
   e.respondWith(staleWhileRevalidate(req, CORE));
 });
+
+// ── 라운드 시작 웹 푸시 ─────────────────────────────────────
+// 서버(functions notifyRoundStart)는 FCM 'data' 만 보낸다: { title, body, url, tag }.
+// Firebase 메시징 SDK 를 서비스워커에 넣지 않고 여기서 직접 알림을 그린다
+// (위 캐시 처리와 분리, iOS 는 push 마다 알림을 꼭 띄워야 한다).
+self.addEventListener('push', e => {
+  let p = {};
+  try { p = e.data ? e.data.json() : {}; } catch (_) { p = { data: { body: e.data && e.data.text() } }; }
+  const d = p.data || {};
+  const n = p.notification || {};
+  const title = d.title || n.title || '골갑존';
+  const opts = {
+    body: d.body || n.body || '',
+    icon: '/image/icon-512.png',
+    badge: '/image/icon-512.png',
+    data: { url: d.url || '/' },
+  };
+  if (d.tag) opts.tag = d.tag;   // 같은 조인 알림이 겹쳐 오면 하나로
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+// 알림을 누르면 그 라운드의 스코어(관전) 화면을 연다. 이미 열린 창이 있으면 그 창을 쓴다.
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const raw = (e.notification.data && e.notification.data.url) || '/';
+  const target = new URL(raw, self.location.origin);
+  if (target.origin !== self.location.origin) return;   // 우리 사이트 주소만 연다
+  e.waitUntil((async () => {
+    const wins = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const same = wins.find(w => w.url === target.href);
+    if (same) return same.focus();
+    const ours = wins.find(w => new URL(w.url).origin === target.origin && 'navigate' in w);
+    if (ours) {
+      try { const w = await ours.navigate(target.href); if (w) return w.focus(); } catch (_) {}
+    }
+    return clients.openWindow(target.href);
+  })());
+});

@@ -14,8 +14,10 @@ import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getMessaging } from 'firebase-admin/messaging';
 import Anthropic from '@anthropic-ai/sdk';
 import { logger } from 'firebase-functions';
+import { teeTimeOf, runRoundStartPush } from './round-push.js';
 
 initializeApp();
 const db = getFirestore();
@@ -269,14 +271,7 @@ const AUTO_CLOSE_AFTER_LAST_SCORE_MIN = 30;
 const scoreBonusPts   = t => t < 0 ? 40 : t <= 5 ? 30 : t <= 9 ? 20 : t <= 15 ? 15 : 10;
 const scoreBonusLabel = t => t < 0 ? '언더파' : t <= 5 ? 'E~+5' : t <= 9 ? '+6~+9' : t <= 15 ? '+10~+15' : '+16이상';
 
-// 조인의 date(YYYY-MM-DD)·time(HH:MM)은 한국 시간
-function teeTimeOf(j) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(j.date || '')) return null;
-  const m = String(j.time || '').match(/(\d{1,2}):(\d{2})/);
-  const hhmm = m ? `${m[1].padStart(2, '0')}:${m[2]}` : '00:00';
-  const t = new Date(`${j.date}T${hhmm}:00+09:00`);
-  return isNaN(t) ? null : t;
-}
+// 조인의 date(YYYY-MM-DD)·time(HH:MM)은 한국 시간 — teeTimeOf 는 round-push.js 에 있다 (라운드 시작 알림과 공유)
 
 function partyMembersOf(j, uid) {
   const all   = j.participants || [];
@@ -436,6 +431,58 @@ export const autoCloseJoins = onSchedule(
         }
         catch (e) { logger.error(`[자동마감] 실패 join=${id}`, e); }
       }
+    }
+  }
+);
+
+// ───────────────────────────────────────────────────────────
+// 5-1) 라운드 시작 웹 푸시
+//    조인에 스코어가 처음 입력되는 순간, 알림을 켠 회원 전체(users/{uid}/pushTokens)에게
+//    "{골프장}에서 {참가자…} 라운드가 시작되었습니다" 를 보낸다. 누르면 score.html?id= (관전 화면).
+//    한 번만: roundStartNotifiedAt 을 트랜잭션으로 먼저 기록한 실행만 발송한다.
+//    마감·스크린 조인, 티업 1시간이 지난 조인은 건너뛴다 (판단 로직은 round-push.js).
+// ───────────────────────────────────────────────────────────
+export const notifyRoundStart = onDocumentUpdated(
+  { region: REGION, document: 'joins/{joinId}' },
+  async (event) => {
+    const joinId = event.params.joinId;
+    const ref = event.data.after.ref;
+    const result = await runRoundStartPush({
+      joinId,
+      before: event.data.before.data(),
+      after: event.data.after.data(),
+      deps: {
+        claim: () => db.runTransaction(async tx => {
+          const s = await tx.get(ref);
+          if (!s.exists || s.data().roundStartNotifiedAt || s.data().status === 'closed') return false;
+          tx.update(ref, { roundStartNotifiedAt: FieldValue.serverTimestamp() });
+          return true;
+        }),
+        loadTokens: async () => {
+          const snap = await db.collectionGroup('pushTokens').get();
+          return snap.docs.map(d => ({ token: d.data().token || d.id, ref: d.ref }));
+        },
+        sendBatch: async (tokens, p) => {
+          const res = await getMessaging().sendEachForMulticast({
+            tokens,
+            // data 만 보낸다 → sw.js 의 push 핸들러가 알림을 그린다 (브라우저 기본 표시와 겹치지 않게)
+            data: { title: p.title, body: p.body, url: p.url, tag: p.tag },
+            webpush: { headers: { Urgency: 'high', TTL: '3600' } },
+          });
+          return res.responses.map(r => ({ ok: r.success, code: r.error?.code }));
+        },
+        removeRefs: async refs => {
+          const batch = db.batch();
+          refs.forEach(r => batch.delete(r));
+          await batch.commit();
+        },
+        record: r => ref.update({
+          roundStartPush: { tokens: r.tokens, success: r.success, failure: r.failure, removed: r.removed },
+        }),
+      },
+    });
+    if (result.sent) {
+      logger.info(`[라운드 시작 알림] ${joinId} "${result.payload.body}" — 토큰 ${result.tokens}, 성공 ${result.success}, 실패 ${result.failure}, 삭제 ${result.removed}`);
     }
   }
 );

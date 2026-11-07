@@ -118,6 +118,16 @@ service cloud.firestore {
         allow write: if isOwner(userId) || isKakaoOwner(userId) || isAdmin() ||
           (isLoggedIn() && exists(/databases/$(database)/documents/joins/$(docId)));
       }
+
+      // 라운드 시작 웹 푸시 토큰 (문서 id = FCM 토큰, 기기마다 1개).
+      // 본인만 등록·삭제한다. 읽기와 발송은 서버(Admin SDK)가 하므로 클라이언트 읽기는 관리자만.
+      match /pushTokens/{tokenId} {
+        allow read: if isAdmin();
+        allow delete: if isOwner(userId) || isKakaoOwner(userId) || isAdmin();
+        allow create, update: if (isOwner(userId) || isKakaoOwner(userId)) &&
+          request.resource.data.token == tokenId &&
+          request.resource.data.keys().hasOnly(['token', 'platform', 'standalone', 'createdAt', 'updatedAt']);
+      }
     }
 
     match /joins/{joinId} {
