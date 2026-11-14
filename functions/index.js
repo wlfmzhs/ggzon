@@ -17,7 +17,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getMessaging } from 'firebase-admin/messaging';
 import Anthropic from '@anthropic-ai/sdk';
 import { logger } from 'firebase-functions';
-import { teeTimeOf, runRoundStartPush } from './round-push.js';
+import { teeTimeOf, autoCloseBaseOf, runRoundStartPush } from './round-push.js';
 
 initializeApp();
 const db = getFirestore();
@@ -260,7 +260,8 @@ export const expireCanceled = onSchedule(
 // 5) 5분마다 — 조인 자동 마감 + 정산
 //    ① 스코어 입력이 끝난 조인: 마지막 스코어 입력(lastScoreAt) 후 30분 동안 입력이 없고,
 //       스코어를 입력한 참가자 전원이 18홀을 다 채웠으면 마감 (그늘집 휴식 중 9홀에서 끊기지 않게)
-//    ② 안전망: 라운드 시작(티업) 10시간이 지난 조인은 스코어와 상관없이 마감
+//    ② 안전망: max(티업, 조인 만든 시각) 10시간이 지난 조인은 스코어와 상관없이 마감
+//       (만들 때 이미 지난 시각을 넣은 오입력 조인이 만든 당일 닫히지 않게 — autoCloseBaseOf)
 //    join.html 의 closeJoinAndAward 와 같은 규칙:
 //    스코어기록(scoreHistory)·핸디캡 갱신, 참여 +10P, 스코어 보너스, 월 4회 한도.
 //    참가자별 지급 원장(pointAwardedUids/scoreAwardedUids)으로 멱등 → 관리자 수동 마감과 겹쳐도 이중지급 없음.
@@ -408,8 +409,8 @@ export const autoCloseJoins = onSchedule(
     const snap = await db.collection('joins').where('status', '!=', 'closed').get();
     const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    // ② 티업 10시간 경과 — 연결된 팀(partyIds)도 수동 마감처럼 함께 마감
-    const dueByTee = all.filter(j => { const t = teeTimeOf(j); return t && t.getTime() <= cutoff; });
+    // ② max(티업, 만든 시각) 10시간 경과 — 연결된 팀(partyIds)도 수동 마감처럼 함께 마감
+    const dueByTee = all.filter(j => { const t = autoCloseBaseOf(j); return t && t.getTime() <= cutoff; });
     // ① 마지막 스코어 입력 30분 경과 + 입력 완료 — 팀마다 진행 속도가 달라 이 조인만 마감
     const teeIds = new Set(dueByTee.map(j => j.id));
     const dueByScore = all.filter(j => {

@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  roundStartDecision, roundStartText, roundStartUrl, runRoundStartPush, hasAnyScore,
+  roundStartDecision, roundStartText, roundStartUrl, runRoundStartPush, hasAnyScore, autoCloseBaseOf,
 } from './round-push.js';
 
 const E = Array(18).fill(null);
@@ -120,4 +120,30 @@ test('건너뛸 조인은 선점(claim)도 하지 않는다', async () => {
   assert.equal(r.reason, 'over-1h-after-tee');
   assert.equal(state.notified, false);
   assert.equal(state.sends.length, 0);
+});
+
+// ── 자동 마감 안전망 기준 시각 ──
+const H10 = 10 * 3600 * 1000;
+const kst = s => new Date(s + '+09:00');
+const ts = d => ({ toMillis: () => d.getTime() });   // Firestore Timestamp 흉내
+
+test('자동마감 기준: 정상 조인은 티업 시각', () => {
+  const j = { date: '2026-11-13', time: '17:23', createdAt: ts(kst('2026-11-10T09:00:00')) };
+  assert.equal(autoCloseBaseOf(j).getTime(), kst('2026-11-13T17:23:00').getTime());
+});
+
+test('자동마감 기준: 만들 때 이미 티업이 지났으면 만든 시각 (진해신항 05:23 오입력)', () => {
+  const j = { date: '2026-11-13', time: '05:23', timeType: 'night', createdAt: ts(kst('2026-11-13T11:15:12')) };
+  const base = autoCloseBaseOf(j).getTime();
+  assert.equal(base, kst('2026-11-13T11:15:12').getTime());
+  // 예전 기준이면 15:23 에 닫혔다. 새 기준으로는 15:25 에도 열려 있고 21:15 이후에 닫힌다
+  assert.ok(kst('2026-11-13T15:25:00').getTime() < base + H10);
+  assert.ok(kst('2026-11-13T21:16:00').getTime() >= base + H10);
+});
+
+test('자동마감 기준: createdAt 이 없거나 Date·문자열이어도 동작', () => {
+  assert.equal(autoCloseBaseOf({ date: '2026-11-13', time: '07:00' }).getTime(), kst('2026-11-13T07:00:00').getTime());
+  assert.equal(autoCloseBaseOf({ date: '2026-11-13', time: '07:00', createdAt: kst('2026-11-13T08:00:00') }).getTime(), kst('2026-11-13T08:00:00').getTime());
+  assert.equal(autoCloseBaseOf({ date: '2026-11-13', time: '07:00', createdAt: '2026-11-12T00:00:00Z' }).getTime(), kst('2026-11-13T07:00:00').getTime());
+  assert.equal(autoCloseBaseOf({ date: '', time: '07:00' }), null);
 });

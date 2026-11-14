@@ -20,6 +20,20 @@ export function teeTimeOf(j) {
   return isNaN(t) ? null : t;
 }
 
+// 자동 마감 안전망(티업 + N시간)의 기준 시각: max(티업, 조인을 만든 시각).
+// 만든 시점에 이미 티업이 지난 조인(야간 17:23 을 오전 05:23 으로 잘못 넣은 경우 등)이
+// 만든 당일 몇 시간 만에 닫히지 않게 한다 (2026-11-13 진해신항CC). createdAt 은 Firestore Timestamp·Date·ISO 문자열 모두 받는다.
+export function autoCloseBaseOf(j) {
+  const tee = teeTimeOf(j);
+  if (!tee) return null;
+  const c = j.createdAt;
+  const createdMs = c == null ? NaN
+    : typeof c.toMillis === 'function' ? c.toMillis()
+    : c instanceof Date ? c.getTime()
+    : typeof c === 'string' ? Date.parse(c) : NaN;
+  return new Date(Number.isFinite(createdMs) ? Math.max(tee.getTime(), createdMs) : tee.getTime());
+}
+
 // 누군가 한 홀이라도 입력했는가 (South 출발이면 1번 홀이 비어 있을 수 있어 홀 번호는 보지 않는다)
 export function hasAnyScore(scores) {
   return Object.values(scores || {}).some(s =>

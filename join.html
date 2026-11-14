@@ -937,12 +937,13 @@
 
       <div class="admin-form-group">
         <label class="admin-label">날짜 *</label>
-        <input class="admin-input" id="admin-date" type="date" />
+        <input class="admin-input" id="admin-date" type="date" onchange="updateTimeHint()" />
       </div>
 
       <div class="admin-form-group">
         <label class="admin-label" id="label-time">시간 *</label>
-        <input class="admin-input" id="admin-time" type="time" oninput="updateGroupPreview()" onchange="updateGroupPreview()" />
+        <input class="admin-input" id="admin-time" type="time" oninput="updateGroupPreview();updateTimeHint()" onchange="updateGroupPreview();updateTimeHint()" />
+        <div class="group-hint" id="time-hint"></div>
       </div>
 
       <div class="admin-form-group group-only">
@@ -1106,6 +1107,7 @@ import {
   initializeFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, increment, query, orderBy, where, limit, startAfter, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { PAYWALL_ENABLED } from "/ggzon-config.js";
+import { formatKoTime, checkJoinTime } from "/join-time.js?v=1";
 
 const app = initializeApp({
   apiKey: "AIzaSyC-31zadgV4hkQm7fFqbDrxtJRAIeo6k18",
@@ -1589,7 +1591,7 @@ function renderClosedList() {
       <div class="past-card-header" ${hasScore ? `onclick="window.toggleScorePanel('${j.id}')"` : ''}>
         <div class="past-info">
           <div class="past-name">${j.course} <span class="past-type ${typeCls}">${typeLabel}</span></div>
-          <div class="past-sub">${j.date} · ${j.time || ''}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
+          <div class="past-sub">${j.date} · ${formatKoTime(j.time)}${j.greenfee ? ' · ' + j.greenfee : ''}</div>
         </div>
         <div class="past-card-right">
           ${chevron}
@@ -2176,7 +2178,7 @@ function buildCard(j) {
       </div>
       <div class="card-meta">
         <div class="card-meta-row">${icons.calendar}<span class="card-meta-label">날짜</span><span class="card-meta-val">${j.date}</span></div>
-        <div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span><span class="card-meta-val">${j.time}</span></div>
+        <div class="card-meta-row">${icons.clock}<span class="card-meta-label">시간</span><span class="card-meta-val">${formatKoTime(j.time)}</span></div>
         <div class="card-meta-row">${icons.users}<span class="card-meta-label">참석 인원</span><span class="card-meta-val">${currentCount} / ${j.capacity}명</span></div>
         ${j.joinType !== 'screen' && j.greenfee ? `<div class="card-meta-row">${icons.money}<span class="card-meta-label">그린피</span><span class="card-meta-val">${fmtFee(j.greenfee)}</span></div>` : ''}
         ${j.memo ? `<div class="card-meta-row" style="align-items:flex-start;">${icons.note}<span class="card-meta-label">참고</span><span class="card-meta-memo">${j.memo}</span></div>` : ''}
@@ -2284,7 +2286,22 @@ window.setTimeType = function(type) {
   currentTimeType = type;
   document.getElementById('toggle-day').className = 'toggle-btn' + (type === 'day' ? ' active-day' : '');
   document.getElementById('toggle-night').className = 'toggle-btn' + (type === 'night' ? ' active-night' : '');
+  updateTimeHint();
 };
+
+// 시간 입력 아래에 '오후 5:23' 처럼 오전/오후를 풀어 보여 준다.
+// 모바일 시간 피커에서 오전/오후를 잘못 고르는 일이 있어서다 (11/13 진해신항 야간 17:23 → 05:23 저장).
+function updateTimeHint() {
+  const el = document.getElementById('time-hint');
+  if (!el) return;
+  const time = document.getElementById('admin-time').value;
+  if (!time) { el.textContent = ''; return; }
+  const { nightAm, pmTime } = checkJoinTime({ date: document.getElementById('admin-date').value, time, timeType: currentTimeType });
+  el.innerHTML = nightAm
+    ? `<b style="color:#ffb74d">⚠️ ${formatKoTime(time)}</b> — 야간 라운드인데 오전 시각이에요. ${formatKoTime(pmTime)}이 맞나요?`
+    : `<b>${formatKoTime(time)}</b>`;
+}
+window.updateTimeHint = updateTimeHint;
 
 // ── 단체라운드 (대회 만들기의 티업시간·조간격·코스 배정만 가져온 것) ──
 // 조(카트)는 코스별로 나눠 동시 출발하고, 코스 안에서는 조 간격만큼 뒤로 밀린다.
@@ -2415,7 +2432,7 @@ function updateGroupPreview() {
   const carts = groupCartTotal({ capacity: g.capacity, parties: editing ? editing.parties : null });
   const sheet = groupTeeSheet(g, carts);
   const byCourse = {};
-  sheet.forEach((s, gi) => { (byCourse[s.course] = byCourse[s.course] || []).push(`${gi + 1}조 ${s.time}`); });
+  sheet.forEach((s, gi) => { (byCourse[s.course] = byCourse[s.course] || []).push(`${gi + 1}조 ${formatKoTime(s.time)}`); });
   el.innerHTML = `총 <b>${carts}개 조</b> — ` + Object.entries(byCourse)
     .map(([c, arr]) => `<br><b>${c}</b> ${arr.slice(0, 4).join(' → ')}${arr.length > 4 ? ' …' : ''}`).join('');
 }
@@ -2663,7 +2680,7 @@ window.toggleEmptyRoom = function() {
 window.saveJoin = async function() {
   let   course      = document.getElementById('admin-course').value.trim();
   const date        = document.getElementById('admin-date').value;
-  const time        = document.getElementById('admin-time').value;
+  let   time        = document.getElementById('admin-time').value;
   const capacity    = document.getElementById('admin-capacity').value;
   const greenfee    = document.getElementById('admin-greenfee').value.trim();
   const kakaoUrl    = document.getElementById('admin-kakao').value.trim();
@@ -2673,6 +2690,38 @@ window.saveJoin = async function() {
 
   if (!course || !date || !time || !capacity || !kakaoUrl) {
     showToast('필수 항목을 모두 입력해주세요'); return;
+  }
+
+  // 시각 오입력 확인 (11/13 진해신항: 야간 17:23 을 오전 05:23 으로 저장 → 만들자마자 지난 조인이 돼 자동 마감)
+  {
+    const tc = checkJoinTime({ date, time, timeType: currentTimeType });
+    if (tc.nightAm) {
+      if (confirm(`야간 라운드인데 시간이 ${formatKoTime(time)}(으)로 입력됐어요.
+
+${formatKoTime(tc.pmTime)}이 맞나요?
+
+[확인] ${formatKoTime(tc.pmTime)}으로 고쳐서 저장
+[취소] 다른 선택`)) {
+        time = tc.pmTime;
+        document.getElementById('admin-time').value = time;
+        updateTimeHint(); updateGroupPreview();
+      } else if (!confirm(`${formatKoTime(time)} 그대로 저장할까요?
+
+[취소]를 누르면 저장하지 않고 돌아갑니다.`)) {
+        document.getElementById('admin-time').focus(); return;
+      }
+    }
+    // 이미 지난 시각: 새로 만들 때, 또는 수정하면서 날짜·시간을 바꿨을 때만 묻는다 (지난 조인의 메모 수정 등은 그대로)
+    const orig = editingId ? joins.find(x => x.id === editingId) : null;
+    const changed = !orig || orig.date !== date || orig.time !== time;
+    if (changed && checkJoinTime({ date, time, timeType: currentTimeType }).past) {
+      if (!confirm(`라운드 시각(${date} ${formatKoTime(time)})이 이미 지났어요.
+지난 시각으로 저장하면 몇 시간 안에 자동 마감될 수 있습니다.
+
+날짜·시간이 맞나요? 그대로 저장할까요?`)) {
+        document.getElementById('admin-time').focus(); return;
+      }
+    }
   }
 
   course = upperCourseSuffix(course);   // CC/GC 대문자 통일 (붙여넣기·수정 포함)
