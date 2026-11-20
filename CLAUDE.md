@@ -58,7 +58,7 @@ firebase functions:secrets:set ANTHROPIC_API_KEY
 - **스코어 보너스**: 최대값 40은 `scoreBonusPts`(양쪽 모두)와 `firestore.rules`의 `validPointAward` 상한에 함께 걸려 있다.
 - **구독 가격**: `ggzon-config.js`의 `PLAN`과 `functions/index.js`의 `PRICE`·`PLAN_NAME`·`PERIOD_DAYS`를 맞춘다. 실제 청구 금액은 서버 값이다.
 - **새 페이지**: `404.html`의 `PAGES`에 넣어야 어긋난 링크가 복구된다.
-- **해외라운드 정원·여행**: `overseas.html`의 `TRIP_ID`·`CAPACITY`와 `functions/overseas-apply.js`의 `TRIPS`를 맞춘다. 비회원 신청(`overseasGuestApply`)의 정원 판단은 서버 값이고, 회원 신청은 화면에서만 막는다. 정원은 신청 건수가 아니라 인원(`people`) 합계다.
+- **해외라운드 정원·여행**: `overseas.html`의 `TRIP_ID`·`CAPACITY`·`DEPARTURES`(출발지 인천·부산)와 `functions/overseas-apply.js`의 `TRIPS`·`DEPARTURES`를 맞춘다. 비회원 신청(`overseasGuestApply`)의 정원 판단은 서버 값이고, 회원 신청은 화면에서만 막는다. 정원은 신청 건수가 아니라 인원(`people`) 합계다.
 - **새 Firestore 필드**: `firestore.rules`가 허용 필드 목록(`onlyAllowedJoinFields`, `onlyDonationFields` 등)으로 쓰기를 제한하는 경로에서는, 목록에 없는 필드를 저장하면 권한 오류로 실패한다.
 - **Firebase SDK 버전**: `10.12.0`이 각 페이지와 `fs-cache.js`, `event-popup.js`에 URL로 박혀 있다. 올릴 때는 전부 같이 바꾼다.
 

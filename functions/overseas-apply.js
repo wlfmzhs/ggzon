@@ -19,7 +19,8 @@ export const TRIPS = {
   'danang-2702': { capacity: 20, open: true },
 };
 
-export const AIRPORTS = ['부산', '인천', '청주'];
+// 출발지는 인천·부산(김해)만 (overseas.html 의 DEPARTURES 와 같은 값). 필수 — 없거나 다른 값이면 거절.
+export const DEPARTURES = ['인천', '부산'];
 export const ROOMS = ['동반자와 같은 방', '룸메이트 매칭 희망'];
 export const MAX_PEOPLE = 4;
 export const CONSENT_VERSION = 'overseas-guest-2026-11';
@@ -67,14 +68,16 @@ export function validateGuestApply(body) {
   const people = Number(b.people);
   if (!Number.isInteger(people) || people < 1 || people > MAX_PEOPLE) throw new ApplyError(400, 'people', `인원은 1~${MAX_PEOPLE}명입니다`);
 
+  if (!DEPARTURES.includes(b.departure)) throw new ApplyError(400, 'departure', '출발지(인천/부산)를 선택해 주세요');
+  const departure = b.departure;
+
   if (b.consent !== true) throw new ApplyError(400, 'consent', '개인정보 수집·이용에 동의해 주세요');
 
-  const airport = AIRPORTS.includes(b.airport) ? b.airport : AIRPORTS[0];
   const room = ROOMS.includes(b.room) ? b.room : ROOMS[0];
   const memo = cleanMemo(b.memo, 300);
   const src = /^[a-z0-9_-]{1,20}$/.test(String(b.src || '')) ? String(b.src) : 'direct';
 
-  return { tripId, trip, name, digits, phone: formatPhone(digits), people, airport, room, memo, src };
+  return { tripId, trip, name, digits, phone: formatPhone(digits), people, departure, room, memo, src };
 }
 
 export const hashKey = (kind, value) => kind + '_' + createHash('sha256').update(`ggzon-overseas:${kind}:${value}`).digest('hex').slice(0, 32);
@@ -131,7 +134,7 @@ export async function handleGuestApply(body, ip, store, now = Date.now()) {
     tx.set('overseasApply', id, {
       ...base,
       name: maskName(v.name),
-      people: v.people, airport: v.airport, room: v.room,
+      people: v.people, departure: v.departure, room: v.room,
       createdAt: merged && prevApply.createdAt ? prevApply.createdAt : ts,
       updatedAt: ts,
     });

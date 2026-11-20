@@ -34,7 +34,7 @@ function memStore(seed = []) {
     },
   };
 }
-const ok = { tripId: 'danang-2702', name: '김철수', phone: '010-1234-5678', people: 2, consent: true, src: 'youtube', memo: '야간 추가 희망' };
+const ok = { tripId: 'danang-2702', name: '김철수', phone: '010-1234-5678', people: 2, departure: '인천', consent: true, src: 'youtube', memo: '야간 추가 희망' };
 const code = async (p, c) => assert.rejects(p, e => e instanceof ApplyError && e.code === c);
 
 test('이름 마스킹', () => {
@@ -45,14 +45,16 @@ test('이름 마스킹', () => {
 });
 
 test('입력 검증', () => {
-  const v = validateGuestApply({ ...ok, phone: '01012345678', airport: '해킹', src: '<x>' });
+  const v = validateGuestApply({ ...ok, phone: '01012345678', src: '<x>' });
   assert.equal(v.phone, '010-1234-5678');
-  assert.equal(v.airport, '부산');
+  assert.equal(v.departure, '인천');
+  assert.equal(validateGuestApply({ ...ok, departure: '부산' }).departure, '부산');
   assert.equal(v.src, 'direct');
   for (const [patch, c] of [
     [{ phone: '02-123-4567' }, 'phone'], [{ phone: '' }, 'phone'], [{ name: ' ' }, 'name'], [{ name: '<b>' }, 'name'],
     [{ people: 5 }, 'people'], [{ people: 1.5 }, 'people'], [{ consent: 'true' }, 'consent'], [{ consent: undefined }, 'consent'],
     [{ tripId: 'x' }, 'trip'], [{ website: 'http://spam' }, 'bot'],
+    [{ departure: undefined }, 'departure'], [{ departure: '' }, 'departure'], [{ departure: '청주' }, 'departure'], [{ departure: '김해' }, 'departure'],
   ]) assert.throws(() => validateGuestApply({ ...ok, ...patch }), e => e.code === c, JSON.stringify(patch));
 });
 
@@ -65,6 +67,7 @@ test('신청 저장 — 공개 문서엔 마스킹 이름만, 연락처는 관�
   assert.equal(pub.name, '김○○');
   assert.equal(pub.isGuest, true);
   assert.equal(pub.src, 'youtube');
+  assert.equal(pub.departure, '인천');
   assert.equal(r.id, `${pub.tripId}_${pub.userId}`);            // 기존 id 규칙
   assert.equal(pub.phone, undefined);
   assert.equal(pub.memo, undefined);

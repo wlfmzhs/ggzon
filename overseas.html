@@ -179,6 +179,8 @@
     .adm-tag { display: inline-block; font-size: 9.5px; font-weight: 900; padding: 1px 6px; border-radius: 8px; margin-left: 4px; vertical-align: 1px; border: 1px solid; }
     .adm-tag.guest { color: var(--gold); border-color: rgba(240,192,64,0.45); }
     .adm-tag.member { color: var(--green-light); border-color: rgba(62,160,102,0.45); }
+    .adm-dep { font-size: 12px; font-weight: 800; color: var(--sky); padding: 0 0 8px; }
+    .adm-dep b { color: #fff; }
     .adm-tag.src { color: var(--sky); border-color: rgba(94,200,242,0.45); }
 
     /* 원본 이미지 */
@@ -268,6 +270,7 @@
       <div class="card">
         <div class="card-h">행사 개요 <button class="orig-btn" onclick="openImg()">원본 일정표</button></div>
         <div class="row"><span class="k">출발일</span><span class="v">2027년 2월 17일(수) ~ 2월 21일(일)</span></div>
+        <div class="row"><span class="k">출발</span><span class="v"><b>인천 / 부산(김해)</b> 출발만 가능</span></div>
         <div class="row"><span class="k">인원</span><span class="v">20명 · 5조 · 샷건플레이</span></div>
         <div class="row"><span class="k">행사가</span><span class="v"><b>1인 155만원</b> (노팁/노옵션)</span></div>
         <div class="row"><span class="k">포함</span><span class="v">
@@ -295,7 +298,7 @@
           <div class="day-no"><div class="d">DAY</div><div class="n">1</div><div class="dt">2/17 수</div></div>
           <div class="day-body">
             <div class="flight">✈ BX779 · 22:05 출발 → 01:00 도착</div>
-            부산/인천/청주 공항 출발<br>
+            인천/부산(김해) 공항 출발<br>
             다낭 국제공항 도착 후 가이드 미팅<br>
             숙소 투숙 및 휴식
             <div class="day-meta"><span class="chip">석: 불포함</span><span class="chip hotel">🏨 다낭 노보텔 또는 동급</span></div>
@@ -358,6 +361,7 @@
 
       <div class="card hidden" id="admin-card">
         <div class="card-h">관리자 · 신청자 연락처 <button class="adm-copy" onclick="copyAdminList()">명단 복사</button></div>
+        <div class="adm-dep" id="admin-dep"></div>
         <div id="admin-list"></div>
       </div>
 
@@ -391,7 +395,7 @@
     <div class="sheet">
       <div id="apply-form">
       <div class="sheet-title" id="sheet-title">다낭 해외라운드 참가 신청</div>
-      <div class="sheet-sub">신청 후 주최측에서 개별 연락드려 예약금·여권 정보를 안내해 드립니다.</div>
+      <div class="sheet-sub">신청 후 주최측에서 개별 연락드려 예약금·여권 정보를 안내해 드립니다.<br>출발은 <b style="color:var(--sky)">인천 · 부산(김해)</b>만 가능합니다.</div>
       <div class="member-hint guest-only hidden">골갑존 회원이신가요? <a id="login-link" href="login.html">로그인하고 신청</a><br>회원이 아니어도 아래에 바로 신청할 수 있어요.</div>
 
       <div class="f-label">이름 <em>*</em></div>
@@ -406,9 +410,9 @@
         <button data-v="1" class="on">1명</button><button data-v="2">2명</button><button data-v="3">3명</button><button data-v="4">4명</button>
       </div>
 
-      <div class="f-label">출발 공항</div>
-      <div class="seg" id="seg-airport">
-        <button data-v="부산" class="on">부산</button><button data-v="인천">인천</button><button data-v="청주">청주</button>
+      <div class="f-label">출발지 <em>*</em></div>
+      <div class="seg" id="seg-departure">
+        <button data-v="인천">인천</button><button data-v="부산">부산(김해)</button>
       </div>
 
       <div class="f-label">객실 (2인 1실)</div>
@@ -424,7 +428,7 @@
       <div class="consent guest-only hidden">
         <div style="font-weight:900;color:#fff;margin-bottom:2px">개인정보 수집·이용 동의 <em style="color:#ff7b6b;font-style:normal">(필수)</em></div>
         <table>
-          <tr><th>수집 항목</th><td>이름, 연락처, 인원, 출발 공항, 객실, 요청사항</td></tr>
+          <tr><th>수집 항목</th><td>이름, 연락처, 인원, 출발지, 객실, 요청사항</td></tr>
           <tr><th>이용 목적</th><td>다낭 해외라운드 참가 신청 접수, 예약·일정 안내를 위한 개별 연락</td></tr>
           <tr><th>보관 기간</th><td>여행 종료 후 3개월(2027년 5월 21일)까지 보관 후 파기, 신청 취소 시 즉시 파기</td></tr>
         </table>
@@ -493,6 +497,10 @@ const GUEST_APPLY_URL = EMU
 // 유입 경로: /danang 링크는 ?src=youtube 를 붙여 들어온다. 로그인을 다녀와도 return 주소에 그대로 남는다.
 const SRC = (new URLSearchParams(location.search).get('src') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 20);
 const SRC_LABEL = { youtube: '유튜브', kakao: '카톡', direct: '직접', member: '회원' };
+// 출발지는 인천·부산(김해)만. 서버(functions/overseas-apply.js 의 DEPARTURES)와 같은 값.
+// 출발지 기능 전에 신청한 사람은 departure 가 없다 → '미정'으로 보이고, 수정할 때 고르게 한다.
+const DEPARTURES = ['인천', '부산'];
+const depLabel = d => d === '부산' ? '부산(김해)' : d === '인천' ? '인천' : '미정';
 
 // 지금 모집 중인 해외라운드. 다음 여행은 TRIP_ID 와 화면 내용만 바꾸면 신청 명단이 따로 쌓인다.
 const TRIP_ID  = 'danang-2702';
@@ -731,11 +739,12 @@ async function loadAdmin() {
       a.kind = a.isGuest ? '비회원' : '회원';
       a.srcLabel = a.src && a.src !== 'member' ? (SRC_LABEL[a.src] || a.src) : '';
     });
+    document.getElementById('admin-dep').innerHTML = depSummaryHtml();
     el.innerHTML = applicants.length ? applicants.map((a, i) => `
       <div class="adm-item">
         <div class="info">
           <div class="nm">${i + 1}. ${esc(a.realName || a.name)} · ${a.people}명 · ${esc(a.phone)}<span class="adm-tag ${a.isGuest ? 'guest' : 'member'}">${a.kind}</span>${a.srcLabel ? `<span class="adm-tag src">${esc(a.srcLabel)}</span>` : ''}</div>
-          <div class="sub">${esc(a.airport)} 출발 · ${esc(a.room)}${a.memo ? '<br>' + esc(a.memo) : ''}</div>
+          <div class="sub">출발 ${esc(depLabel(a.departure))} · ${esc(a.room)}${a.memo ? '<br>' + esc(a.memo) : ''}</div>
         </div>
         <button class="adm-del" onclick="adminDelete('${a.id}')">삭제</button>
       </div>`).join('') : '<div class="apl-empty">아직 신청자가 없습니다</div>';
@@ -745,9 +754,21 @@ async function loadAdmin() {
   }
 }
 
+// 출발지별 인원(people) 합계. 출발지 없는 예전 신청은 '미정'
+function depTotals() {
+  const t = { 인천: 0, 부산: 0, 미정: 0 };
+  applicants.forEach(a => { t[DEPARTURES.includes(a.departure) ? a.departure : '미정'] += (a.people || 1); });
+  return t;
+}
+const depSummaryText = () => { const t = depTotals(); return `인천 ${t.인천}명 / 부산(김해) ${t.부산}명${t.미정 ? ` / 미정 ${t.미정}명` : ''}`; };
+function depSummaryHtml() {
+  const t = depTotals();
+  return `출발지별 · 인천 <b>${t.인천}명</b> / 부산(김해) <b>${t.부산}명</b>${t.미정 ? ` / 미정 <b>${t.미정}명</b>` : ''}`;
+}
+
 window.copyAdminList = async () => {
-  const text = applicants.map((a, i) =>
-    `${i + 1}. ${a.realName || a.name} / ${a.people}명 / ${a.phone} / ${a.airport} / ${a.room} / ${a.kind}${a.srcLabel ? '·' + a.srcLabel : ''}${a.memo ? ' / ' + a.memo.replace(/\n/g, ' ') : ''}`
+  const text = `[출발지별] ${depSummaryText()}\n` + applicants.map((a, i) =>
+    `${i + 1}. ${a.realName || a.name} / ${a.people}명 / ${a.phone} / 출발 ${depLabel(a.departure)} / ${a.room} / ${a.kind}${a.srcLabel ? '·' + a.srcLabel : ''}${a.memo ? ' / ' + a.memo.replace(/\n/g, ' ') : ''}`
   ).join('\n');
   try { await navigator.clipboard.writeText(text); showToast('명단을 복사했습니다'); }
   catch { showToast('복사 실패'); }
@@ -777,7 +798,7 @@ function seg(id) {
     set: v => box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === String(v))),
   };
 }
-const segPeople = seg('seg-people'), segAirport = seg('seg-airport'), segRoom = seg('seg-room');
+const segPeople = seg('seg-people'), segDeparture = seg('seg-departure'), segRoom = seg('seg-room');
 
 document.getElementById('f-phone').addEventListener('input', e => {
   const d = e.target.value.replace(/\D/g, '').slice(0, 11);
@@ -794,7 +815,7 @@ window.openApply = () => {
   document.getElementById('f-phone').placeholder = myApply ? '변경할 때만 입력 (비우면 기존 번호 유지)' : '010-0000-0000';
   document.getElementById('f-memo').value  = myApply?.memo || '';
   segPeople.set(myApply?.people || 1);
-  segAirport.set(myApply?.airport || '부산');
+  segDeparture.set(myApply?.departure || '');   // 없으면 아무것도 안 골라진 상태 → 수정 시 고르게
   segRoom.set(myApply?.room || '동반자와 같은 방');
   document.getElementById('sheet-title').textContent = myApply ? '참가 신청 수정' : '다낭 해외라운드 참가 신청';
   document.getElementById('btn-submit').textContent  = myApply ? '수정하기' : '신청하기';
@@ -811,7 +832,7 @@ function openGuestApply() {
   document.getElementById('f-memo').value  = saved?.memo || '';
   document.getElementById('f-consent').checked = false;
   segPeople.set(saved?.people || 1);
-  segAirport.set(saved?.airport || '부산');
+  segDeparture.set(saved?.departure || '');
   segRoom.set(saved?.room || '동반자와 같은 방');
   document.getElementById('sheet-title').textContent = saved ? '참가 신청 수정' : '다낭 해외라운드 참가 신청';
   document.getElementById('btn-submit').textContent  = saved ? '수정하기' : '신청하기';
@@ -827,6 +848,8 @@ async function submitGuestApply() {
   const people = Number(segPeople.get()) || 1;
   if (name.length < 2) return showToast('이름을 입력해 주세요');
   if (!/^01[016789]-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
+  const departure = segDeparture.get();
+  if (!DEPARTURES.includes(departure)) return showToast('출발지(인천/부산)를 선택해 주세요');
   if (!document.getElementById('f-consent').checked) return showToast('개인정보 수집·이용에 동의해 주세요');
   if (people > remainingFor()) return showToast(fullMsg());
 
@@ -835,7 +858,7 @@ async function submitGuestApply() {
   try {
     const body = {
       tripId: TRIP_ID, name, phone, memo, people,
-      airport: segAirport.get(), room: segRoom.get(),
+      departure, room: segRoom.get(),
       consent: true, src: SRC || 'direct',
       website: document.getElementById('f-website').value,
     };
@@ -846,7 +869,7 @@ async function submitGuestApply() {
       if (r.code === 'full') await loadApplicants();
       return;
     }
-    guestSave({ id: r.id, name, people, airport: body.airport, room: body.room, memo });
+    guestSave({ id: r.id, name, people, departure, room: body.room, memo });
     document.getElementById('done-title').textContent = r.merged ? '신청 내용을 수정했습니다' : '참가 신청이 접수되었습니다';
     document.getElementById('apply-form').classList.add('hidden');
     document.getElementById('apply-done').classList.remove('hidden');
@@ -867,6 +890,8 @@ window.submitApply = async () => {
   if (!name) return showToast('이름을 입력해 주세요');
   if (!myApply && !/^01\d-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
   if (myApply && phone && !/^01\d-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
+  const departure = segDeparture.get();
+  if (!DEPARTURES.includes(departure)) return showToast('출발지(인천/부산)를 선택해 주세요');
   // 정원(인원 합계) — 새 신청과 인원 늘리기만 막는다. 기존 신청자의 수정(같거나 적은 인원)과 취소는 그대로 된다.
   const wantPeople = Number(segPeople.get()) || 1;
   if (wantPeople > (myApply?.people || 0) && wantPeople > remainingFor()) return showToast(fullMsg());
@@ -880,7 +905,7 @@ window.submitApply = async () => {
       ...base, name, memo,
       src: myApply?.src || SRC || 'member',
       people: Number(segPeople.get()) || 1,
-      airport: segAirport.get(),
+      departure,
       room: segRoom.get(),
       createdAt: myApply?.createdAt || serverTimestamp(),
       updatedAt: serverTimestamp(),

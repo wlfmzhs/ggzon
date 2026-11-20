@@ -566,7 +566,7 @@ export const summarizeGGIssue = onRequest(
 // ───────────────────────────────────────────────────────────
 // 해외라운드 비회원 참가 신청 (overseas.html 게스트 모드, /danang 링크)
 //   비회원은 Firestore 에 직접 쓸 수 없으므로(규칙은 회원·카카오만 허용) 이 함수가 검증 후 대신 쓴다.
-//   검증·합치기·빈도 제한·정원 판단은 overseas-apply.js. body: { tripId, name, phone, people, airport, room, memo, consent, src }
+//   검증·합치기·빈도 제한·정원 판단은 overseas-apply.js. body: { tripId, name, phone, people, departure(인천|부산), room, memo, consent, src }
 // ───────────────────────────────────────────────────────────
 const GUEST_APPLY_ORIGINS = [
   'https://www.ggzon.co.kr', 'https://ggzon.co.kr', 'https://wlfmzhs.github.io',
