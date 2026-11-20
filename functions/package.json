@@ -7,7 +7,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "node --test round-push.test.js"
+    "test": "node --test round-push.test.js overseas-apply.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

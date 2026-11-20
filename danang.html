@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>다낭 해외라운드 - GOLGAB ZONE</title>
+  <!-- 유튜브 설명란 등에 넣는 짧은 홍보 주소: www.ggzon.co.kr/danang
+       로그인 없이 볼 수 있는 해외라운드 화면(overseas.html)으로 유입 경로(src)를 붙여 보낸다. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="[골갑존 해외라운드] 베트남 다낭 3박5일 54홀" />
+  <meta property="og:description" content="2027.2.17(수)~2.21(일) · 1인 155만원 노팁/노옵션 · 회원이 아니어도 신청할 수 있어요" />
+  <meta property="og:image" content="https://www.ggzon.co.kr/image/overseas-danang-2702-share.png" />
+  <meta http-equiv="refresh" content="0; url=/overseas.html?src=youtube" />
+  <style>html,body{margin:0;height:100%;background:#0A2406;color:#fff;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;display:flex;align-items:center;justify-content:center}a{color:#5ec8f2}</style>
+</head>
+<body>
+  <a href="/overseas.html?src=youtube">다낭 해외라운드 신청 화면으로 이동</a>
+<script>
+// 다른 경로로 홍보할 때는 /danang?src=insta 처럼 src 를 바꿔 붙이면 된다 (기본은 youtube)
+(function () {
+  var p = new URLSearchParams(location.search);
+  if (!p.get('src')) p.set('src', 'youtube');
+  location.replace('/overseas.html?' + p.toString() + location.hash);
+})();
+</script>
+</body>
+</html>

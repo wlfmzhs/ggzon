@@ -159,6 +159,27 @@
     .btn-ok { flex: 2; padding: 13px; border-radius: 12px; background: var(--green-light); border: none; color: #fff; font-size: 14px; font-weight: 900; cursor: pointer; font-family: inherit; }
     .btn-ok.red { background: #e74c3c; }
     .btn-ok:disabled { opacity: 0.5; }
+    .cta.full { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.45); box-shadow: none; border: 1px solid rgba(255,255,255,0.12); }
+
+    /* 비회원 신청 */
+    .consent { margin-top: 14px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); font-size: 11px; line-height: 1.6; color: rgba(255,255,255,0.6); }
+    .consent table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
+    .consent th { text-align: left; color: rgba(255,255,255,0.4); font-weight: 700; width: 64px; vertical-align: top; padding: 2px 0; }
+    .consent td { padding: 2px 0; }
+    .consent label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: #fff; cursor: pointer; }
+    .consent input { width: 18px; height: 18px; accent-color: var(--green-light); }
+    .member-hint { font-size: 11.5px; color: rgba(255,255,255,0.5); margin-bottom: 4px; line-height: 1.6; }
+    .member-hint a { color: var(--sky); font-weight: 800; }
+    .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+    .done-box { text-align: center; padding: 18px 4px 6px; }
+    .done-box .ic { font-size: 44px; margin-bottom: 10px; }
+    .done-box .t { font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+    .done-box .d { font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.7); margin-bottom: 18px; }
+    .done-box .d b { color: var(--gold); }
+    .adm-tag { display: inline-block; font-size: 9.5px; font-weight: 900; padding: 1px 6px; border-radius: 8px; margin-left: 4px; vertical-align: 1px; border: 1px solid; }
+    .adm-tag.guest { color: var(--gold); border-color: rgba(240,192,64,0.45); }
+    .adm-tag.member { color: var(--green-light); border-color: rgba(62,160,102,0.45); }
+    .adm-tag.src { color: var(--sky); border-color: rgba(94,200,242,0.45); }
 
     /* 원본 이미지 */
     .img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.92); z-index: 400; display: none; overflow-y: auto; padding: 50px 10px 20px; }
@@ -368,11 +389,14 @@
   <!-- 신청 시트 -->
   <div class="sheet-overlay" id="sheet" onclick="if(event.target===this)closeApply()">
     <div class="sheet">
+      <div id="apply-form">
       <div class="sheet-title" id="sheet-title">다낭 해외라운드 참가 신청</div>
       <div class="sheet-sub">신청 후 주최측에서 개별 연락드려 예약금·여권 정보를 안내해 드립니다.</div>
+      <div class="member-hint guest-only hidden">골갑존 회원이신가요? <a id="login-link" href="login.html">로그인하고 신청</a><br>회원이 아니어도 아래에 바로 신청할 수 있어요.</div>
 
       <div class="f-label">이름 <em>*</em></div>
       <input class="f-input" id="f-name" maxlength="20" placeholder="실명 또는 닉네임" />
+      <input class="hp" id="f-website" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
       <div class="f-label">연락처 <em>*</em></div>
       <input class="f-input" id="f-phone" type="tel" maxlength="13" placeholder="010-0000-0000" />
@@ -395,13 +419,35 @@
       <div class="f-label">동반자 이름 · 요청사항</div>
       <textarea class="f-input" id="f-memo" maxlength="300" placeholder="예) 홍길동, 김철수 함께 갑니다 / 야간 다낭CC 추가 희망"></textarea>
 
-      <div class="privacy">연락처는 주최측(관리자)만 볼 수 있고, 다른 회원에게는 이름과 인원만 보입니다.</div>
+      <div class="privacy member-only">연락처는 주최측(관리자)만 볼 수 있고, 다른 회원에게는 이름과 인원만 보입니다.</div>
+
+      <div class="consent guest-only hidden">
+        <div style="font-weight:900;color:#fff;margin-bottom:2px">개인정보 수집·이용 동의 <em style="color:#ff7b6b;font-style:normal">(필수)</em></div>
+        <table>
+          <tr><th>수집 항목</th><td>이름, 연락처, 인원, 출발 공항, 객실, 요청사항</td></tr>
+          <tr><th>이용 목적</th><td>다낭 해외라운드 참가 신청 접수, 예약·일정 안내를 위한 개별 연락</td></tr>
+          <tr><th>보관 기간</th><td>여행 종료 후 3개월(2027년 5월 21일)까지 보관 후 파기, 신청 취소 시 즉시 파기</td></tr>
+        </table>
+        동의하지 않을 수 있으나, 동의하지 않으면 신청이 접수되지 않습니다. 다른 사람에게는 이름 첫 글자(예: 김○○)와 인원만 보이고, 연락처는 주최측만 봅니다.
+        <label style="margin-top:8px"><input type="checkbox" id="f-consent" /> 위 내용에 동의합니다</label>
+      </div>
 
       <div class="sheet-btns">
         <button class="btn-cancel" onclick="closeApply()">닫기</button>
         <button class="btn-ok" id="btn-submit" onclick="submitApply()">신청하기</button>
       </div>
       <button class="btn-cancel hidden" id="btn-withdraw" style="width:100%;margin-top:8px;color:#ff7b6b" onclick="withdraw()">참가 신청 취소</button>
+      </div>
+
+      <div class="done-box hidden" id="apply-done">
+        <div class="ic">✅</div>
+        <div class="t" id="done-title">참가 신청이 접수되었습니다</div>
+        <div class="d">
+          <b>주최측이 남겨 주신 연락처로 개별 연락</b>드려<br>예약금·여권 정보 등을 안내해 드립니다.<br>
+          <span style="font-size:11.5px;color:rgba(255,255,255,0.45)">내용을 바꾸려면 같은 연락처로 다시 신청하면 수정됩니다.<br>취소는 주최측 연락을 받을 때 말씀해 주세요.</span>
+        </div>
+        <button class="btn-ok" style="width:100%" onclick="closeApply()">확인</button>
+      </div>
     </div>
   </div>
 
@@ -417,9 +463,9 @@
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, connectAuthEmulator, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDocs, setDoc, deleteDoc, query, where, serverTimestamp
+  getFirestore, collection, doc, getDocs, setDoc, deleteDoc, query, where, serverTimestamp, connectFirestoreEmulator
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -433,12 +479,28 @@ const app = initializeApp({
 const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] });
 const db   = getFirestore(app);
 
+// 로컬 검증용: localhost 에서 ?emu=1 로 열면 Firebase 에뮬레이터에 붙는다 (운영 DB 를 건드리지 않음)
+const EMU = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('emu');
+if (EMU) {
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  window.__emu = { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword };
+}
+const GUEST_APPLY_URL = EMU
+  ? 'http://127.0.0.1:5001/ggzon-b33cb/asia-northeast3/overseasGuestApply'
+  : 'https://asia-northeast3-ggzon-b33cb.cloudfunctions.net/overseasGuestApply';
+
+// 유입 경로: /danang 링크는 ?src=youtube 를 붙여 들어온다. 로그인을 다녀와도 return 주소에 그대로 남는다.
+const SRC = (new URLSearchParams(location.search).get('src') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 20);
+const SRC_LABEL = { youtube: '유튜브', kakao: '카톡', direct: '직접', member: '회원' };
+
 // 지금 모집 중인 해외라운드. 다음 여행은 TRIP_ID 와 화면 내용만 바꾸면 신청 명단이 따로 쌓인다.
 const TRIP_ID  = 'danang-2702';
 const CAPACITY = 20;
 
 let currentUser = null;
 let isAdmin     = false;
+let isGuest     = false;   // 로그인 안 한 비회원 — 신청은 서버 함수(overseasGuestApply)로 보낸다
 let applicants  = [];
 let myApply     = null;
 
@@ -448,13 +510,13 @@ const _kakaoFbUser = (_ggzonUser?.loginType === 'kakao')
   : null;
 
 onAuthStateChanged(auth, async user => {
-  const effectiveUser = user || _kakaoFbUser;
-  if (!effectiveUser) {
-    location.href = 'login.html?auto=1&return=' + encodeURIComponent('overseas.html' + location.search);
-    return;
-  }
-  currentUser = effectiveUser;
-  isAdmin = currentUser.email === 'wlfmzhs@naver.com';
+  // 로그인 안 한 사람(유튜브 링크 등)은 로그인으로 보내지 않고 비회원 신청 화면을 보여 준다.
+  currentUser = user || _kakaoFbUser;
+  isGuest = !currentUser;
+  isAdmin = !!currentUser && currentUser.email === 'wlfmzhs@naver.com';
+  document.querySelectorAll('.guest-only').forEach(el => el.classList.toggle('hidden', !isGuest));
+  document.querySelectorAll('.member-only').forEach(el => el.classList.toggle('hidden', isGuest));
+  document.getElementById('login-link').href = 'login.html?return=' + encodeURIComponent('overseas.html' + location.search);
   document.getElementById('loading-overlay').classList.add('hidden');
   await loadApplicants();
 });
@@ -610,12 +672,24 @@ window.shareScreenImage = async () => {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const docId = () => TRIP_ID + '_' + currentUser.uid;
 
+// 비회원이 이 기기에서 낸 신청(문서 id·입력값). 연락처는 기기에 남기지 않는다.
+const GUEST_KEY = 'ggzon_overseas_guest_' + TRIP_ID;
+function guestSaved() { try { return JSON.parse(localStorage.getItem(GUEST_KEY) || 'null'); } catch { return null; } }
+function guestSave(v) { try { localStorage.setItem(GUEST_KEY, JSON.stringify(v)); } catch {} }
+
+// 정원은 인원(people) 합계 기준 — 신청 현황 막대와 같은 계산. 내 신청 인원은 남은 자리에 되돌려 넣는다.
+const totalPeople = () => applicants.reduce((s, a) => s + (a.people || 1), 0);
+const remainingFor = () => CAPACITY - totalPeople() + (myApply ? (myApply.people || 1) : 0);
+const fullMsg = () => remainingFor() > 0 ? `남은 자리는 ${remainingFor()}명입니다` : '정원이 모두 찼습니다 (모집 마감)';
+
 async function loadApplicants() {
   try {
     const snap = await getDocs(query(collection(db, 'overseasApply'), where('tripId', '==', TRIP_ID)));
     applicants = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-    myApply = applicants.find(a => a.userId === currentUser.uid) || null;
+    myApply = currentUser
+      ? applicants.find(a => a.userId === currentUser.uid) || null
+      : applicants.find(a => a.id === guestSaved()?.id) || null;
     renderApplicants();
     if (isAdmin) await loadAdmin();
   } catch (e) {
@@ -625,17 +699,21 @@ async function loadApplicants() {
 }
 
 function renderApplicants() {
-  const total = applicants.reduce((s, a) => s + (a.people || 1), 0);
+  const total = totalPeople();
   document.getElementById('bar-num').textContent = `${total} / ${CAPACITY}명`;
   document.getElementById('bar-fill').style.width = Math.min(100, total / CAPACITY * 100) + '%';
   document.getElementById('apl-count').textContent = applicants.length ? `${applicants.length}팀` : '';
   document.getElementById('apl-chips').innerHTML = applicants.length
-    ? applicants.map(a => `<div class="apl-chip${a.userId === currentUser.uid ? ' me' : ''}">${esc(a.name)}${a.people > 1 ? ` +${a.people - 1}` : ''}</div>`).join('')
+    ? applicants.map(a => `<div class="apl-chip${myApply && a.id === myApply.id ? ' me' : ''}">${esc(a.name)}${a.people > 1 ? ` +${a.people - 1}` : ''}</div>`).join('')
     : '<div class="apl-empty" style="grid-column:1/4">첫 번째로 신청해 보세요!</div>';
 
   const cta = document.getElementById('cta');
-  cta.textContent = myApply ? `신청 완료 (${myApply.people}명) · 수정/취소` : '참가 신청하기';
+  const full = !myApply && total >= CAPACITY;   // 기존 신청자는 정원이 차도 수정·취소할 수 있다
+  cta.textContent = myApply
+    ? (isGuest ? `신청 완료 (${myApply.people}명) · 내용 수정` : `신청 완료 (${myApply.people}명) · 수정/취소`)
+    : full ? '모집 마감 (정원 마감)' : '참가 신청하기';
   cta.classList.toggle('applied', !!myApply);
+  cta.classList.toggle('full', full);
 }
 
 async function loadAdmin() {
@@ -643,13 +721,20 @@ async function loadAdmin() {
   const el = document.getElementById('admin-list');
   try {
     const snap = await getDocs(query(collection(db, 'overseasApplyContacts'), where('tripId', '==', TRIP_ID)));
-    const phones = {};
-    snap.docs.forEach(d => { phones[d.id] = d.data().phone; });
-    applicants.forEach(a => { a.phone = phones[a.id] || '-'; });
+    const contacts = {};
+    snap.docs.forEach(d => { contacts[d.id] = d.data(); });
+    applicants.forEach(a => {
+      const c = contacts[a.id] || {};
+      a.phone = c.phone || '-';
+      // 비회원은 공개 문서에 마스킹 이름만 있으므로 실명·메모를 관리자 문서에서 가져온다
+      if (a.isGuest) { a.realName = c.name || a.name; a.memo = c.memo || ''; }
+      a.kind = a.isGuest ? '비회원' : '회원';
+      a.srcLabel = a.src && a.src !== 'member' ? (SRC_LABEL[a.src] || a.src) : '';
+    });
     el.innerHTML = applicants.length ? applicants.map((a, i) => `
       <div class="adm-item">
         <div class="info">
-          <div class="nm">${i + 1}. ${esc(a.name)} · ${a.people}명 · ${esc(a.phone)}</div>
+          <div class="nm">${i + 1}. ${esc(a.realName || a.name)} · ${a.people}명 · ${esc(a.phone)}<span class="adm-tag ${a.isGuest ? 'guest' : 'member'}">${a.kind}</span>${a.srcLabel ? `<span class="adm-tag src">${esc(a.srcLabel)}</span>` : ''}</div>
           <div class="sub">${esc(a.airport)} 출발 · ${esc(a.room)}${a.memo ? '<br>' + esc(a.memo) : ''}</div>
         </div>
         <button class="adm-del" onclick="adminDelete('${a.id}')">삭제</button>
@@ -662,7 +747,7 @@ async function loadAdmin() {
 
 window.copyAdminList = async () => {
   const text = applicants.map((a, i) =>
-    `${i + 1}. ${a.name} / ${a.people}명 / ${a.phone} / ${a.airport} / ${a.room}${a.memo ? ' / ' + a.memo.replace(/\n/g, ' ') : ''}`
+    `${i + 1}. ${a.realName || a.name} / ${a.people}명 / ${a.phone} / ${a.airport} / ${a.room} / ${a.kind}${a.srcLabel ? '·' + a.srcLabel : ''}${a.memo ? ' / ' + a.memo.replace(/\n/g, ' ') : ''}`
   ).join('\n');
   try { await navigator.clipboard.writeText(text); showToast('명단을 복사했습니다'); }
   catch { showToast('복사 실패'); }
@@ -670,7 +755,7 @@ window.copyAdminList = async () => {
 
 window.adminDelete = async id => {
   const a = applicants.find(x => x.id === id);
-  if (!a || !confirm(`${a.name} 님의 신청을 삭제할까요?`)) return;
+  if (!a || !confirm(`${a.realName || a.name} 님의 신청을 삭제할까요?`)) return;
   try {
     await deleteDoc(doc(db, 'overseasApply', id));
     await deleteDoc(doc(db, 'overseasApplyContacts', id)).catch(() => {});
@@ -700,7 +785,10 @@ document.getElementById('f-phone').addEventListener('input', e => {
 });
 
 window.openApply = () => {
-  if (!currentUser) return;
+  if (!myApply && totalPeople() >= CAPACITY) return showToast('정원이 모두 찼습니다 (모집 마감)');
+  document.getElementById('apply-form').classList.remove('hidden');
+  document.getElementById('apply-done').classList.add('hidden');
+  if (isGuest) return openGuestApply();
   document.getElementById('f-name').value  = myApply?.name || _ggzonUser?.nickname || currentUser.displayName || '';
   document.getElementById('f-phone').value = '';
   document.getElementById('f-phone').placeholder = myApply ? '변경할 때만 입력 (비우면 기존 번호 유지)' : '010-0000-0000';
@@ -715,13 +803,73 @@ window.openApply = () => {
 };
 window.closeApply = () => document.getElementById('sheet').classList.remove('open');
 
+function openGuestApply() {
+  const saved = myApply ? guestSaved() : null;
+  document.getElementById('f-name').value  = saved?.name || '';
+  document.getElementById('f-phone').value = '';
+  document.getElementById('f-phone').placeholder = saved ? '신청할 때 쓴 연락처 (같은 번호여야 수정됩니다)' : '010-0000-0000';
+  document.getElementById('f-memo').value  = saved?.memo || '';
+  document.getElementById('f-consent').checked = false;
+  segPeople.set(saved?.people || 1);
+  segAirport.set(saved?.airport || '부산');
+  segRoom.set(saved?.room || '동반자와 같은 방');
+  document.getElementById('sheet-title').textContent = saved ? '참가 신청 수정' : '다낭 해외라운드 참가 신청';
+  document.getElementById('btn-submit').textContent  = saved ? '수정하기' : '신청하기';
+  document.getElementById('btn-withdraw').classList.add('hidden');
+  document.getElementById('sheet').classList.add('open');
+}
+
+// 비회원 신청은 Firestore 에 직접 쓰지 않고 서버 함수가 검증·합치기·정원 확인 후 저장한다
+async function submitGuestApply() {
+  const name   = document.getElementById('f-name').value.trim();
+  const phone  = document.getElementById('f-phone').value.trim();
+  const memo   = document.getElementById('f-memo').value.trim();
+  const people = Number(segPeople.get()) || 1;
+  if (name.length < 2) return showToast('이름을 입력해 주세요');
+  if (!/^01[016789]-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
+  if (!document.getElementById('f-consent').checked) return showToast('개인정보 수집·이용에 동의해 주세요');
+  if (people > remainingFor()) return showToast(fullMsg());
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  try {
+    const body = {
+      tripId: TRIP_ID, name, phone, memo, people,
+      airport: segAirport.get(), room: segRoom.get(),
+      consent: true, src: SRC || 'direct',
+      website: document.getElementById('f-website').value,
+    };
+    const res = await fetch(GUEST_APPLY_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok || !r.ok) {
+      showToast(r.error || '신청 실패 — 잠시 후 다시 시도해 주세요');
+      if (r.code === 'full') await loadApplicants();
+      return;
+    }
+    guestSave({ id: r.id, name, people, airport: body.airport, room: body.room, memo });
+    document.getElementById('done-title').textContent = r.merged ? '신청 내용을 수정했습니다' : '참가 신청이 접수되었습니다';
+    document.getElementById('apply-form').classList.add('hidden');
+    document.getElementById('apply-done').classList.remove('hidden');
+    await loadApplicants();
+  } catch (e) {
+    console.error(e);
+    showToast('신청 실패 — 인터넷 연결을 확인해 주세요');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 window.submitApply = async () => {
+  if (isGuest) return submitGuestApply();
   const name  = document.getElementById('f-name').value.trim();
   const phone = document.getElementById('f-phone').value.trim();
   const memo  = document.getElementById('f-memo').value.trim();
   if (!name) return showToast('이름을 입력해 주세요');
   if (!myApply && !/^01\d-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
   if (myApply && phone && !/^01\d-\d{3,4}-\d{4}$/.test(phone)) return showToast('연락처를 정확히 입력해 주세요');
+  // 정원(인원 합계) — 새 신청과 인원 늘리기만 막는다. 기존 신청자의 수정(같거나 적은 인원)과 취소는 그대로 된다.
+  const wantPeople = Number(segPeople.get()) || 1;
+  if (wantPeople > (myApply?.people || 0) && wantPeople > remainingFor()) return showToast(fullMsg());
 
   const btn = document.getElementById('btn-submit');
   btn.disabled = true;
@@ -730,6 +878,7 @@ window.submitApply = async () => {
     const base = { tripId: TRIP_ID, userId: currentUser.uid };
     await setDoc(doc(db, 'overseasApply', id), {
       ...base, name, memo,
+      src: myApply?.src || SRC || 'member',
       people: Number(segPeople.get()) || 1,
       airport: segAirport.get(),
       room: segRoom.get(),
@@ -749,7 +898,7 @@ window.submitApply = async () => {
 };
 
 window.withdraw = async () => {
-  if (!myApply || !confirm('참가 신청을 취소할까요?')) return;
+  if (isGuest || !myApply || !confirm('참가 신청을 취소할까요?')) return;
   try {
     await deleteDoc(doc(db, 'overseasApply', docId()));
     showToast('신청을 취소했습니다');

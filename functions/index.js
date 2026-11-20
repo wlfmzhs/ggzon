@@ -18,6 +18,7 @@ import { getMessaging } from 'firebase-admin/messaging';
 import Anthropic from '@anthropic-ai/sdk';
 import { logger } from 'firebase-functions';
 import { teeTimeOf, autoCloseBaseOf, runRoundStartPush } from './round-push.js';
+import { handleGuestApply, rateDecision, ApplyError } from './overseas-apply.js';
 
 initializeApp();
 const db = getFirestore();
@@ -558,6 +559,69 @@ export const summarizeGGIssue = onRequest(
     } catch (e) {
       logger.error('summarizeGGIssue 예외', e);
       res.status(500).json({ ok: false, error: e instanceof Anthropic.APIError ? `API ${e.status}` : 'ERROR' });
+    }
+  }
+);
+
+// ───────────────────────────────────────────────────────────
+// 해외라운드 비회원 참가 신청 (overseas.html 게스트 모드, /danang 링크)
+//   비회원은 Firestore 에 직접 쓸 수 없으므로(규칙은 회원·카카오만 허용) 이 함수가 검증 후 대신 쓴다.
+//   검증·합치기·빈도 제한·정원 판단은 overseas-apply.js. body: { tripId, name, phone, people, airport, room, memo, consent, src }
+// ───────────────────────────────────────────────────────────
+const GUEST_APPLY_ORIGINS = [
+  'https://www.ggzon.co.kr', 'https://ggzon.co.kr', 'https://wlfmzhs.github.io',
+  /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
+];
+
+const guestApplyStore = {
+  // 키 하나당 문서 하나에 최근 신청 시각(ms)을 모아 둔다. IP·연락처는 해시로만 남긴다.
+  async checkRate(key, limits, now) {
+    const ref = db.collection('overseasApplyRate').doc(key);
+    return db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      const d = rateDecision(snap.exists ? snap.data().stamps : [], limits, now);
+      tx.set(ref, { stamps: d.kept, updatedAt: FieldValue.serverTimestamp() });
+      return d.ok;
+    });
+  },
+  runTransaction(fn) {
+    return db.runTransaction(async t => {
+      const writes = [];
+      const result = await fn({
+        async findContactByPhone(tripId, phone) {
+          const q = db.collection('overseasApplyContacts').where('tripId', '==', tripId).where('phone', '==', phone);
+          const snap = await t.get(q);
+          // 비회원 신청만 합친다 (회원 신청은 회원 화면에서 고친다)
+          const d = snap.docs.find(x => x.data().isGuest === true);
+          return d ? { id: d.id, ...d.data() } : null;
+        },
+        async listApplicants(tripId) {
+          const snap = await t.get(db.collection('overseasApply').where('tripId', '==', tripId));
+          return snap.docs.map(x => ({ id: x.id, ...x.data() }));
+        },
+        set(coll, id, data) { writes.push([coll, id, data]); },
+        serverTime: () => FieldValue.serverTimestamp(),
+      });
+      writes.forEach(([coll, id, data]) => t.set(db.collection(coll).doc(id), data));
+      return result;
+    });
+  },
+};
+
+export const overseasGuestApply = onRequest(
+  { region: REGION, cors: GUEST_APPLY_ORIGINS, maxInstances: 5, timeoutSeconds: 30 },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST only' }); return; }
+      // Cloud Functions 는 'trust proxy' 가 켜져 있어 req.ip 가 접속한 쪽 IP 다 (없으면 소켓 주소)
+      const ip = req.ip || req.socket?.remoteAddress || '';
+      const result = await handleGuestApply(req.body, ip, guestApplyStore);
+      logger.info('overseasGuestApply', { id: result.id, merged: result.merged, total: result.total, ipKnown: !!ip });
+      res.json(result);
+    } catch (e) {
+      if (e instanceof ApplyError) { res.status(e.status).json({ ok: false, code: e.code, error: e.message }); return; }
+      logger.error('overseasGuestApply 예외', e);
+      res.status(500).json({ ok: false, code: 'error', error: '신청 처리 중 오류가 났습니다. 잠시 후 다시 시도해 주세요' });
     }
   }
 );

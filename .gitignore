@@ -17,3 +17,6 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Functions 에뮬레이터용 로컬 비밀값
+.secret.local
